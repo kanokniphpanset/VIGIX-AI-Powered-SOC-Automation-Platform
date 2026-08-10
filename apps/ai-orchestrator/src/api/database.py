@@ -99,7 +99,10 @@ def persist_agent_results(database_url: str, execution_id: str, incident_id: str
     with psycopg.connect(database_url) as conn:
         with conn.cursor() as cur:
             agent_outputs = {
-                "threat_intel": {"iocs": state.get("iocs", [])},
+                "threat_intel": {
+                    "iocs": state.get("iocs", []),
+                    "threat_intel_report": state.get("threat_intel_report"),
+                },
                 "mitre": {"mitre_techniques": state.get("mitre_techniques", [])},
                 "rag": {"rag_matches": state.get("rag_matches", [])},
                 "ml_risk": {
