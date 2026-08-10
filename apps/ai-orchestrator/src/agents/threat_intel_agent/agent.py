@@ -1,71 +1,65 @@
-"""
-ThreatIntelAgent — LangGraph node. Extracts IOCs from the alert, enriches
-each one against every configured threat-intel provider, and produces an
-explainable ThreatIntelReport.
-
-Runs first in the pipeline's parallel fan-out (see graph/build_graph.py:
-START -> [threat_intel, mitre, rag] -> ml_risk -> ...). Never raises: a
-provider outage, missing API keys, or an alert with zero extractable IOCs
-all degrade gracefully rather than failing the run — MlRiskAgent's
-feature_engineering.py and ValidationAgent's rules.py both already treat an
-empty/unenriched `iocs` list as a valid (if less confident) input.
-
-State contract (unchanged from before this rewrite):
-  reads:  state["alert_text"], state["raw_alert"]
-  writes: state["iocs"]                — list[Ioc], backward compatible with
-                                          existing consumers (feature_engineering.py,
-                                          api/database.py) plus the richer
-                                          verdict/score/explanation fields.
-          state["threat_intel_report"]  — full ThreatIntelReport, for any
-                                          consumer (LlmAnalystAgent prompts,
-                                          future IncidentClassificationAgent)
-                                          that wants the aggregate view.
-          state["trace"]                — one summary entry.
-"""
-
-import logging
-
 from src.graph.state import AgentState
-from .service import ThreatIntelligenceService
+from src.tools.ioc_extraction_tool import extract_iocs
+from src.config.settings import settings
+from .clients.misp_client import MispClient
+from .clients.vt_client import VirusTotalClient
+from .clients.otx_client import OtxClient
 
-logger = logging.getLogger("soar.ai-orchestrator.threat-intel")
-
-_service = ThreatIntelligenceService()
+misp = MispClient(settings.misp_url, settings.misp_api_key)
+virustotal = VirusTotalClient(settings.virustotal_api_key)
+otx = OtxClient(settings.otx_api_key)
 
 
 async def run(state: AgentState) -> AgentState:
-    correlation_id = state.get("graph_run_id") or state.get("alert_id")
-    alert_id = state.get("alert_id")
+    """
+    ThreatIntelAgent — extracts IOCs from the raw alert and enriches each one
+    against MISP / VirusTotal / AlienVault OTX. Any source without a configured
+    API key is skipped (not failed) — the agent still returns whatever IOCs it
+    found, just without external reputation data attached.
+    """
+    text = state.get("alert_text", "")
+    extracted = extract_iocs(text)
 
-    logger.info(
-        "threat_intel.analysis.started",
-        extra={"agent": "ThreatIntelAgent", "correlationId": correlation_id, "alertId": alert_id},
-    )
+    enriched = []
+    for ioc in extracted[:10]:  # cap to avoid hammering rate-limited free-tier APIs
+        reputation_score = None
+        raw_response: dict = {}
 
-    report = await _service.analyze_alert(state.get("raw_alert"), state.get("alert_text", ""))
+        if ioc["ioc_type"] == "ip":
+            vt_result = await virustotal.lookup_ip(ioc["ioc_value"])
+            otx_result = await otx.lookup_ip(ioc["ioc_value"])
+        elif ioc["ioc_type"] == "domain":
+            vt_result = await virustotal.lookup_domain(ioc["ioc_value"])
+            otx_result = await otx.lookup_domain(ioc["ioc_value"])
+        elif ioc["ioc_type"] == "hash":
+            vt_result = await virustotal.lookup_hash(ioc["ioc_value"])
+            otx_result = None
+        else:
+            vt_result = None
+            otx_result = None
 
-    logger.info(
-        "threat_intel.analysis.completed",
-        extra={
-            "agent": "ThreatIntelAgent",
-            "correlationId": correlation_id,
-            "alertId": alert_id,
-            "durationMs": report.duration_ms,
-            "total": report.summary["total"],
-            "malicious": report.summary["malicious"],
-            "overallRiskLevel": report.overall_risk_level.value,
-        },
-    )
+        misp_result = await misp.lookup(ioc["ioc_value"])
 
-    legacy_iocs = [indicator.to_legacy_ioc() for indicator in report.indicators]
+        if vt_result:
+            raw_response["virustotal"] = vt_result
+            malicious = vt_result.get("malicious", 0)
+            total = sum(
+                vt_result.get(k, 0) for k in ("malicious", "suspicious", "harmless", "undetected")
+            )
+            reputation_score = round((malicious / total) * 100, 1) if total else None
+        if otx_result:
+            raw_response["otx"] = otx_result
+        if misp_result:
+            raw_response["misp"] = misp_result
 
-    return {
-        "iocs": legacy_iocs,
-        "threat_intel_report": report.to_dict(),
-        "trace": [
-            f"ThreatIntelAgent: analyzed {report.summary['total']} IOC(s) — "
-            f"{report.summary['malicious']} malicious, {report.summary['suspicious']} suspicious, "
-            f"{report.summary['clean']} clean, {report.summary['unknown']} unknown "
-            f"(overall risk: {report.overall_risk_level.value})"
-        ],
-    }
+        enriched.append(
+            {
+                "ioc_type": ioc["ioc_type"],
+                "ioc_value": ioc["ioc_value"],
+                "source": "aggregated",
+                "reputation_score": reputation_score,
+                "raw_response": raw_response,
+            }
+        )
+
+    return {"iocs": enriched, "trace": [f"ThreatIntelAgent: found {len(enriched)} IOC(s)"]}

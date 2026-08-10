@@ -15,6 +15,9 @@ import { ISiemAdapter } from "../external-services/siem/ISiemAdapter";
 // AI orchestrator adapter (infrastructure implements IAiOrchestratorPort)
 import { LangGraphOrchestratorAdapter } from "../ai/LangGraphOrchestratorAdapter";
 
+// Workflow engine adapter (infrastructure implements IWorkflowEnginePort)
+import { N8nWorkflowEngineAdapter } from "../automation/N8nWorkflowEngineAdapter";
+
 // Use-cases (application layer, depends only on the ports)
 import { ListAlertsUseCase } from "../../application/alert/use-cases/ListAlerts.usecase";
 import { GetAlertByIdUseCase } from "../../application/alert/use-cases/GetAlertById.usecase";
@@ -28,13 +31,14 @@ import { UpdateIncidentStatusUseCase } from "../../application/incident/use-case
 import { AlertController } from "../../presentation/http/controllers/AlertController";
 import { IncidentController } from "../../presentation/http/controllers/IncidentController";
 import { SiemInboundWebhookController } from "../../presentation/http/webhooks/siem-inbound.webhook";
+import { OrchestratorCallbackController } from "../../presentation/http/webhooks/orchestrator-callback.webhook";
 
 /**
  * container.ts — composition root.
  * This is the ONLY file in the codebase allowed to know about every layer at once.
  * Everything upstream (domain, application) stays ignorant of how it's wired together.
- * Swap PrismaAlertRepository, a SIEM adapter, or the orchestrator adapter here —
- * nothing else in the codebase changes.
+ * Swap PrismaAlertRepository, a SIEM adapter, the orchestrator adapter, or the
+ * workflow engine adapter here — nothing else in the codebase changes.
  */
 
 // Repositories
@@ -52,6 +56,11 @@ const siemAdapters: Partial<Record<SiemSource, ISiemAdapter>> = {
 // AI orchestrator — points at the ai-orchestrator FastAPI service (apps/ai-orchestrator)
 const aiOrchestratorUrl = process.env.AI_ORCHESTRATOR_URL ?? "http://localhost:8000";
 const aiOrchestrator = new LangGraphOrchestratorAdapter(aiOrchestratorUrl);
+
+// Workflow engine — points at the n8n instance (see infra/docker/docker-compose.yml)
+const n8nUrl = process.env.N8N_URL ?? "http://localhost:5678";
+const n8nApiKey = process.env.N8N_API_KEY;
+const workflowEngine = new N8nWorkflowEngineAdapter(n8nUrl, n8nApiKey);
 
 // Use-cases
 const listAlertsUseCase = new ListAlertsUseCase(alertRepository);
@@ -75,4 +84,4 @@ export const siemWebhookController = new SiemInboundWebhookController(
   ingestAlertFromSiemUseCase,
   siemAdapters
 );
-
+export const orchestratorCallbackController = new OrchestratorCallbackController(workflowEngine);

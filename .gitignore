@@ -1,17 +1,9 @@
 node_modules/
 .venv/
-.venv.*/
 __pycache__/
-*.pyc
-*.pyo
 dist/
 build/
 .env
 *.log
 .DS_Store
 apps/backend/prisma/migrations/**/migration.sql
-*.egg-info/
-.pytest_cache/
-coverage/
-.coverage
-htmlcov/

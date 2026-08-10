@@ -25,34 +25,13 @@ class Settings(BaseSettings):
     llm_model: str = "llama3.1:8b-instruct-q4_K_M"
 
     # Threat intel (optional — agent degrades gracefully if unset)
-    threat_intel_enabled: bool = True
-
     misp_url: str | None = None
     misp_api_key: str | None = None
-    misp_timeout: float = 5.0
-    # MISP instances are frequently self-signed in lab/on-prem deployments; default
-    # to strict verification and let operators explicitly opt out per-instance.
-    misp_verify_tls: bool = True
-
     virustotal_api_key: str | None = None
-    virustotal_base_url: str = "https://www.virustotal.com/api/v3"
-    virustotal_timeout: float = 5.0
-
-    abuseipdb_api_key: str | None = None
-    abuseipdb_base_url: str = "https://api.abuseipdb.com/api/v2"
-    abuseipdb_timeout: float = 5.0
-
     otx_api_key: str | None = None
-    otx_base_url: str = "https://otx.alienvault.com/api/v1/indicators"
-    otx_timeout: float = 5.0
 
-    # Cross-provider IOC enrichment behavior
-    threat_intel_cache_enabled: bool = True
-    threat_intel_cache_ttl: int = 3600  # seconds
-    threat_intel_max_concurrency: int = 3
-    threat_intel_retry_count: int = 2
-    threat_intel_retry_backoff_seconds: float = 0.5
-    threat_intel_max_iocs_per_alert: int = 25
+    # Backend — used to call back with the final decision so it can trigger n8n
+    backend_url: str = "http://localhost:4000"
 
     # Decision policy
     risk_auto_response_threshold: float = 30.0

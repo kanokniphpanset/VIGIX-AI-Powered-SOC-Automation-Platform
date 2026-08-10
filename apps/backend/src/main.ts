@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import { alertController, incidentController, siemWebhookController } from "./infrastructure/config/container";
+import { alertController, incidentController, siemWebhookController, orchestratorCallbackController } from "./infrastructure/config/container";
 import { buildAlertRoutes } from "./presentation/http/routes/alert.routes";
 import { buildIncidentRoutes } from "./presentation/http/routes/incident.routes";
 import { buildWebhookRoutes } from "./presentation/http/routes/webhook.routes";
@@ -16,7 +16,7 @@ app.use(express.json());
 
 app.use("/api/v1/alerts", buildAlertRoutes(alertController));
 app.use("/api/v1/incidents", buildIncidentRoutes(incidentController));
-app.use("/api/v1/webhooks", buildWebhookRoutes(siemWebhookController));
+app.use("/api/v1/webhooks", buildWebhookRoutes(siemWebhookController, orchestratorCallbackController));
 
 app.get("/api/v1/health", (_req, res) => {
   res.json({ status: "ok", service: "soar-backend", timestamp: new Date().toISOString() });

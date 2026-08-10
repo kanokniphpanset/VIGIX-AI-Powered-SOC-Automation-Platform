@@ -9,7 +9,9 @@ from src.api.database import (
     ensure_incident_for_alert,
     create_agent_execution,
     persist_agent_results,
+    get_incident_title,
 )
+from src.api.backend_client import notify_backend_of_decision
 
 router = APIRouter()
 logger = logging.getLogger("soar.ai-orchestrator")
@@ -72,6 +74,21 @@ async def run_pipeline(request: RunPipelineRequest) -> RunPipelineResponse:
         raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {exc}") from exc
 
     persist_agent_results(settings.database_url, execution_id, incident_id, final_state)
+
+    # Hand off the decision to the backend, which triggers the n8n playbook
+    # (Teams notification, ticket creation) via IWorkflowEnginePort. "dismiss"
+    # decisions are still sent — the backend controller decides to skip n8n
+    # for those rather than the orchestrator hardcoding that policy itself.
+    if final_state.get("decision"):
+        await notify_backend_of_decision(
+            backend_url=settings.backend_url,
+            incident_id=incident_id,
+            title=get_incident_title(settings.database_url, incident_id),
+            severity=final_state.get("severity_prediction", "unknown"),
+            summary=final_state.get("llm_summary", ""),
+            decision=final_state["decision"],
+            risk_score=final_state.get("risk_score", 0.0),
+        )
 
     return RunPipelineResponse(
         graph_run_id=execution_id,

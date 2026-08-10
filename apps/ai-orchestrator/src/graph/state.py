@@ -8,20 +8,6 @@ class Ioc(TypedDict, total=False):
     source: str
     reputation_score: float | None
     raw_response: dict
-    # Richer explainable-verdict fields produced by ThreatIntelAgent's scoring
-    # service. Optional so existing consumers (feature_engineering.py,
-    # api/database.py) that only read the fields above are unaffected.
-    verdict: str  # MALICIOUS | SUSPICIOUS | CLEAN | UNKNOWN
-    risk_level: str  # LOW | MEDIUM | HIGH | CRITICAL
-    threat_score: float  # 0-100
-    confidence: float  # 0-1
-    malicious: bool
-    suspicious: bool
-    categories: list[str]
-    sources: list[str]
-    explanation: list[str]
-    analyzed_at: str
-    providers: list[dict]
 
 
 class MitreTechniqueMatch(TypedDict, total=False):
@@ -54,11 +40,6 @@ class AgentState(TypedDict, total=False):
 
     # ThreatIntelAgent output
     iocs: list[Ioc]
-    # Full structured report (summary/highest-risk/overall verdict) — see
-    # agents/threat_intel_agent/types.py::ThreatIntelReport. Kept as a plain
-    # dict here (not the dataclass) since AgentState is a TypedDict threaded
-    # through LangGraph and persisted as JSON.
-    threat_intel_report: dict
 
     # MitreAgent output
     mitre_techniques: list[MitreTechniqueMatch]

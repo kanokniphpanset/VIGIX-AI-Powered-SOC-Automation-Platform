@@ -4,6 +4,14 @@ from datetime import datetime, timezone
 import psycopg
 
 
+def get_incident_title(database_url: str, incident_id: str) -> str:
+    with psycopg.connect(database_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT title FROM incidents WHERE id = %s", (incident_id,))
+            row = cur.fetchone()
+            return row[0] if row else "Untitled incident"
+
+
 def fetch_alert(database_url: str, alert_id: str, tenant_id: str) -> dict | None:
     """Reads the alert row the backend already saved (via POST /webhooks/siem/:source)."""
     with psycopg.connect(database_url) as conn:
@@ -99,10 +107,7 @@ def persist_agent_results(database_url: str, execution_id: str, incident_id: str
     with psycopg.connect(database_url) as conn:
         with conn.cursor() as cur:
             agent_outputs = {
-                "threat_intel": {
-                    "iocs": state.get("iocs", []),
-                    "threat_intel_report": state.get("threat_intel_report"),
-                },
+                "threat_intel": {"iocs": state.get("iocs", [])},
                 "mitre": {"mitre_techniques": state.get("mitre_techniques", [])},
                 "rag": {"rag_matches": state.get("rag_matches", [])},
                 "ml_risk": {
