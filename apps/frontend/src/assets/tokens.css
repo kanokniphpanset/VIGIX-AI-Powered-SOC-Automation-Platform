@@ -1,0 +1,93 @@
+/**
+ * Design tokens — AI-Driven SOAR Automation Platform console.
+ * Theme: dark command-center (SOC rooms run dim screens on 24/7 monitor walls).
+ * Severity color is a functional signal, not decoration — it's how an analyst
+ * triages a wall of alerts in under a second.
+ */
+:root {
+  /* Surfaces */
+  --bg-base: #0b1120;
+  --bg-surface: #131b2e;
+  --bg-surface-raised: #1a2438;
+  --border-hairline: #232e45;
+
+  /* Text */
+  --text-primary: #e4e9f2;
+  --text-secondary: #a7b0c3;
+  --text-muted: #6b7488;
+
+  /* Brand / interactive accent */
+  --accent: #4fd1c5;
+  --accent-dim: #2f8f85;
+
+  /* Severity signal palette — functional, not decorative */
+  --severity-critical: #f2545b;
+  --severity-critical-bg: rgba(242, 84, 91, 0.12);
+  --severity-high: #ff9f4a;
+  --severity-high-bg: rgba(255, 159, 74, 0.12);
+  --severity-medium: #f5c451;
+  --severity-medium-bg: rgba(245, 196, 81, 0.12);
+  --severity-low: #5b8def;
+  --severity-low-bg: rgba(91, 141, 239, 0.12);
+
+  /* Status */
+  --status-success: #4fd1a5;
+  --status-danger: #f2545b;
+
+  /* Type */
+  --font-display: "IBM Plex Sans", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "name": "SOAR - Teams Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "soar/notify-teams",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Incident Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "soar-notify-teams"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.decision }}",
+              "rightValue": "human_approval",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-requires-approval",
+      "name": "Requires Approval?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "webhookUri": "={{ $env.TEAMS_WEBHOOK_URL }}",
+        "options": {},
+        "text": "=🚨 **{{ $json.body.severity | upper }} incident awaiting approval**\n\n**Title:** {{ $json.body.title }}\n**Risk score:** {{ $json.body.riskScore }}\n**Incident:** {{ $json.body.incidentId }}\n\n[Review in SOAR console]({{ $env.FRONTEND_URL }}/incidents/{{ $json.body.incidentId }})"
+      },
+      "id": "teams-approval",
+      "name": "Notify Teams (Approval Needed)",
+      "type": "n8n-nodes-base.microsoftTeams",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "webhookUri": "={{ $env.TEAMS_WEBHOOK_URL }}",
+        "options": {},
+        "text": "=ℹ️ Automated response executed for **{{ $json.body.title }}** (risk score {{ $json.body.riskScore }}). No action needed."
+      },
+      "id": "teams-info",
+      "name": "Notify Teams (Info Only)",
+      "type": "n8n-nodes-base.microsoftTeams",
+      "typeVersion": 1,
+      "position": [680, 420]
+    }
+  ],
+  "connections": {
+    "Incident Webhook": {
+      "main": [[{ "node": "Requires Approval?", "type": "main", "index": 0 }]]
+    },
+    "Requires Approval?": {
+      "main": [
+        [{ "node": "Notify Teams (Approval Needed)", "type": "main", "index": 0 }],
+        [{ "node": "Notify Teams (Info Only)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "notes": "Triggered by the backend after DecisionAgent runs. Set TEAMS_WEBHOOK_URL and FRONTEND_URL as n8n environment variables (Settings > Variables) before activating. The backend calls this workflow's webhook URL from a future n8n integration adapter (infrastructure/automation/N8nWorkflowEngineAdapter.ts) — not yet wired in the current codebase."
+}

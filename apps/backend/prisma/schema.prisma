@@ -1,0 +1,307 @@
+// AI-Driven SOAR Automation Platform — Prisma schema
+// Maps 1:1 to the domain entities in src/domain/**, implemented by
+// src/infrastructure/database/postgres/repositories/*.prisma.ts
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity / Multi-tenancy
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  plan      String   @default("standard")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users     User[]
+  alerts    Alert[]
+  incidents Incident[]
+  playbooks Playbook[]
+  kpiMetrics KpiMetric[]
+  auditLogs AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("analyst") // admin | analyst | viewer
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  approvals    Approval[]
+  feedback     AnalystFeedback[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Alerts / Incidents
+// ---------------------------------------------------------------------------
+
+model Alert {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  externalAlertId String   @map("external_alert_id")
+  siemSource      String   @map("siem_source") // wazuh | splunk | defender | elk
+  rawPayload      Json     @map("raw_payload")
+  severity        String
+  status          String   @default("received")
+  receivedAt      DateTime @map("received_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  incidents Incident[]
+
+  @@map("alerts")
+}
+
+model Incident {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  alertId      String    @map("alert_id")
+  title        String
+  status       String    @default("open") // open | investigating | resolved | dismissed
+  priority     String    @default("medium")
+  openedAt     DateTime  @default(now()) @map("opened_at")
+  closedAt     DateTime? @map("closed_at")
+  mttdSeconds  Int?      @map("mttd_seconds")
+  mttrSeconds  Int?      @map("mttr_seconds")
+
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
+  alert            Alert              @relation(fields: [alertId], references: [id])
+  timeline         IncidentTimeline[]
+  agentExecutions  AgentExecution[]
+  iocs             ThreatIntelIoc[]
+  mitreMappings    MitreMapping[]
+  riskScores       RiskScore[]
+  decisions        Decision[]
+  playbookRuns     PlaybookExecution[]
+  feedback         AnalystFeedback[]
+
+  @@map("incidents")
+}
+
+model IncidentTimeline {
+  id          String   @id @default(uuid())
+  incidentId  String   @map("incident_id")
+  eventType   String   @map("event_type")
+  description String
+  actor       String
+  occurredAt  DateTime @default(now()) @map("occurred_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("incident_timeline")
+}
+
+// ---------------------------------------------------------------------------
+// AI Agent Execution
+// ---------------------------------------------------------------------------
+
+model AgentExecution {
+  id          String    @id @default(uuid())
+  incidentId  String    @map("incident_id")
+  graphRunId  String    @map("graph_run_id")
+  status      String    @default("running") // running | completed | failed | interrupted
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  trace       Json?
+
+  incident Incident      @relation(fields: [incidentId], references: [id])
+  results  AgentResult[]
+
+  @@map("agent_executions")
+}
+
+model AgentResult {
+  id               String   @id @default(uuid())
+  agentExecutionId String   @map("agent_execution_id")
+  agentName        String   @map("agent_name") // threat_intel | mitre | rag | ml_risk | llm_analyst | validation | decision | business_analytics | feedback
+  output           Json
+  confidence       Float?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  agentExecution AgentExecution @relation(fields: [agentExecutionId], references: [id])
+
+  @@map("agent_results")
+}
+
+// ---------------------------------------------------------------------------
+// Threat Intel / MITRE
+// ---------------------------------------------------------------------------
+
+model ThreatIntelIoc {
+  id              String @id @default(uuid())
+  incidentId      String @map("incident_id")
+  iocType         String @map("ioc_type") // ip | domain | hash | url
+  iocValue        String @map("ioc_value")
+  source          String // misp | virustotal | otx
+  reputationScore Float? @map("reputation_score")
+  rawResponse     Json?  @map("raw_response")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("threat_intel_iocs")
+}
+
+model MitreTechnique {
+  id          String @id @default(uuid())
+  techniqueId String @unique @map("technique_id") // e.g. T1566
+  name        String
+  tactic      String
+  description String?
+
+  @@map("mitre_techniques")
+}
+
+model MitreMapping {
+  id          String @id @default(uuid())
+  incidentId  String @map("incident_id")
+  techniqueId String @map("technique_id")
+  tactic      String
+  confidence  Float?
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("mitre_mappings")
+}
+
+// ---------------------------------------------------------------------------
+// Playbooks / Automation
+// ---------------------------------------------------------------------------
+
+model Playbook {
+  id                String  @id @default(uuid())
+  tenantId          String  @map("tenant_id")
+  name              String
+  description       String?
+  triggerConditions Json    @map("trigger_conditions")
+  n8nWorkflowId     String? @map("n8n_workflow_id")
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  executions PlaybookExecution[]
+
+  @@map("playbooks")
+}
+
+model PlaybookExecution {
+  id          String    @id @default(uuid())
+  playbookId  String    @map("playbook_id")
+  incidentId  String    @map("incident_id")
+  status      String    @default("pending")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  result      Json?
+
+  playbook Playbook @relation(fields: [playbookId], references: [id])
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("playbook_executions")
+}
+
+// ---------------------------------------------------------------------------
+// Risk / Decision
+// ---------------------------------------------------------------------------
+
+model RiskScore {
+  id                  String @id @default(uuid())
+  incidentId          String @map("incident_id")
+  score               Float
+  severityPrediction  String @map("severity_prediction")
+  confidenceScore     Float  @map("confidence_score")
+  modelVersion        String @map("model_version")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("risk_scores")
+}
+
+model Decision {
+  id                String   @id @default(uuid())
+  incidentId        String   @map("incident_id")
+  decisionType       String   @map("decision_type") // auto_response | human_approval | dismiss
+  riskThresholdUsed  Float    @map("risk_threshold_used")
+  requiresApproval    Boolean  @default(false) @map("requires_approval")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  incident  Incident   @relation(fields: [incidentId], references: [id])
+  approvals Approval[]
+
+  @@map("decisions")
+}
+
+model Approval {
+  id           String    @id @default(uuid())
+  decisionId   String    @map("decision_id")
+  requestedTo  String    @map("requested_to") // user id
+  status       String    @default("pending") // pending | approved | rejected
+  decidedAt    DateTime? @map("decided_at")
+  comment      String?
+
+  decision Decision @relation(fields: [decisionId], references: [id])
+  user     User     @relation(fields: [requestedTo], references: [id])
+
+  @@map("approvals")
+}
+
+// ---------------------------------------------------------------------------
+// Analytics / Feedback / Audit
+// ---------------------------------------------------------------------------
+
+model KpiMetric {
+  id                     String   @id @default(uuid())
+  tenantId               String   @map("tenant_id")
+  periodStart            DateTime @map("period_start")
+  periodEnd              DateTime @map("period_end")
+  mttdAvg                Float?   @map("mttd_avg")
+  mttrAvg                Float?   @map("mttr_avg")
+  automationRate         Float?   @map("automation_rate")
+  analystTimeSavedHours  Float?   @map("analyst_time_saved_hours")
+  costSavingUsd          Float?   @map("cost_saving_usd")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("kpi_metrics")
+}
+
+model AnalystFeedback {
+  id                     String   @id @default(uuid())
+  incidentId             String   @map("incident_id")
+  userId                 String   @map("user_id")
+  rating                 Int
+  comment                String?
+  playbookSuggestedChange String?  @map("playbook_suggested_change")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("analyst_feedback")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  actor     String
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("audit_logs")
+}

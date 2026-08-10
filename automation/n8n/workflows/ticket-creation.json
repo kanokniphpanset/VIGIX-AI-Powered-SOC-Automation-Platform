@@ -1,0 +1,62 @@
+{
+  "name": "SOAR - Ticket Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "soar/create-ticket",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Incident Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "soar-create-ticket"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TICKETING_API_URL }}/tickets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.body.title }}\",\n  \"priority\": \"{{ $json.body.severity }}\",\n  \"description\": \"{{ $json.body.summary }}\",\n  \"source\": \"soar-platform\",\n  \"externalRef\": \"{{ $json.body.incidentId }}\"\n}",
+        "options": {}
+      },
+      "id": "create-ticket",
+      "name": "Create Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.BACKEND_URL }}/api/v1/incidents/{{ $('Incident Webhook').item.json.body.incidentId }}/status",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"investigating\"\n}",
+        "options": {}
+      },
+      "id": "update-incident-status",
+      "name": "Mark Incident Investigating",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Incident Webhook": {
+      "main": [[{ "node": "Create Ticket", "type": "main", "index": 0 }]]
+    },
+    "Create Ticket": {
+      "main": [[{ "node": "Mark Incident Investigating", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "notes": "Generic ticketing integration via HTTP Request node — works with Jira Service Management, ServiceNow, Zendesk, etc. as long as you set TICKETING_API_URL and a header-auth credential. BACKEND_URL should point at the soar-backend API (e.g. http://backend:4000)."
+}
