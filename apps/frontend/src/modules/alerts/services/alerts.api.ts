@@ -1,32 +1,51 @@
-import { httpClient } from "../../../shared/services/httpClient";
+import { executionsHttpClient, httpClient } from "../../../shared/services/httpClient";
 
-export interface AlertDto {
+export interface AlertProps {
   id: string;
   tenantId: string;
   externalAlertId: string;
   siemSource: string;
-  rawPayload: Record<string, unknown>;
-  severity: string;
-  status: string;
+  rawPayload: unknown;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "received" | "analyzing" | "escalated" | "closed";
   receivedAt: string;
   createdAt: string;
 }
 
-export interface AlertListResponse {
-  items: AlertDto[];
+export interface ExecutionListItem {
+  executionId: string;
+  alertId: string;
+  incidentId: string | null;
+  externalAlertId: string;
+  title: string;
+  sourceIp: string | null;
+  user: string | null;
+  siemSource: string | null;
+  riskScore: number | null;
+  status: string;
+  alertStatus: string;
+  severity: string;
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  verdict: "MALICIOUS" | "SUSPICIOUS" | "BENIGN" | "UNKNOWN" | null;
+  topTechniqueId: string | null;
+  topTechniqueConfidence: number | null;
+}
+
+export interface ExecutionListResponse {
+  items: ExecutionListItem[];
   total: number;
-  limit: number;
-  offset: number;
 }
 
 export const alertsApi = {
-  async list(): Promise<AlertListResponse> {
-    const { data } = await httpClient.get<AlertListResponse>("/alerts");
+  async list(params: { q?: string; status?: string; alertStatus?: string; limit?: number; offset?: number } = {}): Promise<ExecutionListResponse> {
+    const { data } = await executionsHttpClient.get<ExecutionListResponse>("", { params: { limit: 50, offset: 0, ...params } });
     return data;
   },
 
-  async getById(id: string): Promise<AlertDto> {
-    const { data } = await httpClient.get<AlertDto>(`/alerts/${id}`);
+  async getAlert(id: string): Promise<AlertProps> {
+    const { data } = await httpClient.get<AlertProps>(`/alerts/${id}`);
     return data;
   },
 };
