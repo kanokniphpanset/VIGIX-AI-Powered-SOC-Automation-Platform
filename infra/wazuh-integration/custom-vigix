@@ -1,0 +1,37 @@
+#!/bin/sh
+# Wazuh custom integration wrapper — same shape as Wazuh's own built-in
+# integrations (slack, virustotal, pagerduty). The "custom-" prefix on the
+# filename is required: wazuh-integratord only recognizes a handful of
+# built-in names (slack/pagerduty/virustotal/shuffle/...) by exact match;
+# anything else must start with "custom-" or the daemon silently ignores
+# the <integration> block in ossec.conf.
+#
+# This wrapper just locates and execs the real logic in custom-vigix.py
+# using Wazuh's own bundled Python interpreter — do not run custom-vigix.py
+# directly, wazuh-integratord invokes this file.
+
+WPYTHON_BIN="framework/python/bin/python3"
+
+SCRIPT_PATH_NAME="$0"
+DIR_NAME="$(cd $(dirname "${SCRIPT_PATH_NAME}"); pwd -P)"
+SCRIPT_NAME="$(basename "${SCRIPT_PATH_NAME}")"
+
+case ${DIR_NAME} in
+    */active-response/bin | */wodles*)
+        if [ -z "${WAZUH_PATH}" ]; then
+            WAZUH_PATH="/var/ossec"
+        fi
+        PYTHON_SCRIPT="${DIR_NAME}/${SCRIPT_NAME}.py"
+    ;;
+    */bin)
+        cd ../
+        WAZUH_PATH="$(pwd)"
+        PYTHON_SCRIPT="${WAZUH_PATH}/integrations/${SCRIPT_NAME}.py"
+    ;;
+    */integrations)
+        WAZUH_PATH="$(cd ${DIR_NAME}/..; pwd)"
+        PYTHON_SCRIPT="${DIR_NAME}/${SCRIPT_NAME}.py"
+    ;;
+esac
+
+${WAZUH_PATH}/${WPYTHON_BIN} ${PYTHON_SCRIPT} "$@"

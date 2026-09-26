@@ -1,0 +1,16 @@
+# Notify the SOC channel via Microsoft Teams. Routes through the existing
+# n8n workflow automation/n8n/workflows/teams-notification.json — its
+# webhook path is "soar/notify-teams" (see that workflow's own Webhook node).
+id: notify-soc-teams
+name: Notify SOC via Teams
+description: >-
+  Posts an incident summary card to the SOC's Microsoft Teams channel via
+  the existing teams-notification.json n8n workflow.
+category: notification
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/notify-teams

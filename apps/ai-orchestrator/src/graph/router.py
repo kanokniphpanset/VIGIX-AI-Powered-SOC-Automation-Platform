@@ -1,9 +1,9 @@
-from src.graph.state import AgentState
+from src.graph.state import GraphState
 
 MAX_RETRIES = 2
 
 
-def after_validation(state: AgentState) -> str:
+def after_validation(state: GraphState) -> str:
     """
     ValidationAgent's conditional edge: retry enrichment if validation failed
     and we haven't exceeded MAX_RETRIES, otherwise proceed to DecisionAgent.
@@ -13,11 +13,12 @@ def after_validation(state: AgentState) -> str:
     return "proceed"
 
 
-def after_decision(state: AgentState) -> str:
+def after_decision(state: GraphState) -> str:
     """
-    DecisionAgent's conditional edge. All three outcomes converge on the same
-    next node (business_analytics) — the branch exists so n8n dispatch logic
-    (added at the backend/n8n integration layer) can key off state["decision"]
-    without the graph itself needing separate downstream paths yet.
+    DecisionAgent's conditional edge. All four outcomes (auto_response,
+    human_approval, dismiss, escalate) converge on the same next node
+    (business_analytics) — the branch exists so n8n dispatch logic (added at
+    the backend/n8n integration layer) can key off state["decision"] without
+    the graph itself needing separate downstream paths yet.
     """
     return state.get("decision", "dismiss")

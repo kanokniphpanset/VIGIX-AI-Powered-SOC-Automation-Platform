@@ -55,6 +55,48 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: "http"
       NODE_ENV: "development"
+      # Real Automation Integrations task — n8n blocks $env access inside
+      # node expressions/Code nodes by default (a multi-tenant-SaaS
+      # isolation default). This is a single-tenant lab instance the task
+      # explicitly configures via env vars, so that default is disabled —
+      # without it, ticket-creation.json/teams-notification.json's own
+      # $env.JIRA_*/$env.TEAMS_WEBHOOK_URL reads throw "access to env vars
+      # denied" and the workflow never runs at all (confirmed via a live
+      # webhook test against the previous default).
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      BACKEND_URL: "${BACKEND_URL:-http://backend:4000}"
+      # Real Automation Integrations task — read only by
+      # automation/n8n/workflows/ticket-creation.json and
+      # teams-notification.json via n8n's own $env. Sourced from
+      # infra/docker/.env (gitignored, docker compose auto-loads it from
+      # this file's own directory) — never hardcoded, never committed.
+      # Empty by default: both workflows treat a missing var as
+      # "integration not configured" and report status:"unavailable"
+      # rather than attempting (or faking) a real call.
+      JIRA_BASE_URL: "${JIRA_BASE_URL:-}"
+      JIRA_EMAIL: "${JIRA_EMAIL:-}"
+      JIRA_API_TOKEN: "${JIRA_API_TOKEN:-}"
+      JIRA_PROJECT_KEY: "${JIRA_PROJECT_KEY:-}"
+      TEAMS_WEBHOOK_URL: "${TEAMS_WEBHOOK_URL:-}"
+      # Phase N3 (VIGIX Notification Dispatcher, see
+      # docs/architecture/notification-event-contract.md) — role -> email
+      # resolution lives here, not in the backend or the workflow itself
+      # (the backend only ever sends recipient.roles). Defaults match this
+      # repo's seeded demo users so the workflow works without extra setup;
+      # override in infra/docker/.env for a real deployment.
+      MANAGER_EMAIL: "${MANAGER_EMAIL:-manager@soar-platform.local}"
+      IR_TEAM_EMAIL: "${IR_TEAM_EMAIL:-irteam@soar-platform.local}"
+      SOC_EMAIL: "${SOC_EMAIL:-soc@soar-platform.local}"
+      # Phase N3.5 — Discord/Telegram channels, same role->config pattern as
+      # the emails above. Empty by default (no real credentials committed);
+      # a role with an empty var here simply never receives that channel —
+      # see notification-event-contract.md §9.2.
+      MANAGER_DISCORD_WEBHOOK: "${MANAGER_DISCORD_WEBHOOK:-}"
+      IR_TEAM_DISCORD_WEBHOOK: "${IR_TEAM_DISCORD_WEBHOOK:-}"
+      SOC_DISCORD_WEBHOOK: "${SOC_DISCORD_WEBHOOK:-}"
+      MANAGER_TELEGRAM_CHAT_ID: "${MANAGER_TELEGRAM_CHAT_ID:-}"
+      IR_TEAM_TELEGRAM_CHAT_ID: "${IR_TEAM_TELEGRAM_CHAT_ID:-}"
+      SOC_TELEGRAM_CHAT_ID: "${SOC_TELEGRAM_CHAT_ID:-}"
     ports:
       - "5678:5678"
     volumes:
@@ -66,7 +108,277 @@ services:
       timeout: 5s
       retries: 10
 
+  # ---------------------------------------------------------------------
+  # Self-hosted MISP (replaces pointing MISP_URL/MISP_API_KEY at an
+  # external/SaaS MISP instance). Official images from the MISP project
+  # (github.com/MISP/misp-docker). First boot runs MISP's own DB migration
+  # and GPG key generation, which can take several minutes — watch
+  # `docker compose logs -f misp-core` and wait for it to settle before
+  # expecting the web UI / REST API to respond.
+  #
+  # All credentials below are LOCAL DEV DEFAULTS ONLY. Change every
+  # password/passphrase before using this on anything but a local machine.
+  # ---------------------------------------------------------------------
+  misp-db:
+    image: mysql:8.0
+    container_name: soar-misp-db
+    restart: unless-stopped
+    command: --innodb-buffer-pool-size=256M
+    environment:
+      MYSQL_ROOT_PASSWORD: misp_root_password
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: misp_password
+    volumes:
+      - misp_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "misp", "-pmisp_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  misp-redis:
+    image: redis:7-alpine
+    container_name: soar-misp-redis
+    restart: unless-stopped
+    # Dedicated instance, separate from the shared `redis` service above —
+    # MISP owns several Redis logical DBs and shouldn't share a container.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  misp-modules:
+    image: ghcr.io/misp/misp-docker/misp-modules:latest
+    container_name: soar-misp-modules
+    restart: unless-stopped
+    depends_on:
+      misp-redis:
+        condition: service_healthy
+
+  # Env var names below were confirmed by extracting them directly from
+  # /entrypoint.sh and /configure_misp.sh inside the official misp-core
+  # image (`docker run --rm --entrypoint sh <image> -c "grep ..."`) rather
+  # than assumed — MISP's own docs/examples use inconsistent naming across
+  # versions (e.g. BASE_URL not MISP_BASEURL, REDIS_HOST not REDIS_FQDN).
+  misp-core:
+    image: ghcr.io/misp/misp-docker/misp-core:latest
+    container_name: soar-misp-core
+    restart: unless-stopped
+    depends_on:
+      misp-db:
+        condition: service_healthy
+      misp-redis:
+        condition: service_healthy
+      misp-modules:
+        condition: service_started
+    ports:
+      - "8880:80"
+      - "8443:443"
+    environment:
+      MYSQL_HOST: misp-db
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: misp_password
+      REDIS_HOST: misp-redis
+      # Our misp-redis container has no `requirepass` set; without this flag
+      # misp-core defaults to expecting REDIS_PASSWORD="redispassword" and
+      # every Redis call (including auth-key validation) silently fails with
+      # "Redis is not reachable." — discovered via `docker compose logs misp-core`.
+      ENABLE_REDIS_EMPTY_PASSWORD: "true"
+      BASE_URL: "https://localhost:8443"
+      ADMIN_EMAIL: "admin@admin.test"
+      ADMIN_PASSWORD: "admin" # LOCAL DEV ONLY
+      ADMIN_ORG: "SOAR-Platform"
+      # NOT set here: this MISP version runs with Security.advanced_authkeys
+      # enabled by default, under which a fixed ADMIN_KEY value is not
+      # reliably honored (verified by testing — the log claims it was set,
+      # but the working key is whatever `cake User change_authkey` actually
+      # generated). Fetch/rotate the real automation key any time with:
+      #   docker compose exec misp-core /var/www/MISP/app/Console/cake User change_authkey 1
+      # then put the printed key in apps/backend/.env and
+      # apps/ai-orchestrator/.env as MISP_API_KEY.
+      AUTOCONF_GPG: "true"
+      GPG_PASSPHRASE: "misp_gpg_passphrase"
+    volumes:
+      - misp_core_data:/var/www/MISP
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk -o /dev/null -w '%{http_code}' https://localhost/users/login | grep -q 200"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 180s
+
+  # ---------------------------------------------------------------------
+  # Wazuh manager — real SIEM, local dev/testing deployment (Phase 5.8
+  # follow-up). Manager only: no wazuh-indexer/wazuh-dashboard (both are
+  # OpenSearch-based and resource-heavy; this machine's free RAM couldn't
+  # support the full official stack when this was set up). The alert ->
+  # rule -> integration -> VIGIX webhook path (what this project actually
+  # needs) does not depend on the indexer at all — verified directly:
+  # wazuh-integratord reads /var/ossec/logs/alerts/alerts.json and forwards
+  # independently of whether Filebeat can reach an indexer.
+  #
+  # REQUIRES A ONE-TIME BOOTSTRAP after first `docker compose up -d
+  # wazuh-manager` — see infra/docker/wazuh-manager/bootstrap.sh's own
+  # header comment for exactly why a plain bind-mount of ossec.conf alone
+  # breaks the container (verified: it does, with a concrete error message
+  # documented there) and what the two-phase sequence that reliably works
+  # actually is.
+  # ---------------------------------------------------------------------
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.9.2
+    container_name: soar-wazuh-manager
+    restart: unless-stopped
+    # No ports published: this deployment never enrolls a real agent (see
+    # ossec.conf's own header comment — detection happens via the local
+    # auth.log <localfile> monitor, not remote agent traffic on 1514/1515),
+    # and publishing them hit a real, reproducible failure after a host
+    # reboot: Windows/WSL2 dynamically excludes port ranges (observed via
+    # `netsh interface ipv4 show excludedportrange protocol=tcp`) that can
+    # land on 1514/1515, making `docker compose up` fail outright with
+    # "ports are not available" until the next reboot reshuffles the range.
+    volumes:
+      - wazuh_manager_etc:/var/ossec/etc
+      - wazuh_manager_logs:/var/ossec/logs
+      - wazuh_manager_queue:/var/ossec/queue
+      # Named (not left to the image's own unpersisted default) so the
+      # custom-vigix integration script survives a container recreate —
+      # verified this actually happens: a `docker compose up` that changes
+      # any other field on this service (e.g. the ports removal above)
+      # recreates the container, and /var/ossec/integrations resets to the
+      # image's stock scripts (slack/pagerduty/etc, no custom-vigix) unless
+      # this path itself is a named volume. bootstrap.sh still needs to run
+      # once per fresh volume — see that script's own header.
+      - wazuh_manager_integrations:/var/ossec/integrations
+      # Bind-mounted (not a named volume) so a host-side script/analyst can
+      # append a test log line without shelling into the container — see
+      # ossec.conf's own <localfile> monitoring this same path.
+      - ./wazuh-manager/auth.log:/var/log/auth.log
+    extra_hosts:
+      # The backend runs as a host process on port 4000 by default (only
+      # the opt-in "app" profile below containerizes it) — same pattern
+      # ai-orchestrator already uses to reach host-installed Ollama.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # Deliberately narrower than a plain `wazuh-control status` (which
+      # exits 1 if ANY daemon in its full list — including ones this
+      # manager-only, no-cluster deployment never enables, like
+      # wazuh-clusterd/wazuh-maild — isn't running, which is always true
+      # here). Checks only the two daemons this deployment actually needs.
+      test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'wazuh-analysisd is running' && /var/ossec/bin/wazuh-control status | grep -q 'wazuh-integratord is running'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------
+  # Firewall test target — Phase 5.8.4 follow-up, live-verification step.
+  # A real, separate machine (own filesystem/network namespace, reached
+  # only over SSH like a genuine target would be) for the SshFirewallExecutor
+  # to actually block an IP on — standing in for a real VM the developer
+  # doesn't have, chosen for near-zero RAM cost (Alpine + sshd + iptables,
+  # ~20-30MB resident) given this machine's memory pressure. Mapped only to
+  # 127.0.0.1 — never exposed beyond localhost. Key-only SSH (see
+  # firewall-test-target/Dockerfile) — the private key never leaves the
+  # developer's machine or enters this repo.
+  # ---------------------------------------------------------------------
+  firewall-test-target:
+    build:
+      context: ../../infra/docker/firewall-test-target
+    container_name: soar-firewall-test-target
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN # required for iptables to actually modify netfilter rules
+      - NET_RAW
+    ports:
+      - "127.0.0.1:2222:22"
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ---------------------------------------------------------------------
+  # Application services (Phase 12) — opt-in via the "app" Compose profile
+  # so the existing documented flow (`docker compose up -d` starts only
+  # infra: postgres/qdrant/redis/n8n/misp) keeps working unchanged for
+  # anyone running backend/frontend/ai-orchestrator locally with `npm run
+  # dev` / `uvicorn --reload`, which is still the faster inner-dev-loop
+  # path. To run the full stack in containers instead:
+  #   docker compose -f infra/docker/docker-compose.yml --profile app up -d --build
+  # Each service's env_file is the app's own real `.env` (see README Step 2
+  # / Step 5) — copy each `.env.example` to `.env` before using this
+  # profile. The `environment:` block below only overrides the handful of
+  # values that must change for container-to-container networking
+  # (localhost -> service name); every other var comes from that .env file.
+  # ---------------------------------------------------------------------
+  # backend/worker services removed — the Node/Prisma backend is being
+  # rebuilt from scratch. Re-add equivalent service blocks here once the
+  # new backend has its own Dockerfile.
+
+  ai-orchestrator:
+    build:
+      context: ../../apps/ai-orchestrator
+    container_name: soar-ai-orchestrator
+    restart: unless-stopped
+    profiles: ["app"]
+    env_file:
+      - ../../apps/ai-orchestrator/.env
+    environment:
+      DATABASE_URL: "postgresql://soar:soar_password@postgres:5432/soar_platform"
+      QDRANT_URL: "http://qdrant:6333"
+      BACKEND_URL: "http://backend:4000"
+      MISP_URL: "https://misp-core:443"
+      # Phase 2 — ThreatIntelAgent's per-IOC result cache, same shared
+      # Redis instance the top-level `redis` service already provides.
+      REDIS_URL: "redis://redis:6379/0"
+      # No LLM_BASE_URL override here on purpose: .env's value (via
+      # env_file above) is used as-is. It only needs overriding when it
+      # points at localhost (a host-installed Ollama, which inside this
+      # container means the container itself, not the host) — in that
+      # case, set LLM_BASE_URL=http://host.docker.internal:11434/v1 in
+      # .env directly rather than hardcoding it here, since a remote
+      # gateway URL (e.g. Bifrost) needs no such translation and would
+      # otherwise be silently overridden back to the old Ollama address.
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      # python:3.11-slim has neither wget nor curl installed by default —
+      # use the interpreter that's guaranteed to be there instead.
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ../../apps/frontend
+    container_name: soar-frontend
+    restart: unless-stopped
+    profiles: ["app"]
+    ports:
+      - "5173:80"
+
 volumes:
   postgres_data:
   qdrant_data:
   n8n_data:
+  misp_db_data:
+  misp_core_data:
+  wazuh_manager_etc:
+  wazuh_manager_logs:
+  wazuh_manager_queue:
+  wazuh_manager_integrations:

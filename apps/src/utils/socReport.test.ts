@@ -1,0 +1,100 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import type { DashboardSummary } from '../api/vigix.ts'
+import { buildSocReport, isSocReport, pct, previousPeriod, setReportPeriod, severityFill, thaiDate, thaiDuration, thaiMonthYear, type TableBlock } from './socReport.ts'
+
+const summary = {
+  generatedAt: '2026-09-30T10:00:00+07:00',
+  alerts: { total: 410, last24h: 12, unlinked: 7, bySeverity: {}, daily: [] },
+  incidents: { total: 52, byStatus: { resolved: 41, open: 2, investigating: 4, escalated: 3, dismissed: 2 }, openByPriority: {}, mttrMinutes: 192, resolvedLast7d: 9, openedLast7d: 11 },
+  responses: { byStatus: { COMPLETED: 20, IN_PROGRESS: 8 }, pendingApprovalsByRole: {} },
+  verifications: { byResult: { RESOLVED: 38, NOT_RESOLVED: 3 } },
+  topTechniques: [{ techniqueId: 'T1059', tactic: 'execution', incidents: 9 }],
+  topSources: [],
+  activity: [],
+  sla: { breached: 3, atRisk: 2, onTrack: 5, notStarted: 0, watchlist: [] },
+  integrations: {},
+  aiJobs: { byStatus: {}, total: 0 },
+  triage: { pending: 0, pendingLow: 0, monitoring: 0, byDisposition: {} },
+  approvals: { byRoleStatus: { IR_TEAM: { approved: 16, rejected: 1, pending: 1 } } },
+  verificationDetail: { spread: 0, awaitingRehunt: 4, escalationEvents: 0, escalatedIncidents: 3 },
+  recommendationReady: 0,
+  severityDistribution: { LOW: 13, MEDIUM: 23, HIGH: 12, CRITICAL: 4, unknown: 0 },
+  kpi: { investigationTimeMinutes: 24, investigationSamples: 40, timeToDecisionMinutes: null, decisionSamples: 0, workload: [], automationSuccessRate: null, automationFinished: 0 },
+  systemHealth: [],
+} as unknown as DashboardSummary
+
+const report = buildSocReport(summary, { period: '2026-09', preparedAt: new Date(2026, 8, 30) })
+const section = (id: string) => report.sections.find((s) => s.id === id)!
+const tables = report.sections.flatMap((s) => s.blocks.filter((b): b is TableBlock => b.kind === 'table'))
+
+test('Thai calendar helpers use the Buddhist era', () => {
+  assert.equal(thaiMonthYear('2026-09'), 'กันยายน 2569')
+  assert.equal(thaiMonthYear('2026-08', true), 'ส.ค. 2569')
+  assert.equal(thaiDate(new Date(2026, 8, 30)), '30 กันยายน 2569')
+  assert.equal(previousPeriod('2026-01'), '2025-12')
+})
+
+test('percentages and durations', () => {
+  assert.equal(pct(41, 52), '78.8%')
+  assert.equal(pct(52, 52), '100%')
+  assert.equal(pct(1, 0), '—')
+  assert.equal(thaiDuration(24), '24 นาที')
+  assert.equal(thaiDuration(192), '3 ชม. 12 นาที')
+  assert.equal(thaiDuration(null), 'ไม่มีข้อมูล')
+})
+
+test('cover follows the template and the chosen period', () => {
+  assert.equal(report.meta.length, 6)
+  assert.equal(report.meta[0].value, 'กันยายน 2569')
+  assert.equal(report.meta[1].value, '30 กันยายน 2569')
+  assert.deepEqual(report.sections.map((s) => s.id), ['summary', 'incidents', 'ir', 'timing', 'verification', 'improvement', 'plan', 'references'])
+})
+
+test('executive summary KPIs come from the live summary', () => {
+  const kpis = section('summary').blocks[0]
+  assert.equal(kpis.kind, 'kpis')
+  if (kpis.kind !== 'kpis') return
+  assert.deepEqual(kpis.items.map((k) => k.value), ['52', '41', '28', '16', '4', '3'])
+})
+
+test('severity table is coloured like the template', () => {
+  const sev = tables.find((t) => t.severityTone)!
+  assert.deepEqual(sev.rows.map((r) => [r[0], r[1], r[2]]), [
+    ['CRITICAL', '4', '7.7%'],
+    ['HIGH', '12', '23.1%'],
+    ['MEDIUM', '23', '44.2%'],
+    ['LOW', '13', '25%'],
+  ])
+  assert.equal(severityFill('critical'), 'F4CCCC')
+  assert.equal(severityFill('Closed'), null)
+})
+
+test('missing metrics say so instead of inventing a number', () => {
+  const ir = section('ir').blocks[0] as TableBlock
+  assert.equal(ir.rows.find((r) => r[0] === 'เวลาอนุมัติเฉลี่ย')![2], 'ไม่มีข้อมูล')
+  const sources = tables.find((t) => t.columns[0] === 'Source')!
+  assert.deepEqual(sources.rows, [['ไม่มีข้อมูล', '0']])
+})
+
+test('every table is rectangular', () => {
+  for (const t of tables) {
+    assert.equal(t.widths.length, t.columns.length, t.columns.join('|'))
+    assert.equal(t.align.length, t.columns.length, t.columns.join('|'))
+    for (const r of t.rows) assert.equal(r.length, t.columns.length, `${t.columns[0]}: ${r.join('|')}`)
+  }
+})
+
+test('changing the period relabels the cover and trend columns', () => {
+  const copy = structuredClone(report)
+  setReportPeriod(copy, '2026-10')
+  assert.equal(copy.meta[0].value, 'ตุลาคม 2569')
+  const trend = copy.sections.flatMap((s) => s.blocks).find((b): b is TableBlock => b.kind === 'table' && b.columns[3] === 'เปลี่ยนแปลง')!
+  assert.deepEqual(trend.columns.slice(1, 3), ['ก.ย. 2569', 'ต.ค. 2569'])
+})
+
+test('drafts of an older shape are rejected', () => {
+  assert.equal(isSocReport(report), true)
+  assert.equal(isSocReport({ title: 'x', sections: [] }), false)
+  assert.equal(isSocReport(null), false)
+})

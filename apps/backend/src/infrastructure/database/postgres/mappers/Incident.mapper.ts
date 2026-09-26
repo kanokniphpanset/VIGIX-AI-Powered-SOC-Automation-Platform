@@ -19,6 +19,7 @@ export class IncidentMapper {
       closedAt: raw.closedAt,
       mttdSeconds: raw.mttdSeconds,
       mttrSeconds: raw.mttrSeconds,
+      investigationNumber: raw.investigationNumber,
     });
   }
 

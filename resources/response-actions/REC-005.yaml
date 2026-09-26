@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::REC-005.
+id: REC-005
+name: Validate and Close Incident
+description: >-
+  Confirm remediation effectiveness and formally close the incident record.
+category: recovery
+riskLevel: low
+automationSupported: conditional
+approvalRequired: soc_analyst_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

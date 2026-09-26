@@ -14,11 +14,12 @@ from __future__ import annotations
 
 import base64
 import logging
+from datetime import datetime, timezone
 
 import httpx
 
 from src.config.settings import settings
-from ..types import IocType, ProviderStatus, ThreatIntelProviderResult
+from ..types import Evidence, EvidenceType, IocType, ProviderStatus, ThreatIntelProviderResult
 from ._http_base import execute_request
 from .provider_interface import ThreatIntelProvider
 
@@ -27,8 +28,12 @@ logger = logging.getLogger("soar.ai-orchestrator.threat-intel")
 _SUPPORTED = {IocType.IPV4, IocType.IPV6, IocType.DOMAIN, IocType.URL, IocType.MD5, IocType.SHA1, IocType.SHA256}
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 class VirusTotalProvider(ThreatIntelProvider):
-    name = "VirusTotal"
+    name = "virustotal"
 
     def __init__(self, api_key: str | None = None, base_url: str | None = None, timeout: float | None = None):
         self.api_key = api_key if api_key is not None else settings.virustotal_api_key
@@ -55,7 +60,7 @@ class VirusTotalProvider(ThreatIntelProvider):
 
     async def analyze(self, indicator: str, ioc_type: IocType) -> ThreatIntelProviderResult:
         if not self.is_configured:
-            return ThreatIntelProviderResult(name=self.name, status=ProviderStatus.DISABLED)
+            return ThreatIntelProviderResult(name=self.name, status=ProviderStatus.NOT_CONFIGURED)
         if not self.supports(ioc_type):
             return ThreatIntelProviderResult(name=self.name, status=ProviderStatus.NOT_SUPPORTED)
 
@@ -68,34 +73,32 @@ class VirusTotalProvider(ThreatIntelProvider):
                     headers={"x-apikey": self.api_key, "Accept": "application/json"},
                 )
 
-        response, failure, duration_ms = await execute_request(self.name, make_request)
+        response, failure, duration_ms, retry_count = await execute_request(self.name, make_request)
 
         if failure is not None:
             return ThreatIntelProviderResult(
-                name=self.name, status=failure.status, error=failure.message, duration_ms=duration_ms
+                name=self.name, status=failure.status, error=failure.message, duration_ms=duration_ms, retry_count=retry_count
             )
 
-        if response.status_code == 401 or response.status_code == 403:
+        if response.status_code in (401, 403):
             return ThreatIntelProviderResult(
                 name=self.name,
                 status=ProviderStatus.FAILED,
                 error=f"Authentication failed (HTTP {response.status_code})",
                 duration_ms=duration_ms,
+                retry_count=retry_count,
             )
 
         if response.status_code == 404:
-            # VirusTotal has no record of this indicator — that's meaningful
-            # evidence of "not currently flagged," not a failure.
+            # VirusTotal has no record of this indicator at all — a genuine
+            # NO_MATCH, never coerced into SUCCESS+malicious=False (spec
+            # section 5: "no match" is its own status, not BENIGN).
             return ThreatIntelProviderResult(
                 name=self.name,
-                status=ProviderStatus.SUCCESS,
-                malicious=False,
-                suspicious=False,
-                confidence=0.3,
-                detections=0,
-                total_checks=0,
+                status=ProviderStatus.NO_MATCH,
                 raw_summary={"found": False},
                 duration_ms=duration_ms,
+                retry_count=retry_count,
             )
 
         if response.status_code >= 400:
@@ -104,10 +107,12 @@ class VirusTotalProvider(ThreatIntelProvider):
                 status=ProviderStatus.FAILED,
                 error=f"HTTP {response.status_code}",
                 duration_ms=duration_ms,
+                retry_count=retry_count,
             )
 
         try:
             body = response.json()
+            data_id = body["data"].get("id")
             stats = body["data"]["attributes"]["last_analysis_stats"]
             categories = body["data"]["attributes"].get("categories", {})
             malicious = int(stats.get("malicious", 0))
@@ -123,9 +128,22 @@ class VirusTotalProvider(ThreatIntelProvider):
                 status=ProviderStatus.FAILED,
                 error="Malformed response",
                 duration_ms=duration_ms,
+                retry_count=retry_count,
             )
 
-        confidence = min(1.0, total / 70) if total else 0.4  # VT typically runs ~70 engines
+        if total == 0:
+            # A record exists but no engine has an opinion — treat as
+            # NO_MATCH (nothing to report), not a malicious/clean verdict.
+            return ThreatIntelProviderResult(
+                name=self.name,
+                status=ProviderStatus.NO_MATCH,
+                raw_summary={"found": True, "malicious": 0, "suspicious": 0, "total": 0},
+                duration_ms=duration_ms,
+                retry_count=retry_count,
+            )
+
+        confidence = min(1.0, total / 70)  # VT typically runs ~70 engines
+        fetched_at = _now_iso()
         return ThreatIntelProviderResult(
             name=self.name,
             status=ProviderStatus.SUCCESS,
@@ -138,4 +156,16 @@ class VirusTotalProvider(ThreatIntelProvider):
             total_checks=total,
             raw_summary={"malicious": malicious, "suspicious": suspicious, "total": total, "found": True},
             duration_ms=duration_ms,
+            retry_count=retry_count,
+            evidence=[
+                Evidence(
+                    provider=self.name,
+                    ioc=indicator,
+                    evidence_type=EvidenceType.DETECTION_STATS,
+                    provider_object_id=data_id,
+                    reference=f"https://www.virustotal.com/gui/{'file' if ioc_type.value in ('MD5', 'SHA1', 'SHA256') else ('url' if ioc_type == IocType.URL else ('domain' if ioc_type == IocType.DOMAIN else 'ip-address'))}/{data_id or indicator}",
+                    fetched_at=fetched_at,
+                    summary=f"{malicious}/{total} engines flagged this indicator as malicious.",
+                )
+            ],
         )

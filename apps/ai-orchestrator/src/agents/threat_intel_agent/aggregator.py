@@ -5,7 +5,7 @@ results, and an overall ThreatIntelReport across every IOC in an alert.
 
 from __future__ import annotations
 
-from .scoring import score_indicator
+from .scoring import pipeline_status_for, score_indicator
 from .types import (
     IocType,
     RiskLevel,
@@ -22,6 +22,7 @@ def build_threat_intel_data(
     providers: list[ThreatIntelProviderResult],
     analyzed_at: str,
     duration_ms: int,
+    execution_id: str | None = None,
 ) -> ThreatIntelData:
     (
         score,
@@ -35,11 +36,12 @@ def build_threat_intel_data(
         campaigns,
     ) = score_indicator(providers)
 
-    queried_sources = [p.name for p in providers if p.status.value == "SUCCESS"]
+    queried_sources = [p.name for p in providers if p.status.value in ("SUCCESS", "NO_MATCH")]
 
     return ThreatIntelData(
         indicator=indicator,
         type=ioc_type,
+        status=pipeline_status_for(providers),
         verdict=verdict,
         risk_level=risk_level,
         confidence=confidence,
@@ -55,6 +57,7 @@ def build_threat_intel_data(
         explanation=explanation,
         analyzed_at=analyzed_at,
         duration_ms=duration_ms,
+        execution_id=execution_id,
     )
 
 
@@ -65,18 +68,19 @@ def build_report(
     indicators: list[ThreatIntelData],
     analyzed_at: str,
     duration_ms: int,
+    execution_id: str | None = None,
 ) -> ThreatIntelReport:
     total = len(indicators)
     malicious = [i for i in indicators if i.verdict == Verdict.MALICIOUS]
     suspicious = [i for i in indicators if i.verdict == Verdict.SUSPICIOUS]
-    clean = [i for i in indicators if i.verdict == Verdict.CLEAN]
+    benign = [i for i in indicators if i.verdict == Verdict.BENIGN]
     unknown = [i for i in indicators if i.verdict == Verdict.UNKNOWN]
 
     summary = {
         "total": total,
         "malicious": len(malicious),
         "suspicious": len(suspicious),
-        "clean": len(clean),
+        "benign": len(benign),
         "unknown": len(unknown),
     }
 
@@ -91,7 +95,7 @@ def build_report(
         overall_risk_level = max((i.risk_level for i in malicious), key=_REPORT_RISK_ORDER.index)
     elif suspicious:
         overall_risk_level = max((i.risk_level for i in suspicious), key=_REPORT_RISK_ORDER.index)
-    elif clean:
+    elif benign:
         overall_risk_level = RiskLevel.LOW
     else:
         overall_risk_level = RiskLevel.UNKNOWN
@@ -104,7 +108,7 @@ def build_report(
     else:
         key_findings.append(
             f"Analyzed {total} indicator(s): {len(malicious)} malicious, {len(suspicious)} suspicious, "
-            f"{len(clean)} clean, {len(unknown)} unknown."
+            f"{len(benign)} benign, {len(unknown)} unknown."
         )
         if highest_risk:
             key_findings.append(
@@ -114,7 +118,7 @@ def build_report(
         if unknown and len(unknown) == total:
             key_findings.append(
                 "No indicator could be enriched — all configured threat intelligence providers "
-                "were unavailable or none are configured. This is not evidence of a clean alert."
+                "were unavailable, unconfigured, or found no record. This is not evidence of a clean alert."
             )
         if all_sources:
             key_findings.append(f"Provider coverage: {', '.join(all_sources)}.")
@@ -127,5 +131,6 @@ def build_report(
         key_findings=key_findings,
         analyzed_at=analyzed_at,
         duration_ms=duration_ms,
+        execution_id=execution_id,
         highest_risk_indicator=highest_risk,
     )

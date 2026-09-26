@@ -1,6 +1,14 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 langgraph==0.2.28
+# Phase 4 — persistent PostgreSQL checkpointing (spec section 9). Pinned to
+# the 1.0.x line deliberately: langgraph 0.2.28 requires
+# langgraph-checkpoint<2.0.0, and the latest langgraph-checkpoint-postgres
+# (3.x) pulls in langgraph-checkpoint 4.x — installing it directly breaks
+# langgraph's own dependency constraint. 1.0.9 resolves to
+# langgraph-checkpoint 1.0.12, which satisfies both. Do not bump this
+# without also bumping langgraph itself and re-verifying the whole graph.
+langgraph-checkpoint-postgres==1.0.9
 langchain-core==0.3.5
 pydantic==2.9.2
 pydantic-settings==2.5.2
@@ -10,3 +18,19 @@ numpy==1.26.4
 sentence-transformers==3.1.1
 httpx==0.27.2
 psycopg[binary]==3.2.2
+
+# Phase 2 (Threat Intelligence Agent) — tenacity powers retry/exponential
+# backoff for provider HTTP calls (providers/_http_base.py); redis is the
+# async client for the per-IOC result cache (cache.py), reusing the Redis
+# instance already provisioned in infra/docker/docker-compose.yml.
+tenacity==8.5.0
+redis==5.0.8
+# Test-only — in-memory Redis stand-in for cache.py tests, no real server needed.
+fakeredis==2.37.1
+
+# Phase 3 — resource system (apps/ai-orchestrator/resources/): PyYAML parses
+# policy YAML and prompt-file frontmatter; watchdog powers optional
+# hot-reload (ResourceWatcher). Neither was previously a dependency of this
+# app — both are new as of this phase.
+PyYAML==6.0.2
+watchdog==5.0.3

@@ -3,10 +3,7 @@ IOCValidator — format validation before any provider is queried.
 
 An indicator that fails validation is never sent to a provider (saves quota,
 avoids garbage-in/garbage-out results) and is reported back as
-`{"valid": False, "reason": "..."}` rather than raising — see
-errors.py::InvalidIOCError for the one place this *is* raised (by the
-orchestrating agent, so it can produce a structured UNKNOWN/invalid
-ThreatIntelData entry instead of crashing the whole run).
+`{"valid": False, "reason": "..."}` rather than raising.
 """
 
 from __future__ import annotations

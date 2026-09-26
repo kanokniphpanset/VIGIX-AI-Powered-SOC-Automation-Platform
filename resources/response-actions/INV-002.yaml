@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::INV-002.
+id: INV-002
+name: Extended SIEM Log Query
+description: >-
+  Run a broadened historical query across log sources for related activity.
+category: investigation
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

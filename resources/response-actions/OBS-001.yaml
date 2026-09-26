@@ -1,0 +1,18 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::OBS-001. Same
+# id/riskLevel/automationSupported/approvalRequired/rollbackAvailable as the
+# Python entry — see resources/response-actions/README.md's reconciliation
+# table. Routed through the same safe n8n dry-run workflow as every other
+# newly-reconciled action; no real log-enrichment backend exists yet.
+id: OBS-001
+name: Log Enrichment Snapshot
+description: >-
+  Capture and persist the current alert/context state for later correlation.
+category: observation
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

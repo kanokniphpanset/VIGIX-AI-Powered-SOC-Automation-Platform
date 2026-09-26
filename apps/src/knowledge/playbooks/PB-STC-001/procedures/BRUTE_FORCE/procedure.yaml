@@ -1,0 +1,34 @@
+id: PROC-BF-001
+code: BRUTE_FORCE
+name: Brute Force Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+
+objective: >
+  Prevent continued unauthorized access and determine whether the
+  targeted account has been compromised.
+
+appliesWhen:
+  incidentTypes: [BRUTE_FORCE]
+  description: >
+    Repeated authentication failures against a single account/host,
+    optionally followed by a successful login from the same source.
+
+primaryEvidence:
+  - Failed login events
+  - Source IP
+  - Target username / account
+  - Successful login events (if any)
+  - Wazuh authentication alerts
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (INC-2026-0012):
+#   184 failed SSH logins + 1 successful login, account "admin",
+#   host server-01, risk score 72 (HIGH). See steps.yaml / decisions.yaml
+#   for how that evidence maps onto this procedure's template.

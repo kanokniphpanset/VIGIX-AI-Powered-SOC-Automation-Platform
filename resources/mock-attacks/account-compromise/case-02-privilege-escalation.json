@@ -1,0 +1,91 @@
+{
+  "id": "ATK-08",
+  "attackType": "ACCOUNT_COMPROMISE",
+  "title": "Compromised account added to Domain Admins on the domain controller",
+  "description": "After an external logon to DC-01 from 185.220.101.90, j.smith adds itself to the Domain Admins group. Critical asset (tier1_critical, regulated) + critical rule level: the response must go through the approval workflow. Both an APPROVED path (response plan -> ticket -> clean re-hunt) and a REJECTED path (no response executed, reason stored, audit logged) are exercised.",
+  "alert": {
+    "id": "1726626000.10009",
+    "timestamp": "2026-09-18T02:20:00.000+0000",
+    "rule": {
+      "id": "100210",
+      "level": 14,
+      "description": "Member added to privileged group Domain Admins shortly after a suspicious external logon",
+      "groups": ["windows", "group_changed", "privilege_escalation", "vigix_custom"],
+      "firedtimes": 1,
+      "mitre": { "id": ["T1098", "T1078"], "tactic": ["Persistence", "Privilege Escalation"], "technique": ["Account Manipulation", "Valid Accounts"] }
+    },
+    "agent": { "id": "001", "name": "DC-01", "ip": "10.0.1.10" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "windows_eventchannel" },
+    "location": "EventChannel",
+    "data": {
+      "srcip": "185.220.101.90",
+      "dstuser": "j.smith",
+      "win": {
+        "system": { "eventID": "4728", "channel": "Security" },
+        "eventdata": { "memberName": "CN=John Smith,OU=Users,DC=corp,DC=local", "targetUserName": "Domain Admins", "subjectUserName": "j.smith", "subjectDomainName": "CORP" }
+      }
+    },
+    "full_log": "A member was added to a security-enabled global group. Subject: j.smith Member: CN=John Smith,OU=Users,DC=corp,DC=local Group: Domain Admins (session from 185.220.101.90)"
+  },
+  "relatedAlerts": [
+    {
+      "id": "1726625880.10010",
+      "timestamp": "2026-09-18T02:18:00.000+0000",
+      "rule": {
+        "id": "100200",
+        "level": 10,
+        "description": "Successful RDP logon from an external IP address outside business hours",
+        "groups": ["windows", "authentication_success", "vigix_custom"],
+        "mitre": { "id": ["T1078"], "tactic": ["Initial Access"], "technique": ["Valid Accounts"] }
+      },
+      "agent": { "id": "001", "name": "DC-01", "ip": "10.0.1.10" },
+      "decoder": { "name": "windows_eventchannel" },
+      "location": "EventChannel",
+      "data": {
+        "srcip": "185.220.101.90",
+        "dstuser": "j.smith",
+        "win": { "system": { "eventID": "4624" }, "eventdata": { "targetUserName": "j.smith", "ipAddress": "185.220.101.90", "logonType": "10" } }
+      },
+      "full_log": "An account was successfully logged on. Account Name: j.smith Logon Type: 10 Source Network Address: 185.220.101.90"
+    }
+  ],
+  "expected": {
+    "severity": "critical",
+    "host": "DC-01",
+    "mitreTechniques": ["T1098", "T1078"],
+    "iocs": [
+      { "type": "ip", "value": "185.220.101.90" },
+      { "type": "user", "value": "j.smith" }
+    ],
+    "policyInputs": { "assetTier": "tier1_critical", "ruleLevel": 14 },
+    "approval": "APPROVAL_EXPECTED",
+    "approvalDecisions": ["APPROVED", "REJECTED"],
+    "primaryResult": "RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Remove j.smith from Domain Admins, disable the account, reset its credentials and block 185.220.101.90",
+    "target": "DC-01"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726650600.10121",
+            "timestamp": "2026-09-18T09:10:00.000+0000",
+            "@timestamp": "2026-09-18T09:10:00.000Z",
+            "rule": { "id": "60106", "level": 3, "description": "Windows Logon Success", "groups": ["windows", "authentication_success"] },
+            "agent": { "id": "001", "name": "DC-01", "ip": "10.0.1.10" },
+            "data": { "srcip": "10.0.2.50", "dstuser": "svc_backup", "win": { "system": { "eventID": "4624" }, "eventdata": { "targetUserName": "svc_backup", "logonType": "3" } } },
+            "full_log": "An account was successfully logged on. Account Name: svc_backup Logon Type: 3 Source Network Address: 10.0.2.50"
+          }
+        ]
+      }
+    ]
+  }
+}

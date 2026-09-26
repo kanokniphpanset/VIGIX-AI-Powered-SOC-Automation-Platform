@@ -7,11 +7,17 @@ Two sources are combined:
      all use different schemas and any given field may be absent, nested, or
      the wrong type.
   2. Free text (alert_text, plus description/message/command_line-style
-     fields if present) — regex-scanned via tools/ioc_extraction_tool.py,
-     which already handles URL/hash/IP/domain; extended here with IPv6, SHA1,
-     and email.
+     fields if present) — regex-scanned via tools/ioc_extraction_tool.py's
+     extract_iocs_from_text(), which handles IPv4/IPv6/URL/domain/MD5/SHA1/
+     SHA256/email. All type detection is deterministic regex — no LLM ever
+     decides an IOC's type (spec section 4).
 
 Extraction never raises — a malformed or missing field is skipped, not fatal.
+
+Endpoint identity is metadata, not a threat indicator: the reporting endpoint's
+own name/IP (Wazuh agent.name / agent.ip, the manager's name, and the syslog
+header host in predecoder.hostname) are never promoted to IOCs — neither from
+their structured fields nor when the same value shows up in the free text.
 """
 
 from __future__ import annotations
@@ -29,6 +35,24 @@ _HASH_FIELDS = ("hash", "md5", "sha1", "sha256", "file_hash")
 _EMAIL_FIELDS = ("email", "sender", "recipient", "from", "to")
 # Free-text-bearing fields worth regex-scanning in addition to alert_text.
 _TEXT_FIELDS = ("message", "description", "command_line", "process", "full_log", "rule")
+# Nested sections that describe the reporting endpoint / pipeline, not the threat. Their
+# fields (agent.ip, predecoder.hostname, ...) are never read as structured IOC fields.
+_ENDPOINT_METADATA_KEYS = ("agent", "manager", "predecoder", "decoder")
+
+
+def endpoint_identity(payload: Any) -> set[str]:
+    """The reporting endpoint's own identity values (lower-cased), from whatever of these the alert carries."""
+    if not isinstance(payload, dict):
+        return set()
+    values: set[str] = set()
+    for section, keys in (("agent", ("name", "ip")), ("manager", ("name",)), ("predecoder", ("hostname",))):
+        block = payload.get(section)
+        if isinstance(block, dict):
+            for key in keys:
+                text = _stringify(block.get(key))
+                if text and text.strip():
+                    values.add(text.strip().lower())
+    return values
 
 
 def _classify_hash(value: str) -> IocType:
@@ -71,7 +95,9 @@ def _walk(payload: Any, field_names: tuple[str, ...]) -> list[tuple[str, str]]:
         if text:
             found.append((key, text))
 
-    for value in payload.values():
+    for nested_key, value in payload.items():
+        if nested_key in _ENDPOINT_METADATA_KEYS:
+            continue
         if isinstance(value, dict):
             for key in field_names:
                 raw = value.get(key)
@@ -117,9 +143,27 @@ def extract_from_alert(raw_alert: dict | None, alert_text: str = "") -> list[Ext
         text_blobs.append(value)
 
     for blob in text_blobs:
-        for match in extract_iocs_from_text(blob):
-            extracted.append(
-                ExtractedIoc(value=match["value"], type=IocType(match["type"]), field="text")
-            )
+        result = extract_iocs_from_text(blob)
+        if not result.ok:
+            continue
+        for match in result.data.get("iocs", []):
+            ioc_type = _text_ioc_type(match)
+            if ioc_type is not None:
+                extracted.append(ExtractedIoc(value=match["value"], type=ioc_type, field="text"))
 
+    # The endpoint's own name/IP is never a threat indicator, even when it also
+    # appears in free text (alert_text flattens agent.* into the text blob).
+    identity = endpoint_identity(payload)
+    if identity:
+        extracted = [e for e in extracted if e.value.strip().lower() not in identity]
     return extracted
+
+
+def _text_ioc_type(match: dict) -> IocType | None:
+    """Map an ioc_extraction_tool record type (ip/domain/url/hash/email) onto IocType."""
+    kind, value = match.get("type"), match.get("value", "")
+    if kind == "ip":
+        return IocType.IPV6 if ":" in value else IocType.IPV4
+    if kind == "hash":
+        return _classify_hash(value)
+    return {"domain": IocType.DOMAIN, "url": IocType.URL, "email": IocType.EMAIL}.get(kind)

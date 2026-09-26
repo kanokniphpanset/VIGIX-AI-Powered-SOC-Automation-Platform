@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand / navy sidebar */
+  --color-navy-950: #0a0f1e;
+  --color-navy-900: #0d1526;
+  --color-navy-800: #111d33;
+  --color-navy-700: #16274a;
+  --color-navy-600: #1c3260;
+  --color-navy-500: #24427e;
+  --color-navy-border: #23324f;
+
+  --color-accent-50: #fff1f2;
+  --color-accent-100: #ffe4e6;
+  --color-accent-500: #e33b4c;
+  --color-accent-400: #f16a77;
+  --color-accent-600: #c9253a;
+  --color-accent-700: #aa1e30;
+
+  /* Severity */
+  --color-critical-50: #fef2f2;
+  --color-critical-100: #fee2e2;
+  --color-critical-500: #dc2626;
+  --color-critical-600: #b91c1c;
+  --color-critical-700: #991b1b;
+
+  --color-high-50: #fff7ed;
+  --color-high-100: #ffedd5;
+  --color-high-500: #ea580c;
+  --color-high-600: #c2410c;
+  --color-high-700: #9a3412;
+
+  --color-medium-50: #fefce8;
+  --color-medium-100: #fef9c3;
+  --color-medium-500: #ca8a04;
+  --color-medium-600: #a16207;
+  --color-medium-700: #854d0e;
+
+  --color-low-50: #eff6ff;
+  --color-low-100: #dbeafe;
+  --color-low-500: #2563eb;
+  --color-low-600: #1d4ed8;
+  --color-low-700: #1e40af;
+
+  /* Surface */
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f8fafc;
+  --color-surface-100: #f7f8fa;
+  --color-surface-200: #e2e8f0;
+  --color-surface-border: #e5e9f0;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-surface-100);
+  color: #0f172a;
+  font-feature-settings: "tnum" 1;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.card {
+  background-color: var(--color-surface-0);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+}
+
+.mono-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shared interaction and responsive rules for the operations workspace. */
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), select { cursor: pointer; }
+:where(button, a, input, select, textarea):focus-visible { outline: 3px solid #f16a77; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; }
+::selection { background: #ffe4e6; color: #88182a; }
+.kpi-card { border-top: 3px solid #f0dce0; }
+.card thead { background: #f8f9fb; }
+.card tbody tr { transition: background-color 120ms ease; }
+.card tbody tr:hover { background-color: #fff7f8; }
+main button.bg-navy-900 { background-color: var(--color-accent-600); }
+main button.bg-navy-900:hover { background-color: var(--color-accent-700); }
+@media (max-width: 767px) {
+ .app-sidebar { width: 68px; }
+ .app-sidebar nav a span, .app-sidebar nav button span, .app-sidebar p, .app-sidebar > div > div.min-w-0, .app-sidebar > div > div.mb-2\.5 { display: none; }
+ .app-sidebar nav { padding-left: 8px; padding-right: 8px; }
+ .app-sidebar nav a, .app-sidebar nav button { justify-content: center; }
+ main .flex.items-start.gap-5 { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+
+.primary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:10px; background:var(--color-accent-600); color:white; padding:10px 16px; font-size:13px; font-weight:600; }
+.primary-button:hover { background:var(--color-accent-700); }
+.primary-button:disabled, .secondary-button:disabled { opacity:.45; cursor:not-allowed; }
+.secondary-button { display:inline-flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; background:white; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:600; color:#475569; }
+.field-label { display:block; font-size:12px; font-weight:600; color:#475569; }
+.form-input { display:block; width:100%; margin-top:6px; border:1px solid #e2e8f0; border-radius:9px; padding:10px 12px; background:white; font-size:13px; font-weight:400; color:#334155; }
+.form-input:disabled { background:#f8fafc; color:#64748b; }
+
+@media print { .app-sidebar, header, .report-controls, .report-controls + button { display:none !important; } #app, #app > div, main { height:auto !important; overflow:visible !important; } .h-screen { height:auto !important; } .card { break-inside:avoid; box-shadow:none; } body { background:white; } }

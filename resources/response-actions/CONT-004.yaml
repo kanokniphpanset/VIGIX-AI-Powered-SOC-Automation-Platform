@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::CONT-004.
+id: CONT-004
+name: Quarantine File/Artifact
+description: >-
+  Move a suspicious file to quarantine, blocking execution/access.
+category: containment
+riskLevel: medium
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: yes
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

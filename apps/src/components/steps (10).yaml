@@ -1,0 +1,21 @@
+procedureCode: MALWARE
+
+verification:
+  type: WAZUH_REHUNT
+  queryTemplate: 'rule.groups:"malware" AND (file.hash.sha256:"{{fileHash}}" OR destination.ip:"{{c2Ip}}")'
+  timeRange:
+    before: "containment_time - 1h .. containment_time"
+    after: "containment_time .. containment_time + 1h"
+  fieldsCompared:
+    - matchingEventsBefore
+    - matchingEventsAfter
+    - affectedHosts
+    - iocRecurrence
+    - spreadDetected
+  additionalChecks:
+    - Post-containment AV/EDR full scan result on the affected host
+  resultValues: [RESOLVED, NOT_RESOLVED]
+  onNotResolved:
+    surface: [newEvidence, spreadDetected]
+    nextAction: GENERATE_NEW_RESPONSE_PLAN
+    triggersPolicyRules: [RULE-009, RULE-010, RULE-011]

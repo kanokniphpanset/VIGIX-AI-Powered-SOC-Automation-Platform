@@ -1,0 +1,30 @@
+# Phase 5.7 — the backend-executable counterpart of
+# apps/ai-orchestrator's decision_agent/action_catalog.py::NET-001
+# ("Block IP/Domain at Firewall"). Same id, same risk/automation/approval
+# values as the Python catalog entry, so a Decision.recommendedActions
+# entry the AI actually produced can be looked up here instead of falling
+# through ResponseActionLoader.getById() as unknown (see
+# resources/response-actions/README.md's documented catalog-id gap).
+#
+# Phase 5.9 — switched from the n8n dry-run executor to the real
+# "ssh_firewall" executor (SshFirewallExecutor) on explicit user
+# authorization: approving a Decision that recommends this action now
+# really SSHes into FIREWALL_SSH_HOST (apps/backend/.env) and runs a real
+# `iptables ... -j DROP` against the target IP — no further confirmation,
+# no dry-run. Verified end-to-end against infra/docker/docker-compose.yml's
+# disposable firewall-test-target container before this switch (see
+# scripts/verifyLiveFirewallExecution.ts and the SSH executor's own test
+# suite). Every other response action in this directory still routes
+# through the n8n dry-run workflow — this is the one exception.
+id: NET-001
+name: Block IP/Domain at Firewall
+description: >-
+  Blocks a malicious IP or domain at the perimeter firewall via a real SSH
+  + iptables command against the configured firewall host. No further
+  human confirmation happens between approval and the real block.
+category: network_response
+riskLevel: medium
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: yes
+executor: ssh_firewall

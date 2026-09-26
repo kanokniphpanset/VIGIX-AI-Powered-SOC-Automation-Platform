@@ -1,0 +1,20 @@
+# TODO: no backend-reachable email/SMTP integration exists yet. Python's
+# apps/ai-orchestrator/src/notifications/email_notification_service.py is a
+# real SMTP client, but it lives in a different process/service this
+# backend doesn't call into — building this for real means either giving
+# apps/backend its own SMTP client + credentials, or exposing an
+# HTTP-callable endpoint on the AI orchestrator this executor could call
+# instead. NotificationExecutor's "email" branch returns a clear failed
+# ExecutionResult (not a crash) when this action is executed, same
+# NotImplementedError-in-spirit convention used everywhere else this
+# project has a genuine, not-yet-built integration.
+id: notify-oncall-email
+name: Notify On-Call via Email
+description: Emails the on-call analyst a summary of the incident and decision.
+category: notification
+riskLevel: low
+automationSupported: no
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: email
+executorConfig: {}

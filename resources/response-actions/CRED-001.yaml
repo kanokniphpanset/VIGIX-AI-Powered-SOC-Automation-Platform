@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::CRED-001.
+id: CRED-001
+name: Force Password Reset
+description: >-
+  Require the affected account to reset its password at next authentication.
+category: credential_response
+riskLevel: medium
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: partial
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

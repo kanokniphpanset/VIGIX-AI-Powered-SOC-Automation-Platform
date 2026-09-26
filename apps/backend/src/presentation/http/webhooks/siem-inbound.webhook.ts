@@ -48,10 +48,16 @@ export class SiemInboundWebhookController {
 
     const result = await this.ingestAlert.execute({ ...normalized, tenantId });
 
-    res.status(201).json({
+    // 202 Accepted: the alert is stored in the Alert Inbox for SOC triage (triageRequired: true). No incident is opened
+    // and no AI runs until the SOC creates an incident. A repeat of an already-ingested alert (same source + external
+    // id) is also 202, with duplicate: true (and the incident it already belongs to, if any).
+    res.status(202).json({
       alertId: result.value.alert.id,
       status: result.value.alert.status,
-      pipelineDispatched: result.value.pipelineDispatched,
+      incidentId: result.value.incidentId,
+      aiJob: result.value.aiJob,
+      duplicate: result.value.duplicate,
+      triageRequired: result.value.triageRequired,
     });
   };
 }

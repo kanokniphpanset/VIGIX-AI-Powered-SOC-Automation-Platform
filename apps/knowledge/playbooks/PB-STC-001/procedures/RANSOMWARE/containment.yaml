@@ -1,0 +1,43 @@
+# See BRUTE_FORCE/containment.yaml for the full explanation of this
+# file's role. Note ISOLATE_HOST here is the primary, expected action for
+# almost every ransomware case (unlike BRUTE_FORCE where it's a rare
+# escalation) — appliesWhen reflects that this is close to the default,
+# not an edge case.
+
+procedureCode: RANSOMWARE
+
+candidateActions:
+  - actionCode: ISOLATE_HOST
+    name: Network Isolation
+    appliesWhen: >
+      Default action for any host confirmed encrypting or confirmed
+      affected (DEC-RW-001 = YES in most real cases). Near-mandatory for
+      ransomware, unlike its rare/escalation use in BRUTE_FORCE/MALWARE.
+    runbookRef: RUNBOOK-NET-ISOLATE
+    impactLevel: HIGH
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - actionCode: DISABLE_SHARE
+    name: Disable / Disconnect Network Share
+    appliesWhen: A shared drive or mapped network share is reachable from an affected host.
+    runbookRef: RUNBOOK-NET-DISABLE-SHARE
+    impactLevel: MEDIUM
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - actionCode: DISABLE_ACCOUNT
+    name: Disable / Restrict Account
+    appliesWhen: An account is confirmed used to spread the encryption process across hosts/shares.
+    runbookRef: RUNBOOK-IAM-DISABLE-ACCOUNT
+    impactLevel: MEDIUM
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - actionCode: ISOLATE_BACKUP_INFRA
+    name: Isolate / Lock Down Backup Infrastructure
+    appliesWhen: Backup infrastructure shows any sign of unauthorized access attempt (DEC-RW-002 leaning NO).
+    runbookRef: RUNBOOK-NET-ISOLATE
+    impactLevel: CRITICAL
+    approvalRequired: true
+    approvalRole: IR_TEAM

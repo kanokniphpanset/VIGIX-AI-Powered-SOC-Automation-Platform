@@ -2,32 +2,85 @@
 
 ## Overview
 
-The **ThreatIntelligenceAgent** is a LangGraph node in the VIGIX AI-Driven SOAR Automation Platform's Python orchestrator (`apps/ai-orchestrator`). It runs in the first parallel fan-out from the pipeline's START node, alongside the MitreAgent and RagAgent.
+The **ThreatIntelligenceAgent** is a LangGraph node in the VIGIX AI-Driven SOAR Automation Platform's Python orchestrator (`apps/ai-orchestrator`). It is the first node after the pipeline's START node, running before MitreAgent and RagAgent in a sequential enrichment chain (RagAgent's query builder depends on both agents' output — see `graph/build_graph.py`).
 
-Its responsibility is to extract every Indicator of Compromise (IOC) from an incoming alert, query configured threat-intelligence providers, score and explain the results, and produce a `ThreatIntelReport` that downstream agents (MlRiskAgent, LlmAnalystAgent, future IncidentClassificationAgent) can consume.
+Its responsibility is to extract every Indicator of Compromise (IOC) from an incoming alert and enrich each one against configured threat-intelligence providers.
+
+**This repository contains two implementations.** Only one is wired into the pipeline — see the two sections immediately below before reading anything further in this document.
 
 ---
 
 ## Pipeline Position
 
 ```
-START → [ThreatIntelAgent, MitreAgent, RagAgent]  ← parallel fan-out
-               ↓
-          MlRiskAgent
+START → ThreatIntelAgent → MitreAgent → RagAgent → MlRiskAgent
                ↓
           LlmAnalystAgent → ValidationAgent → DecisionAgent → ...
 ```
 
-The agent writes two keys to `AgentState`:
+The agent writes one key to `AgentState`:
 
 | Key | Type | Description |
 |---|---|---|
-| `iocs` | `list[Ioc]` | Per-IOC results in the existing legacy shape (backward-compatible) |
-| `threat_intel_report` | `dict` | Full `ThreatIntelReport` serialized to dict for downstream consumers |
+| `iocs` | `list[dict]` | Per-IOC results: `{ioc_type, ioc_value, source, reputation_score, raw_response}` |
 
 ---
 
-## Architecture
+## Production Implementation (what actually runs)
+
+`src/agents/threat_intel_agent/agent.py`, registered as the `threat_intel` node in
+`src/graph/build_graph.py`. Confirmed via call-graph trace during a 2026-08-13
+consolidation pass — see `legacy/threat_intel/README.md` for the full trace.
+
+Deliberately simple:
+
+```
+alert_text
+    ↓
+src/tools/ioc_extraction_tool.py :: extract_iocs(text)   — regex: IPv4, domain, URL, MD5, SHA256
+    ↓ list[{ioc_type, ioc_value}], capped at 10 to protect free-tier rate limits
+[for each IOC, sequentially]
+    ↓
+  clients/vt_client.py   :: VirusTotalClient   (IP, domain, hash lookups)
+  clients/otx_client.py  :: OtxClient          (IP, domain lookups)
+  clients/misp_client.py :: MispClient         (all types)
+    ↓
+  reputation_score = round(malicious / (malicious+suspicious+harmless+undetected) * 100, 1)
+    ↓ (from VirusTotal's stats only; None if VirusTotal has no data)
+state["iocs"] = [{ioc_type, ioc_value, source: "aggregated", reputation_score, raw_response}]
+```
+
+- No caching, no typed verdict/risk-level model, no per-provider retry/backoff —
+  a single sequential pass per alert.
+- Any provider without a configured API key (`settings.virustotal_api_key`,
+  `settings.otx_api_key`, `settings.misp_url`+`settings.misp_api_key`) is
+  silently skipped for that IOC — `raw_response` just won't have that key.
+  Never fails the agent.
+- Consumed downstream by `ml_risk_agent/feature_engineering.py`
+  (`ioc["reputation_score"]`), `rag_agent/query_builder.py`
+  (`ioc["raw_response"][provider]["malwareFamily"/"categories"]`), and
+  `api/database.py::persist_agent_results` (the `threat_intel_iocs` table).
+
+Tests: `tests/agents/threat_intel_agent/test_agent.py` and
+`tests/tools/test_ioc_extraction_tool.py`.
+
+---
+
+## Archived Design (`legacy/threat_intel/` — not wired into the pipeline)
+
+Everything from here through "Known Limitations" describes a more sophisticated
+redesign (typed verdicts, TTL cache, bounded concurrency, per-provider
+retry/backoff, AbuseIPDB support) that was built but never finished being
+migrated in: it references `Settings` fields that don't exist and an
+IOC-extraction function that was never added (see
+`legacy/threat_intel/README.md` for the exact gaps). It's kept for reference
+in `apps/ai-orchestrator/legacy/threat_intel/`, not deleted, but it is
+**not** what runs today — everything below this point is aspirational, not
+current behavior. Its exclusive tests were removed from the active suite for
+the same reason (`legacy/threat_intel/README.md` explains why fixing rather
+than archiving it was out of scope for a consolidation pass).
+
+## Archived Architecture
 
 ### Layer Responsibilities
 
@@ -300,18 +353,25 @@ All settings are loaded by `pydantic-settings` from environment variables (`.env
 
 ---
 
-## Testing
+## Testing (archived design — these test files no longer exist)
 
-Tests live in `tests/agents/threat_intel_agent/`. All tests use mocked HTTP — no real API keys are required to run them.
+This table is kept only as a map of what the archived design *was* tested
+for, in case it's ever revived; the files themselves were removed from
+`tests/agents/threat_intel_agent/` since they exclusively exercised
+`legacy/threat_intel/` code (see `legacy/threat_intel/README.md`).
+
+**For the production implementation's actual, current tests**, see
+`tests/agents/threat_intel_agent/test_agent.py` and
+`tests/tools/test_ioc_extraction_tool.py`, referenced above.
 
 ```bash
 cd apps/ai-orchestrator
-python -m pytest tests/agents/threat_intel_agent/ -v
+python -m pytest tests/agents/threat_intel_agent/ tests/tools/ -v
 ```
 
-### Test Coverage
+### Test Coverage (historical — archived design)
 
-| File | What's tested |
+| File (removed) | What was tested |
 |---|---|
 | `test_ioc_extractor.py` | All IOC types, nested fields, free text, empty/None alerts |
 | `test_ioc_normalizer.py` | All normalization rules, deduplication, edge cases |
@@ -325,7 +385,7 @@ python -m pytest tests/agents/threat_intel_agent/ -v
 
 ---
 
-## Example Request / Response
+## Example Request / Response (archived design — illustrative only, not current output)
 
 ### Input (AgentState excerpt)
 
@@ -381,7 +441,7 @@ python -m pytest tests/agents/threat_intel_agent/ -v
 }
 ```
 
-### Output: `state["iocs"]` (backward-compatible legacy shape)
+### Output: `state["iocs"]` (archived design's own compatibility shape — NOT the same as the real production output shown in "Production Implementation" above)
 
 ```json
 [
@@ -415,7 +475,7 @@ python -m pytest tests/agents/threat_intel_agent/ -v
 
 ---
 
-## Known Limitations
+## Known Limitations (archived design)
 
 - **No Redis cache**: The TTL cache is in-process. In a multi-worker deployment, each worker maintains its own cache — no cross-process sharing.
 - **OTX pulse-count heuristic**: OTX's `suspicious` threshold (1–2 pulses) is a conservative heuristic; organizations with internal MISP instances will get better coverage via MISP.

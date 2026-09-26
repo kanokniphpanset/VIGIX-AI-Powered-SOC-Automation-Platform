@@ -1,0 +1,134 @@
+# steps.yaml — ORDERED STEP TEMPLATE, not a runtime instance.
+#
+# Nothing here has a "status" field: this is what AI Recommendation reads
+# to build a case-specific Response Plan's steps. The actual plan (with
+# per-step status, actualResult, completedBy/At, decision taken, etc.)
+# lives in the Response Plan / ResponsePlan step records, not here.
+
+procedureCode: BRUTE_FORCE
+
+steps:
+  - stepOrder: 1
+    phase: VALIDATE
+    title: Confirm & Scope
+    objective: Confirm attack scope and identify affected account/host.
+    recommendedAction:
+      - Review authentication events ±30 minutes around the detection time
+      - Identify any successful logins among the failed attempts
+      - Check source IP reputation
+      - Check whether the source IP belongs to trusted infrastructure
+    reason: >
+      Multiple failed authentication attempts followed by a successful
+      login may indicate account compromise rather than a blocked
+      brute-force attempt.
+    evidenceRequired:
+      - Authentication logs
+      - Source IP
+      - Target account
+      - Wazuh alerts
+    expectedResult: Attack scope and potentially compromised account are identified.
+    decisionRef: DEC-BF-001
+    responsibleRole: IR_TEAM      # policy-engine ResponsibleRole (SOC|IR_TEAM)
+    responsibleDuty: IR Analyst   # finer-grained UI label, not a policy-engine field
+    approvalRequired: false
+
+  - stepOrder: 2
+    phase: SELECT_ACTION
+    title: Containment
+    objective: Prevent further unauthorized access.
+    recommendedAction:
+      - Block the source IP (see containment.yaml: BLOCK_SOURCE_IP)
+      - Restrict/disable the affected account if compromise is confirmed
+        (see containment.yaml: DISABLE_ACCOUNT)
+    reason: >
+      The source IP generated repeated authentication attempts and
+      subsequently achieved successful authentication.
+    evidenceRequired:
+      - Source IP
+      - Authentication logs
+      - Account activity
+    expectedResult: No further unauthorized authentication attempts from the source IP.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: true
+    approvalRole: IR_TEAM   # "IR Review" — see approval-and-review policy, RULE-014
+
+  - stepOrder: 3
+    phase: PREPARE_PLAN
+    title: Investigation
+    objective: Determine the full extent of account/host impact.
+    recommendedAction:
+      - Review account activity since the successful login (file access,
+        privilege changes, new sessions)
+      - Check for password/MFA changes made by the account
+      - Check for lateral authentication attempts from the same account
+        to other hosts
+    reason: >
+      A successful login is the start of the investigation, not the end
+      of it — containment stops new access, it doesn't tell you what the
+      attacker already did.
+    evidenceRequired:
+      - Account activity log
+      - Session history
+      - Privilege/role change log
+    expectedResult: Clear picture of what the compromised session did, if anything.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+
+  - stepOrder: 4
+    phase: PREPARE_PLAN
+    title: Threat Hunting
+    objective: Determine whether the same source IP or technique appears elsewhere.
+    recommendedAction:
+      - Re-hunt the source IP across all hosts, not just the originally
+        affected one
+      - Check for the same failed-then-successful login pattern against
+        other accounts
+    reason: >
+      Brute force campaigns are rarely single-host; confirming scope
+      before eradication avoids re-opening the same incident later.
+    evidenceRequired:
+      - Wazuh cross-host search results
+      - Authentication logs (fleet-wide)
+    expectedResult: Confirmed list of hosts/accounts touched by the same source IP.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+
+  - stepOrder: 5
+    phase: EXECUTE
+    title: Eradication
+    objective: Remove any residual attacker access.
+    recommendedAction:
+      - Force password reset on the affected account
+      - Revoke any sessions/tokens issued after the successful login
+      - Re-enable the account only once reset is confirmed
+    reason: >
+      Blocking the source IP stops that specific access path; it doesn't
+      revoke a session the attacker may already hold.
+    evidenceRequired:
+      - Password reset confirmation
+      - Session/token revocation log
+    expectedResult: No attacker-controlled sessions remain on the affected account.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: false
+
+  - stepOrder: 6
+    phase: VERIFY
+    title: Verification
+    objective: Confirm the containment actually stopped the activity.
+    recommendedAction:
+      - Run the re-hunt query defined in verification.yaml
+      - Compare before/after event counts for the source IP
+      - Check for spread to other hosts since containment
+    reason: >
+      See PB-STC-001 playbook.md — verification is what closes the loop;
+      without it there's no evidence containment actually worked.
+    evidenceRequired:
+      - Wazuh re-hunt results (before/after)
+    expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false

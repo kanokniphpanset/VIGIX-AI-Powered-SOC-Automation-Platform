@@ -1,80 +1,81 @@
 import operator
-from typing import Annotated, Literal, TypedDict
-
-
-class Ioc(TypedDict, total=False):
-    ioc_type: str  # ip | domain | hash | url
-    ioc_value: str
-    source: str
-    reputation_score: float | None
-    raw_response: dict
-
-
-class MitreTechniqueMatch(TypedDict, total=False):
-    technique_id: str
-    name: str
-    tactic: str
-    confidence: float
-
-
-class RagMatch(TypedDict, total=False):
-    kind: str  # playbook | sop | similar_incident
-    id: str
-    title: str
-    score: float
+from typing import Annotated, Any, TypedDict
 
 
 class AgentState(TypedDict, total=False):
-    """
-    Shared state threaded through every node in the LangGraph pipeline.
-    Each agent reads what it needs and writes its own slice back.
-    """
+    """Shared state threaded through every LangGraph node.
+    Nodes return only the keys they changed; LangGraph merges them.
+    NOTE: no key may share a name with a node ("mitre", "validation", ...)."""
 
-    # Input
+    # --- input ---
     alert_id: str
     tenant_id: str
     graph_run_id: str
-    raw_alert: dict
     siem_source: str
-    alert_text: str  # flattened text used for embeddings / LLM context
+    raw_alert: dict[str, Any]
+    normalized_alert: dict[str, Any]
+    alert_text: str
+    severity: str
+    asset_id: str
+    asset_known: bool
+    asset_criticality: Any
+    organization_regulated: bool
+    business_policy_tags: Any
 
-    # ThreatIntelAgent output
-    iocs: list[Ioc]
+    # --- threat intel ---
+    iocs: list[dict[str, Any]]
+    threat_intel_report: dict[str, Any]
 
-    # MitreAgent output
-    mitre_techniques: list[MitreTechniqueMatch]
+    # --- mitre ---
+    mitre_techniques: list[dict[str, Any]]
+    mitre_mapping_report: dict[str, Any]
 
-    # RagAgent output
-    rag_matches: list[RagMatch]
+    # --- rag ---
+    rag_result: dict[str, Any]
 
-    # MlRiskAgent output
-    risk_score: float
-    severity_prediction: str
-    confidence_score: float
-
-    # LlmAnalystAgent output
+    # --- llm analyst ---
     llm_summary: str
+    # "LLM" when llm_summary is a real LLM analysis, "FAILED" when the LLM call failed (llm_summary empty).
+    analysis_source: str
     llm_recommendation: str
+    llm_key_findings: Any
 
-    # ValidationAgent output
+    # --- validation ---
     validation_passed: bool
-    validation_notes: list[str]
+    validation_status: str
+    validation_notes: Any
+    validation_checks: Any
+    validation_retries: int
+    retry_count: int
 
-    # DecisionAgent output
-    decision: Literal["auto_response", "human_approval", "dismiss"]
+    # --- classification / recommendation / decision ---
+    classification: dict[str, Any]
+    investigation_recommendation_report: dict[str, Any]
+    decision: Any
+    decision_result: Any
     requires_approval: bool
 
-    # BusinessAnalyticsAgent output
-    kpi_snapshot: dict
-
-    # FeedbackAgent output
+    # --- business / feedback (agents removed, keys still read) ---
+    kpi_snapshot: Any
     feedback_logged: bool
 
-    # Control
-    retry_count: int
-    # Annotated with operator.add so parallel nodes (threat_intel, mitre, rag all
-    # run in the same superstep) can each append their own trace entry without
-    # LangGraph treating it as a conflicting write to the same key — each node
-    # returns only its own new entry as a one-item list, and the reducer
-    # concatenates them (and every other node's) across the whole run.
+    # --- scaffold-era fields (kept so existing callers don't break) ---
+    incident_id: str
+    alert: dict[str, Any]
+    ti_results: list[dict[str, Any]]
+    runbook_snapshot: dict[str, Any]
+    analyst_report: dict[str, Any]
+    plan: dict[str, Any]
+    cycle: int
+    parent_plan_id: str | None
+    trigger: str
+    evidence_ids: list[str]
+
+    # --- accumulators (each node appends) ---
     trace: Annotated[list[str], operator.add]
+    errors: Annotated[list[dict[str, Any]], operator.add]
+    structured_errors: Annotated[list[dict[str, Any]], operator.add]
+
+
+# Alias: nodes.py / edges.py import the scaffold name.
+GraphState = AgentState

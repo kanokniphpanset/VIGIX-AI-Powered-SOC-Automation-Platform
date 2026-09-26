@@ -1,0 +1,19 @@
+# Phase 5.7 — backend-executable counterpart of apps/ai-orchestrator's
+# decision_agent/action_catalog.py::CONT-001 ("Host Network Isolation").
+# High action risk + a real approval tier — always HUMAN_APPROVAL under the
+# Automation Policy Evaluator (Step 17's ISOLATE_HOST example), same
+# reasoning as CRED-003.
+id: CONT-001
+name: Host Network Isolation
+description: >-
+  Isolates a compromised host from the network via EDR agent enforcement.
+  Routed through a safe dry-run n8n workflow in this environment — no real
+  EDR API is integrated yet.
+category: containment
+riskLevel: high
+automationSupported: yes
+approvalRequired: soc_analyst_approval
+rollbackAvailable: yes
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

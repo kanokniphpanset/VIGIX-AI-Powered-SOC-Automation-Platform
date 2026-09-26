@@ -1,0 +1,56 @@
+# containment.yaml — CATALOG of candidate containment actions for
+# BRUTE_FORCE, not a fixed sequence. AI Recommendation selects whichever
+# subset fits this incident's evidence; IR Team always executes them
+# manually via the referenced Runbook.
+#
+# impactLevel / approvalRequired / approvalRole use the same vocabulary
+# as the Policy Engine (policy/domain/entities/PolicyEvaluationTypes.ts:
+# ActionImpactLevel, ResponsibleRole) so a chosen action's impactLevel can
+# be fed straight into PolicyEvaluationInput.actionImpactLevel and
+# re-checked against the approval-and-review policy (RULE-013/015) rather
+# than trusting this catalog's approvalRequired blindly — this file is a
+# reasonable DEFAULT per action, not the final word; Policy always wins.
+
+procedureCode: BRUTE_FORCE
+
+candidateActions:
+  - actionCode: BLOCK_SOURCE_IP
+    name: Block Source IP
+    appliesWhen: Source IP is confirmed malicious or has no legitimate business reason to authenticate.
+    runbookRef: RUNBOOK-NET-BLOCK-IP
+    impactLevel: LOW
+    approvalRequired: false
+
+  - actionCode: DISABLE_ACCOUNT
+    name: Disable / Restrict Account
+    appliesWhen: Compromise of the targeted account is confirmed or strongly suspected (DEC-BF-001 = NO).
+    runbookRef: RUNBOOK-IAM-DISABLE-ACCOUNT
+    impactLevel: MEDIUM
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - actionCode: FORCE_PASSWORD_RESET
+    name: Force Password Reset
+    appliesWhen: Account compromise confirmed; used in Eradication (step 5) regardless of whether the account was disabled.
+    runbookRef: RUNBOOK-IAM-FORCE-RESET
+    impactLevel: LOW
+    approvalRequired: false
+
+  - actionCode: REVOKE_SESSIONS
+    name: Revoke Active Sessions / Tokens
+    appliesWhen: Account compromise confirmed and the attacker may hold a live session beyond password-based access.
+    runbookRef: RUNBOOK-IAM-REVOKE-SESSIONS
+    impactLevel: MEDIUM
+    approvalRequired: false
+
+  - actionCode: ISOLATE_HOST
+    name: Network Isolation
+    appliesWhen: >
+      Evidence goes beyond credential access alone — e.g. the account was
+      used to install something or reach other hosts. Rarely needed for a
+      pure brute-force case; escalates the procedure toward
+      ACCOUNT_COMPROMISE / LATERAL_MOVEMENT territory if selected.
+    runbookRef: RUNBOOK-NET-ISOLATE
+    impactLevel: HIGH
+    approvalRequired: true
+    approvalRole: IR_TEAM

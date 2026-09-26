@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::EP-002.
+id: EP-002
+name: Kill Malicious Process (Agent-Enforced)
+description: >-
+  Terminate a process via EDR agent with tamper-resistant enforcement.
+category: endpoint_response
+riskLevel: medium
+automationSupported: yes
+approvalRequired: soc_analyst_approval
+rollbackAvailable: partial
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

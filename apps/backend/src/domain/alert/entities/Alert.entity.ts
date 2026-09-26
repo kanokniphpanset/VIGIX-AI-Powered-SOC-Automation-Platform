@@ -1,3 +1,4 @@
+import type { AlertWorkflowState } from "../triageWorkflow";
 /**
  * Alert — domain entity (Ring 1: Domain).
  * Represents an alert as received from an external SIEM, before it becomes an Incident.
@@ -5,7 +6,19 @@
  */
 export type SiemSource = "wazuh" | "splunk" | "defender" | "elk";
 export type AlertSeverity = "low" | "medium" | "high" | "critical";
-export type AlertStatus = "received" | "analyzing" | "escalated" | "closed";
+/** "monitoring": SOC triaged the alert as MONITOR — kept open in the Alert Inbox without an Incident. */
+export type AlertStatus = "received" | "analyzing" | "escalated" | "closed" | "monitoring";
+
+/** SOC triage outcome for an alert that does not become an Incident. */
+export type AlertTriageDisposition = "FALSE_POSITIVE" | "INFORMATIONAL" | "MONITOR";
+export const ALERT_TRIAGE_DISPOSITIONS: AlertTriageDisposition[] = ["FALSE_POSITIVE", "INFORMATIONAL", "MONITOR"];
+
+export interface AlertTriage {
+  disposition: AlertTriageDisposition;
+  note: string | null;
+  triagedBy: string;
+  triagedAt: Date;
+}
 
 export interface AlertProps {
   id: string;
@@ -17,6 +30,13 @@ export interface AlertProps {
   status: AlertStatus;
   receivedAt: Date;
   createdAt: Date;
+  /** Latest SOC triage (null = not triaged). */
+  triage?: AlertTriage | null;
+  /** SOC triage lifecycle (see domain/alert/triageWorkflow.ts). Defaults to NEW. */
+  workflowState?: AlertWorkflowState;
+  reviewAt?: Date | null;
+  monitorReason?: string | null;
+  closedAt?: Date | null;
 }
 
 export class Alert {
@@ -55,6 +75,21 @@ export class Alert {
   }
   get createdAt() {
     return this.props.createdAt;
+  }
+  get triage() {
+    return this.props.triage ?? null;
+  }
+  get workflowState(): AlertWorkflowState {
+    return this.props.workflowState ?? "NEW";
+  }
+  get reviewAt() {
+    return this.props.reviewAt ?? null;
+  }
+  get monitorReason() {
+    return this.props.monitorReason ?? null;
+  }
+  get closedAt() {
+    return this.props.closedAt ?? null;
   }
 
   isHighPriority(): boolean {

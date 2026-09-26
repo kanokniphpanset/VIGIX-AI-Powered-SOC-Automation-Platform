@@ -7,3 +7,10 @@ build/
 *.log
 .DS_Store
 apps/backend/prisma/migrations/**/migration.sql
+
+# Never publish: database dumps (real data), scratch output, the vendored wazuh-docker checkout (own .git + .env)
+*.dump
+backups/*.dump
+.tmp/
+wazuh-docker/
+.claude/settings.local.json

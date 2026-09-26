@@ -1,0 +1,15 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::REC-004.
+id: REC-004
+name: Re-enable Quarantined Access
+description: >-
+  Restore previously suspended account/session access after remediation is
+  confirmed complete.
+category: recovery
+riskLevel: medium
+automationSupported: conditional
+approvalRequired: manager_approval
+rollbackAvailable: yes
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

@@ -1,0 +1,66 @@
+{
+  "id": "ATK-05",
+  "attackType": "SQL_INJECTION",
+  "title": "UNION-based SQL injection against WEB-01 from a single source — blocked",
+  "description": "sqlmap-style UNION SELECT requests from 185.220.101.77 against /products.php on WEB-01. After the source IP is blocked at the WAF, the re-hunt finds no further requests from it and no further SQLi detections.",
+  "alert": {
+    "id": "1726658400.10006",
+    "timestamp": "2026-09-18T11:20:00.000+0000",
+    "rule": {
+      "id": "31103",
+      "level": 7,
+      "description": "SQL injection attempt.",
+      "groups": ["web", "accesslog", "attack", "sql_injection"],
+      "firedtimes": 18,
+      "mitre": { "id": ["T1190"], "tactic": ["Initial Access"], "technique": ["Exploit Public-Facing Application"] }
+    },
+    "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "web-accesslog" },
+    "location": "/var/log/nginx/access.log",
+    "data": {
+      "srcip": "185.220.101.77",
+      "protocol": "GET",
+      "url": "/products.php?id=1'+UNION+SELECT+username,password+FROM+users--",
+      "id": "200"
+    },
+    "full_log": "185.220.101.77 - - [18/Sep/2026:11:20:00 +0000] \"GET /products.php?id=1'+UNION+SELECT+username,password+FROM+users-- HTTP/1.1\" 200 1532 \"-\" \"sqlmap/1.8\""
+  },
+  "expected": {
+    "severity": "medium",
+    "host": "WEB-01",
+    "mitreTechniques": ["T1190"],
+    "iocs": [
+      { "type": "ip", "value": "185.220.101.77" },
+      { "type": "request", "value": "/products.php?id=1'+UNION+SELECT+username,password+FROM+users--" }
+    ],
+    "policyInputs": { "assetTier": "tier2_high", "ruleLevel": 7 },
+    "approval": "POLICY_DECIDES",
+    "primaryResult": "RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Block 185.220.101.77 at the WAF and enable the SQLi rule set for /products.php",
+    "target": "185.220.101.77"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726665600.10081",
+            "timestamp": "2026-09-18T13:20:00.000+0000",
+            "@timestamp": "2026-09-18T13:20:00.000Z",
+            "rule": { "id": "31101", "level": 5, "description": "Web server 400 error code.", "groups": ["web", "accesslog", "attack"] },
+            "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
+            "data": { "srcip": "10.0.5.22", "protocol": "GET", "url": "/favicon.ico", "id": "404" },
+            "full_log": "10.0.5.22 - - [18/Sep/2026:13:20:00 +0000] \"GET /favicon.ico HTTP/1.1\" 404 162 \"-\" \"Mozilla/5.0\""
+          }
+        ]
+      }
+    ]
+  }
+}

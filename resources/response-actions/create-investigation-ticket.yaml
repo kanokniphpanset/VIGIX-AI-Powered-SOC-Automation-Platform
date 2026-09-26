@@ -1,0 +1,17 @@
+# Opens a ticket in the configured ticketing system. Routes through the
+# existing n8n workflow automation/n8n/workflows/ticket-creation.json —
+# webhook path "soar/create-ticket" (that workflow itself reads
+# $env.TICKETING_API_URL, set in n8n's own Settings -> Variables, not here).
+id: create-investigation-ticket
+name: Create Investigation Ticket
+description: >-
+  Opens an investigation ticket in the configured ticketing system via the
+  existing ticket-creation.json n8n workflow.
+category: investigation
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/create-ticket

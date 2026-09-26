@@ -1,0 +1,68 @@
+# NIST SP 800-61 Rev.3 traceability mapping for RecommendationAgent
+# (apps/ai-orchestrator/src/agents/recommendation_agent/). Loaded at runtime
+# by NistMappingLoader (apps/ai-orchestrator/resources/mapping_loader.py).
+#
+# See resources/mappings/README.md for the non-engineer walkthrough.
+
+id: nist-800-61-r3-mapping
+version: "1"
+framework: "NIST SP 800-61 Rev.3"
+notice: >
+  NIST SP 800-61 Revision 3 (April 2025), "Incident Response Recommendations
+  and Considerations for Cybersecurity Risk Management," replaced the
+  four-phase incident response lifecycle used in Revision 2 (Preparation;
+  Detection & Analysis; Containment, Eradication & Recovery; Post-Incident
+  Activity) with organization around the six NIST Cybersecurity Framework
+  (CSF) 2.0 functions: Govern (GV), Identify (ID), Protect (PR), Detect
+  (DE), Respond (RS), Recover (RC), presented as a two-table Community
+  Profile (Preparation = Govern/Identify/Protect; Incident Response Life
+  Cycle = Detect/Respond/Recover). This restructuring is independently
+  verified via NIST's own 2025 publication announcement and a contemporary
+  legal-industry summary (see `sources` below) — it is not inferred or
+  copied from any non-authoritative GitHub playbook repository. In
+  particular, the msraju/Incident-Response-Playbooks repository reflects
+  Rev.2's four-phase structure and must never be presented as Rev.3 (VIGIX
+  spec section 4).
+  .
+  The `function` value below for each VIGIX recommendation category is this
+  verified, function-level mapping. Finer-grained CSF Category/Subcategory
+  codes (e.g. RS.MA, RS.AN, RC.RP) are part of the published CSF 2.0 core
+  but their specific placement inside SP 800-61r3's own Community Profile
+  tables was not independently confirmed against the primary document text
+  in this environment, so every `section` below is deliberately
+  "reference_required" rather than a fabricated citation (VIGIX spec
+  section 3: "if an exact NIST reference cannot be verified, mark it as
+  reference_required instead of fabricating a citation").
+sources:
+  - "NIST, 'NIST Revises SP 800-61: Incident Response Recommendations and Considerations' (April 2025) — nist.gov/news-events/news/2025/04/nist-revises-sp-800-61-incident-response-recommendations-and-considerations"
+  - "Lexology, 'NIST Publishes Updated Incident Response Recommendations and Considerations' (2025) — summarizes SP 800-61r3's CSF 2.0 Community Profile structure (Table 2: Govern/Identify/Protect; Table 3: Detect/Respond/Recover)"
+
+# VIGIX's own operational recommendation-category taxonomy (spec section 8)
+# is NOT NIST terminology — this table maps VIGIX's categories onto the
+# verified NIST/CSF structure; it is not a claim that NIST itself uses these
+# category names.
+categories:
+  INVESTIGATION:
+    function: "Detect (DE)"
+    section: reference_required
+  EVIDENCE_COLLECTION:
+    function: "Respond (RS)"
+    section: reference_required
+  ANALYSIS:
+    function: "Detect (DE)"
+    section: reference_required
+  CONTAINMENT:
+    function: "Respond (RS)"
+    section: reference_required
+  ERADICATION:
+    function: "Respond (RS)"
+    section: reference_required
+  RECOVERY:
+    function: "Recover (RC)"
+    section: reference_required
+  POST_INCIDENT:
+    function: "Govern (GV)"
+    section: reference_required
+  CONTINUOUS_IMPROVEMENT:
+    function: "Govern (GV)"
+    section: reference_required

@@ -1,0 +1,410 @@
+# Investigation Recommendation Catalog for RecommendationAgent
+# (apps/ai-orchestrator/src/agents/recommendation_agent/). Loaded at runtime
+# by RecommendationCatalogLoader (apps/ai-orchestrator/resources/mapping_loader.py).
+#
+# Keys under `incident_types` are contracts/classification.py::IncidentCategory
+# values (the SAME taxonomy classification_agent already scores against).
+# Each entry is a candidate recommendation; RecommendationSelector
+# (src/agents/recommendation_agent/selector.py) includes it in a report ONLY
+# if `evidence_conditions` is satisfied by the evidence actually present for
+# this incident (never from classification/category alone — VIGIX spec
+# section 9). `evidence_conditions.any_of`/`all_of` reference the signal
+# vocabulary computed by selector.py::build_signals: always,
+# classification_high_confidence, ioc_malicious, mitre_present,
+# playbook_match, knowledge_match, llm_support, high_severity, asset_tier_high,
+# regulated_or_customer_facing.
+#
+# `category` values are VIGIX's own operational taxonomy (spec section 8),
+# not NIST terminology — see nist-800-61-r3-mapping.yaml for how each maps
+# onto the verified NIST SP 800-61 Rev.3 / CSF 2.0 structure.
+#
+# `automation_hint`/`recommended_action` are METADATA ONLY. RecommendationAgent
+# never executes anything; a human-readable `recommended_action` is not an
+# executable action id (spec section 10, "Recommendation != Action").
+#
+# `action_id` (Recommendation Agent task): an OPTIONAL reference to a real,
+# executable Decision Agent Action Catalog id (apps/ai-orchestrator/src/
+# agents/decision_agent/action_catalog.py) — set only on entries whose
+# recommended_action maps unambiguously onto exactly one real catalog entry
+# (never a compound/partial match — e.g. "block IOC and purge the message"
+# is deliberately left unmapped, since no single real action covers both).
+# RecommendationSelector re-validates every action_id against the real
+# catalog at runtime (never trusts this file blindly); an id that doesn't
+# actually exist there is treated as absent, never surfaced. DecisionAgent
+# does not read this field — it keeps its own, independent action selector
+# (decision_engine.py::DefaultActionSelector) unchanged; this is additive
+# traceability on RecommendationAgent's own output only.
+
+id: recommendation-catalog
+version: "1"
+
+incident_types:
+  BRUTE_FORCE:
+    - id: BF-INV-001
+      title: Review authentication events for the targeted account(s)
+      category: INVESTIGATION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+      mitre_techniques: [T1110]
+
+    - id: BF-EC-001
+      title: Preserve authentication and source-IP logs for the affected time window
+      category: EVIDENCE_COLLECTION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: BF-CONT-001
+      title: Block the source IP(s) associated with repeated failed authentication
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [ioc_malicious, mitre_present]
+      mitre_techniques: [T1110.003]
+      automation_hint: true
+      recommended_action: Block source IP at the firewall/EDR
+      action_id: NET-001
+
+    - id: BF-CONT-002
+      title: Temporarily lock or rate-limit the targeted account
+      category: CONTAINMENT
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [mitre_present]
+      automation_hint: true
+      recommended_action: Apply temporary account lockout / rate limiting
+
+    - id: BF-REC-001
+      title: Confirm no successful authentication occurred from the blocked source, then monitor for recurrence
+      category: RECOVERY
+      default_priority: LOW
+      evidence_conditions:
+        any_of: [always]
+
+  CREDENTIAL_ATTACK:
+    - id: CRED-INV-001
+      title: Review authentication activity for the affected account
+      category: INVESTIGATION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: CRED-INV-002
+      title: Identify the affected account and correlate related activity
+      category: INVESTIGATION
+      default_priority: MEDIUM
+      evidence_conditions:
+        all_of: [mitre_present]
+      mitre_techniques: [T1078]
+
+    - id: CRED-EC-001
+      title: Preserve relevant authentication and session logs
+      category: EVIDENCE_COLLECTION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: CRED-ANL-001
+      title: Assess whether the unusual source IP correlates with known threat intelligence
+      category: ANALYSIS
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [ioc_malicious]
+
+    - id: CRED-CONT-001
+      title: Revoke active sessions for the affected account
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        all_of: [mitre_present]
+      mitre_techniques: [T1078, T1621]
+      automation_hint: true
+      recommended_action: Revoke active sessions for the account
+
+    - id: CRED-CONT-002
+      title: Disable the compromised credential pending investigation
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [ioc_malicious, high_severity]
+      automation_hint: true
+      recommended_action: Disable the compromised account
+      action_id: CRED-003
+
+    - id: CRED-ERAD-001
+      title: Remove any unauthorized persistence or account changes
+      category: ERADICATION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [mitre_present]
+      mitre_techniques: [T1098]
+
+    - id: CRED-REC-001
+      title: Reset credentials and restore legitimate access
+      category: RECOVERY
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [always]
+      recommended_action: Force credential reset
+
+    - id: CRED-REC-002
+      title: Monitor the account for recurrence over the following 24-72 hours
+      category: RECOVERY
+      default_priority: LOW
+      evidence_conditions:
+        any_of: [always]
+
+  ACCOUNT_COMPROMISE:
+    - id: ACCT-INV-001
+      title: Review authentication and API activity for the compromised account
+      category: INVESTIGATION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+      mitre_techniques: [T1078]
+
+    - id: ACCT-EC-001
+      title: Preserve relevant authentication, session, and API-call logs
+      category: EVIDENCE_COLLECTION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: ACCT-ANL-001
+      title: Correlate the unusual source IP and activity pattern with threat intelligence
+      category: ANALYSIS
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [ioc_malicious]
+
+    - id: ACCT-CONT-001
+      title: Revoke all active sessions and tokens for the compromised account
+      category: CONTAINMENT
+      default_priority: CRITICAL
+      evidence_conditions:
+        any_of: [mitre_present, ioc_malicious]
+      mitre_techniques: [T1078, T1098]
+      automation_hint: true
+      recommended_action: Revoke active sessions/tokens for the account
+
+    - id: ACCT-CONT-002
+      title: Disable the compromised account pending investigation
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [ioc_malicious, high_severity]
+      automation_hint: true
+      recommended_action: Disable the compromised account
+      action_id: CRED-003
+
+    - id: ACCT-ERAD-001
+      title: Remove any unauthorized account changes, forwarding rules, or delegated access
+      category: ERADICATION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [mitre_present]
+      mitre_techniques: [T1098]
+
+    - id: ACCT-REC-001
+      title: Reset credentials, re-enroll MFA, and restore legitimate access
+      category: RECOVERY
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [always]
+      recommended_action: Force credential reset and MFA re-enrollment
+
+  PHISHING:
+    - id: PHISH-INV-001
+      title: Investigate the phishing email(s), sender, and delivery vector
+      category: INVESTIGATION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+      mitre_techniques: [T1566]
+
+    - id: PHISH-EC-001
+      title: Preserve email headers, attachments, and embedded URLs as evidence
+      category: EVIDENCE_COLLECTION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: PHISH-EC-002
+      title: Identify and preserve the full list of recipients of the phishing message
+      category: EVIDENCE_COLLECTION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [mitre_present]
+
+    - id: PHISH-CONT-001
+      title: Block the malicious sender domain/IOC and remove the message from remaining mailboxes
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [ioc_malicious]
+      automation_hint: true
+      recommended_action: Block malicious IOC and purge the message
+
+    - id: PHISH-CONT-002
+      title: Reset credentials for any recipient who submitted them to the phishing page
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [mitre_present]
+      mitre_techniques: [T1204]
+      automation_hint: true
+      recommended_action: Force credential reset for affected recipients
+      action_id: CRED-001
+
+    - id: PHISH-REC-001
+      title: Restore affected accounts and monitor for follow-on activity
+      category: RECOVERY
+      default_priority: LOW
+      evidence_conditions:
+        any_of: [always]
+
+    - id: PHISH-POST-001
+      title: Update email filtering rules and run targeted user-awareness follow-up
+      category: POST_INCIDENT
+      default_priority: LOW
+      evidence_conditions:
+        any_of: [always]
+
+  MALWARE:
+    - id: MAL-INV-001
+      title: Identify the affected host(s), process, and infection vector
+      category: INVESTIGATION
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: MAL-EC-001
+      title: Collect a memory image and relevant logs from the affected host before remediation
+      category: EVIDENCE_COLLECTION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: MAL-CONT-001
+      title: Isolate the affected endpoint from the network
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [mitre_present, ioc_malicious]
+      mitre_techniques: [T1055]
+      automation_hint: true
+      recommended_action: Isolate the endpoint from the network
+      action_id: CONT-001
+
+    - id: MAL-ERAD-001
+      title: Remove the malicious file/process and any identified persistence mechanism
+      category: ERADICATION
+      default_priority: HIGH
+      evidence_conditions:
+        all_of: [mitre_present]
+      mitre_techniques: [T1547]
+
+    - id: MAL-REC-001
+      title: Restore the endpoint from a known-good image or verified clean state
+      category: RECOVERY
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [always]
+
+  RANSOMWARE:
+    - id: RANS-INV-001
+      title: Identify all affected hosts and the encryption/exfiltration timeline
+      category: INVESTIGATION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: RANS-EC-001
+      title: Preserve forensic evidence (memory, disk image, logs) before any remediation
+      category: EVIDENCE_COLLECTION
+      default_priority: CRITICAL
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: RANS-CONT-001
+      title: Isolate all affected hosts and disable lateral-movement paths (shared credentials, admin shares)
+      category: CONTAINMENT
+      default_priority: CRITICAL
+      evidence_conditions:
+        any_of: [mitre_present, ioc_malicious]
+      mitre_techniques: [T1486]
+      automation_hint: true
+      recommended_action: Isolate affected hosts from the network
+      action_id: CONT-001
+
+    - id: RANS-ERAD-001
+      title: Remove the ransomware binary and persistence mechanisms from every affected host
+      category: ERADICATION
+      default_priority: CRITICAL
+      evidence_conditions:
+        all_of: [mitre_present]
+      mitre_techniques: [T1490]
+
+    - id: RANS-REC-001
+      title: Restore affected systems from verified clean backups; never restore from a potentially compromised backup
+      category: RECOVERY
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [always]
+
+    - id: RANS-CI-001
+      title: Review backup isolation and credential-segmentation controls that allowed lateral spread
+      category: CONTINUOUS_IMPROVEMENT
+      default_priority: LOW
+      evidence_conditions:
+        any_of: [always]
+
+  DATA_EXFILTRATION:
+    - id: EXFIL-INV-001
+      title: Identify the affected data, destination, and transfer method
+      category: INVESTIGATION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: EXFIL-EC-001
+      title: Preserve network flow logs and DLP alerts for the exfiltration window
+      category: EVIDENCE_COLLECTION
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [classification_high_confidence]
+
+    - id: EXFIL-CONT-001
+      title: Block egress to the destination IP/domain and revoke active sessions for the involved account
+      category: CONTAINMENT
+      default_priority: CRITICAL
+      evidence_conditions:
+        any_of: [ioc_malicious, mitre_present]
+      mitre_techniques: [T1041]
+      automation_hint: true
+      recommended_action: Block egress to the destination IOC and revoke sessions
+
+    - id: EXFIL-CONT-002
+      title: Disable the account or service credential used to access the exfiltrated data
+      category: CONTAINMENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [mitre_present, high_severity]
+      automation_hint: true
+      recommended_action: Disable the implicated account/service credential
+      action_id: CRED-003
+
+    - id: EXFIL-REC-001
+      title: Confirm the exfiltration channel is closed and monitor for recurrence
+      category: RECOVERY
+      default_priority: MEDIUM
+      evidence_conditions:
+        any_of: [always]
+
+    - id: EXFIL-POST-001
+      title: Notify legal/compliance that regulated or customer data may have been exposed
+      category: POST_INCIDENT
+      default_priority: HIGH
+      evidence_conditions:
+        any_of: [regulated_or_customer_facing]

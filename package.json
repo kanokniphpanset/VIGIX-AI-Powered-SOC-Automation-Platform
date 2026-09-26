@@ -4,13 +4,13 @@
   "private": true,
   "description": "AI-Driven SOAR Automation Platform - monorepo root",
   "workspaces": [
+    "apps",
     "apps/backend",
-    "apps/frontend",
     "packages/*"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=apps/backend",
-    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:frontend": "npm run dev --workspace=apps",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present"
   },

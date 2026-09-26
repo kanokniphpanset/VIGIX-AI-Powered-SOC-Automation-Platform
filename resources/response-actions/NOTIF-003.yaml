@@ -1,0 +1,14 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::NOTIF-003.
+id: NOTIF-003
+name: Team Channel Alert
+description: >-
+  Post a structured incident notification to a configured collaboration channel.
+category: notification
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

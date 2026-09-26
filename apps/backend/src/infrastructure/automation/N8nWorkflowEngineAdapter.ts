@@ -29,7 +29,6 @@ export class N8nWorkflowEngineAdapter implements IWorkflowEnginePort {
         severity: input.severity,
         summary: input.summary,
         decision: input.decision,
-        riskScore: input.riskScore,
       }),
     });
 

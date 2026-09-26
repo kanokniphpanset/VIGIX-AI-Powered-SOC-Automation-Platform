@@ -1,0 +1,22 @@
+# Generic outbound webhook notification — no external system beyond
+# whatever URL is configured. Not routed through n8n: this is the one
+# executor with a genuinely reachable, real backend-side implementation
+# that doesn't depend on any pre-existing integration.
+id: notify-external-webhook
+name: Notify External Webhook
+description: >-
+  Posts the incident/decision payload as JSON to a configured external
+  webhook URL — for integrating with tooling outside this platform's own
+  n8n instance (e.g. a SIEM's own alert-annotation API).
+category: notification
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: webhook
+executorConfig:
+  # Real config seam, not a hardcoded URL — NotificationExecutor reads
+  # this env var name at execution time via process.env. Unset by default;
+  # an unconfigured webhook action fails cleanly with a clear error rather
+  # than silently doing nothing.
+  urlEnvVar: RESPONSE_WEBHOOK_URL

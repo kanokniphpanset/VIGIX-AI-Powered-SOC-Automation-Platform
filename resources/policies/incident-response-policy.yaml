@@ -1,0 +1,51 @@
+# Incident-response policy config for DecisionAgent's PolicyEngine
+# (apps/ai-orchestrator/src/agents/decision_agent/policy_engine.py).
+#
+# Loaded at runtime by ResourcePolicyConfigProvider
+# (apps/ai-orchestrator/resources/policy_loader.py) — this is PolicyEngine's
+# default config source as of Phase 3. Edit this file and restart the AI
+# orchestrator (or call PolicyLoader.reload() / start_watching() for
+# hot-reload) to change policy thresholds without touching Python.
+#
+# See resources/README.md for the non-engineer walkthrough, and
+# resources/schema/README.md for what every field below means and which
+# values are valid.
+
+id: incident-response-policy
+version: "1"
+policy_registry_version: "policy-registry@v1"
+
+# Tier 4 — Risk Policy: risk_score bands that decide dismiss / auto_response
+# / human_approval (0-100 scale).
+risk_auto_response_threshold: 30.0
+risk_human_approval_threshold: 70.0
+
+# Tier 5 — Confidence Policy: below this, the outcome is upgraded to
+# human_approval regardless of the risk band (0.0-1.0 scale).
+confidence_floor: 0.6
+
+# Tier 0 — Emergency Override Policy. When active, every other tier is
+# skipped and the outcome is forced to `emergency_override_outcome`.
+# Valid outcomes: dismiss | auto_response | human_approval | escalate
+emergency_override_active: false
+emergency_override_outcome: escalate
+
+# Tier 8 — Time Window Policy. When true, auto-response is suspended for
+# the duration of a declared change freeze.
+change_freeze_active: false
+
+# Tier 3 — Asset Criticality Policy: the minimum ("floor") outcome imposed
+# per asset-criticality tier, regardless of risk score.
+# Valid keys:   tier1_critical | tier2_high | tier3_medium | tier4_low
+# Valid values: dismiss | auto_response | human_approval | escalate
+asset_criticality_floor:
+  tier1_critical: human_approval
+  tier2_high: human_approval
+  tier3_medium: auto_response
+  tier4_low: dismiss
+
+# Tier 7 — Business Policy: any incident tagged with one of these imposes a
+# human-approval floor. Valid values: standard | sensitive | customer_facing | regulated
+business_floor_tags:
+  - regulated
+  - customer_facing

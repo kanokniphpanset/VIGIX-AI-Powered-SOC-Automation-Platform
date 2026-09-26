@@ -1,0 +1,82 @@
+# PB-STC-001 — Short-Term Containment
+#
+# The *process* skeleton every containment response must go through.
+# This file never encodes attack-specific actions — those live one level
+# down, per-incident-type, in procedures/<TYPE>/. AI Recommendation reads
+# a procedure's steps/decisions/containment/verification files and
+# produces a case-specific plan; IR Team always executes manually
+# (see playbook.md for the full rationale).
+
+id: PB-STC-001
+name: Short-Term Containment
+version: "1.1"
+status: ACTIVE
+owner: VIGIX Security Engineering
+
+description: >
+  Generic short-term containment process. Defines WHAT PHASES a response
+  must pass through — never a fixed action sequence. Policy decides what
+  needs approval; this playbook decides the process shape; the matched
+  Procedure supplies incident-type-specific detail (evidence, decisions,
+  candidate containment actions, verification query) within that shape.
+
+# The 7 phases from the design doc — every procedure's steps.yaml maps its
+# steps onto these phase IDs so the UI can render a consistent stepper
+# regardless of incident type.
+phases:
+  - id: VALIDATE
+    name: Validate Incident
+    output: Validated Incident
+  - id: ASSESS
+    name: Assess Containment Need
+    output: Containment Need
+  - id: SELECT_ACTION
+    name: Select Containment Action
+    output: Candidate Actions
+  - id: PREPARE_PLAN
+    name: Prepare Response Plan
+    output: Response Plan
+  - id: APPROVAL
+    name: Approval / Decision
+    output: Approved / Rejected
+  - id: EXECUTE
+    name: Execute Containment
+    output: Execution Result
+  - id: VERIFY
+    name: Verify Containment
+    output: Resolved / Not Resolved
+
+# MVP scope: 3 of 7 procedures implemented. The remaining 4 are declared
+# here as PLANNED so the Playbook Resolver can report a clear "no
+# procedure yet for this incident type" instead of silently matching
+# nothing.
+procedures:
+  - code: BRUTE_FORCE
+    path: procedures/BRUTE_FORCE
+    status: ACTIVE
+  - code: MALWARE
+    path: procedures/MALWARE
+    status: ACTIVE
+  - code: RANSOMWARE
+    path: procedures/RANSOMWARE
+    status: ACTIVE
+  - code: ACCOUNT_COMPROMISE
+    path: procedures/ACCOUNT_COMPROMISE
+    status: PLANNED
+  - code: PHISHING
+    path: procedures/PHISHING
+    status: PLANNED
+  - code: WEB_ATTACK
+    path: procedures/WEB_ATTACK
+    status: PLANNED
+  - code: LATERAL_MOVEMENT
+    path: procedures/LATERAL_MOVEMENT
+    status: PLANNED
+
+changelog:
+  - version: "1.0"
+    date: "2026-06-01"
+    notes: Initial 7-phase skeleton, no procedures yet.
+  - version: "1.1"
+    date: "2026-09-21"
+    notes: Added BRUTE_FORCE, MALWARE, RANSOMWARE procedures (MVP scope).

@@ -503,14 +503,21 @@ Because `backend` only ever talks to the orchestrator and to n8n through **ports
                                    ┌─────────────────────┐
                                    │     START node        │
                                    └──────────┬───────────┘
-                        ┌─────────────────────┼─────────────────────┐
-                        ▼                     ▼                     ▼
-              ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-              │ ThreatIntelAgent  │  │   MitreAgent      │  │    RagAgent       │
-              │ (MISP/VT/OTX)     │  │ (ATT&CK mapping)  │  │ (Qdrant retrieval)│
-              └────────┬──────────┘  └────────┬──────────┘  └────────┬──────────┘
-                       │   parallel fan-out, joined by LangGraph      │
-                       └─────────────────────┬────────────────────────┘
+                                              ▼
+                                   ┌─────────────────────┐
+                                   │ ThreatIntelAgent      │
+                                   │ (MISP/VT/OTX)         │
+                                   └──────────┬───────────┘
+                                              ▼
+                                   ┌─────────────────────┐
+                                   │   MitreAgent           │
+                                   │ (ATT&CK mapping)      │
+                                   └──────────┬───────────┘
+                                              ▼
+                                   ┌─────────────────────┐
+                                   │    RagAgent            │
+                                   │ (Qdrant retrieval)    │
+                                   └──────────┬───────────┘
                                               ▼
                                    ┌─────────────────────┐
                                    │    MlRiskAgent        │
@@ -558,8 +565,8 @@ Because `backend` only ever talks to the orchestrator and to n8n through **ports
 ```
 
 Key interaction rules:
-- **Parallel fan-out / fan-in**: ThreatIntelAgent, MitreAgent, and RagAgent run concurrently as independent LangGraph nodes because they share no data dependency; results are merged into shared `AgentState` before MlRiskAgent runs.
-- **Sequential dependency**: MlRiskAgent needs enrichment context (IOC reputation, MITRE techniques, similar past incidents) as features, so it must run after the fan-in join.
+- **Sequential enrichment chain**: ThreatIntelAgent → MitreAgent → RagAgent run as ordered LangGraph nodes, not a parallel fan-out — RagAgent's query builder reads MitreAgent's technique matches and ThreatIntelAgent's IOC-derived malware family/threat categories out of `AgentState`, so it must run strictly after both have written their output.
+- **Sequential dependency**: MlRiskAgent needs enrichment context (IOC reputation, MITRE techniques, similar past incidents) as features, so it must run after RagAgent.
 - **Feedback edge**: ValidationAgent can route back to any upstream agent (conditional edge) if confidence is below threshold, up to a max retry count stored in state.
 - **Human-in-the-loop**: DecisionAgent is a conditional edge — LangGraph interrupts the graph (`interrupt_before`) and persists a checkpoint when human approval is required; the graph resumes once the analyst responds via the frontend, which calls back into the backend, which resumes the orchestrator run.
 
@@ -607,14 +614,13 @@ graph.add_node("decision", decision_agent.run)
 graph.add_node("business_analytics", business_analytics_agent.run)
 graph.add_node("feedback", feedback_agent.run)
 
-graph.set_entry_point("threat_intel")   # fan-out start
-graph.add_edge("threat_intel", "join_enrichment")
-graph.add_edge("mitre", "join_enrichment")
-graph.add_edge("rag", "join_enrichment")
-# LangGraph parallel branches: threat_intel, mitre, rag all triggered from START,
-# joined implicitly once all three complete (fan-in barrier node "join_enrichment")
+graph.set_entry_point("threat_intel")
+graph.add_edge("threat_intel", "mitre")
+graph.add_edge("mitre", "rag")
+# Sequential, not a parallel fan-out: RagAgent reads MitreAgent's/
+# ThreatIntelAgent's output out of AgentState, so it must run after both.
 
-graph.add_edge("join_enrichment", "ml_risk")
+graph.add_edge("rag", "ml_risk")
 graph.add_edge("ml_risk", "llm_analyst")
 graph.add_edge("llm_analyst", "validation")
 
@@ -641,7 +647,7 @@ app = graph.compile(checkpointer=PostgresCheckpointer(...), interrupt_before=["d
 **Execution modes:**
 - **Synchronous** (low-severity, fast agents) — backend awaits the full run for near-real-time UI feedback.
 - **Asynchronous with checkpoint resume** (human approval required) — LangGraph persists state to Postgres via the checkpointer; the run resumes from the exact node once an analyst approves/rejects in the frontend.
-- **Parallel node execution** is native to LangGraph's `StateGraph` (nodes without a dependency edge between them execute concurrently in the same superstep), giving true fan-out for ThreatIntelAgent/MitreAgent/RagAgent without custom threading code.
+- **Parallel node execution** is native to LangGraph's `StateGraph` (nodes without a dependency edge between them execute concurrently in the same superstep) but is not used for ThreatIntelAgent/MitreAgent/RagAgent — they're wired as a sequential chain because RagAgent has a real data dependency on the other two's output.
 
 ---
 

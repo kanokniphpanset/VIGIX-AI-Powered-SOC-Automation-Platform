@@ -1,0 +1,120 @@
+procedureCode: RANSOMWARE
+
+steps:
+  - stepOrder: 1
+    phase: VALIDATE
+    title: Confirm & Scope
+    objective: Confirm active encryption and identify every affected host immediately.
+    recommendedAction:
+      - Confirm mass file modification / ransom note against known ransomware indicators
+      - "Immediately check for the same pattern on other hosts and network shares (do this in parallel with confirmation, not after — see containment.yaml)"
+      - Identify the ransom note's hash/family if possible
+    reason: >
+      Unlike brute force or generic malware, every minute of unconfirmed
+      delay here is irreversible data loss; initial scope-check and
+      candidate isolation run in parallel, not sequentially.
+    evidenceRequired:
+      - File modification/encryption indicators
+      - Ransom note (path, hash, content)
+      - Affected host list (initial pass)
+    expectedResult: Active encryption confirmed and initial affected host list identified.
+    decisionRef: DEC-RW-001
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+
+  - stepOrder: 2
+    phase: SELECT_ACTION
+    title: Containment
+    objective: Stop encryption from progressing further, on every affected host.
+    recommendedAction:
+      - "Isolate every confirmed affected host from the network (see containment.yaml: ISOLATE_HOST)"
+      - "Disable or disconnect shared drives/mapped network shares reachable from affected hosts (see containment.yaml: DISABLE_SHARE)"
+      - "Disable any account confirmed used to spread the encryption process (see containment.yaml: DISABLE_ACCOUNT)"
+    reason: >
+      Ransomware's damage is proportional to time-to-isolation; this step
+      is the highest priority in the entire procedure.
+    evidenceRequired:
+      - Confirmed affected host list
+      - Shared drive/mount inventory
+    expectedResult: No further file encryption occurring on any confirmed-affected host.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - stepOrder: 3
+    phase: PREPARE_PLAN
+    title: Investigation
+    objective: Determine patient zero and the initial access/execution vector.
+    recommendedAction:
+      - Trace back from the earliest encrypted file timestamp to find patient zero
+      - "Identify initial access vector (phishing, exposed RDP, exploited service, etc.)"
+      - Check for data staged/exfiltrated before encryption (double-extortion indicator)
+    reason: >
+      Isolation stops the spread; it doesn't explain how the attacker got
+      in, which is required before any host can safely be reconnected.
+    evidenceRequired:
+      - Timeline of first-encrypted files per host
+      - Initial access artifact (email, exposed service log, exploit evidence)
+      - Outbound data transfer logs
+    expectedResult: Patient zero and initial access vector identified (or ruled out where possible).
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+
+  - stepOrder: 4
+    phase: PREPARE_PLAN
+    title: Threat Hunting
+    objective: Confirm no additional hosts are silently encrypting or staged for a second wave.
+    recommendedAction:
+      - Re-hunt the ransomware process/hash and known persistence indicators fleet-wide
+      - Check backup infrastructure for tampering or deletion attempts
+    reason: >
+      Ransomware operators frequently target backups before triggering
+      encryption; backup integrity must be confirmed before recovery planning.
+    evidenceRequired:
+      - Fleet-wide hash/process search results
+      - Backup system integrity/access log
+    expectedResult: Confirmed final scope of affected hosts and backup integrity status.
+    decisionRef: DEC-RW-002
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+
+  - stepOrder: 5
+    phase: EXECUTE
+    title: Eradication
+    objective: Remove the ransomware binary and persistence from every affected host.
+    recommendedAction:
+      - Remove the ransomware binary and any identified persistence mechanism
+      - Close the initial access vector identified in Investigation
+      - "Coordinate recovery approach with system/backup owners (this procedure does not itself decide restore-from-backup vs. rebuild — that is an IR Team decision made with business/data owners)"
+    reason: >
+      Restoring data onto a host that still has the ransomware's
+      persistence mechanism intact leads to immediate re-encryption.
+    evidenceRequired:
+      - Binary/persistence removal confirmation per host
+      - Initial access vector closure confirmation
+    expectedResult: No ransomware binary or persistence mechanism remains on any affected host.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: true
+    approvalRole: IR_TEAM
+
+  - stepOrder: 6
+    phase: VERIFY
+    title: Verification
+    objective: Confirm no new encryption activity and no remaining spread.
+    recommendedAction:
+      - Run the re-hunt query defined in verification.yaml
+      - Confirm no new file modifications matching the encryption pattern since containment
+      - Re-check previously affected hosts for renewed activity
+    reason: "See playbook.md — verification is what closes the loop."
+    evidenceRequired:
+      - Wazuh re-hunt results
+      - File-integrity monitoring results (post-containment window)
+    expectedResult: "RESOLVED or NOT_RESOLVED, per verification.yaml."
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false

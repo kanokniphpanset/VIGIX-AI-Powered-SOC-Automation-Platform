@@ -1,0 +1,68 @@
+{
+  "id": "ATK-07",
+  "attackType": "ACCOUNT_COMPROMISE",
+  "title": "Suspicious external RDP logon outside business hours",
+  "description": "User j.smith logs on to FILESRV-02 over RDP (logon type 10) at 02:14 from external address 185.220.101.90. The account is disabled, its credentials reset and the source blocked; the re-hunt finds no further logons from that address.",
+  "alert": {
+    "id": "1726625640.10008",
+    "timestamp": "2026-09-18T02:14:00.000+0000",
+    "rule": {
+      "id": "100200",
+      "level": 10,
+      "description": "Successful RDP logon from an external IP address outside business hours",
+      "groups": ["windows", "authentication_success", "vigix_custom"],
+      "firedtimes": 1,
+      "mitre": { "id": ["T1078"], "tactic": ["Initial Access"], "technique": ["Valid Accounts"] }
+    },
+    "agent": { "id": "020", "name": "FILESRV-02", "ip": "10.0.2.20" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "windows_eventchannel" },
+    "location": "EventChannel",
+    "data": {
+      "srcip": "185.220.101.90",
+      "dstuser": "j.smith",
+      "win": {
+        "system": { "eventID": "4624", "channel": "Security" },
+        "eventdata": { "targetUserName": "j.smith", "targetDomainName": "CORP", "ipAddress": "185.220.101.90", "logonType": "10", "workstationName": "UNKNOWN" }
+      }
+    },
+    "full_log": "An account was successfully logged on. Account Name: j.smith Account Domain: CORP Logon Type: 10 Source Network Address: 185.220.101.90"
+  },
+  "expected": {
+    "severity": "medium",
+    "host": "FILESRV-02",
+    "mitreTechniques": ["T1078"],
+    "iocs": [
+      { "type": "ip", "value": "185.220.101.90" },
+      { "type": "user", "value": "j.smith" }
+    ],
+    "policyInputs": { "assetTier": "tier2_high", "ruleLevel": 10 },
+    "approval": "POLICY_DECIDES",
+    "primaryResult": "RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Disable j.smith, reset its credentials, terminate active RDP sessions and block 185.220.101.90",
+    "target": "185.220.101.90"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726650000.10111",
+            "timestamp": "2026-09-18T09:00:00.000+0000",
+            "@timestamp": "2026-09-18T09:00:00.000Z",
+            "rule": { "id": "60106", "level": 3, "description": "Windows Logon Success", "groups": ["windows", "authentication_success"] },
+            "agent": { "id": "020", "name": "FILESRV-02", "ip": "10.0.2.20" },
+            "data": { "srcip": "10.0.2.50", "dstuser": "svc_backup", "win": { "system": { "eventID": "4624" }, "eventdata": { "targetUserName": "svc_backup", "logonType": "3" } } },
+            "full_log": "An account was successfully logged on. Account Name: svc_backup Logon Type: 3 Source Network Address: 10.0.2.50"
+          }
+        ]
+      }
+    ]
+  }
+}

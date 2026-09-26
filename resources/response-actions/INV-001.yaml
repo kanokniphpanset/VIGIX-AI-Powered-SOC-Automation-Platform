@@ -1,0 +1,15 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::INV-001.
+id: INV-001
+name: Endpoint Forensic Triage Collection
+description: >-
+  Pull volatile artifacts (process list, memory summary, autoruns) without
+  altering endpoint state.
+category: investigation
+riskLevel: low
+automationSupported: conditional
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

@@ -1,0 +1,109 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace=@soar-platform/frontend"
+      ],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace=apps/backend"
+      ],
+      "port": 4000,
+      "autoPort": true
+    },
+    {
+      "name": "backend-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\backend && set BACKEND_PORT=4100&& set AI_WORKER_ENABLED=false&& set RECOMMENDATION_AGENT=fake&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4100
+    },
+    {
+      "name": "ai-orchestrator",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\ai-orchestrator && set PYTHONPATH=D:\\soar-platform;D:\\soar-platform\\apps\\ai-orchestrator&& .venv\\Scripts\\python.exe -m uvicorn src.main:app --reload --port 8000"
+      ],
+      "port": 8000,
+      "autoPort": true
+    },
+    {
+      "name": "backend-e2e-offline",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\backend && set BACKEND_PORT=4100&& set AI_WORKER_ENABLED=false&& set RECOMMENDATION_AGENT=fake&& set EMAIL_HOST=127.0.0.1&& set EMAIL_PORT=9&& set N8N_URL=http://127.0.0.1:9&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4100
+    },
+    {
+      "name": "backend-e2e-mock-rehunt",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\backend && set BACKEND_PORT=4200&& set AI_WORKER_ENABLED=false&& set RECOMMENDATION_AGENT=llm&& set REHUNT_PROVIDER=mock&& set REHUNT_MOCK_MODE=FIXTURE&& set EMAIL_HOST=127.0.0.1&& set EMAIL_PORT=9&& set N8N_URL=http://127.0.0.1:9&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "backend-e2e-real-ai",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\backend && set BACKEND_PORT=4200&& set AI_WORKER_ENABLED=true&& set RECOMMENDATION_AGENT=llm&& set REHUNT_PROVIDER=mock&& set REHUNT_MOCK_MODE=FIXTURE&& set EMAIL_HOST=127.0.0.1&& set EMAIL_PORT=9&& set N8N_URL=http://127.0.0.1:9&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "ai-orchestrator-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\ai-orchestrator && set PYTHONPATH=D:\\soar-platform;D:\\soar-platform\\apps\\ai-orchestrator&& set BACKEND_URL=http://localhost:4200&& .venv\\Scripts\\python.exe -m uvicorn src.main:app --reload --port 8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "frontend-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps && set VITE_BACKEND_URL=http://localhost:4100&& npx vite --port 5174 --strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "backend-core-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps\\backend && set BACKEND_PORT=4200&& set AI_WORKER_ENABLED=true&& set RECOMMENDATION_AGENT=llm&& set REHUNT_PROVIDER=wazuh&& set EMAIL_HOST=127.0.0.1&& set EMAIL_PORT=9&& set N8N_URL=http://127.0.0.1:9&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "frontend-core-e2e",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\soar-platform\\apps && set VITE_BACKEND_URL=http://localhost:4200&& npx vite --port 5175 --strictPort"
+      ],
+      "port": 5175
+    }
+  ]
+}

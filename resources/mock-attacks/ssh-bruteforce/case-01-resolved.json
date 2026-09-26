@@ -1,0 +1,61 @@
+{
+  "id": "ATK-01",
+  "attackType": "SSH_BRUTE_FORCE",
+  "title": "SSH brute force from a single external IP — contained",
+  "description": "Repeated failed SSH password attempts for root from 185.220.101.45 against WKS-DEV-12. After the source IP is blocked, the re-hunt finds no further activity.",
+  "alert": {
+    "id": "1726655400.10001",
+    "timestamp": "2026-09-18T10:30:00.000+0000",
+    "rule": {
+      "id": "5712",
+      "level": 10,
+      "description": "sshd: brute force trying to get access to the system. Authentication failed.",
+      "groups": ["syslog", "sshd", "authentication_failures"],
+      "firedtimes": 12,
+      "mitre": { "id": ["T1110"], "tactic": ["Credential Access"], "technique": ["Brute Force"] }
+    },
+    "agent": { "id": "012", "name": "WKS-DEV-12", "ip": "10.0.5.44" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "sshd", "parent": "sshd" },
+    "location": "/var/log/auth.log",
+    "data": { "srcip": "185.220.101.45", "srcport": "51122", "dstuser": "root" },
+    "full_log": "Sep 18 10:30:00 WKS-DEV-12 sshd[2211]: Failed password for root from 185.220.101.45 port 51122 ssh2"
+  },
+  "expected": {
+    "severity": "medium",
+    "host": "WKS-DEV-12",
+    "mitreTechniques": ["T1110"],
+    "iocs": [
+      { "type": "ip", "value": "185.220.101.45" },
+      { "type": "user", "value": "root" }
+    ],
+    "policyInputs": { "assetTier": "tier3_medium", "ruleLevel": 10 },
+    "approval": "POLICY_DECIDES",
+    "primaryResult": "RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Block source IP 185.220.101.45 at the perimeter firewall",
+    "target": "185.220.101.45"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726662600.10011",
+            "timestamp": "2026-09-18T12:30:00.000+0000",
+            "@timestamp": "2026-09-18T12:30:00.000Z",
+            "rule": { "id": "5715", "level": 3, "description": "sshd: authentication success.", "groups": ["syslog", "sshd", "authentication_success"] },
+            "agent": { "id": "012", "name": "WKS-DEV-12", "ip": "10.0.5.44" },
+            "data": { "srcip": "10.0.5.10", "dstuser": "devops" },
+            "full_log": "Sep 18 12:30:00 WKS-DEV-12 sshd[2402]: Accepted publickey for devops from 10.0.5.10 port 40022 ssh2"
+          }
+        ]
+      }
+    ]
+  }
+}

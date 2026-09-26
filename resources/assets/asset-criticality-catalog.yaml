@@ -1,0 +1,158 @@
+# Asset-criticality catalog for MlRiskAgent's weighted risk score and
+# DecisionAgent's Tier 3 (Asset Criticality) policy floor
+# (resources/policies/incident-response-policy.yaml's asset_criticality_floor).
+#
+# Loaded at runtime by ResourceAssetCriticalityProvider
+# (apps/ai-orchestrator/resources/asset_criticality_loader.py). Edit this
+# file and restart the AI orchestrator (or call
+# AssetCriticalityLoader.reload()/start_watching()) to change tiers without
+# touching Python.
+#
+# Root-cause context: before this file existed, `asset_criticality` was
+# never resolved anywhere in the pipeline, so every alert silently defaulted
+# to tier1_critical — under the current policy that forces a human_approval
+# floor on literally every incident, regardless of what it actually
+# targeted. See resources/assets/README.md.
+#
+# `hostname`/`ip` below are the real agent.name/agent.ip values seen in this
+# environment's own ingested alerts (queried directly from the `alerts`
+# table) — not invented. Their assigned tiers are a first-pass judgment call
+# from the hostname's naming convention (DC = domain controller, FILESRV =
+# file server, WKS-FIN/WKS-HR = workstations touching finance/HR data,
+# WKS-DEV/WKS-TEST = development/test workstations) and should be reviewed
+# and adjusted by whoever owns the real asset inventory — treat this as a
+# starting point, not a final answer.
+#
+# Phase 5.9 — Priority 4: `owner`/`environment`/`businessUnit`/
+# `customerFacing`/`regulated`/`tags` are new, optional, additive fields
+# consumed only by the BACKEND's AssetContextService (apps/backend/src) —
+# the same hostname-based reasoning as the tiers above, not verified
+# organizational data. The AI orchestrator's Python loader/schema
+# (asset_criticality_loader.py / asset_criticality_schema.py) never reads
+# these keys — pydantic ignores unknown fields by default — so this does
+# NOT touch ML risk scoring, the Decision Engine, or approval policy, all
+# of which remain fed only by `tier` exactly as before.
+
+id: asset-criticality-catalog
+version: "1"
+
+# Applied to any host that doesn't match an entry below (including the
+# hex-named Docker test agents seen in this environment, which have no
+# stable hostname/IP to catalog). Deliberately tier2_high, not tier1 or
+# tier3 — an uncatalogued asset should be treated cautiously (human_approval
+# floor) rather than either maximally strict or auto-response-eligible by
+# default.
+default_tier: tier2_high
+
+assets:
+  - hostname: "DC-01"
+    ip: "10.0.1.10"
+    tier: tier1_critical
+    note: "Domain controller"
+    owner: null
+    environment: production
+    businessUnit: "IT Infrastructure"
+    customerFacing: false
+    regulated: true
+    tags: [domain-controller, identity]
+
+  - hostname: "FILESRV-01"
+    ip: "10.0.2.50"
+    tier: tier2_high
+    note: "File server"
+    owner: null
+    environment: production
+    businessUnit: "IT Infrastructure"
+    customerFacing: false
+    regulated: false
+    tags: [file-server]
+
+  - hostname: "FILESRV-02"
+    ip: "10.0.2.20"
+    tier: tier2_high
+    note: "File server"
+    owner: null
+    environment: production
+    businessUnit: "IT Infrastructure"
+    customerFacing: false
+    regulated: false
+    tags: [file-server]
+
+  - hostname: "WEB-01"
+    ip: "10.0.3.10"
+    tier: tier2_high
+    note: "Web server"
+    owner: null
+    environment: production
+    businessUnit: "IT Infrastructure"
+    customerFacing: true
+    regulated: false
+    tags: [web-server, internet-facing]
+
+  - hostname: "WKS-FIN-07"
+    ip: "10.0.5.31"
+    tier: tier2_high
+    note: "Finance workstation — handles sensitive financial data"
+    owner: null
+    environment: production
+    businessUnit: Finance
+    customerFacing: false
+    regulated: true
+    tags: [workstation, finance]
+
+  - hostname: "WKS-HR-03"
+    ip: "10.0.5.19"
+    tier: tier2_high
+    note: "HR workstation — handles sensitive personnel data"
+    owner: null
+    environment: production
+    businessUnit: "Human Resources"
+    customerFacing: false
+    regulated: true
+    tags: [workstation, hr, pii]
+
+  - hostname: "WKS-DEV-12"
+    ip: "10.0.5.44"
+    tier: tier3_medium
+    note: "Developer workstation"
+    owner: null
+    environment: development
+    businessUnit: Engineering
+    customerFacing: false
+    regulated: false
+    tags: [workstation, developer]
+
+  - hostname: "WKS-TEST-01"
+    ip: "10.0.5.22"
+    tier: tier4_low
+    note: "Test workstation"
+    owner: null
+    environment: test
+    businessUnit: Engineering
+    customerFacing: false
+    regulated: false
+    tags: [workstation, test]
+
+  # Same hostname, second observed IP (WKS-TEST-01 was seen at both
+  # 10.0.5.22 and 10.0.5.99 in ingested alerts) — matched by IP takes
+  # priority over hostname in the loader, so both need their own entry.
+  - ip: "10.0.5.99"
+    tier: tier4_low
+    note: "Test workstation (WKS-TEST-01, second observed IP)"
+    owner: null
+    environment: test
+    businessUnit: Engineering
+    customerFacing: false
+    regulated: false
+    tags: [workstation, test]
+
+  - hostname: "WKS-TEST-02"
+    ip: "10.0.4.18"
+    tier: tier4_low
+    note: "Test workstation"
+    owner: null
+    environment: test
+    businessUnit: Engineering
+    customerFacing: false
+    regulated: false
+    tags: [workstation, test]

@@ -9,10 +9,11 @@ indicator actually refers to):
   * URL: scheme + host lowercased, default ports (80/443 for http/https)
     dropped, trailing slash on a bare path stripped. Query string, explicit
     non-default ports, and path casing are preserved — those can be
-    semantically significant (case-sensitive paths, tracking params) and
-    stripping them could hide the real indicator from a provider lookup.
+    semantically significant and stripping them could hide the real
+    indicator from a provider lookup.
   * Hash: lowercased (hex digests are case-insensitive by definition).
   * Email: lowercased.
+Whitespace is always stripped first (e.g. " 1.2.3.4 " -> "1.2.3.4").
 """
 
 from __future__ import annotations
@@ -60,8 +61,6 @@ def _normalize_url(value: str) -> str:
     if path == "/":
         path = ""
     elif path.endswith("/") and len(path) > 1:
-        # Only collapse a single trailing slash on an otherwise non-root path —
-        # preserves any deeper structure/query, which can matter for lookups.
         path = path[:-1]
 
     return urlunsplit((scheme, netloc, path, parts.query, ""))

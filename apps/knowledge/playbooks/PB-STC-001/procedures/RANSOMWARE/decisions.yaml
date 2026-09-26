@@ -1,0 +1,32 @@
+procedureCode: RANSOMWARE
+
+decisions:
+  - id: DEC-RW-001
+    stepRef: 1
+    question: "Is encryption still actively in progress?"
+    context: >
+      Shown immediately during Step 1 — drives whether isolation (Step 2)
+      happens as an emergency parallel action or a standard follow-on step.
+    options:
+      - value: "YES"
+        label: "Yes — actively encrypting"
+        leadsTo: EMERGENCY_ISOLATION
+      - value: "NO"
+        label: "No — encryption appears to have stopped"
+        leadsTo: STANDARD_CONTAINMENT
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-RW-002
+    stepRef: 4
+    question: "Is backup infrastructure confirmed intact and untampered?"
+    context: Shown after Step 4 (Threat Hunting) once backup system checks are complete.
+    options:
+      - value: "YES"
+        label: "Yes — backups intact"
+        leadsTo: PROCEED_TO_RECOVERY_PLANNING
+      - value: "NO"
+        label: "No — backups tampered/deleted"
+        leadsTo: ESCALATE_IR_DATA_LOSS_ASSESSMENT
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

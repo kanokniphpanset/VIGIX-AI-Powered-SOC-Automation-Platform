@@ -1,0 +1,33 @@
+id: PROC-RW-001
+code: RANSOMWARE
+name: Ransomware Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+
+objective: >
+  Stop active encryption immediately, contain spread to other hosts/shares,
+  and preserve evidence and forensic state before any recovery action.
+
+appliesWhen:
+  incidentTypes: [RANSOMWARE]
+  description: >
+    Mass file modification consistent with encryption, and/or a ransom
+    note artifact, detected on one or more hosts.
+
+primaryEvidence:
+  - File modification pattern (mass rename/extension change in a short window)
+  - Encryption behavior indicators (entropy change, known ransomware process)
+  - Ransom note file (path, hash, content)
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Deliberate ordering difference from BRUTE_FORCE/MALWARE: for ransomware,
+# initial isolation happens ALONGSIDE Confirm & Scope rather than strictly
+# after it — every minute of encryption in progress is file loss. See
+# steps.yaml step 1's recommendedAction and containment.yaml's note on
+# ISOLATE_HOST's approvalRequired.

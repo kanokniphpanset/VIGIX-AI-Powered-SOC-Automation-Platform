@@ -6,3 +6,7 @@ requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: real network calls to external services; self-skips when credentials are unconfigured (see tests/integration/).",
+    "db_integration: real queries against the local Postgres instance; self-skips when it is unreachable (see tests/integration/).",
+]

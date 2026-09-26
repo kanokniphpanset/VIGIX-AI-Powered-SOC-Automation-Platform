@@ -6,6 +6,7 @@ export interface ListAlertsInput {
   tenantId: string;
   limit?: number;
   offset?: number;
+  unlinked?: boolean;
 }
 
 export interface ListAlertsOutput {
@@ -27,8 +28,8 @@ export class ListAlertsUseCase {
     const offset = input.offset ?? 0;
 
     const [items, total] = await Promise.all([
-      this.alertRepository.findAll(input.tenantId, limit, offset),
-      this.alertRepository.countAll(input.tenantId),
+      this.alertRepository.findAll(input.tenantId, limit, offset, { unlinked: input.unlinked }),
+      this.alertRepository.countAll(input.tenantId, { unlinked: input.unlinked }),
     ]);
 
     return Result.ok({ items, total, limit, offset });

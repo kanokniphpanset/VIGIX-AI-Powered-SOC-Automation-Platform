@@ -1,4 +1,8 @@
-export type IncidentStatus = "open" | "investigating" | "resolved" | "dismissed";
+/**
+ * "escalated": the verification loop ended after MAX_INVESTIGATION_ROUNDS without containment — no new cycle or
+ * recommendation is generated; a human IR decision is required. Not closed (closedAt stays null).
+ */
+export type IncidentStatus = "open" | "investigating" | "resolved" | "dismissed" | "escalated";
 export type IncidentPriority = "low" | "medium" | "high" | "critical";
 
 export interface IncidentProps {
@@ -12,6 +16,7 @@ export interface IncidentProps {
   closedAt: Date | null;
   mttdSeconds: number | null;
   mttrSeconds: number | null;
+  investigationNumber: number;
 }
 
 export class Incident {
@@ -53,6 +58,9 @@ export class Incident {
   }
   get mttrSeconds() {
     return this.props.mttrSeconds;
+  }
+  get investigationNumber() {
+    return this.props.investigationNumber;
   }
 
   isOpen(): boolean {

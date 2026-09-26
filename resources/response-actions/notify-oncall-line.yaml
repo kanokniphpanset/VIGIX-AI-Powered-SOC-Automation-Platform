@@ -1,0 +1,13 @@
+# TODO: same gap as notify-oncall-email.yaml — Python's
+# apps/ai-orchestrator/src/notifications/line_notification_service.py is a
+# real LINE Messaging API client, but it's not reachable from apps/backend.
+id: notify-oncall-line
+name: Notify On-Call via LINE
+description: Sends a LINE message to the on-call analyst with the incident/decision summary.
+category: notification
+riskLevel: low
+automationSupported: no
+approvalRequired: no_approval
+rollbackAvailable: n/a
+executor: line
+executorConfig: {}

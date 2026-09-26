@@ -10,7 +10,6 @@ export interface TriggerPlaybookInput {
   severity: string;
   summary: string;
   decision: string;
-  riskScore: number;
 }
 
 export interface IWorkflowEnginePort {

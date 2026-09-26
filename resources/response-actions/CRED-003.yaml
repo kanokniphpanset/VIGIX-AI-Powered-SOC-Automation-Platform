@@ -1,0 +1,21 @@
+# Phase 5.7 — backend-executable counterpart of apps/ai-orchestrator's
+# decision_agent/action_catalog.py::CRED-003 ("Disable User Account").
+# automationSupported: yes in the Python catalog, but approvalRequired is
+# NOT no_approval — the Automation Policy Evaluator (Phase 5.7) requires
+# BOTH conditions to auto-execute, so this action always falls back to
+# HUMAN_APPROVAL despite being technically automatable (Step 17's
+# DISABLE_ACCOUNT example).
+id: CRED-003
+name: Disable User Account
+description: >-
+  Disables a compromised or misused user account in the identity provider.
+  Routed through a safe dry-run n8n workflow in this environment — no real
+  IAM/Active Directory API is integrated yet.
+category: credential_response
+riskLevel: high
+automationSupported: yes
+approvalRequired: soc_analyst_approval
+rollbackAvailable: yes
+executor: n8n
+executorConfig:
+  webhookPath: soar/execute-action-dryrun

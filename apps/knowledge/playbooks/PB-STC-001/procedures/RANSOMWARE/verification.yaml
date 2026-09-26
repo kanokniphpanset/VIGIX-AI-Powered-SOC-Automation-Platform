@@ -1,0 +1,22 @@
+procedureCode: RANSOMWARE
+
+verification:
+  type: WAZUH_REHUNT
+  queryTemplate: 'rule.groups:"ransomware" OR file.extension:"{{ransomExtension}}"'
+  timeRange:
+    before: "containment_time - 1h .. containment_time"
+    after: "containment_time .. containment_time + 1h"
+  fieldsCompared:
+    - matchingEventsBefore
+    - matchingEventsAfter
+    - affectedHosts
+    - iocRecurrence
+    - spreadDetected
+  additionalChecks:
+    - File-integrity monitoring: no new files matching the encryption pattern since containment
+    - Backup infrastructure access log review (post-containment window)
+  resultValues: [RESOLVED, NOT_RESOLVED]
+  onNotResolved:
+    surface: [newEvidence, spreadDetected]
+    nextAction: GENERATE_NEW_RESPONSE_PLAN
+    triggersPolicyRules: [RULE-009, RULE-010, RULE-011]

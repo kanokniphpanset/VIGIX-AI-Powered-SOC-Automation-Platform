@@ -1,0 +1,32 @@
+# verification.yaml — the re-hunt template used to close the loop after
+# containment. Feeds the Policy Engine's verification-override rules
+# (policy/seeds/policy.seed.ts RULE-009/010/011): a NOT_RESOLVED result
+# (or spreadDetected/threatContained=false) is what those rules react to —
+# and per that seed file's own docstring, this NEVER auto-triggers a new
+# Response. It only reopens the investigation loop for a human decision.
+
+procedureCode: BRUTE_FORCE
+
+verification:
+  type: WAZUH_REHUNT
+  queryTemplate: 'source.ip:"{{sourceIp}}" AND event.module:"sshd"'
+  timeRange:
+    before: "containment_time - 1h .. containment_time"
+    after: "containment_time .. containment_time + 1h"
+  fieldsCompared:
+    - matchingEventsBefore
+    - matchingEventsAfter
+    - affectedHosts
+    - iocRecurrence
+    - spreadDetected   # any NEW host matching the same source IP/pattern since containment
+  resultValues: [RESOLVED, NOT_RESOLVED]
+  onNotResolved:
+    surface:
+      - newEvidence        # e.g. "same source IP observed on Server-02"
+      - spreadDetected
+    nextAction: GENERATE_NEW_RESPONSE_PLAN
+    # Maps directly onto policy/seeds/policy.seed.ts:
+    #   verificationResult = NOT_RESOLVED -> RULE-009
+    #   spreadDetected = true             -> RULE-010
+    #   threatContained = false           -> RULE-011
+    triggersPolicyRules: [RULE-009, RULE-010, RULE-011]

@@ -1,32 +1,41 @@
 """
 ThreatScoreService — turns a set of per-provider results for a single IOC
-into an explainable threat score, verdict, and risk level.
+into an explainable threat score, verdict, risk level, and overall pipeline
+status.
 
-Pipeline (per the architecture spec):
-    Provider evidence -> evidence normalization -> evidence weighting
-        -> threat score -> risk level -> verdict
+Pipeline: Provider evidence -> weighting -> threat score -> risk level ->
+verdict, plus a separate pipeline_status_for() covering spec section 9's
+partial-failure rules. Every point added to the score is paired with a
+human-readable explanation string, so `ThreatIntelData.explanation` is
+always a faithful, literal audit trail of how the score was built — never
+an opaque number.
 
-Every point added to the score is paired with a human-readable explanation
-string, so `ThreatIntelData.explanation` is always a faithful, literal audit
-trail of how the score was built — never an opaque number.
+Deterministic verdict rules (spec section 12), enforced here and nowhere
+else — an LLM never reasons over this data to produce or override a verdict:
+  * NO_MATCH (from every provider that answered) != BENIGN — it means
+    "nobody has ever flagged this," not "this was checked and found clean."
+    Only a provider that actually returned SUCCESS (a real, data-bearing
+    response) can produce a BENIGN verdict.
+  * A provider being unavailable (FAILED/TIMEOUT/RATE_LIMITED/
+    NOT_CONFIGURED/NOT_SUPPORTED) never contributes to BENIGN either.
+  * An API failure never contributes to MALICIOUS — only a provider that
+    actually flagged the indicator does.
 
-Kept as pure functions (no I/O, no provider knowledge beyond the normalized
-ThreatIntelProviderResult shape) so it's trivially unit-testable.
+Kept as pure functions (no I/O) so it's trivially unit-testable.
 """
 
 from __future__ import annotations
 
-from .types import ProviderStatus, RiskLevel, ThreatIntelProviderResult, Verdict
+from .types import PipelineStatus, ProviderStatus, RiskLevel, ThreatIntelProviderResult, Verdict
 
 # Base weight per provider — reflects how much signal a positive detection
 # from that source is worth. Falls back to _DEFAULT_WEIGHT for any provider
-# not listed (e.g. a future Recorded Future/Shodan addition), so scoring
-# never breaks when a new provider is plugged in.
+# not listed, so scoring never breaks when a new provider is plugged in.
 _PROVIDER_WEIGHTS = {
-    "VirusTotal": 40,
-    "AbuseIPDB": 30,
-    "MISP": 25,
-    "OTX": 15,
+    "virustotal": 40,
+    "abuseipdb": 30,
+    "misp": 25,
+    "otx": 15,
 }
 _DEFAULT_WEIGHT = 15
 
@@ -42,12 +51,37 @@ _RISK_THRESHOLDS = (
     (0, RiskLevel.LOW),
 )
 
+# A provider actually answered (whether or not it had a hit) — these two
+# statuses are what "the provider was successfully queried" means
+# throughout this module and result_contract.py.
+_ANSWERED_STATUSES = {ProviderStatus.SUCCESS, ProviderStatus.NO_MATCH}
+
 
 def _risk_level_for_score(score: float) -> RiskLevel:
     for threshold, level in _RISK_THRESHOLDS:
         if score >= threshold:
             return level
     return RiskLevel.LOW
+
+
+def pipeline_status_for(providers: list[ThreatIntelProviderResult]) -> PipelineStatus:
+    """
+    Spec section 9. A provider counts as "answered" if it reached SUCCESS or
+    NO_MATCH (it was actually queried and gave a real answer); anything else
+    (FAILED/TIMEOUT/RATE_LIMITED/NOT_CONFIGURED/NOT_SUPPORTED/
+    INVALID_INDICATOR) counts as "did not contribute."
+      - every configured/attempted provider answered  -> SUCCESS
+      - some answered, some didn't                     -> PARTIAL_SUCCESS
+      - none answered at all                            -> FAILED
+    """
+    if not providers:
+        return PipelineStatus.FAILED
+    answered = sum(1 for p in providers if p.status in _ANSWERED_STATUSES)
+    if answered == 0:
+        return PipelineStatus.FAILED
+    if answered == len(providers):
+        return PipelineStatus.SUCCESS
+    return PipelineStatus.PARTIAL_SUCCESS
 
 
 def score_indicator(
@@ -57,16 +91,32 @@ def score_indicator(
     Returns (threat_score, verdict, risk_level, confidence, explanation,
     categories, malware_family, threat_actors, campaigns).
     """
-    successful = [p for p in providers if p.status == ProviderStatus.SUCCESS]
+    # A SUCCESS status alone isn't enough to ground a verdict — it means the
+    # provider was reached and answered, but if that answer carried zero
+    # evidence there is nothing to base a claim on. This is the top-level
+    # "NO EVIDENCE -> NO CLAIM" rule applied at the scoring layer, not just
+    # to provider reachability: SUCCESS-with-no-evidence is treated the same
+    # as NO_MATCH below, never as a basis for BENIGN. (Every real provider
+    # in this codebase always attaches evidence on a genuine SUCCESS — see
+    # e.g. virustotal_provider.py's DETECTION_STATS entry — so this only
+    # matters for a deliberately evidence-less result.)
+    successful = [p for p in providers if p.status == ProviderStatus.SUCCESS and p.evidence]
+    no_match = [p for p in providers if p.status == ProviderStatus.NO_MATCH or (p.status == ProviderStatus.SUCCESS and not p.evidence)]
     explanation: list[str] = []
 
     if not successful:
-        # No provider could be queried — insufficient intelligence, NOT the
-        # same as a clean verdict. See types.py::Verdict docstring.
-        reasons = sorted({p.status.value for p in providers}) or ["NO_PROVIDERS_CONFIGURED"]
-        explanation.append(
-            f"No threat intelligence data available (provider status: {', '.join(reasons)})."
-        )
+        # Either nothing answered at all, or everything that did was a
+        # NO_MATCH (or an evidence-less SUCCESS) — in both cases there is no
+        # positive evidence to reason over, so the verdict is UNKNOWN, never
+        # BENIGN.
+        if no_match:
+            explanation.append(
+                f"No provider has any record of this indicator ({', '.join(p.name for p in no_match)}) "
+                "— absence of a hit is not evidence of safety."
+            )
+        else:
+            reasons = sorted({p.status.value for p in providers}) or ["NO_PROVIDERS_CONFIGURED"]
+            explanation.append(f"No threat intelligence data available (provider status: {', '.join(reasons)}).")
         return 0.0, Verdict.UNKNOWN, RiskLevel.UNKNOWN, 0.0, explanation, [], None, [], []
 
     score = 0.0
@@ -126,7 +176,7 @@ def score_indicator(
     elif suspicious_providers or score >= 20:
         verdict = Verdict.SUSPICIOUS
     else:
-        verdict = Verdict.CLEAN
+        verdict = Verdict.BENIGN
         explanation.append(
             f"No malicious evidence found across {len(successful)} provider(s) "
             f"({', '.join(p.name for p in successful)})."

@@ -1,0 +1,87 @@
+# Incident-type -> playbook reference index for RecommendationAgent
+# (apps/ai-orchestrator/src/agents/recommendation_agent/). Loaded at runtime
+# by PlaybookIndexLoader (apps/ai-orchestrator/resources/mapping_loader.py).
+#
+# Keys are contracts/classification.py::IncidentCategory values — the SAME
+# taxonomy classification_agent already scores against, not a second,
+# competing incident-type vocabulary.
+#
+# `local_playbook_id`/`local_path` point at the real, already-indexed local
+# playbooks (apps/backend/data/knowledge/playbooks/*.md — verified against
+# each file's own frontmatter, not guessed). `external_references` cite
+# msraju/Incident-Response-Playbooks and austinsonger/Incident-Playbook as
+# NON-AUTHORITATIVE structural references only (VIGIX spec section 4) — the
+# `playbook` value names a topic area understood from those repositories'
+# structure, never content copied verbatim from them.
+
+id: playbook-index
+version: "1"
+
+incident_types:
+  BRUTE_FORCE:
+    local_playbook_id: PB-CREDACCESS-001
+    local_title: Credential Access and Brute Force Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/credential-access-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: brute force / credential access reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: brute force / password spraying reference
+
+  CREDENTIAL_ATTACK:
+    local_playbook_id: PB-CREDACCESS-001
+    local_title: Credential Access and Brute Force Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/credential-access-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: credential/account compromise reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: credential access reference
+
+  ACCOUNT_COMPROMISE:
+    local_playbook_id: PB-CREDACCESS-001
+    local_title: Credential Access and Brute Force Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/credential-access-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: credential/account compromise reference
+
+  PHISHING:
+    local_playbook_id: PB-PHISHING-001
+    local_title: Phishing Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/phishing-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: phishing reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: phishing reference
+
+  MALWARE:
+    local_playbook_id: PB-MALWARE-001
+    local_title: Malware Infection Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/malware-infection-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: malware infection reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: malware reference
+
+  RANSOMWARE:
+    local_playbook_id: PB-RANSOMWARE-001
+    local_title: Ransomware Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/ransomware-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: ransomware reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: ransomware reference
+
+  DATA_EXFILTRATION:
+    local_playbook_id: PB-DATAEXFIL-001
+    local_title: Data Exfiltration Incident Response Playbook
+    local_path: apps/backend/data/knowledge/playbooks/data-exfiltration-incident-response.md
+    external_references:
+      - repository: msraju/Incident-Response-Playbooks
+        playbook: data loss / exfiltration reference
+      - repository: austinsonger/Incident-Playbook
+        playbook: data exfiltration reference

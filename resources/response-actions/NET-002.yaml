@@ -1,0 +1,25 @@
+# Phase 5.8.2 — full catalog reconciliation. Backend-executable counterpart
+# of apps/ai-orchestrator's decision_agent/action_catalog.py::NET-002.
+#
+# Automation Gateway task — switched from the shared n8n dry-run workflow to
+# a real one (automation/n8n/workflows/block-ip-executor.json): approving/
+# auto-executing a Decision that recommends this action now really SSHes
+# (from inside the n8n container, via a dedicated n8n-only credential) into
+# the disposable infra/docker/firewall-test-target and runs a real iptables
+# DROP rule. This is the SECOND real (non-dry-run) executor after NET-001's
+# direct SshFirewallExecutor.ts — NET-001 is untouched and still uses that
+# direct path; this proves the SAME real action is reachable through the
+# n8n-mediated path too, without replacing NET-001. Every other n8n-routed
+# action in this directory is still the dry-run workflow.
+id: NET-002
+name: Block IOC at DNS/Proxy
+description: >-
+  Add a malicious domain/URL to the DNS sinkhole or proxy blocklist.
+category: network_response
+riskLevel: low
+automationSupported: yes
+approvalRequired: no_approval
+rollbackAvailable: yes
+executor: n8n
+executorConfig:
+  webhookPath: soar/block-ip
