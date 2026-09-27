@@ -8,7 +8,7 @@ import { validateBody } from "../validators/validateBody";
 import { DeletePlaybookUseCase } from "../../../application/playbook/use-cases/DeletePlaybook.usecase";
 import { z } from "zod";
 
-const deletePlaybookSchema = z.object({ reason: z.string().trim().min(1).max(2000) }).strict();
+const deletePlaybookSchema = z.object({ reason: z.string().trim().max(2000).optional() }).strict();
 
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -21,7 +21,7 @@ export class PlaybookController {
     private readonly deletePlaybook?: DeletePlaybookUseCase
   ) {}
 
-  /** DELETE /:id — reason required; actor from the JWT; audited with a copy of the playbook. 409 when executions use it. */
+  /** DELETE /:id — optional reason; actor from the JWT; audited with a copy of the playbook. 409 when executions use it. */
   remove = async (req: Request, res: Response): Promise<void> => {
     if (!this.deletePlaybook) {
       res.status(501).json({ error: "NOT_IMPLEMENTED" });
@@ -30,7 +30,7 @@ export class PlaybookController {
     const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
     const body = validateBody(deletePlaybookSchema, req, res);
     if (!body) return;
-    const result = await this.deletePlaybook.execute({ id: req.params.id, tenantId, actor: req.user?.id, reason: body.reason });
+    const result = await this.deletePlaybook.execute({ id: req.params.id, tenantId, actor: req.user?.id, reason: body.reason || null });
     if (result.isFailure) {
       if (result.error === "IN_USE") res.status(409).json({ error: "PLAYBOOK_IN_USE" });
       else res.status(404).json({ error: "PLAYBOOK_NOT_FOUND" });

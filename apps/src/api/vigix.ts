@@ -516,8 +516,8 @@ export const knowledgeApi = {
   record: (library: 'playbooks' | 'runbooks' | 'policies' | 'actions', id: string) => api<Record<string, unknown>>(`/api/${library}/${id}`),
   create: (library: 'playbooks' | 'runbooks' | 'policies' | 'actions', body: Record<string, unknown>) => api<Record<string, unknown>>(`/api/${library}`, { method: 'POST', body }),
   update: (library: 'playbooks' | 'runbooks' | 'policies' | 'actions', id: string, body: Record<string, unknown>) => api<Record<string, unknown>>(`/api/${library}/${id}`, { method: 'PUT', body }),
-  /** DELETE /api/policies/:id or /api/playbooks/:id — reason required (audited with a copy). */
-  remove: (library: 'policies' | 'playbooks', id: string, reason: string) => api<{ deleted: boolean; id: string; code: string }>(`/api/${library}/${id}`, { method: 'DELETE', body: { reason } }),
+  /** DELETE /api/policies/:id or /api/playbooks/:id — audited with a copy (the reason is optional). */
+  remove: (library: 'policies' | 'playbooks', id: string, reason?: string) => api<{ deleted: boolean; id: string; code: string }>(`/api/${library}/${id}`, { method: 'DELETE', body: reason ? { reason } : {} }),
   toggle: (library: 'policies' | 'actions', id: string, enabled: boolean) => api(`/api/${library}/${id}/${enabled ? 'enable' : 'disable'}`, { method: 'PATCH' }),
   actions: () => api<{ items: { id: string; code: string; name: string; description: string | null; enabled: boolean; category: string }[] }>('/api/actions'),
   evaluate: (body: Record<string, unknown>) => api<Record<string, unknown>>('/api/policies/evaluate', { method: 'POST', body }),

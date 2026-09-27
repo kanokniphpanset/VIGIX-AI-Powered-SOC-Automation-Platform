@@ -6,8 +6,8 @@ export interface DeletePolicyInput {
   id: string;
   tenantId: string;
   actor: string;
-  /** Why the policy is removed — required, stored in the audit record. */
-  reason: string;
+  /** Why the policy is removed — optional, stored in the audit record when given. */
+  reason?: string | null;
 }
 
 /**
@@ -31,7 +31,7 @@ export class DeletePolicyUseCase {
       actor: input.actor,
       action: "DELETE_POLICY",
       policyId: input.id,
-      metadata: { code: existing.code, name: existing.name, reason: input.reason, snapshot: existing.toJSON() },
+      metadata: { code: existing.code, name: existing.name, reason: input.reason ?? null, snapshot: existing.toJSON() },
     });
     return Result.ok({ id: input.id, code: existing.code });
   }
