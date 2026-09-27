@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Delete a Policy or a Playbook (Knowledge): an "×" on the row, a confirmation with a mandatory reason. The backend
-// (SOC / IR_TEAM / admin) records DELETE_POLICY / DELETE_PLAYBOOK with the actor, the reason and a full copy.
+// Delete a Policy or a Playbook (Knowledge): an "×" on the row and one confirmation (no reason needed). The backend
+// (SOC / IR_TEAM / admin) records DELETE_POLICY / DELETE_PLAYBOOK with the actor, the time and a full copy.
 import { ref } from 'vue'
 import { Loader2, X } from 'lucide-vue-next'
 import Modal from '@/components/common/Modal.vue'
@@ -15,20 +15,18 @@ const { t } = useI18n()
 const k = (key: string) => (props.library === 'playbooks' ? key.replace(/^pol\./, 'pbd.') : key) as MsgKey
 
 const open = ref(false)
-const reason = ref('')
 const busy = ref(false)
 const error = ref('')
 function begin() {
-  reason.value = ''
   error.value = ''
   open.value = true
 }
 async function confirm() {
-  if (busy.value || !reason.value.trim()) return
+  if (busy.value) return
   busy.value = true
   error.value = ''
   try {
-    await knowledgeApi.remove(props.library, props.id, reason.value.trim())
+    await knowledgeApi.remove(props.library, props.id)
     open.value = false
     emit('deleted', props.code)
   } catch (e) {
@@ -48,13 +46,10 @@ async function confirm() {
       <p class="text-slate-700">{{ t(k('pol.deleteBody'), { code, name }) }}</p>
       <p v-if="enabled" class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{{ t(k('pol.deleteEnabled')) }}</p>
       <p class="text-xs text-slate-500">{{ t(k('pol.deleteHistory')) }}</p>
-      <label class="block font-medium text-slate-700">{{ t(k('pol.deleteReason')) }} *
-        <textarea v-model="reason" rows="3" maxlength="2000" required :disabled="busy" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none" />
-      </label>
       <p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-rose-700" role="alert">{{ error }}</p>
       <div class="flex justify-end gap-2">
         <button type="button" class="btn-secondary" :disabled="busy" @click="open = false">{{ t('c.cancel') }}</button>
-        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50" :disabled="busy || !reason.trim()">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50" :disabled="busy">
           <Loader2 v-if="busy" class="size-4 animate-spin" />{{ busy ? t('c.saving') : t(k('pol.deleteConfirm')) }}
         </button>
       </div>

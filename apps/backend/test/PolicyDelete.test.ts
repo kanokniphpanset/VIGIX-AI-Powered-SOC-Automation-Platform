@@ -7,8 +7,8 @@ import { PolicyController } from "../src/presentation/http/controllers/PolicyCon
 import { DeletePolicyUseCase } from "../src/application/policy/use-cases/DeletePolicy.usecase";
 
 /**
- * Knowledge → Policies: SOC, IR_TEAM and admin may delete a policy (X). A reason is required; the audit keeps the
- * actor, the reason and a full copy of the deleted policy so it can be recreated. Other roles get 403.
+ * Knowledge → Policies: SOC, IR_TEAM and admin may delete a policy (X). A reason is optional; the audit keeps the
+ * actor, the reason (if any) and a full copy of the deleted policy so it can be recreated. Other roles get 403.
  * Real routes + JWT middleware + controller + use case; in-memory repository and audit.
  */
 
@@ -78,9 +78,10 @@ it("without a token -> 401", async () => {
   expect(rows.has("p1")).toBe(true);
 });
 
-it.each([[{}], [{ reason: "   " }]])("no reason (%j) -> 400, nothing deleted", async (body) => {
-  expect((await del("p1", body, "SOC")).status).toBe(400);
-  expect(rows.has("p1")).toBe(true);
+it("no reason is needed: deleted, audited with reason null and the actor", async () => {
+  expect((await del("p1", {}, "SOC")).status).toBe(200);
+  expect(rows.has("p1")).toBe(false);
+  expect(audits).toEqual([expect.objectContaining({ action: "DELETE_POLICY", actor: "u-SOC", metadata: expect.objectContaining({ reason: null, snapshot: expect.any(Object) }) })]);
 });
 
 it("unknown policy, or another tenant's -> 404", async () => {

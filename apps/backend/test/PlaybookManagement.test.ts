@@ -218,9 +218,10 @@ describe("Playbook management — delete (x)", () => {
       }),
     ]);
   });
-  it.each([[{}], [{ reason: "  " }]])("no reason (%j) -> 400, nothing deleted", async (body) => {
-    expect((await call("DELETE", "/pb-ssh", body, "SOC")).status).toBe(400);
-    expect(repo.rows.has("pb-ssh")).toBe(true);
+  it("no reason is needed: deleted, audited with reason null and the actor", async () => {
+    expect((await call("DELETE", "/pb-ssh", {}, "SOC")).status).toBe(200);
+    expect(repo.rows.has("pb-ssh")).toBe(false);
+    expect(audits).toEqual([expect.objectContaining({ action: "DELETE_PLAYBOOK", actor: "u-SOC", metadata: expect.objectContaining({ reason: null, snapshot: expect.any(Object) }) })]);
   });
   it.each(["MANAGER", "VIEWER"])("%s -> 403, nothing deleted", async (role) => {
     expect((await call("DELETE", "/pb-ssh", { reason: "x" }, role)).status).toBe(403);

@@ -94,7 +94,7 @@ export class PolicyController {
     res.json(result.value.toJSON());
   };
 
-  /** DELETE /:id — a reason is required; the actor is the signed-in user (JWT), recorded with a copy of the policy. */
+  /** DELETE /:id — optional reason; the actor is the signed-in user (JWT), recorded with a copy of the policy. */
   remove = async (req: Request, res: Response): Promise<void> => {
     if (!this.deletePolicy) {
       res.status(501).json({ error: "NOT_IMPLEMENTED" });
@@ -103,7 +103,7 @@ export class PolicyController {
     const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
     const body = validateBody(deletePolicySchema, req, res);
     if (!body) return;
-    const result = await this.deletePolicy.execute({ id: req.params.id, tenantId, actor: req.user?.id ?? "system", reason: body.reason });
+    const result = await this.deletePolicy.execute({ id: req.params.id, tenantId, actor: req.user?.id ?? "system", reason: body.reason || null });
     if (result.isFailure) {
       res.status(404).json({ error: "POLICY_NOT_FOUND" });
       return;
@@ -112,4 +112,4 @@ export class PolicyController {
   };
 }
 
-const deletePolicySchema = z.object({ reason: z.string().trim().min(1).max(2000) }).strict();
+const deletePolicySchema = z.object({ reason: z.string().trim().max(2000).optional() }).strict();
