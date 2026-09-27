@@ -28,9 +28,7 @@ export class SiemInboundWebhookController {
       return;
     }
 
-    // TODO: verify a signed webhook secret/HMAC header here before trusting the payload.
-    // Every SIEM supports some form of shared-secret signing on outbound webhooks —
-    // wire it in infrastructure/security/ once you have real SIEM credentials.
+    // The HMAC signature was already verified by webhookAuth (see webhook.routes.ts).
 
     let normalized;
     try {

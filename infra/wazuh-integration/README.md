@@ -55,27 +55,28 @@ custom-vigix  (shell wrapper)
 custom-vigix.py  ──POST──▶  http://<backend-host>:4000/api/v1/webhooks/siem/wazuh
                                    │
                                    ▼
-                            202 ACCEPTED — alert persisted, job enqueued
-                            (see apps/backend's own async pipeline —
-                            the AI analysis runs in the background worker,
-                            never blocking this request)
+                            HMAC signature checked (webhookAuth) → 202, alert stored
+                            in the Alert Inbox for SOC triage (no incident / AI yet)
 ```
 
-## Install (on the Wazuh manager host)
+## Install — docker single-node lab (`wazuh-docker/single-node`, what VIGIX runs today)
 
 ```bash
-# 1. Copy both files into Wazuh's integrations directory
-sudo cp custom-vigix custom-vigix.py /var/ossec/integrations/
+# 1. Copy both scripts into the manager container (LF line endings — a CRLF checkout breaks /bin/sh)
+tr -d '' < custom-vigix    > /tmp/custom-vigix
+tr -d '' < custom-vigix.py > /tmp/custom-vigix.py
+docker cp /tmp/custom-vigix    single-node-wazuh.manager-1:/var/ossec/integrations/custom-vigix
+docker cp /tmp/custom-vigix.py single-node-wazuh.manager-1:/var/ossec/integrations/custom-vigix.py
 
-# 2. Permissions — Wazuh refuses to run a script with the wrong owner/mode
-sudo chmod 750 /var/ossec/integrations/custom-vigix
-sudo chmod 750 /var/ossec/integrations/custom-vigix.py
-sudo chown root:wazuh /var/ossec/integrations/custom-vigix
-sudo chown root:wazuh /var/ossec/integrations/custom-vigix.py
-
-# 3. requests must be importable by Wazuh's own bundled Python
-sudo /var/ossec/framework/python/bin/python3 -m pip install requests
+# 2. Wazuh refuses to run a script with the wrong owner/mode
+docker exec single-node-wazuh.manager-1 sh -c 'cd /var/ossec/integrations && chown root:wazuh custom-vigix custom-vigix.py && chmod 750 custom-vigix custom-vigix.py'
 ```
+
+`requests` is already bundled with Wazuh's Python (`/var/ossec/framework/python/bin/python3`). The
+`/var/ossec/integrations` and `/var/ossec/etc` directories are named Docker volumes, so both the scripts
+and the config below survive container restarts.
+
+On a non-docker manager: same two files into `/var/ossec/integrations/`, same owner/mode.
 
 ## Configure (`/var/ossec/etc/ossec.conf`)
 
@@ -84,52 +85,54 @@ Add inside the top-level `<ossec_config>` block:
 ```xml
 <integration>
   <name>custom-vigix</name>
-  <hook_url>http://<backend-host>:4000/api/v1/webhooks/siem/wazuh</hook_url>
+  <hook_url>http://host.docker.internal:4000/api/v1/webhooks/siem/wazuh</hook_url>
+  <api_key>SIEM_WEBHOOK_SECRET from apps/backend/.env</api_key>
   <level>7</level>
   <alert_format>json</alert_format>
 </integration>
 ```
 
-- `<level>7</level>` — only alerts at level 7+ get forwarded (Wazuh's own
-  scale is 0–15; tune to taste, or drop the tag to forward everything).
-  This is a coarse pre-filter on the Wazuh side — the backend's own
-  `WazuhAdapter.mapSeverity()` then buckets whatever gets through into
-  low/medium/high/critical (see `apps/backend/src/infrastructure/
-  external-services/siem/WazuhAdapter.ts`).
-- `<rule_id>` (optional, not set above) — restrict to specific rule IDs
-  instead of/in addition to a level threshold.
-- No `<api_key>` — this webhook has no auth today (see the Phase 5 report's
-  security section); leave it unset.
+- `<api_key>` — **required**. The script signs every alert with it (HMAC-SHA256 over the raw body,
+  `X-Webhook-Signature: sha256=<hex>`); the backend's `webhookAuth` middleware rejects unsigned or
+  wrongly signed alerts with 401, and rejects everything (500) if the backend has no
+  `SIEM_WEBHOOK_SECRET`. The secret itself is never sent. Rotate it in both places together.
+- `<hook_url>` — `host.docker.internal` is the Docker host from inside the manager container
+  (the backend on port 4000).
+- `<level>7</level>` — only alerts at level 7+ are forwarded. Severity in VIGIX still comes only from
+  `rule.level` (`WazuhAdapter.mapSeverity()`).
+- SCA (CIS benchmark) alerts are **skipped by the script** (`SKIPPED_RULE_GROUPS`): they are
+  configuration-compliance findings, not attacks, and were ~90% of the lab agent's level 7+ alerts.
 
-Restart the manager to pick up the config:
+Apply the config:
 
 ```bash
-sudo systemctl restart wazuh-manager
+docker exec single-node-wazuh.manager-1 /var/ossec/bin/wazuh-control restart
+docker exec single-node-wazuh.manager-1 grep integratord /var/ossec/logs/ossec.log | tail -2
+# expect: wazuh-integratord: INFO: Enabling integration for: 'custom-vigix'.
 ```
+
+> Edit `/var/ossec/etc/ossec.conf` **inside the container** (the persistent volume). In this lab the
+> image's init step that copies `config/wazuh_cluster/wazuh_manager.conf` over it currently fails
+> earlier (on the `multigroups` copy), so changes to that host file alone are not applied. The same
+> block is kept in that host file too, so a fresh deployment gets it.
 
 ## Verify it's wired up
 
-```bash
-# Trigger literally any rule (e.g. a few bad SSH logins on a monitored host),
-# then watch:
-tail -f /var/ossec/logs/integrations.log
-```
-
-Expect a line like:
-
-```
-2026-08-21 ... custom-vigix: INFO: alert id=1755712345.987654 rule=5710 forwarded — backend responded ACCEPTED (executionId=...)
-```
-
-Then confirm on the VIGIX side:
+Trigger a real rule — e.g. SSH brute force from the lab attacker against the lab agent:
 
 ```bash
-curl http://<backend-host>:4000/api/executions?limit=5
+docker exec vigix-lab-attacker sh -c 'for i in $(seq 1 12); do sshpass -p wrong$i ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root@172.31.250.10 true; done'
+docker exec single-node-wazuh.manager-1 tail -5 /var/ossec/logs/integrations.log
 ```
 
-The alert should appear, and — if the orchestration worker
-(`npm run worker:dev` in `apps/backend`) is running — reach `SUCCESS`
-within a few seconds.
+Expect one line per forwarded alert:
+
+```
+custom-vigix: INFO: alert id=1790487047.10079 rule=5763 forwarded — VIGIX alertId=56b828f5-… status=received duplicate=False incidentId=None
+```
+
+The alert then appears in the VIGIX Alert Inbox as **Needs review** (SOC triage; no incident and no AI
+run until the SOC creates an incident).
 
 ## Notes
 
@@ -143,8 +146,8 @@ within a few seconds.
   behavior).
 - **Idempotency is free**: re-running this script twice for the same
   alert (e.g. after a manual retry) is safe — the backend's
-  `externalAlertId` uniqueness check means a duplicate POST just returns
-  `ALREADY_ACCEPTED` instead of creating a second alert/execution.
+  `externalAlertId` uniqueness check means a duplicate POST returns
+  202 with `duplicate: true` instead of creating a second alert.
 - **Only Wazuh is wired today**: `ISiemAdapter` supports multiple SIEMs by
   design, but only `WazuhAdapter` is implemented. Splunk/Defender/ELK need
   their own adapter (backend side) before an equivalent integration script

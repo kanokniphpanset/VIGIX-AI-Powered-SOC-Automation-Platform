@@ -12,10 +12,9 @@ alert, synchronously, with:
               the SIEM_WEBHOOK_SECRET shared secret so this script can sign
               requests the same way VigixBackend's webhookAuth.middleware.ts
               verifies them (HMAC-SHA256 over the raw body, sent as
-              `X-Webhook-Signature: sha256=<hex>`). Empty/unset means the
-              backend has no SIEM_WEBHOOK_SECRET configured either — the
-              request is sent unsigned, matching the middleware's own
-              "unconfigured secret disables verification" convention.
+              `X-Webhook-Signature: sha256=<hex>`). Required: the backend
+              rejects unsigned alerts (401), so an empty <api_key> is
+              logged as an error and nothing is sent.
     argv[3] = hook_url configured in ossec.conf's <hook_url>
     argv[4] = alert options (unused)
 
@@ -44,11 +43,16 @@ except ImportError:
 LOG_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "logs", "integrations.log")
 REQUEST_TIMEOUT_S = 10
 
+# Rule groups never forwarded: SCA (CIS benchmark) results are configuration-compliance findings, not attacks —
+# on the lab agent they are most of the level >= 7 alerts and would flood the SOC Alert Inbox.
+SKIPPED_RULE_GROUPS = {"sca"}
+
 # Wazuh's own exit code convention for integration scripts.
 ERR_NO_ARG = 1
 ERR_FILE_NOT_FOUND = 2
 ERR_INVALID_JSON = 3
 ERR_HTTP_REQUEST_FAILED = 4
+ERR_NO_SECRET = 5
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s custom-vigix: %(levelname)s: %(message)s")
 logger = logging.getLogger("custom-vigix")
@@ -77,6 +81,15 @@ def main(argv: list[str]) -> int:
     external_alert_id = alert.get("id", "unknown")
     rule_id = alert.get("rule", {}).get("id", "unknown")
 
+    skipped = SKIPPED_RULE_GROUPS.intersection(alert.get("rule", {}).get("groups", []))
+    if skipped:
+        logger.info("alert id=%s rule=%s not forwarded (rule group %s)", external_alert_id, rule_id, ",".join(sorted(skipped)))
+        return 0
+
+    if not webhook_secret:
+        logger.error("alert id=%s rule=%s not sent — <api_key> (SIEM_WEBHOOK_SECRET) is empty in ossec.conf", external_alert_id, rule_id)
+        return ERR_NO_SECRET
+
     # Forwarded as-is — VigixBackend's WazuhAdapter (apps/backend/src/
     # infrastructure/external-services/siem/WazuhAdapter.ts) reads Wazuh's
     # own native alert shape directly (rule.description, rule.level,
@@ -89,10 +102,8 @@ def main(argv: list[str]) -> int:
     # (e.g. requests' own JSON encoding differing from ours) would make
     # every request fail verification.
     body_bytes = json.dumps(alert).encode("utf-8")
-    headers = {"Content-Type": "application/json"}
-    if webhook_secret:
-        signature = hmac.new(webhook_secret.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
-        headers["X-Webhook-Signature"] = f"sha256={signature}"
+    signature = hmac.new(webhook_secret.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
+    headers = {"Content-Type": "application/json", "X-Webhook-Signature": f"sha256={signature}"}
 
     try:
         response = requests.post(
@@ -108,11 +119,13 @@ def main(argv: list[str]) -> int:
     if response.status_code == 202:
         body = response.json()
         logger.info(
-            "alert id=%s rule=%s forwarded — backend responded %s (executionId=%s)",
+            "alert id=%s rule=%s forwarded — VIGIX alertId=%s status=%s duplicate=%s incidentId=%s",
             external_alert_id,
             rule_id,
+            body.get("alertId"),
             body.get("status"),
-            body.get("executionId"),
+            body.get("duplicate"),
+            body.get("incidentId"),
         )
         return 0
 

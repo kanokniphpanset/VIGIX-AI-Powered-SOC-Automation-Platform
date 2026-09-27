@@ -64,10 +64,12 @@ import { buildAiAnalysisRoutes } from "./presentation/http/routes/ai-analysis.ro
 import { buildWorkRoutes, buildIncidentWorkRoutes } from "./presentation/http/routes/work.routes";
 import { buildIncidentEmailRoutes } from "./presentation/http/routes/incident-email.routes";
 import { errorHandler } from "./presentation/http/middlewares/error-handler.middleware";
+import { keepRawBody } from "./presentation/http/middlewares/webhookAuth.middleware";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// keepRawBody: the SIEM webhook verifies its HMAC signature over the exact bytes received.
+app.use(express.json({ verify: keepRawBody }));
 
 app.use("/api/auth", buildAuthRoutes(authController));
 app.use("/api/v1/dashboard", buildDashboardRoutes(dashboardController));

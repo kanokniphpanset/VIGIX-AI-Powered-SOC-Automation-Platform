@@ -267,6 +267,7 @@ describe("PolicyEvaluator integration", () => {
     create: jest.fn(),
     update: jest.fn(),
     setEnabled: jest.fn(),
+    delete: jest.fn(),
   };
 
   const evaluator = new PolicyEvaluator(repository);
