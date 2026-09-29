@@ -982,3 +982,4 @@ docker compose -f infra/docker/docker-compose.yml down -v
 > With `-v`, MISP loses all its data (including any seeded events/attributes and the API
 > key) — the first-boot setup in [Step 3](#3-start-infrastructure-services-postgres-qdrant-n8n-redis-misp)
 > runs again next time you `up -d`.
+# VIGIX-AI-Powered-SOC-Automation-Platform
