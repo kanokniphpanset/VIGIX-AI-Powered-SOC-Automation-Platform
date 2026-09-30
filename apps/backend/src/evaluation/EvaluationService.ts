@@ -97,7 +97,7 @@ const numField = (row: Record<string, unknown> | null, ...keys: string[]): numbe
   return null;
 };
 
-export async function collectEvaluationCase(prisma: PrismaClient, gt: TcGroundTruth, knownActions: Set<string>): Promise<EvaluationCase> {
+export async function collectEvaluationCase(prisma: PrismaClient, gt: TcGroundTruth, knownActions: Set<string>, incidentIdOverride?: string): Promise<EvaluationCase> {
   const base: EvaluationCase = {
     caseId: gt.caseId, attackType: gt.attackType, attackName: gt.attackName, severity: null, risk: null,
     incidentId: null, alertId: null, investigationId: null, recommendationId: null, playbookCode: null, decisionId: null, responseTicketId: null, verificationId: null,
@@ -110,14 +110,20 @@ export async function collectEvaluationCase(prisma: PrismaClient, gt: TcGroundTr
     interventionRequired: false, interventionType: [], findings: [...gt.knownFindings], notes: "",
   };
 
-  const alert = await prisma.alert.findFirst({ where: { siemSource: "wazuh", rawPayload: { path: ["rule", "id"], equals: gt.ruleId } }, orderBy: { receivedAt: "desc" } });
+  // Score a specific incident when given (repeated-run harness), else the latest one for this rule.
+  const incident = incidentIdOverride
+    ? await prisma.incident.findUnique({ where: { id: incidentIdOverride } })
+    : await (async () => {
+        const a = await prisma.alert.findFirst({ where: { siemSource: "wazuh", rawPayload: { path: ["rule", "id"], equals: gt.ruleId } }, orderBy: { receivedAt: "desc" } });
+        return a ? prisma.incident.findFirst({ where: { alertId: a.id } }) : null;
+      })();
+  if (!incident) return base;
+  const alert = incident.alertId ? await prisma.alert.findUnique({ where: { id: incident.alertId } }) : null;
   if (!alert) return base;
   base.alertId = alert.id;
   base.severity = alert.severity;
   base.workflow.alertIngested = alert.status === "received" || alert.status === "escalated";
 
-  const incident = await prisma.incident.findFirst({ where: { alertId: alert.id } });
-  if (!incident) return base;
   base.incidentId = incident.id;
   base.finalStatus = incident.status;
   base.workflow.incidentCreated = true;
@@ -245,6 +251,7 @@ const stats = (xs: (number | null)[]) => {
 export function summarize(cases: EvaluationCase[]): EvaluationSummary {
   const evaluated = cases.filter((c) => c.recommendationCompliance !== "NOT_EVALUATED");
   const compliant = evaluated.filter((c) => c.recommendationCompliance === "COMPLIANT").length;
+  const automaticCompliant = evaluated.filter((c) => c.recommendationCompliance === "COMPLIANT" && !c.interventionRequired).length;
   const it = stats(cases.map((c) => c.investigationTimeSeconds));
   const dt = stats(cases.map((c) => c.timeToDecisionSeconds));
   return {
@@ -253,6 +260,8 @@ export function summarize(cases: EvaluationCase[]): EvaluationSummary {
     compliantRecommendations: compliant,
     nonCompliantRecommendations: evaluated.length - compliant,
     recommendationComplianceRate: evaluated.length ? Math.round((compliant / evaluated.length) * 10000) / 100 : 0,
+    automaticCompliant,
+    complianceRateAutomatic: evaluated.length ? Math.round((automaticCompliant / evaluated.length) * 10000) / 100 : 0,
     investigationTimeMin: it.min, investigationTimeMax: it.max, investigationTimeAverage: it.avg,
     decisionTimeMin: dt.min, decisionTimeMax: dt.max, decisionTimeAverage: dt.avg,
     workflowCompletedCases: cases.filter((c) => c.workflowCompleted).length,

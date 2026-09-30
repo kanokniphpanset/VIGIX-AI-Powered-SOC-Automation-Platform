@@ -80,7 +80,10 @@ export interface EvaluationSummary {
   evaluatedCases: number;
   compliantRecommendations: number;
   nonCompliantRecommendations: number;
-  recommendationComplianceRate: number; // %
+  recommendationComplianceRate: number; // % (as-is, after any intervention)
+  /** COMPLIANT cases that needed NO intervention (manual IOC / KB fix / retry) — the automatic result. */
+  automaticCompliant: number;
+  complianceRateAutomatic: number; // % before intervention
   investigationTimeMin: number | null;
   investigationTimeMax: number | null;
   investigationTimeAverage: number | null;

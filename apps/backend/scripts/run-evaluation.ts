@@ -62,7 +62,8 @@ function toCsv(cases: EvaluationCase[]): string {
   console.log(`Total cases:                 ${summary.totalCases}`);
   console.log(`Evaluated cases:             ${summary.evaluatedCases}`);
   console.log(`COMPLIANT / NON_COMPLIANT:   ${summary.compliantRecommendations} / ${summary.nonCompliantRecommendations}`);
-  console.log(`Recommendation Compliance:   ${summary.recommendationComplianceRate}%`);
+  console.log(`Recommendation Compliance:   ${summary.recommendationComplianceRate}% (as-is, after intervention)`);
+  console.log(`  └ automatic (no interv.):  ${summary.complianceRateAutomatic}% (${summary.automaticCompliant}/${summary.evaluatedCases})`);
   console.log(`Investigation Time (s):      min ${summary.investigationTimeMin} | max ${summary.investigationTimeMax} | avg ${summary.investigationTimeAverage}`);
   console.log(`Time-to-Decision (s):        min ${summary.decisionTimeMin} | max ${summary.decisionTimeMax} | avg ${summary.decisionTimeAverage}`);
   console.log(`Workflow completed cases:    ${summary.workflowCompletedCases}/${summary.totalCases}`);
