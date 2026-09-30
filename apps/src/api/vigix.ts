@@ -484,8 +484,11 @@ export interface RehuntHealth {
   error?: string
   provider?: 'wazuh-indexer' | 'mock'
 }
+export type ReportWindowKey = 'daily' | 'weekly' | '1m' | '3m'
 export interface DashboardSummary {
   generatedAt: string
+  /** The report window the backend resolved and filtered event counts by (null = all time). */
+  window?: { period: ReportWindowKey | null; since: string | null }
   alerts: { total: number; last24h: number; unlinked: number; bySeverity: Record<string, number>; daily: { date: string; critical: number; high: number; medium: number; low: number }[] }
   incidents: { total: number; byStatus: Record<string, number>; openByPriority: Record<string, number>; mttrMinutes: number | null; resolvedLast7d: number; openedLast7d: number }
   responses: { byStatus: Record<string, number>; pendingApprovalsByRole: Record<string, number> }
@@ -653,8 +656,10 @@ export const systemApi = {
 }
 
 export const dashboardApi = {
-  /** `since` (report window start) limits event counts to that window; backlog figures stay "as of now". */
-  summary: (days = 14, since?: Date) => api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days, since: since?.toISOString() } }),
+  /** `period` (daily/weekly/1m/3m) — the BACKEND computes the window start and limits event counts to it; backlog
+   *  figures stay "as of now". `since` (ISO instant) is still accepted as an override for callers that need one. */
+  summary: (days = 14, period?: ReportWindowKey, since?: Date) =>
+    api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days, period, since: since?.toISOString() } }),
 }
 // ---------------------------------------------------------------- In-app notifications (header bell)
 export interface InAppNotification {

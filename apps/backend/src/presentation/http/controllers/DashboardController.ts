@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { GetDashboardSummaryUseCase } from "../../../application/dashboard/use-cases/GetDashboardSummary.usecase";
+import { isReportWindow } from "../../../application/dashboard/reportWindow";
 
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -10,10 +11,12 @@ export class DashboardController {
   summary = async (req: Request, res: Response): Promise<void> => {
     const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
     const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
-    // Optional report window start (ISO instant); unparseable or future values are ignored (= all time).
+    // Report window: prefer `period` (daily/weekly/1m/3m) — the backend computes its start instant itself.
+    const period = isReportWindow(req.query.period) ? req.query.period : null;
+    // `since` (ISO instant) stays supported as an override/back-compat; unparseable or future values are ignored.
     const sinceRaw = typeof req.query.since === "string" ? new Date(req.query.since) : null;
     const since = sinceRaw && !Number.isNaN(sinceRaw.getTime()) && sinceRaw.getTime() <= Date.now() ? sinceRaw : null;
-    const result = await this.getSummary.execute({ tenantId, days, since });
+    const result = await this.getSummary.execute({ tenantId, days, period, since });
     res.json(result.value);
   };
 }

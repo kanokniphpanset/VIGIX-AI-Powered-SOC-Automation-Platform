@@ -5,7 +5,7 @@ import { ArrowLeft, Eye, EyeOff, FileText, Plus, Printer, RotateCw, X } from 'lu
 import { dashboardApi } from '@/api/vigix'
 import ReportTableEditor from '@/components/reports/ReportTableEditor.vue'
 import logoUrl from '@/assets/report/tnet-logo.png'
-import { COMPANY, DEFAULT_WINDOW, REPORT_WINDOWS, buildSocReport, isReportWindow, isSocReport, windowStart, type ReportSection, type ReportWindow, type SocReport } from '@/utils/socReport'
+import { COMPANY, DEFAULT_WINDOW, REPORT_WINDOWS, buildSocReport, isReportWindow, isSocReport, type ReportSection, type ReportWindow, type SocReport } from '@/utils/socReport'
 import { socReportDocx } from '@/utils/socReportDocx'
 import { socReportHtml } from '@/utils/socReportHtml'
 import { useI18n } from '@/i18n'
@@ -32,9 +32,10 @@ async function fill(confirmOverwrite: boolean) {
   loading.value = true
   error.value = ''
   try {
-    const now = new Date()
-    const summary = await dashboardApi.summary(14, windowStart(period.value, now))
-    report.value = buildSocReport(summary, { period: period.value, preparedAt: now })
+    // The backend now computes the window from `period` (it filters the data); the frontend only builds labels.
+    // preparedAt stays "now" = the window END; the range label is windowStart(period, now) – now at day granularity.
+    const summary = await dashboardApi.summary(14, period.value)
+    report.value = buildSocReport(summary, { period: period.value, preparedAt: new Date() })
   } catch {
     error.value = t('rp.loadFailed')
   } finally {

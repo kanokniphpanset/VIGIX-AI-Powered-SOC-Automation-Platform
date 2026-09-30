@@ -2,6 +2,7 @@ import { DashboardCounts, IDashboardReadRepository } from "../ports/IDashboardRe
 import { IncidentSla, IncidentSlaService } from "../../sla/IncidentSlaService";
 import { ISiemRehuntPort, RehuntHealth } from "../../verification/ports/ISiemRehuntPort";
 import { Result } from "../../../shared/result/Result";
+import { ReportWindow, windowStart } from "../reportWindow";
 
 export interface IntegrationHealth {
   rehunt: RehuntHealth & { provider: "wazuh-indexer" | "mock" };
@@ -30,6 +31,8 @@ export type HealthProbe = () => Promise<Omit<HealthItem, "key" | "label">>;
 
 export interface DashboardSummary extends DashboardCounts {
   generatedAt: string;
+  /** The report window the backend resolved and filtered event counts by (null = all time). */
+  window: { period: ReportWindow | null; since: string | null };
   sla: { breached: number; atRisk: number; onTrack: number; notStarted: number; watchlist: SlaWatchItem[] };
   integrations: IntegrationHealth;
   systemHealth: HealthItem[];
@@ -54,10 +57,13 @@ export class GetDashboardSummaryUseCase {
     private readonly probes: { key: string; label: string; probe: HealthProbe }[] = []
   ) {}
 
-  async execute(input: { tenantId: string; days?: number; since?: Date | null }): Promise<Result<DashboardSummary>> {
+  async execute(input: { tenantId: string; days?: number; period?: ReportWindow | null; since?: Date | null }): Promise<Result<DashboardSummary>> {
     const now = new Date();
+    // Backend owns the window math: a `period` (daily/weekly/1m/3m) is resolved to its start instant here; an
+    // explicit `since` still works as an override/back-compat. period wins when both are given.
+    const since = input.period ? windowStart(input.period, now) : input.since ?? null;
     const [counts, open, rehuntHealth, ai, dbLatency, probed] = await Promise.all([
-      this.repo.counts(input.tenantId, input.days ?? 14, input.since),
+      this.repo.counts(input.tenantId, input.days ?? 14, since),
       this.repo.openIncidents(input.tenantId, SLA_WATCH_LIMIT),
       this.rehunt.health().catch((e: unknown) => ({ configured: false, reachable: false, indexPattern: "", error: e instanceof Error ? e.message : String(e) })) as Promise<RehuntHealth>,
       this.aiHealth().catch(() => ({ reachable: false, latencyMs: null })),
@@ -117,6 +123,7 @@ export class GetDashboardSummaryUseCase {
     return Result.ok({
       ...counts,
       generatedAt: now.toISOString(),
+      window: { period: input.period ?? null, since: since ? since.toISOString() : null },
       sla: { ...tally, watchlist: watch.slice(0, 8) },
       integrations: { rehunt: { ...rehuntHealth, provider: this.rehuntProvider }, aiOrchestrator: ai },
       systemHealth,
