@@ -388,7 +388,9 @@ const recommendationContextBuilder =
     approvalService,
     undefined,
     // Late-bound: the setup service is built further down (it needs the Policy use cases).
-    { resolve: (incidentId: string, tenantId: string) => incidentResponseSetupService.resolve(incidentId, tenantId) }
+    { resolve: (incidentId: string, tenantId: string) => incidentResponseSetupService.resolve(incidentId, tenantId) },
+    // ACTION_COMPLIANCE policies (POL-A02 / POL-A03): evidence each Action requires.
+    policyEvaluator
   );
 
 const recommendationValidator =

@@ -1,0 +1,31 @@
+{
+  "id": "1727670840.20004",
+  "timestamp": "2026-09-30T04:14:00.000+0000",
+  "rule": {
+    "id": "100200",
+    "level": 12,
+    "description": "Successful logon from an anomalous geo-location after repeated failures (possible account compromise)",
+    "groups": ["authentication_success", "account_compromise", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1078"], "tactic": ["Initial Access"], "technique": ["Valid Accounts"] }
+  },
+  "agent": { "id": "002", "name": "FILESRV-01", "ip": "10.0.2.50" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "windows_eventchannel" },
+  "location": "EventChannel",
+  "data": {
+    "srcip": "91.219.236.14",
+    "dstuser": "j.smith",
+    "win": {
+      "system": { "eventID": "4624", "channel": "Security" },
+      "eventdata": {
+        "targetUserName": "j.smith",
+        "targetDomainName": "CORP",
+        "ipAddress": "91.219.236.14",
+        "logonType": "10",
+        "workstationName": "UNKNOWN"
+      }
+    }
+  },
+  "full_log": "An account was successfully logged on. Account Name: j.smith Account Domain: CORP Logon Type: 10 (RemoteInteractive) Source Network Address: 91.219.236.14 — preceded by 6 failed attempts; impossible travel: Bangkok -> Moscow in 12 minutes"
+}

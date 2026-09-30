@@ -7,6 +7,7 @@ import {
   IocContextRow,
   AnalysisRunRow,
   MitreMappingContextRow,
+  PreviousRecommendationStepRow,
 } from "../../../../application/recommendation/ports/IRecommendationContextRepository";
 import { checkGrounding, stringLeaves, stripAiSeverity } from "../../../../domain/ai/aiGrounding";
 import { classifyAnalysisSource, isTrustedAnalysisSource } from "../../../../domain/ai/analysisSource";
@@ -84,6 +85,22 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
         iocValues: r.iocLinks.map((l) => l.ioc.iocValue),
       };
     });
+  }
+
+  async getPreviousRecommendationSteps(incidentId: string, tenantId: string): Promise<PreviousRecommendationStepRow[]> {
+    const rows = await this.prisma.recommendationStep.findMany({
+      where: { recommendation: { incidentId, tenantId }, actionId: { not: null }, target: { not: null } },
+      select: { target: true, action: { select: { code: true } }, recommendation: { select: { recommendationNumber: true, investigationNumber: true } } },
+      orderBy: [{ recommendation: { recommendationNumber: "asc" } }, { stepOrder: "asc" }],
+    });
+    return rows
+      .filter((r) => r.action && r.target)
+      .map((r) => ({
+        recommendationNumber: r.recommendation.recommendationNumber,
+        investigationNumber: r.recommendation.investigationNumber,
+        actionCode: r.action!.code,
+        target: r.target!,
+      }));
   }
 
   /** Most recent llm_analyst outputs with their classified source (historical rows are never modified). */

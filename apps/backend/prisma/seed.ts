@@ -8,6 +8,7 @@ import { seedPolicies } from "./seeds/policy.seed";
 import { seedActions } from "./seeds/action.seed";
 import { seedRunbooks } from "./seeds/runbook.seed";
 import { seedPlaybooks } from "./seeds/playbook.seed";
+import { seedMitreTechniques } from "./seeds/mitre.seed";
 
 const prisma = new PrismaClient();
 
@@ -54,30 +55,8 @@ async function main() {
     });
   }
 
-  // 3. MITRE ATT&CK reference techniques (small sample set)
-  const techniques = [
-    { techniqueId: "T1566", name: "Phishing", tactic: "Initial Access" },
-    { techniqueId: "T1059", name: "Command and Scripting Interpreter", tactic: "Execution" },
-    { techniqueId: "T1078", name: "Valid Accounts", tactic: "Defense Evasion, Persistence, Privilege Escalation, Initial Access" },
-    { techniqueId: "T1486", name: "Data Encrypted for Impact", tactic: "Impact" },
-    // Techniques exercised by the 10-case mock attack suite (resources/mock-attacks/)
-    { techniqueId: "T1110", name: "Brute Force", tactic: "Credential Access" },
-    { techniqueId: "T1110.001", name: "Password Guessing", tactic: "Credential Access" },
-    { techniqueId: "T1204.002", name: "Malicious File", tactic: "Execution" },
-    { techniqueId: "T1105", name: "Ingress Tool Transfer", tactic: "Command and Control" },
-    { techniqueId: "T1190", name: "Exploit Public-Facing Application", tactic: "Initial Access" },
-    { techniqueId: "T1068", name: "Exploitation for Privilege Escalation", tactic: "Privilege Escalation" },
-    { techniqueId: "T1098", name: "Account Manipulation", tactic: "Persistence, Privilege Escalation" },
-    { techniqueId: "T1059.001", name: "PowerShell", tactic: "Execution" },
-    { techniqueId: "T1547.001", name: "Registry Run Keys / Startup Folder", tactic: "Persistence, Privilege Escalation" },
-  ];
-  for (const t of techniques) {
-    await prisma.mitreTechnique.upsert({
-      where: { techniqueId: t.techniqueId },
-      update: { name: t.name, tactic: t.tactic },
-      create: t,
-    });
-  }
+  // 3. MITRE ATT&CK reference techniques — see prisma/seeds/mitre.seed.ts.
+  await seedMitreTechniques(prisma);
 
   // 4. Sample alert — created once; re-running the seed reuses the existing one.
   let alert = await prisma.alert.findFirst({

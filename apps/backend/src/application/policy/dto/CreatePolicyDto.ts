@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { POLICY_TYPES } from "../../../domain/policy/entities/PolicyEvaluationTypes";
+import { EVIDENCE_REQUIREMENT_IDS } from "../../../domain/knowledge/knowledgeTypes";
 
 // "riskScore" is retired: new/updated rules cannot key on a risk score (Severity is the classification input).
-const CONDITION_FIELDS = ["severity", "incidentType", "verificationResult", "spreadDetected", "threatContained"] as const;
+const CONDITION_FIELDS = ["severity", "incidentType", "actionCode", "verificationResult", "spreadDetected", "threatContained"] as const;
 const CONDITION_OPERATORS = ["eq", "neq", "gte", "lte", "gt", "lt"] as const;
 
 /**
@@ -59,6 +60,7 @@ export const policyResultFragmentSchema = z
     triageSlaMinutes: z.number().int().positive().optional(),
     allowedActions: z.array(z.string().trim().min(1)).max(50).optional(),
     guidanceNote: z.string().trim().max(2000).optional(),
+    requiredEvidence: z.array(z.enum(EVIDENCE_REQUIREMENT_IDS as [string, ...string[]])).min(1).optional(),
   })
   .strict();
 

@@ -68,7 +68,8 @@ export class RecommendationController {
     const result = await this.generateRecommendation.execute({ incidentId: body.incidentId, tenantId });
     if (result.isFailure) {
       // No recommendation was persisted in any failure case (see GenerateRecommendationUseCase).
-      const status = result.error === "INCIDENT_NOT_FOUND" ? 404 : result.error === "AI_UNAVAILABLE" ? 503 : 502;
+      const status =
+        result.error === "INCIDENT_NOT_FOUND" ? 404 : result.error === "AI_UNAVAILABLE" ? 503 : result.error === "INSUFFICIENT_EVIDENCE" || result.error === "NO_NEW_RECOMMENDATION" ? 422 : 502;
       res.status(status).json({ error: result.error });
       return;
     }

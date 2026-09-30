@@ -1,0 +1,24 @@
+{
+  "id": "1727681880.20007",
+  "timestamp": "2026-09-30T07:38:00.000+0000",
+  "rule": {
+    "id": "100320",
+    "level": 13,
+    "description": "Outbound beaconing to a known command-and-control server (threat-intel match)",
+    "groups": ["ids", "c2", "threat_intel", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1071.001"], "tactic": ["Command and Control"], "technique": ["Web Protocols"] }
+  },
+  "agent": { "id": "012", "name": "WKS-DEV-12", "ip": "10.0.5.44" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "suricata" },
+  "location": "/var/log/suricata/eve.json",
+  "data": {
+    "srcip": "10.0.5.44",
+    "dstip": "193.142.146.212",
+    "dstport": "443",
+    "url": "https://vigix-mock-c2.net/gate.php",
+    "dns": { "question": { "name": "vigix-mock-c2.net" } }
+  },
+  "full_log": "Regular 60s beacon 10.0.5.44 -> 193.142.146.212:443 https://vigix-mock-c2.net/gate.php; JA3 fingerprint matches a Cobalt Strike profile; destination on threat-intel blocklist (vigix-mock-c2.net / 193.142.146.212)"
+}

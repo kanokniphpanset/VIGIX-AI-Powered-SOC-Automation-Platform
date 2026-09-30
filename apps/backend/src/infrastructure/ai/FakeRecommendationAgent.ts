@@ -2,6 +2,7 @@ import { IRecommendationAgentPort } from "../../application/recommendation/ports
 import {
   RecommendationContextActionProcedure,
   RecommendationContextDto,
+  stepKey,
   targetableIocValues,
 } from "../../application/recommendation/dto/RecommendationContextDto";
 
@@ -39,12 +40,19 @@ export class FakeRecommendationAgent implements IRecommendationAgentPort {
       return { summary: `No incident-level playbook applies to "${context.incidentTitle}"; no response action can be recommended.`, steps: [] };
     }
 
+    // A later Recommendation of the incident needs at least one Action + target pair not proposed before: prefer an
+    // unused target, and let account disabling in when it is the only new pair.
+    const proposed = new Set((context.previousSteps ?? []).map((s) => stepKey(s.actionCode, s.target)));
+    const isNew = (c: { procedure: RecommendationContextActionProcedure; target: string }) => !proposed.has(stepKey(c.procedure.actionCode, c.target));
     const chosen: { procedure: RecommendationContextActionProcedure; target: string }[] = [];
     for (const procedure of procedures) {
-      const target = this.targetFor(context, procedure.actionCode);
+      const targets = this.targetsFor(context, procedure.actionCode);
+      const target = targets.find((t) => !proposed.has(stepKey(procedure.actionCode, t))) ?? targets[0];
       if (!target) continue;
-      if (procedure.actionCode === "ACT-DISABLE-ACCOUNT" && chosen.length > 0) continue;
-      chosen.push({ procedure, target });
+      const pick = { procedure, target };
+      const neededAsNew = proposed.size > 0 && isNew(pick) && !chosen.some(isNew);
+      if (procedure.actionCode === "ACT-DISABLE-ACCOUNT" && chosen.length > 0 && !neededAsNew) continue;
+      chosen.push(pick);
     }
 
     const steps = chosen.map(({ procedure, target }, i) => {
@@ -79,11 +87,11 @@ export class FakeRecommendationAgent implements IRecommendationAgentPort {
     };
   }
 
-  private targetFor(context: RecommendationContextDto, actionCode: string): string | null {
+  private targetsFor(context: RecommendationContextDto, actionCode: string): string[] {
     const kind = TARGET_KIND[actionCode];
-    if (!kind) return null;
-    if (kind === "host") return context.affectedHosts[0] ?? null;
+    if (!kind) return [];
+    if (kind === "host") return context.affectedHosts;
     const linked = targetableIocValues(context);
-    return context.iocs.find((i) => linked.has(i.iocValue) && IOC_KIND[i.iocType.toLowerCase()] === kind)?.iocValue ?? null;
+    return context.iocs.filter((i) => linked.has(i.iocValue) && IOC_KIND[i.iocType.toLowerCase()] === kind).map((i) => i.iocValue);
   }
 }

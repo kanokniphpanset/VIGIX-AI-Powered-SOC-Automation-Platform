@@ -13,7 +13,7 @@ import { IPlaybookRepository } from "../src/domain/playbook/repositories/IPlaybo
 import { Runbook } from "../src/domain/runbook/entities/Runbook.entity";
 import { Playbook } from "../src/domain/playbook/entities/Playbook.entity";
 import { AuditLogger } from "../src/infrastructure/database/postgres/repositories/AuditLogger";
-import { RecommendationContextDto } from "../src/application/recommendation/dto/RecommendationContextDto";
+import { RecommendationContextDto, newStepOptions } from "../src/application/recommendation/dto/RecommendationContextDto";
 import { ACTIONS, ACTION_RUNBOOK_CODES } from "../prisma/seeds/action.seed";
 import { RUNBOOKS } from "../prisma/seeds/runbook.seed";
 import { INCIDENT_PLAYBOOKS } from "../prisma/seeds/playbook.seed";
@@ -480,5 +480,81 @@ describe("Bounded correction — at most ONE retry, carrying only the validator'
     expect(shouldRetry(["POLICY_UNAVAILABLE: down"])).toBe(false);
     expect(shouldRetry(["INVENTED_IOC: x", "SCHEMA: y"])).toBe(true);
     expect(shouldRetry([])).toBe(false);
+  });
+});
+
+describe("New round / regenerate — at least one Action + target pair not proposed before", () => {
+  const BLOCK_45 = { recommendationNumber: 1, investigationNumber: 1, actionCode: "ACT-BLOCK-SOURCE-IP", target: "185.220.101.45" };
+  const withPrevious = (previous: (typeof BLOCK_45)[], overrides: Partial<IRecommendationContextRepository> = {}) =>
+    contextRepository({ getPreviousRecommendationSteps: async () => previous, ...overrides });
+  const DISABLE_ROOT_FIRST = { ...DISABLE_ROOT_STEP, stepOrder: 1 };
+
+  it("repeating only earlier pairs is rejected (NO_NEW_STEP), corrected once, and the retry prompt names the new pairs", async () => {
+    let call = 0;
+    const { useCase, agent, created, audit } = setup(async () => (++call === 1 ? candidate([BLOCK_IP_STEP]) : candidate([DISABLE_ROOT_FIRST], "Disable the targeted account root.")), {
+      nextNumber: 2,
+      repo: withPrevious([BLOCK_45]),
+    });
+    expect((await run(useCase)).isSuccess).toBe(true);
+    expect(agent.generate).toHaveBeenCalledTimes(2);
+    const correction = (agent.generate as jest.Mock).mock.calls[1][1] as string;
+    expect(correction).toContain("NO_NEW_STEP");
+    expect(correction).toContain("ACT-DISABLE-ACCOUNT -> root");
+    expect(created[0].steps.map((s) => [s.actionId, s.target])).toEqual([["action-ACT-DISABLE-ACCOUNT", "root"]]);
+    expect(audit[0]).toMatchObject({ action: "RECOMMENDATION_GENERATED", metadata: { attempts: 2 } });
+  });
+
+  it("still only repeats after the retry -> DUPLICATE_RECOMMENDATION, nothing persisted or superseded", async () => {
+    const { useCase, created, superseded, audit } = setup(async () => candidate([BLOCK_IP_STEP]), { nextNumber: 2, repo: withPrevious([BLOCK_45]) });
+    expect((await run(useCase)).error).toBe("DUPLICATE_RECOMMENDATION");
+    expect(created).toEqual([]);
+    expect(superseded).toEqual([]);
+    expect(audit[0]).toMatchObject({ action: "RECOMMENDATION_GENERATION_FAILED", metadata: { reason: "DUPLICATE_RECOMMENDATION", attempts: 2 } });
+  });
+
+  it("an earlier pair may be repeated alongside a new one", async () => {
+    const { useCase, agent, created } = setup(async () => candidate([BLOCK_IP_STEP, DISABLE_ROOT_STEP]), { nextNumber: 2, repo: withPrevious([BLOCK_45]) });
+    expect((await run(useCase)).isSuccess).toBe(true);
+    expect(agent.generate).toHaveBeenCalledTimes(1);
+    expect(created[0].steps.map((s) => s.target)).toEqual(["185.220.101.45", "root"]);
+  });
+
+  it("the same Action on a target not proposed before counts as new", async () => {
+    const repo = withPrevious([BLOCK_45], {
+      getIocs: async () => [
+        { iocType: "IPV4", iocValue: "185.220.101.45", source: "aggregated", reputationScore: null },
+        { iocType: "IPV4", iocValue: "185.220.101.99", source: "correlated alert", reputationScore: null, manual: true },
+      ],
+    });
+    const NEW_IP_STEP = { ...BLOCK_IP_STEP, target: "185.220.101.99", evidenceRefs: ["I2"], instructions: [{ order: 1, instruction: "Apply a deny rule for 185.220.101.99." }] };
+    const { useCase, created } = setup(async () => candidate([NEW_IP_STEP], "Block the new source 185.220.101.99."), { nextNumber: 2, repo });
+    expect((await run(useCase)).isSuccess).toBe(true);
+    expect(created[0].steps[0].target).toBe("185.220.101.99");
+  });
+
+  it("no new pair left in the evidence -> NO_NEW_RECOMMENDATION without calling the AI", async () => {
+    const all = (await builder().build(INCIDENT, TENANT)).value;
+    const every = (newStepOptions(all) ?? []).map((o) => ({ ...BLOCK_45, actionCode: o.actionCode, target: o.target }));
+    expect(every.length).toBeGreaterThan(0);
+    const { useCase, agent, created, audit } = setup(async () => candidate([BLOCK_IP_STEP]), { nextNumber: 2, repo: withPrevious(every) });
+    expect((await run(useCase)).error).toBe("NO_NEW_RECOMMENDATION");
+    expect(agent.generate).not.toHaveBeenCalled();
+    expect(created).toEqual([]);
+    expect(audit[0]).toMatchObject({ action: "RECOMMENDATION_GENERATION_FAILED", metadata: { reason: "NO_NEW_RECOMMENDATION", nextStep: "ADDITIONAL_INVESTIGATION_OR_ESCALATE" } });
+  });
+
+  it("the prompt lists the earlier pairs, the at-least-one-new rule and the pairs still open", async () => {
+    const ctx = (await builder(withPrevious([BLOCK_45])).build(INCIDENT, TENANT)).value;
+    const prompt = new RecommendationPromptBuilder().build(ctx);
+    expect(prompt).toContain('Recommendation #1 (investigation #1): ACT-BLOCK-SOURCE-IP -> "185.220.101.45"');
+    expect(prompt).toContain("MUST include at least one step whose Action + target pair is NOT in that list");
+    expect(prompt).toContain('ACT-DISABLE-ACCOUNT -> "root"');
+    expect(new RecommendationPromptBuilder().build((await builder().build(INCIDENT, TENANT)).value)).not.toContain("Earlier Recommendations");
+  });
+
+  it("the FakeRecommendationAgent picks a pair not proposed before and passes the validator", async () => {
+    const { useCase, created } = setup((ctx) => new FakeRecommendationAgent().generate(ctx), { nextNumber: 2, repo: withPrevious([BLOCK_45]) });
+    expect((await run(useCase)).isSuccess).toBe(true);
+    expect(created[0].steps.some((s) => !(s.actionId === "action-ACT-BLOCK-SOURCE-IP" && s.target === "185.220.101.45"))).toBe(true);
   });
 });

@@ -70,7 +70,10 @@ export type PolicyType =
   /** Response guidance per incident group (incidentType + severity): which playbook actions a Recommendation may use
    * and an instruction for it (allowedActions, guidanceNote). Read on its own like TRIAGE_SLA — never merged into the
    * approval / assignment evaluation. */
-  | "RESPONSE_GUIDANCE";
+  | "RESPONSE_GUIDANCE"
+  /** Evidence an Action requires before a Recommendation may use it (requiredEvidence, keyed by actionCode). Read on
+   * its own by RecommendationContextBuilder / RecommendationValidator — never merged into approval / assignment. */
+  | "ACTION_COMPLIANCE";
 
 export const POLICY_TYPES: PolicyType[] = [
   "PRIORITY",
@@ -81,6 +84,7 @@ export const POLICY_TYPES: PolicyType[] = [
   "INTAKE",
   "TRIAGE_SLA",
   "RESPONSE_GUIDANCE",
+  "ACTION_COMPLIANCE",
 ];
 
 export type VerificationResult = "RESOLVED" | "NOT_RESOLVED";
@@ -103,6 +107,8 @@ export interface PolicyEvaluationInput {
   severity?: Severity;
   /** Playbook incident type (e.g. POWERSHELL) — read by RESPONSE_GUIDANCE rules. */
   incidentType?: string;
+  /** Action Catalog code — read by ACTION_COMPLIANCE rules only. */
+  actionCode?: string;
   assetCriticality?: AssetCriticality;
   actionImpactLevel?: ActionImpactLevel;
   verificationResult?: VerificationResult;
@@ -169,4 +175,6 @@ export interface PolicyResultFragment {
   allowedActions?: string[];
   /** RESPONSE_GUIDANCE: instruction for the Recommendation (all matching notes are kept). */
   guidanceNote?: string;
+  /** ACTION_COMPLIANCE: evidence requirement ids (domain/knowledge EVIDENCE_REQUIREMENTS) the Action needs (union). */
+  requiredEvidence?: string[];
 }

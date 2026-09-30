@@ -1,4 +1,4 @@
-import { RecommendationContextDto, targetableIocValues } from "../../application/recommendation/dto/RecommendationContextDto";
+import { RecommendationContextDto, newStepOptions, targetableIocValues } from "../../application/recommendation/dto/RecommendationContextDto";
 
 /**
  * RecommendationPromptBuilder — pure, deterministic serialization of a
@@ -128,6 +128,17 @@ export class RecommendationPromptBuilder {
       lines.push(`  Only these actions were chosen by the SOC: ${guidance.allowedActions.join(", ") || "(none)"}`);
       if (guidance.instructions) for (const l of guidance.instructions.split("\n").filter((x) => x.trim())) lines.push(`  Instruction: ${l.trim()}`);
       lines.push("  The guidance narrows what to recommend; it never overrides the evidence rules or the Policy values above.");
+      lines.push("");
+    }
+
+    // Earlier Recommendations of this incident: the new one must not be a repeat (RecommendationValidator NO_NEW_STEP).
+    const previous = context.previousSteps ?? [];
+    if (previous.length) {
+      lines.push("Earlier Recommendations of this incident already proposed these Action + target pairs:");
+      for (const s of previous) lines.push(`  - Recommendation #${s.recommendationNumber} (investigation #${s.investigationNumber}): ${s.actionCode} -> ${JSON.stringify(s.target)}`);
+      lines.push("  This Recommendation MUST include at least one step whose Action + target pair is NOT in that list. The same Action on a different target counts as new; an earlier pair may be repeated only alongside a new one.");
+      const options = newStepOptions(context);
+      if (options?.length) lines.push(`  Pairs not proposed before that the evidence supports: ${options.map((o) => `${o.actionCode} -> ${JSON.stringify(o.target)}`).join(", ")}`);
       lines.push("");
     }
 
