@@ -1,0 +1,31 @@
+  <!-- VIGIX attack-endpoint additions ------------------------------------ -->
+  <!-- Real auth.log so sshd brute-force / account-management rules fire.    -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+  <!-- nginx access log so web-attack rules (31xxx: SQLi, traversal) fire.   -->
+  <localfile>
+    <log_format>apache</log_format>
+    <location>/var/log/nginx/access.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/syslog</location>
+  </localfile>
+
+  <!-- FIM in realtime on sensitive dirs so dropped malware / modified system
+       files / rootkit artifacts alert immediately (rules 550/554). -->
+  <syscheck>
+    <disabled>no</disabled>
+    <frequency>300</frequency>
+    <scan_on_start>yes</scan_on_start>
+    <alert_new_files>yes</alert_new_files>
+    <directories realtime="yes" report_changes="yes" check_all="yes">/root</directories>
+    <directories realtime="yes" report_changes="yes" check_all="yes">/etc</directories>
+    <directories realtime="yes" report_changes="yes" check_all="yes">/var/www/html</directories>
+    <directories realtime="yes" check_all="yes">/usr/local/bin</directories>
+    <nodiff>/etc/ssl/private.key</nodiff>
+  </syscheck>
