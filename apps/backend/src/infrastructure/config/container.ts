@@ -475,7 +475,7 @@ const evaluatePolicyUseCase =
   new EvaluatePolicyUseCase(policyEvaluator);
 
 const createActionUseCase =
-  new CreateActionUseCase(actionRepository);
+  new CreateActionUseCase(actionRepository, auditLogger);
 
 const updateActionUseCase =
   new UpdateActionUseCase(actionRepository);

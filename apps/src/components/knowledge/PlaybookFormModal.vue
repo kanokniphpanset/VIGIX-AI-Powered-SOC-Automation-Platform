@@ -11,7 +11,8 @@ import { useI18n, type MsgKey } from '@/i18n'
 import { workflowError } from '@/utils/workflow'
 import { draftFromPlaybook, emptyPlaybookDraft, hasErrors, playbookPayload, validatePlaybookDraft, type DraftErrors, type PlaybookDraft } from '@/utils/playbookForm'
 
-const props = defineProps<{ open: boolean; playbookId: string | null; existingCodes: string[] }>()
+// actionOptions: CONTAINMENT actions from the catalog — the only kind a recommendation may expand from a playbook.
+const props = defineProps<{ open: boolean; playbookId: string | null; existingCodes: string[]; actionOptions: { code: string; name: string }[] }>()
 const emit = defineEmits<{ close: []; saved: [code: string, created: boolean] }>()
 const { t } = useI18n()
 
@@ -81,7 +82,12 @@ async function save() {
     saving.value = false
   }
 }
-const fieldError = (k: 'code' | 'name' | 'incidentType' | 'steps') => (errors.value[k] ? t(errors.value[k] as MsgKey) : '')
+// Allowed actions the catalog no longer offers stay visible (and selected) so an edit never drops them silently.
+const allActionOptions = computed(() => [
+  ...props.actionOptions,
+  ...draft.allowedActions.filter((c) => !props.actionOptions.some((o) => o.code === c)).map((code) => ({ code, name: '' })),
+])
+const fieldError = (k: 'code' | 'name' | 'incidentType' | 'mitreTechniques' | 'steps') => (errors.value[k] ? t(errors.value[k] as MsgKey) : '')
 const inputClass = (bad: boolean) => ['mt-1 w-full rounded-lg border px-3 py-1.5 text-sm focus:outline-none', bad ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-accent-500']
 </script>
 
@@ -116,6 +122,23 @@ const inputClass = (bad: boolean) => ['mt-1 w-full rounded-lg border px-3 py-1.5
               <option value="DEPRECATED">{{ t('pbf.st.DEPRECATED') }}</option>
             </select>
           </label>
+        </div>
+
+        <label class="block font-medium text-slate-700">{{ t('pbf.mitre') }}
+          <input v-model="draft.mitreTechniques" :class="inputClass(!!errors.mitreTechniques)" class="font-mono uppercase" autocomplete="off" placeholder="T1110, T1110.001" :aria-invalid="!!errors.mitreTechniques" />
+          <span class="mt-0.5 block text-[11px] font-normal text-slate-400">{{ t('pbf.mitreHint') }}</span>
+          <span v-if="errors.mitreTechniques" class="mt-0.5 block text-xs font-normal text-rose-700" role="alert">{{ fieldError('mitreTechniques') }}</span>
+        </label>
+        <div>
+          <p class="font-medium text-slate-700">{{ t('pbf.allowedActions') }}</p>
+          <p class="text-[11px] text-slate-400">{{ t('pbf.allowedActionsHint') }}</p>
+          <p v-if="!allActionOptions.length" class="mt-1 text-xs text-slate-500">{{ t('pbf.noActions') }}</p>
+          <div v-else class="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+            <label v-for="a in allActionOptions" :key="a.code" class="flex items-start gap-2 rounded-md border border-slate-200 px-2 py-1.5 text-xs">
+              <input v-model="draft.allowedActions" type="checkbox" :value="a.code" class="mt-0.5 size-3.5 rounded border-slate-300" />
+              <span class="min-w-0"><span class="block font-mono font-semibold text-slate-700">{{ a.code }}</span><span v-if="a.name" class="block text-slate-500">{{ a.name }}</span></span>
+            </label>
+          </div>
         </div>
 
         <div>

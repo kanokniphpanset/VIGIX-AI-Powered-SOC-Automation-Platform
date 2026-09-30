@@ -23,6 +23,8 @@ export class CreatePlaybookUseCase {
       version: input.version ?? "1.0",
       status: input.status ?? "ACTIVE",
       incidentType: input.incidentType ?? null,
+      mitreTechniques: input.mitreTechniques,
+      allowedActions: input.allowedActions,
       steps: input.steps.map((s) => ({ stepOrder: s.stepOrder, title: s.title, description: s.description ?? null })),
     });
     await this.audit?.record({
