@@ -44,6 +44,7 @@ export interface TicketRow {
 
 export type TicketStage =
   | "AWAITING_IR_DECISION"
+  | "AWAITING_MANUAL_DECISION"
   | "READY_FOR_EXECUTION"
   | "IN_PROGRESS"
   | "AWAITING_REHUNT"
@@ -59,6 +60,8 @@ export function ticketStage(t: Pick<TicketRow, "status" | "verification" | "inci
     case "PENDING_IR_DECISION":
     case "PENDING_APPROVAL":
       return "AWAITING_IR_DECISION";
+    case "PENDING_MANUAL_DECISION":
+      return "AWAITING_MANUAL_DECISION";
     case "APPROVED":
     case "READY_FOR_EXECUTION":
       return "READY_FOR_EXECUTION";
@@ -108,7 +111,7 @@ const EXECUTION_STAGES: TicketStage[] = ["READY_FOR_EXECUTION", "IN_PROGRESS", "
  * Queue membership from backend state only (never from who received an email):
  *   my-work           IR work that is mine: tickets waiting for the IR decision (when I am IR_TEAM), tickets I started
  *                     (assignedTo = me) that are not finished, and READY tickets nobody started yet.
- *   awaiting-decision tickets waiting for IR APPROVE / REJECT.
+ *   awaiting-decision tickets waiting for IR APPROVE / REJECT, or for IR's Manual Decision after a REJECT.
  * admin is a system role: it never decides or executes (it must not stand in for IR).
  */
 export function inQueue(queue: TicketQueue, t: TicketRow, viewer: Viewer): boolean {
@@ -116,12 +119,12 @@ export function inQueue(queue: TicketQueue, t: TicketRow, viewer: Viewer): boole
   switch (queue) {
     case "my-work":
       return (
-        (viewer.role === "IR_TEAM" && stage === "AWAITING_IR_DECISION") ||
+        (viewer.role === "IR_TEAM" && (stage === "AWAITING_IR_DECISION" || stage === "AWAITING_MANUAL_DECISION")) ||
         (t.assignedTo === viewer.id && EXECUTION_STAGES.includes(stage)) ||
         (t.assignedTo === null && stage === "READY_FOR_EXECUTION" && t.assignedRole === viewer.role)
       );
     case "awaiting-decision":
-      return stage === "AWAITING_IR_DECISION";
+      return stage === "AWAITING_IR_DECISION" || stage === "AWAITING_MANUAL_DECISION";
     case "rejected":
       return stage === "REJECTED";
     case "ready":

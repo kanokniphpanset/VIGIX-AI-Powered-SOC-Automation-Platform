@@ -30,7 +30,9 @@ const AWAITING_DECISION = new Set(["PENDING_IR_DECISION", "PENDING_APPROVAL"]);
  * tokens. The decider's role must match the approval's role (IR_TEAM); "admin" is a system role and may never stand
  * in (ADMIN_NOT_APPROVER). Every denied attempt is audited (APPROVAL_DECISION_DENIED).
  *   approved -> ticket READY_FOR_EXECUTION (IR executes it: checklist, re-hunt, verification)
- *   rejected -> ticket REJECTED; the rejection note is stored on the approval and in the audit; nothing is executed
+ *   rejected -> ticket PENDING_MANUAL_DECISION: the AI-recommended response is not executed; IR writes its own manual
+ *               response and approves it (ManualDecisionUseCase) -> READY_FOR_EXECUTION. The rejection note is stored on
+ *               the approval and in the audit.
  * Deciding never executes anything itself.
  */
 export class DecideApprovalUseCase {
@@ -99,7 +101,7 @@ export class DecideApprovalUseCase {
           input.tenantId,
           input.status === "approved"
             ? { approvalStatus: "APPROVED", status: "READY_FOR_EXECUTION" }
-            : { approvalStatus: "REJECTED", status: "REJECTED" }
+            : { approvalStatus: "REJECTED", status: "PENDING_MANUAL_DECISION" }
         );
       }
     }

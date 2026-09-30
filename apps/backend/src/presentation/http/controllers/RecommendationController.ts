@@ -5,10 +5,12 @@ import { ListRecommendationsUseCase } from "../../../application/recommendation/
 import { ValidateRecommendationUseCase } from "../../../application/recommendation/use-cases/ValidateRecommendation.usecase";
 import { generateRecommendationSchema } from "../../../application/recommendation/dto/GenerateRecommendationDto";
 import { SendRecommendationToIrUseCase } from "../../../application/response/use-cases/SendRecommendationToIr.usecase";
+import { RejectRecommendationUseCase } from "../../../application/recommendation/use-cases/RejectRecommendation.usecase";
 import { validateBody } from "../validators/validateBody";
 import { z } from "zod";
 
 const sendToIrSchema = z.object({ note: z.string().trim().max(2000).nullable().optional() }).strict();
+const rejectSchema = z.object({ note: z.string().trim().max(2000) }).strict();
 
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -18,8 +20,29 @@ export class RecommendationController {
     private readonly getRecommendation: GetRecommendationUseCase,
     private readonly listRecommendations: ListRecommendationsUseCase,
     private readonly validateRecommendation: ValidateRecommendationUseCase,
-    private readonly sendRecommendationToIr: SendRecommendationToIrUseCase
+    private readonly sendRecommendationToIr: SendRecommendationToIrUseCase,
+    private readonly rejectRecommendation?: RejectRecommendationUseCase
   ) {}
+
+  /** SOC Validation REJECT: the recommendation is rejected and the incident is closed (note mandatory). */
+  reject = async (req: Request, res: Response): Promise<void> => {
+    const body = validateBody(rejectSchema, req, res);
+    if (!body) return;
+    if (!req.user) {
+      res.status(401).json({ error: "UNAUTHENTICATED" });
+      return;
+    }
+    if (!this.rejectRecommendation) {
+      res.status(501).json({ error: "NOT_CONFIGURED" });
+      return;
+    }
+    const result = await this.rejectRecommendation.execute({ tenantId: req.user.tenantId, recommendationId: req.params.id, actor: req.user.id, note: body.note });
+    if (result.isFailure) {
+      res.status(result.error === "RECOMMENDATION_NOT_FOUND" ? 404 : result.error === "NOTE_REQUIRED" ? 422 : 409).json({ error: result.error });
+      return;
+    }
+    res.json(result.value.toJSON());
+  };
 
   /** SOC "Send to IR": creates the Response Tickets (PENDING_IR_DECISION) first, then notifies IR with the ticket links. */
   sendToIr = async (req: Request, res: Response): Promise<void> => {

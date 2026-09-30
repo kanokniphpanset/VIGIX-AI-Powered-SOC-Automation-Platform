@@ -7,6 +7,7 @@ import type { Verification } from '@/api/vigix'
 
 export type TicketStage =
   | 'AWAITING_IR_DECISION'
+  | 'AWAITING_MANUAL_DECISION'
   | 'REJECTED'
   | 'READY_FOR_EXECUTION'
   | 'IN_PROGRESS'
@@ -24,6 +25,9 @@ export function ticketStage(planStatus: string, verification: Verification | nul
     case 'PENDING_IR_DECISION':
     case 'PENDING_APPROVAL':
       return 'AWAITING_IR_DECISION'
+    case 'PENDING_MANUAL_DECISION':
+      // IR rejected the recommended response: IR's own manual response decision is next.
+      return 'AWAITING_MANUAL_DECISION'
     case 'REJECTED':
       return 'REJECTED'
     case 'APPROVED':
@@ -44,6 +48,7 @@ export function ticketStage(planStatus: string, verification: Verification | nul
 export const STAGE_LABEL: Record<TicketStage, string> = labelMap({
   FAILED: 'stage.FAILED',
   AWAITING_IR_DECISION: 'stage.AWAITING_IR_DECISION',
+  AWAITING_MANUAL_DECISION: 'stage.AWAITING_MANUAL_DECISION',
   REJECTED: 'stage.REJECTED',
   READY_FOR_EXECUTION: 'stage.READY_FOR_EXECUTION',
   IN_PROGRESS: 'stage.IN_PROGRESS',
@@ -66,6 +71,7 @@ export const ticketStatusLabel = (status: string) => {
 export const STAGE_CLASS: Record<TicketStage, string> = {
   FAILED: 'bg-rose-50 text-rose-700 ring-rose-200',
   AWAITING_IR_DECISION: 'bg-amber-50 text-amber-800 ring-amber-200',
+  AWAITING_MANUAL_DECISION: 'bg-orange-50 text-orange-800 ring-orange-200',
   REJECTED: 'bg-slate-100 text-slate-700 ring-slate-300',
   READY_FOR_EXECUTION: 'bg-sky-50 text-sky-700 ring-sky-200',
   IN_PROGRESS: 'bg-violet-50 text-violet-700 ring-violet-200',

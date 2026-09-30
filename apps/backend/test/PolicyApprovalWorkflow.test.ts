@@ -24,6 +24,7 @@ import { Approval, ApprovalStatus } from "../src/domain/approval/entities/Approv
 import { ResponsePlan } from "../src/domain/response/entities/ResponsePlan.entity";
 import { Recommendation } from "../src/domain/recommendation/entities/Recommendation.entity";
 import { AuditLogger } from "../src/infrastructure/database/postgres/repositories/AuditLogger";
+import { ManualDecisionUseCase } from "../src/application/approval/use-cases/ManualDecision.usecase";
 import { INotificationDispatcherPort } from "../src/application/notification/ports/INotificationDispatcherPort";
 
 /**
@@ -196,6 +197,7 @@ function world(facts: Facts, steps: StepSpec[], opts: { catalogPath?: string } =
     requestApproval: new RequestApprovalUseCase(recommendationRepository, responsePlanRepository, approvalRepository, actionRepository, runbookRepository, approvalService),
     decide: new DecideApprovalUseCase(approvalRepository, auditLogger, recommendationRepository, contextRepository, responsePlanRepository, notifications, "http://vigix.test"),
     start: new StartResponseUseCase(responsePlanRepository, approvalRepository, auditLogger),
+    manualDecision: new ManualDecisionUseCase(approvalRepository, responsePlanRepository, auditLogger),
   };
 }
 
@@ -300,13 +302,13 @@ describe("IR decision — APPROVE or REJECT, note mandatory, nothing else decide
     expect((await w.start.execute({ responseId: plan.id, tenantId: TENANT, startedBy: "ir-1" })).value).toMatchObject({ status: "IN_PROGRESS" });
   });
 
-  it("REJECT -> ticket REJECTED with the stored reason; the response can never start; a second decision is refused", async () => {
+  it("REJECT -> ticket PENDING_MANUAL_DECISION with the stored reason; the recommended response cannot start; a second decision is refused", async () => {
     const { w, plan } = await pending();
     const r = await irDecide(w, w.approvals[0].id, "rejected", "IR_TEAM", "Account belongs to the backup service; disabling breaks restores");
     expect(r.value).toMatchObject({ status: "rejected", comment: "Account belongs to the backup service; disabling breaks restores" });
-    expect(w.plans[0]).toMatchObject({ id: plan.id, status: "REJECTED", approvalStatus: "REJECTED" });
+    expect(w.plans[0]).toMatchObject({ id: plan.id, status: "PENDING_MANUAL_DECISION", approvalStatus: "REJECTED" });
     expect(w.audit.find((a) => a.action === "APPROVAL_REJECTED")).toMatchObject({ actor: "ir_team-1", entityId: w.approvals[0].id, metadata: { comment: expect.stringContaining("backup service") } });
-    expect((await w.start.execute({ responseId: plan.id, tenantId: TENANT, startedBy: "ir-1" })).error).toBe("APPROVAL_REJECTED");
+    expect((await w.start.execute({ responseId: plan.id, tenantId: TENANT, startedBy: "ir-1" })).error).toBe("APPROVAL_PENDING");
     expect((await irDecide(w, w.approvals[0].id, "approved")).error).toBe("ALREADY_DECIDED");
     expect(w.audit.some((a) => a.action === "RESPONSE_STARTED")).toBe(false);
     // The decision notification tells the roles it was rejected; no response process is sent.
@@ -342,15 +344,29 @@ describe("IR decision — APPROVE or REJECT, note mandatory, nothing else decide
     expect(w.plans[0]).toMatchObject({ id: plan.id, status: "PENDING_IR_DECISION" });
   });
 
-  it("one live Response Ticket per recommendation step: a duplicate is refused, a rejected one can be replaced", async () => {
+  it("REJECT -> Manual Decision -> APPROVE -> IR Execution: IR approves its own manual response and may start it", async () => {
+    const { w, plan } = await pending();
+    await irDecide(w, w.approvals[0].id, "rejected", "IR_TEAM", "disabling the account breaks restores");
+    const md = (note: string | null, role = "IR_TEAM") => w.manualDecision.execute({ responseId: plan.id, tenantId: TENANT, decidedBy: "ir-2", decidedByRole: role, note });
+    expect((await md("", "IR_TEAM")).error).toBe("NOTE_REQUIRED");
+    expect((await md("reset password instead", "SOC")).error).toBe("ROLE_MISMATCH");
+    expect((await md("reset password instead", "admin")).error).toBe("ADMIN_NOT_APPROVER");
+    const ok = await md("Reset j.smith password and revoke sessions instead of disabling");
+    expect(ok.value).toMatchObject({ status: "READY_FOR_EXECUTION", approvalStatus: "APPROVED", executionResult: { manualDecision: { note: expect.stringContaining("Reset j.smith"), decidedBy: "ir-2" } } });
+    expect(w.approvals.at(-1)).toMatchObject({ status: "approved", stepOrder: 2, responseId: plan.id, decidedBy: "ir-2" });
+    expect(w.audit.find((a) => a.action === "MANUAL_DECISION_APPROVED")).toMatchObject({ actor: "ir-2", entityId: plan.id });
+    expect((await md("again")).error).toBe("INVALID_STATE");
+    expect((await w.start.execute({ responseId: plan.id, tenantId: TENANT, startedBy: "ir-2" })).value).toMatchObject({ status: "IN_PROGRESS" });
+  });
+
+  it("one live Response Ticket per recommendation step: a duplicate is refused, also while it waits for the Manual Decision", async () => {
     const { w } = await pending(ATK01);
     const again = await w.createPlan.execute({ recommendationId: w.recommendation.id, stepId: "step-1", tenantId: TENANT });
     expect(again.error).toBe("TICKET_ALREADY_EXISTS");
     expect(w.plans).toHaveLength(1);
     await irDecide(w, w.approvals[0].id, "rejected", "IR_TEAM", "wrong target");
     const replaced = await w.createPlan.execute({ recommendationId: w.recommendation.id, stepId: "step-1", tenantId: TENANT });
-    expect(replaced.isSuccess).toBe(true);
-    expect(replaced.value.status).toBe("PENDING_IR_DECISION");
+    expect(replaced.error).toBe("TICKET_ALREADY_EXISTS");
   });
 
   it("a legacy ticket (PENDING_APPROVAL, open step migrated to IR_TEAM) is decided the same way", async () => {

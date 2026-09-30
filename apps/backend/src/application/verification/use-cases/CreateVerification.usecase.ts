@@ -3,6 +3,7 @@ import { IResponsePlanRepository } from "../../../domain/response/repositories/I
 import { IIncidentRepository } from "../../../domain/incident/repositories/IIncidentRepository";
 import { IRecommendationContextRepository } from "../../recommendation/ports/IRecommendationContextRepository";
 import { GenerateRecommendationUseCase } from "../../recommendation/use-cases/GenerateRecommendation.usecase";
+import { SendRecommendationToIrUseCase } from "../../response/use-cases/SendRecommendationToIr.usecase";
 import { PolicyEvaluator } from "../../../infrastructure/policy-engine/PolicyEvaluator";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 import { Verification, VerificationResult } from "../../../domain/verification/entities/Verification.entity";
@@ -72,8 +73,12 @@ export const MAX_INVESTIGATION_ROUNDS = 3;
  * When a new investigation is opened, a fresh recommendation is automatically
  * generated from the new investigation context. GenerateRecommendationUseCase
  * is responsible for obtaining the next recommendationNumber and superseding
- * the previous recommendation. Nothing here starts or executes a response —
- * the new recommendation still goes through Policy/Approval and a human.
+ * the previous recommendation. Main flow: Round < 3 -> New Round -> AI
+ * Recommendation -> IR Decision — the new round's VALIDATED recommendation is
+ * routed straight to the IR decision (Response Tickets PENDING_IR_DECISION via
+ * Send to IR, actor "system"); the SOC validation gate belongs to the first
+ * round only. Nothing here starts or executes a response — IR still has to
+ * APPROVE (or REJECT -> Manual Decision) every ticket.
  *
  * Round limit: when the incident is already on its MAX_INVESTIGATION_ROUNDS-th
  * cycle, no further cycle is opened and no recommendation is generated; the
@@ -97,7 +102,8 @@ export class CreateVerificationUseCase {
     private readonly notificationDispatcher: INotificationDispatcherPort,
     private readonly vigixBaseUrl: string,
     private readonly generateRecommendationUseCase: GenerateRecommendationUseCase,
-    private readonly inApp?: InAppNotifier
+    private readonly inApp?: InAppNotifier,
+    private readonly sendToIr?: Pick<SendRecommendationToIrUseCase, "execute">
   ) {}
 
   async execute(
@@ -238,6 +244,17 @@ export class CreateVerificationUseCase {
             verification.id,
             recommendationResult.error
           );
+        } else if (this.sendToIr && recommendationResult.value.status === "VALIDATED") {
+          // New Round -> AI Recommendation -> IR Decision (no second SOC validation).
+          const sent = await this.sendToIr.execute({
+            tenantId: input.tenantId,
+            recommendationId: recommendationResult.value.id,
+            actor: "system",
+            note: `Round ${newInvestigationNumber}: re-hunt NOT_RESOLVED — new recommendation routed to the IR decision automatically.`,
+          });
+          if (sent.isFailure) {
+            console.error("Failed to route the new-round recommendation to IR", verification.id, sent.error);
+          }
         }
       } catch (err) {
         console.error(

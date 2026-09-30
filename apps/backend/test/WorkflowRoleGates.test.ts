@@ -11,7 +11,7 @@ import { buildIncidentVerificationRoutes } from "../src/presentation/http/routes
  * hiding a button. Controllers are stubs: the test proves the gate, not the use case.
  */
 const ok = (_req: express.Request, res: express.Response) => res.status(200).json({ reached: true });
-const responseController = { list: ok, create: ok, getById: ok, start: ok, complete: ok, fail: ok } as never;
+const responseController = { list: ok, create: ok, getById: ok, start: ok, complete: ok, fail: ok, decideManually: ok } as never;
 const verificationController = { create: ok, rehunt: ok, list: ok, listByIncident: ok, getById: ok, rehuntHealth: ok, listAll: ok } as never;
 
 // Real HTTP round trips on an ephemeral port: allow for a loaded machine during the full parallel run.

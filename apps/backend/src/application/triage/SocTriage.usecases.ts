@@ -130,7 +130,7 @@ export class DecideIncidentNotificationUseCase {
 export type ValidateSeverityError = IncidentCaseError | "INCIDENT_CLOSED" | "SEVERITY_LOCKED" | "REASON_REQUIRED";
 
 /** Tickets in these states are mid-approval / mid-execution: their Policy decision must not be changed under them. */
-const SEVERITY_LOCKING_TICKETS = ["PENDING_IR_DECISION", "PENDING_APPROVAL", "IN_PROGRESS"];
+const SEVERITY_LOCKING_TICKETS = ["PENDING_IR_DECISION", "PENDING_MANUAL_DECISION", "PENDING_APPROVAL", "IN_PROGRESS"];
 
 /**
  * SOC Severity Validation. VIGIX has ONE severity source: the Wazuh rule level, mapped deterministically at ingestion

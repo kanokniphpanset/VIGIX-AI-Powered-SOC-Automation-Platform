@@ -298,13 +298,13 @@ describe("DecideApprovalUseCase", () => {
     );
   });
 
-  it("rejects a pending approval and moves its ResponsePlan to REJECTED", async () => {
+  it("rejects a pending approval and moves its ResponsePlan to PENDING_MANUAL_DECISION", async () => {
     const deps = createDependencies();
 
     deps.responsePlanRepository.updateStatus.mockResolvedValue(
       createResponsePlan({
         approvalStatus: "REJECTED",
-        status: "REJECTED",
+        status: "PENDING_MANUAL_DECISION",
       })
     );
 
@@ -338,7 +338,7 @@ describe("DecideApprovalUseCase", () => {
       tenantId,
       {
         approvalStatus: "REJECTED",
-        status: "REJECTED",
+        status: "PENDING_MANUAL_DECISION",
       }
     );
   });

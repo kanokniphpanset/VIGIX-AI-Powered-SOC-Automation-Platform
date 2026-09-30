@@ -160,6 +160,12 @@ const currentRecommendation = computed(() => recommendations.value.find((r) => r
 /** Tickets that ended without executing can be sent again (mirrors the backend). */
 const REPLACEABLE = ['REJECTED', 'FAILED', 'CANCELLED', 'MORE_EVIDENCE_REQUESTED']
 const liveTicket = (stepId: string) => responses.value.find((p) => p.recommendationStepId === stepId && !REPLACEABLE.includes(p.status)) ?? responses.value.find((p) => p.recommendationStepId === stepId)
+/** SOC Validation REJECT -> Close Incident: only before anything of this recommendation reached IR, on an open incident. */
+const canRejectRecommendation = computed(() => {
+  const rec = currentRecommendation.value
+  if (!rec || !incident.value || ['SUPERSEDED', 'REJECTED'].includes(rec.status) || ['resolved', 'dismissed'].includes(incident.value.status)) return false
+  return !responses.value.some((p) => p.recommendationId === rec.id && !REPLACEABLE.includes(p.status))
+})
 const unsentSteps = computed(() => (currentRecommendation.value?.steps ?? []).filter((s) => s.actionId && !responses.value.some((p) => p.recommendationStepId === s.id && !REPLACEABLE.includes(p.status))).length)
 
 // Run / Re-run AI Analysis: POST .../ai-analysis/run (the existing pipeline, analysis only), then reload everything the
@@ -535,6 +541,16 @@ const assignment = computed(() => {
                   </WorkflowAction>
                   <p v-else-if="currentRecommendation.status !== 'VALIDATED'" class="mt-2 text-xs text-amber-800">{{ t('inc.recInvalid') }}</p>
                   <p v-else class="mt-2 text-xs text-emerald-700">{{ t('inc.allSent') }}</p>
+                  <div v-if="canRejectRecommendation" class="mt-3 border-t border-slate-100 pt-3">
+                    <p class="mb-2 text-xs text-slate-500">{{ t('inc.rejectRecHint') }}</p>
+                    <WorkflowAction
+                      :label="t('inc.rejectRec')"
+                      reason-required
+                      :success-label="t('inc.rejectRecDone')"
+                      :action="(reason) => workflowApi.rejectRecommendation(currentRecommendation!.id, reason)"
+                      :reload="reloadWorkflow"
+                    />
+                  </div>
                 </div>
                 <article v-for="s in currentRecommendation.steps" :key="s.id" class="mb-4 rounded-lg border border-slate-200 p-4">
                   <h3 class="font-semibold text-slate-900">{{ s.stepOrder }}. {{ s.title }}</h3>

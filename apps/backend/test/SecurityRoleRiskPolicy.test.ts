@@ -472,7 +472,7 @@ describe("RBAC — AI (or any non-human role) can neither approve nor execute", 
   beforeAll(async () => {
     const app = express();
     app.use(express.json());
-    app.use("/api/responses", buildResponseRoutes({ list: ok("list"), create: ok("create"), getById: ok("get"), start: ok("start"), complete: ok("complete"), fail: ok("fail") } as never));
+    app.use("/api/responses", buildResponseRoutes({ list: ok("list"), create: ok("create"), getById: ok("get"), start: ok("start"), complete: ok("complete"), fail: ok("fail"), decideManually: ok("manual-decision") } as never));
     app.use("/api/approvals", buildApprovalRoutes({ request: ok("request"), getById: ok("get"), approve: ok("approve"), reject: ok("reject") } as never));
     app.use("/api/v1", buildSocTriageRoutes({ triage: ok("triage"), notificationDecision: ok("notify"), severityValidation: ok("severity"), severity: ok("severity-read") } as never));
     server = app.listen(0);

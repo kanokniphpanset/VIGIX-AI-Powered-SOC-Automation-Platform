@@ -1,4 +1,5 @@
-export type RecommendationStatus = "GENERATED" | "VALIDATED" | "INVALID" | "SUPERSEDED";
+/** REJECTED: the SOC rejected it at SOC Validation and closed the incident (RejectRecommendationUseCase). */
+export type RecommendationStatus = "GENERATED" | "VALIDATED" | "INVALID" | "SUPERSEDED" | "REJECTED";
 export type RecommendationStepStatus = "PENDING" | "SUPERSEDED";
 
 /** One ordered operational instruction of an action-level RecommendationStep (Task 10.3). */

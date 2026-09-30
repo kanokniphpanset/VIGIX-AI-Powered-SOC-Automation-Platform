@@ -15,6 +15,8 @@ export function buildRecommendationRoutes(controller: RecommendationController):
   router.post("/:id/validate", authenticate, requireRole("SOC", "IR_TEAM"), controller.validate);
   // SOC reviewed the recommendation -> Send to IR (tickets first, then the notification with the ticket links).
   router.post("/:id/send-to-ir", authenticate, requireOperationalRole("SOC"), controller.sendToIr);
+  // SOC Validation REJECT -> Close Incident.
+  router.post("/:id/reject", authenticate, requireOperationalRole("SOC"), controller.reject);
   return router;
 }
 

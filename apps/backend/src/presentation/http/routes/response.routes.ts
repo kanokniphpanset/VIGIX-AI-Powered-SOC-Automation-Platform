@@ -11,6 +11,8 @@ export function buildResponseRoutes(controller: ResponseController): Router {
   router.get("/", authenticate, controller.list);
   router.post("/", authenticate, requireOperationalRole("SOC"), controller.create);
   router.get("/:id", authenticate, controller.getById);
+  // IR Decision REJECT -> Manual Decision: IR approves its own manual response -> READY_FOR_EXECUTION.
+  router.post("/:id/manual-decision", authenticate, requireOperationalRole("IR_TEAM"), controller.decideManually);
   router.post("/:id/start", authenticate, requireOperationalRole("IR_TEAM"), controller.start);
   router.post("/:id/complete", authenticate, requireOperationalRole("IR_TEAM"), controller.complete);
   router.post("/:id/fail", authenticate, requireOperationalRole("IR_TEAM"), controller.fail);

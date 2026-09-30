@@ -118,6 +118,7 @@ export const common = {
 
   // ---------------------------------------------------------------- Response Ticket stage / stored status
   'stage.AWAITING_IR_DECISION': ['รอ IR ตัดสินใจ', 'Awaiting IR decision'],
+  'stage.AWAITING_MANUAL_DECISION': ['IR ปฏิเสธ · รอ Manual Decision', 'Rejected · awaiting manual decision'],
   'stage.REJECTED': ['IR ปฏิเสธ', 'Rejected by IR'],
   'stage.READY_FOR_EXECUTION': ['อนุมัติแล้ว รอลงมือ', 'Ready for execution'],
   'stage.IN_PROGRESS': ['กำลังดำเนินการ', 'In progress'],
@@ -135,6 +136,7 @@ export const common = {
   'tst.COMPLETED': ['ทำเสร็จแล้ว', 'Completed'],
   'tst.FAILED': ['ลงมือไม่สำเร็จ', 'Failed'],
   'tst.REJECTED': ['IR ปฏิเสธ', 'Rejected by IR'],
+  'tst.PENDING_MANUAL_DECISION': ['IR ปฏิเสธ · รอ Manual Decision', 'Rejected · awaiting manual decision'],
   'tst.MORE_EVIDENCE_REQUESTED': ['ปิดแล้ว (ข้อมูลเดิม: ขอหลักฐานเพิ่ม)', 'Closed (legacy: more evidence requested)'],
   'tst.CANCELLED': ['ยกเลิก', 'Cancelled'],
 
@@ -249,6 +251,9 @@ export const common = {
   'aud.a.APPROVAL_APPROVED': ['IR อนุมัติ', 'IR approved'],
   'aud.a.APPROVAL_REJECTED': ['IR ปฏิเสธ', 'IR rejected'],
   'aud.a.RECOMMENDATION_SENT_TO_IR': ['ส่ง Recommendation ให้ IR', 'Recommendation sent to IR'],
+  'aud.a.RECOMMENDATION_REJECTED_BY_SOC': ['SOC ปฏิเสธ Recommendation', 'Recommendation rejected by SOC'],
+  'aud.a.INCIDENT_CLOSED': ['ปิด Incident', 'Incident closed'],
+  'aud.a.MANUAL_DECISION_APPROVED': ['IR อนุมัติการรับมือแบบ Manual', 'Manual response approved by IR'],
   'aud.a.ALERT_ESCALATED_TO_INCIDENT': ['ยกระดับ Alert เป็น Incident', 'Alert escalated to an incident'],
   'aud.a.ALERT_OUTSIDE_SOC_WORKFLOW': ['เก็บ Alert LOW ไว้ (ไม่อยู่ในงาน SOC)', 'LOW alert stored (outside the SOC workflow)'],
   'aud.a.APPROVAL_ROLE_MIGRATED': ['ย้ายการอนุมัติที่ค้างไปให้ IR_TEAM (ปรับเป็นสองบทบาท)', 'Open approval moved to IR_TEAM (two-role migration)'],

@@ -158,9 +158,11 @@ import { ValidateRecommendationUseCase } from "../../application/recommendation/
 import { LoginUseCase } from "../../application/identity/use-cases/Login.usecase";
 import { RequestApprovalUseCase } from "../../application/approval/use-cases/RequestApproval.usecase";
 import { DecideApprovalUseCase } from "../../application/approval/use-cases/DecideApproval.usecase";
+import { ManualDecisionUseCase } from "../../application/approval/use-cases/ManualDecision.usecase";
 import { GetApprovalUseCase } from "../../application/approval/use-cases/GetApproval.usecase";
 import { ListApprovalsByRecommendationUseCase } from "../../application/approval/use-cases/ListApprovalsByRecommendation.usecase";
 import { SendRecommendationToIrUseCase } from "../../application/response/use-cases/SendRecommendationToIr.usecase";
+import { RejectRecommendationUseCase } from "../../application/recommendation/use-cases/RejectRecommendation.usecase";
 import { CreateResponsePlanUseCase } from "../../application/response/use-cases/CreateResponsePlan.usecase";
 import { StartResponseUseCase } from "../../application/response/use-cases/StartResponse.usecase";
 import { CompleteResponseUseCase } from "../../application/response/use-cases/CompleteResponse.usecase";
@@ -649,6 +651,9 @@ const getResponseUseCase =
 const listResponsePlansUseCase =
   new ListResponsePlansUseCase(responsePlanRepository);
 
+const sendRecommendationToIrUseCase =
+  new SendRecommendationToIrUseCase(recommendationRepository, responsePlanRepository, createResponsePlanUseCase, auditLogger);
+
 const createVerificationUseCase =
   new CreateVerificationUseCase(
     verificationRepository,
@@ -660,7 +665,8 @@ const createVerificationUseCase =
     notificationDispatcher,
     vigixBaseUrl,
     generateRecommendationUseCase,
-    inAppNotifier
+    inAppNotifier,
+    sendRecommendationToIrUseCase
   );
 
 const getVerificationUseCase =
@@ -770,7 +776,8 @@ export const recommendationController =
     getRecommendationUseCase,
     listRecommendationsUseCase,
     validateRecommendationUseCase,
-    new SendRecommendationToIrUseCase(recommendationRepository, responsePlanRepository, createResponsePlanUseCase, auditLogger)
+    sendRecommendationToIrUseCase,
+    new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger)
   );
 
 export const authController =
@@ -860,7 +867,8 @@ export const responseController =
     completeResponseUseCase,
     failResponseUseCase,
     getResponseUseCase,
-    listResponsePlansUseCase
+    listResponsePlansUseCase,
+    new ManualDecisionUseCase(approvalRepository, responsePlanRepository, auditLogger)
   );
 
 export const siemWebhookController =

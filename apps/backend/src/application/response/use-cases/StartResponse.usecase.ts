@@ -29,7 +29,7 @@ export class StartResponseUseCase {
     const response = await this.responsePlanRepository.findById(input.responseId, input.tenantId);
     if (!response) return Result.fail("NOT_FOUND");
 
-    if (response.status === "PENDING_IR_DECISION" || response.status === "PENDING_APPROVAL") return Result.fail("APPROVAL_PENDING");
+    if (response.status === "PENDING_IR_DECISION" || response.status === "PENDING_APPROVAL" || response.status === "PENDING_MANUAL_DECISION") return Result.fail("APPROVAL_PENDING");
     if (response.status === "REJECTED") return Result.fail("APPROVAL_REJECTED");
     if (!["READY_FOR_EXECUTION", "APPROVED"].includes(response.status)) return Result.fail("INVALID_STATE");
 

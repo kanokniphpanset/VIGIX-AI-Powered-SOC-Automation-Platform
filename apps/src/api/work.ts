@@ -28,6 +28,7 @@ export type TicketQueue =
 
 export type WorkTicketStage =
   | 'AWAITING_IR_DECISION'
+  | 'AWAITING_MANUAL_DECISION'
   | 'READY_FOR_EXECUTION'
   | 'IN_PROGRESS'
   | 'AWAITING_REHUNT'

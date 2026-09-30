@@ -74,6 +74,7 @@ export const TICKET_TABS: QueueTab[] = (['my-work', 'awaiting-decision', 'ready'
 
 export const WORK_STAGE_LABEL: Record<WorkTicketStage, string> = labelMap({
   AWAITING_IR_DECISION: 'stage.AWAITING_IR_DECISION',
+  AWAITING_MANUAL_DECISION: 'stage.AWAITING_MANUAL_DECISION',
   READY_FOR_EXECUTION: 'stage.READY_FOR_EXECUTION',
   IN_PROGRESS: 'stage.IN_PROGRESS',
   AWAITING_REHUNT: 'stage.AWAITING_REHUNT',

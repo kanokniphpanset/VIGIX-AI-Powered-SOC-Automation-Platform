@@ -7,6 +7,10 @@ import { GetResponseUseCase } from "../../../application/response/use-cases/GetR
 import { ListResponsePlansUseCase } from "../../../application/response/use-cases/ListResponsePlans.usecase";
 import { createResponsePlanSchema, completeResponseSchema, failResponseSchema } from "../../../application/response/dto/ResponsePlanDto";
 import { validateBody } from "../validators/validateBody";
+import { ManualDecisionUseCase } from "../../../application/approval/use-cases/ManualDecision.usecase";
+import { z } from "zod";
+
+const manualDecisionSchema = z.object({ note: z.string().trim().max(4000) }).strict();
 
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -19,6 +23,9 @@ const ERROR_STATUS: Record<string, number> = {
   APPROVAL_REJECTED: 409,
   INVALID_STATE: 409,
   TICKET_ALREADY_EXISTS: 409,
+  ROLE_MISMATCH: 403,
+  ADMIN_NOT_APPROVER: 403,
+  NOTE_REQUIRED: 422,
 };
 
 export class ResponseController {
@@ -28,8 +35,30 @@ export class ResponseController {
     private readonly completeResponse: CompleteResponseUseCase,
     private readonly failResponse: FailResponseUseCase,
     private readonly getResponse: GetResponseUseCase,
-    private readonly listResponsePlans: ListResponsePlansUseCase
+    private readonly listResponsePlans: ListResponsePlansUseCase,
+    private readonly manualDecision?: ManualDecisionUseCase
   ) {}
+
+  /** IR "Manual Decision" after rejecting the recommended response: IR approves its own manual response (note). */
+  decideManually = async (req: Request, res: Response): Promise<void> => {
+    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const body = validateBody(manualDecisionSchema, req, res);
+    if (!body) return;
+    if (!req.user) {
+      res.status(401).json({ error: "UNAUTHENTICATED" });
+      return;
+    }
+    if (!this.manualDecision) {
+      res.status(501).json({ error: "NOT_CONFIGURED" });
+      return;
+    }
+    const result = await this.manualDecision.execute({ responseId: req.params.id, tenantId, decidedBy: req.user.id, decidedByRole: req.user.role, note: body.note });
+    if (result.isFailure) {
+      res.status(ERROR_STATUS[result.error] ?? 400).json({ error: result.error });
+      return;
+    }
+    res.json(result.value.toJSON());
+  };
 
   list = async (req: Request, res: Response): Promise<void> => {
     const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;

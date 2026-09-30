@@ -442,6 +442,10 @@ export const workflowApi = {
   /** IR decision — the note is mandatory for both APPROVE and REJECT. */
   approve: (approvalId: string, note: string) => api<Approval>(`/api/approvals/${approvalId}/approve`, { method: 'POST', body: { comment: note } }),
   reject: (approvalId: string, note: string) => api<Approval>(`/api/approvals/${approvalId}/reject`, { method: 'POST', body: { comment: note } }),
+  /** IR Manual Decision after a REJECT: IR approves its own manual response (note = the manual plan). */
+  manualDecision: (responseId: string, note: string) => api<ResponsePlan>(`/api/responses/${responseId}/manual-decision`, { method: 'POST', body: { note } }),
+  /** SOC Validation REJECT: rejects the recommendation and closes the incident (note mandatory). */
+  rejectRecommendation: (recommendationId: string, note: string) => api<Recommendation>(`/api/recommendations/${recommendationId}/reject`, { method: 'POST', body: { note } }),
   /** IR starts executing an APPROVED ticket. */
   start: (responseId: string) => api<ResponsePlan>(`/api/responses/${responseId}/start`, { method: 'POST', body: {} }),
   complete: (responseId: string, executionResult: Record<string, unknown>) => api<ResponsePlan>(`/api/responses/${responseId}/complete`, { method: 'POST', body: { executionResult } }),

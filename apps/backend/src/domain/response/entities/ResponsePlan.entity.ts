@@ -1,12 +1,15 @@
 export type ResponseApprovalStatus = "NOT_REQUIRED" | "PENDING" | "APPROVED" | "REJECTED" | "MORE_EVIDENCE_REQUESTED";
 /**
  * Response Ticket lifecycle (two roles): PENDING_IR_DECISION -> (IR APPROVE) READY_FOR_EXECUTION -> IN_PROGRESS ->
- * COMPLETED | FAILED, or (IR REJECT) REJECTED — never executed. PENDING_APPROVAL / MORE_EVIDENCE_REQUESTED / APPROVED are
+ * COMPLETED | FAILED, or (IR REJECT) PENDING_MANUAL_DECISION -> (IR approves its own manual response)
+ * READY_FOR_EXECUTION. REJECTED is a history-only value of tickets rejected before the Manual Decision step. PENDING_APPROVAL / MORE_EVIDENCE_REQUESTED / APPROVED are
  * history-only values of older tickets (PENDING_APPROVAL rows were migrated to PENDING_IR_DECISION).
  */
 export type ResponseStatus =
   | "DRAFT"
   | "PENDING_IR_DECISION"
+  /** IR rejected the recommended response; waiting for IR's own manual response decision. */
+  | "PENDING_MANUAL_DECISION"
   | "PENDING_APPROVAL"
   | "APPROVED"
   | "REJECTED"
