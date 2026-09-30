@@ -51,7 +51,7 @@ export class IncidentController {
 
   /** PUT /incidents/:id/incident-type { incidentType | null } — SOC confirms / changes the type (null = MITRE detection). */
   setIncidentType = async (req: Request, res: Response): Promise<void> => {
-    const body = validateBody(incidentTypeSchema, req.body, res);
+    const body = validateBody(incidentTypeSchema, req, res);
     if (!body) return;
     const result = await this.responseSetup!.setIncidentType({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, incidentType: body.incidentType });
     this.sendSetup(res, result);
@@ -59,7 +59,7 @@ export class IncidentController {
 
   /** PUT /incidents/:id/response-guidance { allowedActions, instructions } — this case only. DELETE clears it. */
   setCaseGuidance = async (req: Request, res: Response): Promise<void> => {
-    const body = validateBody(caseGuidanceSchema, req.body, res);
+    const body = validateBody(caseGuidanceSchema, req, res);
     if (!body) return;
     const result = await this.responseSetup!.setCaseGuidance({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, guidance: { allowedActions: body.allowedActions, instructions: body.instructions ?? null } });
     this.sendSetup(res, result);
@@ -72,7 +72,7 @@ export class IncidentController {
 
   /** PUT /incidents/:id/response-guidance/group { allowedActions, note } — RESPONSE_GUIDANCE policy of the incident's group. */
   saveGroupGuidance = async (req: Request, res: Response): Promise<void> => {
-    const body = validateBody(groupGuidanceSchema, req.body, res);
+    const body = validateBody(groupGuidanceSchema, req, res);
     if (!body) return;
     const result = await this.responseSetup!.saveGroupGuidance({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, allowedActions: body.allowedActions, note: body.note ?? null });
     this.sendSetup(res, result);
