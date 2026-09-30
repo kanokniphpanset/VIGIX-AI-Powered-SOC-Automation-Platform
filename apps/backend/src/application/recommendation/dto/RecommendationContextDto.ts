@@ -143,4 +143,9 @@ export interface RecommendationContextDto {
   playbook?: RecommendationContextPlaybook | null;
   /** Actions the AI may expand (the playbook's allowedActions that exist, are enabled and are CONTAINMENT). */
   actionProcedures?: RecommendationContextActionProcedure[];
+  /**
+   * SOC response guidance in force (case > group policy > playbook default): the actions it allows (already applied
+   * to playbook.allowedActions / actionProcedures) and the SOC's instruction for the Recommendation.
+   */
+  socGuidance?: { source: "CASE" | "GROUP" | "PLAYBOOK"; allowedActions: string[]; instructions: string | null } | null;
 }

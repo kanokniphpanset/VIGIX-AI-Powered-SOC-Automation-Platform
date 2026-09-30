@@ -1,0 +1,42 @@
+# VIGIX Wazuh lab — a monitored Ubuntu machine and an attacker, on the wazuh-docker single-node network.
+#
+# Requires the Wazuh stack from wazuh-docker/single-node to be running (its network is "single-node_default").
+#
+#   docker compose -f infra/wazuh-lab/docker-compose.yml up -d --build
+#   bash infra/wazuh-lab/attack-ssh-bruteforce.sh        # real SSH brute force: attacker -> agent
+#   docker compose -f infra/wazuh-lab/docker-compose.yml down
+#
+# Flow: sshd (agent) -> /var/log/auth.log -> Wazuh agent -> manager rules (5710/5712/5763...) ->
+#       custom-vigix integration (level >= 7) -> VIGIX Alert Inbox.
+name: vigix-wazuh-lab
+
+services:
+  agent:
+    build: ./agent
+    image: vigix-lab-agent:4.9.2
+    container_name: vigix-lab-agent
+    hostname: vigix-lab-agent
+    environment:
+      WAZUH_MANAGER: wazuh.manager
+    volumes:
+      # Keeps the agent's enrollment key (client.keys) across rebuilds: a rebuilt container with no key re-enrolls
+      # under the same name, and the manager rejects it ("Duplicate agent name") while the old entry is still active.
+      - agent_etc:/var/ossec/etc
+    restart: unless-stopped
+    networks: [wazuh]
+
+  attacker:
+    image: alpine:3.20
+    container_name: vigix-lab-attacker
+    hostname: vigix-lab-attacker
+    command: ["sh", "-c", "apk add --no-cache openssh-client sshpass >/dev/null && echo ready && sleep infinity"]
+    restart: unless-stopped
+    networks: [wazuh]
+
+volumes:
+  agent_etc:
+
+networks:
+  wazuh:
+    name: single-node_default
+    external: true

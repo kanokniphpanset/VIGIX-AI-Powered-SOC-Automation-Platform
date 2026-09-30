@@ -85,7 +85,7 @@ const priorityBySeverity = (tenantId: string): NewPolicyInput => ({
         priority: "P2",
         responsibleRole: "SOC",
         firstResponseSlaMinutes: 240,
-        resolutionSlaMinutes: 4320, // 3 business days
+        resolutionSlaMinutes: 4320, // 3 business days, counted as 3 calendar days
       } as PolicyResultFragment,
     },
 
@@ -99,8 +99,8 @@ const priorityBySeverity = (tenantId: string): NewPolicyInput => ({
       result: {
         priority: "P3",
         responsibleRole: "SOC",
-        firstResponseSlaMinutes: 1440,
-        resolutionSlaMinutes: 7200, // 5 business days
+        firstResponseSlaMinutes: 1440, // 1 business day, counted as 1 calendar day
+        resolutionSlaMinutes: 10080, // 5 business days, counted as 1 calendar week
       } as PolicyResultFragment,
     },
   ],

@@ -124,6 +124,39 @@ export interface TimelineEntry {
   occurredAt: string
 }
 
+export type AlertFactKey = 'user' | 'sourcePort' | 'attempts' | 'program' | 'logonType' | 'workstation' | 'filePath' | 'sha256' | 'process' | 'parentProcess' | 'commandLine' | 'scriptBlock' | 'url' | 'httpStatus' | 'log'
+export interface IncidentAlertFactRow {
+  alertId: string
+  externalAlertId: string
+  severity: string
+  ruleLevel: number | null
+  ruleDescription: string | null
+  sourceIp: string | null
+  destinationIp: string | null
+  mitreTechniques: string[]
+  incidentType: string | null
+  facts: { key: AlertFactKey; value: string }[]
+}
+export interface IncidentAlertFacts {
+  incidentType: string | null
+  playbook: { code: string; name: string } | null
+  matchedTechniques: string[]
+  rows: IncidentAlertFactRow[]
+}
+
+export type GuidanceSource = 'CASE' | 'GROUP' | 'PLAYBOOK'
+export interface ResponseSetup {
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  detectedType: string | null
+  incidentType: string | null
+  typeSource: 'SOC' | 'MITRE' | null
+  types: { incidentType: string; playbookCode: string; playbookName: string }[]
+  playbook: { code: string; name: string; version: string; matchedTechniques: string[]; actions: { code: string; name: string; impactLevel: string }[] } | null
+  group: { incidentType: string; severity: string; policies: string[]; allowedActions: string[] | null; notes: string[] } | null
+  caseGuidance: { allowedActions: string[]; instructions: string | null; setBy: string; setAt: string } | null
+  effective: { allowedActions: string[]; instructions: string | null; source: GuidanceSource }
+}
+
 export interface RawAlert {
   id: string
   externalAlertId: string
@@ -328,6 +361,14 @@ export const incidentsApi = {
   get: (id: string) => api<Incident>(`/api/v1/incidents/${id}`),
   timeline: (id: string) => api<TimelineEntry[]>(`/api/v1/incidents/${id}/timeline`),
   alerts: (id: string) => api<{ items: RawAlert[] }>(`/api/v1/incidents/${id}/alerts`),
+  /** Investigation table: each alert's key facts for the incident type (type from the matched playbook). */
+  alertFacts: (id: string) => api<IncidentAlertFacts>(`/api/v1/incidents/${id}/alert-facts`),
+  /** SOC response setup before a Recommendation: incident type, group / case guidance, what applies now. */
+  responseSetup: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-setup`),
+  setIncidentType: (id: string, incidentType: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/incident-type`, { method: 'PUT', body: { incidentType } }),
+  setCaseGuidance: (id: string, allowedActions: string[], instructions: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'PUT', body: { allowedActions, instructions } }),
+  clearCaseGuidance: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'DELETE' }),
+  saveGroupGuidance: (id: string, allowedActions: string[], note: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance/group`, { method: 'PUT', body: { allowedActions, note } }),
   iocs: (id: string) => api<{ items: Ioc[] } | Ioc[]>(`/api/v1/incidents/${id}/iocs`),
   relatedAlertEvidence: (id: string) => api<{ items: RelatedAlertEvidence[]; criteria: Record<string, unknown> }>(`/api/v1/incidents/${id}/related-alert-evidence`),
   mitre: (id: string) => api<{ items: MitreMapping[] } | MitreMapping[]>(`/api/v1/incidents/${id}/mitre-mappings`),
@@ -417,6 +458,8 @@ export const workflowApi = {
 export type SlaStatus = 'NOT_STARTED' | 'ON_TRACK' | 'AT_RISK' | 'BREACHED' | 'MET' | 'PAUSED' | 'CANCELLED'
 export interface SlaClock {
   targetMinutes: number
+  /** The target as the Policy states it (e.g. 3 business days); null when a policy override sets other minutes. */
+  target: { value: number; unit: 'minute' | 'hour' | 'business_day' } | null
   dueAt: string
   at: string | null
   status: SlaStatus
@@ -606,7 +649,8 @@ export const systemApi = {
 }
 
 export const dashboardApi = {
-  summary: (days = 14) => api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days } }),
+  /** `since` (report window start) limits event counts to that window; backlog figures stay "as of now". */
+  summary: (days = 14, since?: Date) => api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days, since: since?.toISOString() } }),
 }
 // ---------------------------------------------------------------- In-app notifications (header bell)
 export interface InAppNotification {

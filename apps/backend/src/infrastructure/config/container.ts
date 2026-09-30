@@ -104,6 +104,9 @@ import { ResourceAssetCriticalityProvider } from "../assets/ResourceAssetCritica
 // Recommendation AI agent + validator (infrastructure)
 import { FakeRecommendationAgent } from "../ai/FakeRecommendationAgent";
 import { LlmRecommendationAgent } from "../ai/LlmRecommendationAgent";
+import { OpenRouterRecommendationAgent } from "../ai/OpenRouterRecommendationAgent";
+import { probeWazuhManagerApi, wazuhManagerConfigFromEnv } from "../external-services/siem/WazuhManagerHealth";
+import { FallbackRecommendationAgent } from "../ai/FallbackRecommendationAgent";
 import { IRecommendationAgentPort } from "../../application/recommendation/ports/IRecommendationAgentPort";
 import { RecommendationValidator } from "../recommendation-validation/RecommendationValidator";
 import { RecommendationContextBuilder } from "../../application/recommendation/services/RecommendationContextBuilder";
@@ -111,6 +114,9 @@ import { RecommendationContextBuilder } from "../../application/recommendation/s
 // Use-cases (application layer, depends only on the ports)
 import { CreateIncidentUseCase } from "../../application/incident/use-cases/CreateIncident.usecase";
 import { ListAlertsByIncidentUseCase } from "../../application/incident/use-cases/ListAlertsByIncident.usecase";
+import { GetIncidentAlertFactsUseCase } from "../../application/incident/use-cases/GetIncidentAlertFacts.usecase";
+import { IncidentResponseSetupService } from "../../application/incident/services/IncidentResponseSetupService";
+import { PrismaIncidentResponseSetupStore } from "../database/postgres/repositories/IncidentResponseSetupStore.prisma";
 import { ListAlertsUseCase } from "../../application/alert/use-cases/ListAlerts.usecase";
 import { GetAlertByIdUseCase } from "../../application/alert/use-cases/GetAlertById.usecase";
 import { IngestAlertFromSiemUseCase } from "../../application/alert/use-cases/IngestAlertFromSiem.usecase";
@@ -327,18 +333,31 @@ const vectorSearchService = new VectorSearchService(
 // (RAG grounding + one LLM call; errors instead of any fallback candidate).
 // "fake" (the default when unset) is the deterministic, no-AI stand-in used by
 // tests and environments without an orchestrator — not a real recommendation.
+// "openrouter": OpenRouterRecommendationAgent only (no orchestrator).
+// With OPENROUTER_API_KEY set, "llm" falls back to OpenRouter when the orchestrator is down (unreachable / 503 / 504).
 const recommendationAgentMode =
-  process.env.RECOMMENDATION_AGENT === "llm" ? "llm" : "fake";
+  process.env.RECOMMENDATION_AGENT === "llm" ? "llm" : process.env.RECOMMENDATION_AGENT === "openrouter" ? "openrouter" : "fake";
+const openRouterKey = process.env.OPENROUTER_API_KEY?.trim() ?? "";
+const openRouterModel = process.env.OPENROUTER_MODEL?.trim() || "openrouter/auto";
+if (recommendationAgentMode === "openrouter" && !openRouterKey) throw new Error("RECOMMENDATION_AGENT=openrouter needs OPENROUTER_API_KEY");
 
 const recommendationAgent: IRecommendationAgentPort =
-  recommendationAgentMode === "llm"
-    ? new LlmRecommendationAgent(aiOrchestratorUrl)
-    : new FakeRecommendationAgent();
+  recommendationAgentMode === "openrouter"
+    ? new OpenRouterRecommendationAgent(openRouterKey, openRouterModel)
+    : recommendationAgentMode === "llm"
+      ? openRouterKey
+        ? new FallbackRecommendationAgent(new LlmRecommendationAgent(aiOrchestratorUrl), new OpenRouterRecommendationAgent(openRouterKey, openRouterModel))
+        : new LlmRecommendationAgent(aiOrchestratorUrl)
+      : new FakeRecommendationAgent();
 
 const recommendationAgentVersion =
-  recommendationAgentMode === "llm"
-    ? "LlmRecommendationAgent/v2.0.0"
-    : "FakeRecommendationAgent/v1.0.0";
+  recommendationAgentMode === "openrouter"
+    ? `OpenRouterRecommendationAgent/v1.0.0 (${openRouterModel})`
+    : recommendationAgentMode === "llm"
+      ? openRouterKey
+        ? `LlmRecommendationAgent/v2.0.0 (OpenRouter fallback: ${openRouterModel})`
+        : "LlmRecommendationAgent/v2.0.0"
+      : "FakeRecommendationAgent/v1.0.0";
 
 // One shared Policy-evaluation + approval-opening path for
 // CreateResponsePlan, RequestApproval and the Recommendation context
@@ -364,7 +383,10 @@ const recommendationContextBuilder =
     actionRepository,
     runbookRepository,
     playbookRepository,
-    approvalService
+    approvalService,
+    undefined,
+    // Late-bound: the setup service is built further down (it needs the Policy use cases).
+    { resolve: (incidentId: string, tenantId: string) => incidentResponseSetupService.resolve(incidentId, tenantId) }
   );
 
 const recommendationValidator =
@@ -458,6 +480,18 @@ const enablePolicyUseCase =
     policyRepository,
     policyAuditLogger
   );
+
+// SOC response setup before a Recommendation: incident type (-> playbook) + case / group (RESPONSE_GUIDANCE) guidance.
+const incidentResponseSetupService = new IncidentResponseSetupService(
+  new PrismaIncidentResponseSetupStore(prisma),
+  recommendationContextRepository,
+  incidentRepository,
+  playbookRepository,
+  actionRepository,
+  policyEvaluator,
+  auditLogger,
+  { repository: policyRepository, create: createPolicyUseCase, update: updatePolicyUseCase, enable: enablePolicyUseCase }
+);
 
 const disablePolicyUseCase =
   new DisablePolicyUseCase(
@@ -682,7 +716,9 @@ export const incidentController =
     listAlertsByIncidentUseCase,
     new MergeAlertsIntoIncidentUseCase(incidentRepository, alertRepository, investigationRepository, auditLogger),
     new GetIncidentAiAnalysisUseCase(recommendationContextRepository),
-    incidentSlaService
+    incidentSlaService,
+    new GetIncidentAlertFactsUseCase(listAlertsByIncidentUseCase, listMitreMappingsByIncidentUseCase, playbookRepository, incidentResponseSetupService),
+    incidentResponseSetupService
   );
 
 export const policyController =
@@ -959,9 +995,10 @@ async function probeNotification(): Promise<{ status: HealthItem["status"]; deta
   };
 }
 
-/** VIGIX has no Wazuh manager API client: its health is not observable from here (reported honestly, not as UP). */
+/** Wazuh manager through its REST API (read-only): daemons VIGIX needs + agent summary. Unset WAZUH_API_* -> NOT_CONFIGURED. */
+const wazuhManagerApi = wazuhManagerConfigFromEnv(process.env);
 async function probeWazuhManager(): Promise<{ status: HealthItem["status"]; detail: string | null; latencyMs: number | null }> {
-  return { status: "UNKNOWN", detail: "No Wazuh manager API configured in VIGIX (alerts arrive by webhook)", latencyMs: null };
+  return probeWazuhManagerApi(wazuhManagerApi);
 }
 
 export const dashboardController =

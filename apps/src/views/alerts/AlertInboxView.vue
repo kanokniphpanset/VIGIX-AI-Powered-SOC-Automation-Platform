@@ -6,8 +6,8 @@ import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import AlertReviewDialog from '@/components/alerts/AlertReviewDialog.vue'
 import { alertsApi, type InboxAlert, type InboxFilters } from '@/api/vigix'
 import { useSessionStore } from '@/stores/session'
-import { available, reviewDecisions, STATUS_LABEL, STATUS_TABS } from '@/utils/triage'
-import { statusLabel, toSeverity } from '@/utils/vigix'
+import { agoText, available, DECISION_LABEL, reviewDecisions, reviewSla, STATUS_LABEL, STATUS_TABS } from '@/utils/triage'
+import { toSeverity } from '@/utils/vigix'
 import { workflowError } from '@/utils/workflow'
 import { formatDateTime, SEVERITY_LABEL } from '@/utils/formatters'
 import { useUiStore } from '@/stores/ui'
@@ -44,6 +44,7 @@ async function load() {
     if (request !== requestNumber) return
     items.value = response.items
     total.value = response.total
+    now.value = new Date()
   } catch (e) {
     if (request === requestNumber) error.value = workflowError(e)
   } finally {
@@ -55,6 +56,18 @@ watch(filters, () => { clearTimeout(debounce); offset.value = 0; debounce = setT
 function page(delta: number) { offset.value = Math.max(0, offset.value + delta * pageSize); void load() }
 const range = computed(() => (total.value ? t('al.range', { from: offset.value + 1, to: Math.min(offset.value + pageSize, total.value), total: total.value }) : t('al.none')))
 const canReview = (a: InboxAlert) => session.canTriage && reviewDecisions(a).length > 0
+/** One status line per alert: what happened to it (closed → which decision) — the review SLA is shown only while it waits. */
+function statusText(a: InboxAlert): string {
+  if (a.displayState === 'CLOSED' && (a.disposition === 'FALSE_POSITIVE' || a.disposition === 'INFORMATIONAL')) return DECISION_LABEL[a.disposition]
+  return STATUS_LABEL[a.displayState] ?? a.displayState
+}
+const STATUS_TONE: Record<string, string> = {
+  NEEDS_REVIEW: 'bg-amber-50 text-amber-800 ring-amber-200',
+  MONITORING: 'bg-amber-50 text-amber-800 ring-amber-200',
+  IN_INCIDENT: 'bg-sky-50 text-sky-800 ring-sky-200',
+  CLOSED: 'bg-slate-100 text-slate-600 ring-slate-200',
+}
+const now = ref(new Date())
 async function reviewed(incidentId: string | null) {
   reviewId.value = null
   // Say what happened and what is next: a new incident opens on its "Next step" card; a closed alert → the next alert.
@@ -69,7 +82,7 @@ onUnmounted(() => { clearInterval(refresh); clearTimeout(debounce); requestNumbe
 
 <template>
   <div>
-    <PageHeader :title="t('ui.page.alerts')" subtitle="Wazuh alerts in the SOC workflow · MEDIUM / HIGH / CRITICAL · HIGH and CRITICAL open an incident automatically" />
+    <PageHeader :title="t('ui.page.alerts')" :description="t('al.subtitle')" />
     <div class="mb-4 flex flex-wrap gap-2" role="tablist" :aria-label="t('al.tabsAria')">
       <button v-for="[value, label] in STATUS_TABS" :key="value" type="button" role="tab" :aria-selected="filters.status === value" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="filters.status === value ? 'bg-navy-800 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'" @click="filters.status = value">{{ label }}</button>
     </div>
@@ -83,26 +96,33 @@ onUnmounted(() => { clearInterval(refresh); clearTimeout(debounce); requestNumbe
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white" :aria-busy="loading">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr><th class="p-3">{{ t('al.col.id') }}</th><th class="p-3">{{ t('al.col.severity') }}</th><th class="p-3">{{ t('al.col.rule') }}</th><th class="p-3">{{ t('al.col.time') }}</th><th class="p-3">{{ t('al.col.source') }}</th><th class="p-3">{{ t('al.col.status') }}</th><th class="p-3">{{ t('al.col.sla') }}</th><th class="p-3">{{ t('al.col.action') }}</th></tr>
+          <tr><th class="p-3">{{ t('al.col.id') }}</th><th class="p-3">{{ t('al.col.severity') }}</th><th class="p-3">{{ t('al.col.rule') }}</th><th class="p-3">{{ t('al.col.time') }}</th><th class="p-3">{{ t('al.col.source') }}</th><th class="p-3">{{ t('al.col.status') }}</th><th class="p-3">{{ t('al.col.action') }}</th></tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr v-for="a in items" :key="a.id" class="align-top hover:bg-slate-50">
             <td class="max-w-[10rem] p-3"><RouterLink :to="`/alerts/${a.id}`" class="break-all font-mono text-xs text-accent-700 hover:underline">{{ a.externalAlertId }}</RouterLink></td>
             <td class="p-3"><SeverityBadge :severity="toSeverity(a.severity)" size="sm" /></td>
             <td class="max-w-sm p-3"><p class="font-medium text-slate-800">{{ available(a.summary.ruleDescription) }}</p><p class="mt-1 text-xs text-slate-500">{{ t('al.ruleLevel', { rule: available(a.summary.ruleId), level: available(a.summary.ruleLevel) }) }}</p></td>
-            <td class="whitespace-nowrap p-3 text-xs">{{ formatDateTime(a.receivedAt) }}<p class="text-slate-400">{{ t('al.minAgo', { n: a.ageMinutes }) }}</p></td>
+            <td class="whitespace-nowrap p-3 text-xs">{{ formatDateTime(a.receivedAt) }}<p class="text-slate-400">{{ agoText(a.ageMinutes) }}</p></td>
             <td class="p-3"><p>{{ available(a.siemSource) }}</p><p class="text-xs text-slate-500">{{ available(a.summary.host) }}</p></td>
-            <td class="p-3"><span class="rounded bg-slate-100 px-2 py-1 text-xs">{{ STATUS_LABEL[a.displayState] ?? a.displayState }}</span><p v-if="a.disposition && a.displayState === 'CLOSED'" class="mt-1 text-xs text-slate-500">{{ statusLabel(a.disposition) }}</p></td>
-            <td class="whitespace-nowrap p-3 text-xs" :title="a.slaDueAt ? formatDateTime(a.slaDueAt) : t('c.notAvailable')" :class="a.slaStatus === 'BREACHED' ? 'font-semibold text-rose-700' : 'text-slate-600'">{{ a.slaStatus ? statusLabel(a.slaStatus) : t('c.notAvailable') }}</td>
+            <td class="p-3">
+              <span class="inline-block whitespace-nowrap rounded px-2 py-1 text-xs font-medium ring-1" :class="STATUS_TONE[a.displayState] ?? STATUS_TONE.CLOSED">{{ statusText(a) }}</span>
+              <template v-for="sla in [reviewSla(a, now)]" :key="a.id">
+                <template v-if="sla">
+                  <p class="mt-1 whitespace-nowrap text-xs text-slate-700">{{ sla.text }}</p>
+                  <p class="whitespace-nowrap text-xs" :class="sla.late ? 'font-semibold text-rose-700' : 'text-slate-400'">{{ t('tri.tgt.due', { at: formatDateTime(sla.dueAt) }) }}</p>
+                </template>
+              </template>
+              <p v-if="a.triage?.note && a.displayState === 'CLOSED'" class="mt-1 max-w-[14rem] truncate text-xs text-slate-500" :title="a.triage.note">{{ a.triage.note }}</p>
+            </td>
             <td class="p-3">
               <div class="flex flex-col items-start gap-2 whitespace-nowrap">
                 <RouterLink v-if="a.incident" :to="`/incidents/${a.incident.id}`" class="font-semibold text-accent-700 hover:underline">{{ t('al.openIncident') }}</RouterLink>
-                <button v-else-if="canReview(a)" type="button" class="font-semibold text-accent-700" @click="reviewId = a.id">{{ t('al.review') }}</button>
-                <RouterLink :to="`/alerts/${a.id}`" class="text-slate-500 hover:underline">{{ t('al.view') }}</RouterLink>
+                <button v-else-if="canReview(a)" type="button" class="rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700" @click="reviewId = a.id">{{ t('al.review') }}</button>
               </div>
             </td>
           </tr>
-          <tr v-if="!items.length"><td colspan="8" class="p-8 text-center text-slate-500">{{ loading ? t('al.loading') : t('al.empty') }}</td></tr>
+          <tr v-if="!items.length"><td colspan="7" class="p-8 text-center text-slate-500">{{ loading ? t('al.loading') : t('al.empty') }}</td></tr>
         </tbody>
       </table>
     </div>

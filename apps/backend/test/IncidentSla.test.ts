@@ -7,12 +7,12 @@ import { PolicyEvaluator } from "../src/infrastructure/policy-engine/PolicyEvalu
 const opened = new Date("2026-09-23T10:00:00Z");
 const min = (m: number) => new Date(opened.getTime() + m * 60_000);
 
-function service(opts: { sla?: { firstResponseMinutes: number; resolutionMinutes: number } | null; executedAt?: Date | null }) {
+function service(opts: { sla?: { firstResponseMinutes: number; resolutionMinutes: number } | null; executedAt?: Date | null; priority?: string }) {
   const context = {
     getIncidentContext: async () => ({ incidentId: "i", investigationNumber: 1, title: "t", status: "investigating", priority: "high", alertSeverity: "high" }),
     getEvidence: async () => [],
   } as unknown as IRecommendationContextRepository;
-  const evaluate = jest.fn(async () => ({ priority: opts.sla === null ? null : "P1", sla: opts.sla === undefined ? { firstResponseMinutes: 30, resolutionMinutes: 480 } : opts.sla, matchedPolicies: ["POL-003"] }));
+  const evaluate = jest.fn(async () => ({ priority: opts.sla === null ? null : (opts.priority ?? "P1"), sla: opts.sla === undefined ? { firstResponseMinutes: 30, resolutionMinutes: 480 } : opts.sla, matchedPolicies: ["POL-003"] }));
   const policy = { evaluate } as unknown as PolicyEvaluator;
   const plans = { findAll: async () => (opts.executedAt ? [{ executedAt: opts.executedAt }] : [{ executedAt: null }]) } as unknown as IResponsePlanRepository;
   return { svc: new IncidentSlaService(context, policy, plans), evaluate };
@@ -41,6 +41,21 @@ describe("IncidentSlaService", () => {
     const { svc } = service({});
     expect((await svc.forIncident("t", { id: "i", status: "dismissed", openedAt: opened, closedAt: min(5) }, min(10))).resolution?.status).toBe("CANCELLED");
     expect((await svc.forIncident("t", { id: "i", status: "escalated", openedAt: opened, closedAt: null }, min(500))).resolution?.status).toBe("BREACHED");
+  });
+
+  it("each clock carries the Policy target wording; business days are counted as calendar days (5 = 1 week)", async () => {
+    const p1 = await service({}).svc.forIncident("t", { id: "i", status: "open", openedAt: opened, closedAt: null }, min(1));
+    expect(p1.firstResponse?.target).toEqual({ value: 30, unit: "minute" });
+    expect(p1.resolution?.target).toEqual({ value: 8, unit: "hour" });
+    const p2 = await service({ priority: "P2", sla: { firstResponseMinutes: 240, resolutionMinutes: 3 * 1440 } }).svc.forIncident("t", { id: "i", status: "open", openedAt: opened, closedAt: null }, min(1));
+    expect(p2.firstResponse).toMatchObject({ target: { value: 4, unit: "hour" }, dueAt: min(240).toISOString() });
+    expect(p2.resolution).toMatchObject({ target: { value: 3, unit: "business_day" }, dueAt: min(3 * 1440).toISOString() });
+    const p3 = await service({ priority: "P3", sla: { firstResponseMinutes: 1440, resolutionMinutes: 7 * 1440 } }).svc.forIncident("t", { id: "i", status: "open", openedAt: opened, closedAt: null }, min(1));
+    expect(p3.firstResponse).toMatchObject({ target: { value: 1, unit: "business_day" }, dueAt: min(1440).toISOString() });
+    expect(p3.resolution).toMatchObject({ target: { value: 5, unit: "business_day" }, dueAt: min(7 * 1440).toISOString() });
+    // A policy override with other minutes has no baseline wording: the UI shows the plain duration instead.
+    const custom = await service({ priority: "P2", sla: { firstResponseMinutes: 90, resolutionMinutes: 3 * 1440 } }).svc.forIncident("t", { id: "i", status: "open", openedAt: opened, closedAt: null }, min(1));
+    expect(custom.firstResponse).toMatchObject({ targetMinutes: 90, target: null });
   });
 
   it("Policy gave no priority/SLA -> no clocks (never invented)", async () => {

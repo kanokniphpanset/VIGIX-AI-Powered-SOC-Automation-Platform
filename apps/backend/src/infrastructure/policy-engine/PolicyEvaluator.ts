@@ -64,6 +64,28 @@ export class PolicyEvaluator {
     return out;
   }
 
+  /**
+   * Response guidance for an incident group (incidentType + severity), from the enabled RESPONSE_GUIDANCE policies.
+   * allowedActions: intersection across matching rules that set it (the stricter list wins), null when none sets it;
+   * notes: every matching guidanceNote. Kept apart from evaluate(): it never changes an approval / assignment result.
+   */
+  async responseGuidance(tenantId: string, group: { incidentType: string; severity: PolicyEvaluationInput["severity"] }): Promise<{ allowedActions: string[] | null; notes: string[]; policies: string[] }> {
+    const policies = (await this.policyRepository.findAllEnabled(tenantId)).filter((p: Policy) => p.type === "RESPONSE_GUIDANCE");
+    let allowed: string[] | null = null;
+    const notes: string[] = [];
+    const matched: string[] = [];
+    for (const policy of policies) {
+      for (const rule of policy.activeRules()) {
+        if (!matchesCondition(rule.condition, group)) continue;
+        if (!matched.includes(policy.code)) matched.push(policy.code);
+        const list = rule.result.allowedActions;
+        if (Array.isArray(list)) allowed = allowed === null ? [...list] : allowed.filter((a) => list.includes(a));
+        if (rule.result.guidanceNote?.trim()) notes.push(rule.result.guidanceNote.trim());
+      }
+    }
+    return { allowedActions: allowed, notes, policies: matched };
+  }
+
   async evaluate(
     tenantId: string,
     input: PolicyEvaluationInput

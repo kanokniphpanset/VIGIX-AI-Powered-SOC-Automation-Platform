@@ -2,7 +2,7 @@ import { z } from "zod";
 import { POLICY_TYPES } from "../../../domain/policy/entities/PolicyEvaluationTypes";
 
 // "riskScore" is retired: new/updated rules cannot key on a risk score (Severity is the classification input).
-const CONDITION_FIELDS = ["severity", "verificationResult", "spreadDetected", "threatContained"] as const;
+const CONDITION_FIELDS = ["severity", "incidentType", "verificationResult", "spreadDetected", "threatContained"] as const;
 const CONDITION_OPERATORS = ["eq", "neq", "gte", "lte", "gt", "lt"] as const;
 
 /**
@@ -57,6 +57,8 @@ export const policyResultFragmentSchema = z
     requireAdditionalEvidence: z.boolean().optional(),
     firstResponseSlaMinutes: z.number().positive().optional(),
     triageSlaMinutes: z.number().int().positive().optional(),
+    allowedActions: z.array(z.string().trim().min(1)).max(50).optional(),
+    guidanceNote: z.string().trim().max(2000).optional(),
   })
   .strict();
 

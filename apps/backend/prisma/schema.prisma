@@ -99,6 +99,11 @@ model Incident {
   mttdSeconds         Int?                @map("mttd_seconds")
   mttrSeconds         Int?                @map("mttr_seconds")
   investigationNumber Int                 @default(1) @map("investigation_number")
+  /// SOC-confirmed incident type (a playbook incidentType, e.g. POWERSHELL). Null = detected from MITRE techniques.
+  incidentType        String?             @map("incident_type")
+  /// SOC guidance for this case before a Recommendation: { allowedActions, instructions, setBy, setAt }. Null = the
+  /// group's RESPONSE_GUIDANCE policy (or the playbook default) applies.
+  responseGuidance    Json?               @map("response_guidance")
   agentExecutions     AgentExecution[]
   feedback            AnalystFeedback[]
   decisions           Decision[]

@@ -2,24 +2,32 @@ import { PolicyPriority } from "../../domain/policy/entities/PolicyEvaluationTyp
 
 export type SlaStatus = "NOT_STARTED" | "ON_TRACK" | "AT_RISK" | "BREACHED" | "MET" | "PAUSED" | "CANCELLED";
 
+/** An SLA target as the Policy states it (e.g. 3 business days), for display. The clock itself runs on `...Minutes`. */
+export type SlaUnit = "minute" | "hour" | "business_day";
+export interface SlaTarget {
+  value: number;
+  unit: SlaUnit;
+}
+
 export interface SlaBaseline {
   firstResponseMinutes: number;
   resolutionMinutes: number;
+  firstResponseTarget: SlaTarget;
+  resolutionTarget: SlaTarget;
 }
 
-/** One business day = 8 working hours = 480 minutes. The spec gives P2/P3
- * resolution targets in "business days"; this is the conversion used to
- * express them in the same minutes unit as everything else in the DTO.
- * Documented here since the spec doesn't fix the conversion factor itself. */
-const MINUTES_PER_BUSINESS_DAY = 480;
+const HOUR = 60;
+const DAY = 24 * HOUR;
 
+/**
+ * Policy SLA per priority. "Business days" are counted on the calendar, so the deadline shown is the deadline
+ * enforced: 1 business day = 1 calendar day, 3 business days = 3 days, 5 business days = 1 week.
+ */
 const SLA_BASELINE: Record<PolicyPriority, SlaBaseline> = {
-  P0: { firstResponseMinutes: 15, resolutionMinutes: 4 * 60 },
-  P1: { firstResponseMinutes: 30, resolutionMinutes: 8 * 60 },
-  P2: { firstResponseMinutes: 4 * 60, resolutionMinutes: 3 * MINUTES_PER_BUSINESS_DAY },
-  // P3 first response is "1 Business Day" (1 * 480min = 8h), not 24 calendar
-  // hours — corrected per VIGIX Policy Engine audit; was 1440.
-  P3: { firstResponseMinutes: 1 * MINUTES_PER_BUSINESS_DAY, resolutionMinutes: 5 * MINUTES_PER_BUSINESS_DAY },
+  P0: { firstResponseMinutes: 15, resolutionMinutes: 4 * HOUR, firstResponseTarget: { value: 15, unit: "minute" }, resolutionTarget: { value: 4, unit: "hour" } },
+  P1: { firstResponseMinutes: 30, resolutionMinutes: 8 * HOUR, firstResponseTarget: { value: 30, unit: "minute" }, resolutionTarget: { value: 8, unit: "hour" } },
+  P2: { firstResponseMinutes: 4 * HOUR, resolutionMinutes: 3 * DAY, firstResponseTarget: { value: 4, unit: "hour" }, resolutionTarget: { value: 3, unit: "business_day" } },
+  P3: { firstResponseMinutes: 1 * DAY, resolutionMinutes: 7 * DAY, firstResponseTarget: { value: 1, unit: "business_day" }, resolutionTarget: { value: 5, unit: "business_day" } },
 };
 
 /**

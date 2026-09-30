@@ -3,7 +3,7 @@
  *
  * Severity comes from the Wazuh rule level (deterministic mapping at ingestion); AI never sets or changes it.
  *   LOW       stored for the record only — never enters the SOC workflow and never opens an incident
- *   MEDIUM    waits in the Alert Inbox for SOC review: close it (False positive / Informational, reason required)
+ *   MEDIUM    waits in the Alert Inbox for SOC review: close it (False positive / Informational, optional reason)
  *             or create an incident from it
  *   HIGH/CRIT open an incident automatically at ingestion (Policy INTAKE); SOC investigates the incident
  *
@@ -56,10 +56,9 @@ export const TRIAGE_DECISIONS: TriageDecision[] = ["FALSE_POSITIVE", "INFORMATIO
 
 export type TriageInputError = "REASON_REQUIRED";
 
-/** FALSE_POSITIVE / INFORMATIONAL need a reason. CREATE_INCIDENT keeps the Wazuh severity, so nothing else is required. */
-export function validateTriageInput(input: { decision: TriageDecision; reason: string | null | undefined }): TriageInputError | null {
-  if (input.decision === "CREATE_INCIDENT") return null;
-  return input.reason?.trim() ? null : "REASON_REQUIRED";
+/** The reason is optional for every decision (SOC usability); kept for the API shape so a future rule can be added here. */
+export function validateTriageInput(_input: { decision: TriageDecision; reason: string | null | undefined }): TriageInputError | null {
+  return null;
 }
 
 // ---------------------------------------------------------------- Triage SLA

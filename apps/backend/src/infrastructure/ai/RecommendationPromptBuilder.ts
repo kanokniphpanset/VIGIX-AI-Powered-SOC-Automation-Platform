@@ -121,6 +121,16 @@ export class RecommendationPromptBuilder {
     }
     lines.push("");
 
+    // SOC guidance set before this Recommendation (case > group policy). The allowed list above already reflects it.
+    const guidance = context.socGuidance;
+    if (guidance && guidance.source !== "PLAYBOOK") {
+      lines.push(`SOC response guidance (${guidance.source === "CASE" ? "set by the SOC for this incident" : "group policy for this incident type and severity"}) — follow it:`);
+      lines.push(`  Only these actions were chosen by the SOC: ${guidance.allowedActions.join(", ") || "(none)"}`);
+      if (guidance.instructions) for (const l of guidance.instructions.split("\n").filter((x) => x.trim())) lines.push(`  Instruction: ${l.trim()}`);
+      lines.push("  The guidance narrows what to recommend; it never overrides the evidence rules or the Policy values above.");
+      lines.push("");
+    }
+
     lines.push(
       "Respond with ONE JSON object: { summary: string, steps: [{ stepOrder, action, objective, responsibleRole, target, reason, evidenceRefs, instructions: [{ order, instruction, target, expectedResult }], playbook, runbook, verificationCriteria, expectedResult, missingEvidence, confidence, requiresApprovalSuggested }] }"
     );

@@ -91,7 +91,7 @@ export const settings = {
   // report builder chrome (the report itself is the company's Thai template)
   'rp.back': ['ภาพรวม', 'Dashboard'],
   'rp.kind': ['รายงาน', 'Report'],
-  'rp.title': ['รายงานการปฏิบัติงาน SOC ประจำเดือน', 'Monthly SOC Operations Report'],
+  'rp.title': ['รายงานการปฏิบัติงาน SOC', 'SOC Operations Report'],
   'rp.hint': ['แม่แบบรายงานของบริษัท เติมข้อมูลจริงจาก VIGIX — คลิกข้อความหรือตัวเลขใดก็ได้เพื่อแก้ไข แล้ว Export (เนื้อหารายงานเป็นภาษาไทยตามแม่แบบของบริษัท)', "The company report template, filled with live VIGIX data — click any text or number to edit, then export (the report content follows the company's Thai template)."],
   'rp.period': ['รอบรายงาน', 'Report period'],
   'rp.refill': ['ดึงข้อมูลล่าสุด', 'Fetch latest data'],

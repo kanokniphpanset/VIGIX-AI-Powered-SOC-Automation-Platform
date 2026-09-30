@@ -11,9 +11,15 @@ import { createIncidentSchema } from "../../../application/incident/dto/CreateIn
 import { MergeAlertsIntoIncidentUseCase } from "../../../application/incident/use-cases/MergeAlertsIntoIncident.usecase";
 import { GetIncidentAiAnalysisUseCase } from "../../../application/incident/use-cases/GetIncidentAiAnalysis.usecase";
 import { IncidentSlaService } from "../../../application/sla/IncidentSlaService";
+import { GetIncidentAlertFactsUseCase } from "../../../application/incident/use-cases/GetIncidentAlertFacts.usecase";
+import { IncidentResponseSetupService, ResponseSetupError } from "../../../application/incident/services/IncidentResponseSetupService";
+import { Result } from "../../../shared/result/Result";
 import { z } from "zod";
 
 const mergeAlertsSchema = z.object({ alertIds: z.array(z.string().min(1)).min(1).max(100) }).strict();
+const incidentTypeSchema = z.object({ incidentType: z.string().trim().min(1).max(64).nullable() }).strict();
+const caseGuidanceSchema = z.object({ allowedActions: z.array(z.string().trim().min(1)).min(1).max(50), instructions: z.string().trim().max(2000).nullable().optional() }).strict();
+const groupGuidanceSchema = z.object({ allowedActions: z.array(z.string().trim().min(1)).min(1).max(50), note: z.string().trim().max(2000).nullable().optional() }).strict();
 import { validateBody } from "../validators/validateBody";
 
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
@@ -30,8 +36,64 @@ export class IncidentController {
     private readonly listAlertsByIncident: ListAlertsByIncidentUseCase,
     private readonly mergeAlerts?: MergeAlertsIntoIncidentUseCase,
     private readonly aiAnalysis?: GetIncidentAiAnalysisUseCase,
-    private readonly slaService?: IncidentSlaService
+    private readonly slaService?: IncidentSlaService,
+    private readonly alertFacts?: GetIncidentAlertFactsUseCase,
+    private readonly responseSetup?: IncidentResponseSetupService
   ) {}
+
+  /** GET /incidents/:id/response-setup — incident type, group / case guidance and what a Recommendation must follow. */
+  getResponseSetup = async (req: Request, res: Response): Promise<void> => {
+    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const result = await this.responseSetup!.get(req.params.id, tenantId);
+    if (result.isFailure) return void res.status(404).json({ error: result.error });
+    res.json(result.value);
+  };
+
+  /** PUT /incidents/:id/incident-type { incidentType | null } — SOC confirms / changes the type (null = MITRE detection). */
+  setIncidentType = async (req: Request, res: Response): Promise<void> => {
+    const body = validateBody(incidentTypeSchema, req.body, res);
+    if (!body) return;
+    const result = await this.responseSetup!.setIncidentType({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, incidentType: body.incidentType });
+    this.sendSetup(res, result);
+  };
+
+  /** PUT /incidents/:id/response-guidance { allowedActions, instructions } — this case only. DELETE clears it. */
+  setCaseGuidance = async (req: Request, res: Response): Promise<void> => {
+    const body = validateBody(caseGuidanceSchema, req.body, res);
+    if (!body) return;
+    const result = await this.responseSetup!.setCaseGuidance({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, guidance: { allowedActions: body.allowedActions, instructions: body.instructions ?? null } });
+    this.sendSetup(res, result);
+  };
+
+  clearCaseGuidance = async (req: Request, res: Response): Promise<void> => {
+    const result = await this.responseSetup!.setCaseGuidance({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, guidance: null });
+    this.sendSetup(res, result);
+  };
+
+  /** PUT /incidents/:id/response-guidance/group { allowedActions, note } — RESPONSE_GUIDANCE policy of the incident's group. */
+  saveGroupGuidance = async (req: Request, res: Response): Promise<void> => {
+    const body = validateBody(groupGuidanceSchema, req.body, res);
+    if (!body) return;
+    const result = await this.responseSetup!.saveGroupGuidance({ tenantId: req.user!.tenantId, incidentId: req.params.id, actor: req.user!.id, allowedActions: body.allowedActions, note: body.note ?? null });
+    this.sendSetup(res, result);
+  };
+
+  private sendSetup(res: Response, result: Result<unknown, ResponseSetupError>): void {
+    if (result.isSuccess) return void res.json(result.value);
+    const status = result.error === "INCIDENT_NOT_FOUND" ? 404 : result.error === "INCIDENT_CLOSED" ? 409 : 422;
+    res.status(status).json({ error: result.error });
+  }
+
+  /** GET /incidents/:id/alert-facts — Investigation table: each alert's key facts for the incident type; read-only. */
+  getAlertFacts = async (req: Request, res: Response): Promise<void> => {
+    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const result = await this.alertFacts!.execute({ incidentId: req.params.id, tenantId });
+    if (result.isFailure) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    res.json(result.value);
+  };
 
   /** GET /incidents/:id/sla — Policy-derived SLA clocks (first response, resolution); read-only. */
   getSla = async (req: Request, res: Response): Promise<void> => {

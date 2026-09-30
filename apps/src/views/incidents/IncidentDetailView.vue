@@ -10,6 +10,7 @@ import IncidentLifecycle from '@/components/incidents/IncidentLifecycle.vue'
 import AuditTimeline from '@/components/incidents/AuditTimeline.vue'
 import ContextEmailPanel from '@/components/incidents/ContextEmailPanel.vue'
 import SeverityValidationPanel from '@/components/incidents/SeverityValidationPanel.vue'
+import ResponseGuidancePanel from '@/components/incidents/ResponseGuidancePanel.vue'
 import { workApi, type AiJob, type AuditEntry, type WorkTicket } from '@/api/work'
 import type { LifecycleFacts } from '@/utils/workspace'
 import { workflowApi } from '@/api/vigix'
@@ -20,14 +21,18 @@ import StatusPill from '@/components/common/StatusPill.vue'
 import WorkflowSummary from '@/components/incidents/WorkflowSummary.vue'
 import NextStepCard from '@/components/incidents/NextStepCard.vue'
 import RelatedAlertEvidence from '@/components/incidents/RelatedAlertEvidence.vue'
+import IncidentAlertFactsTable from '@/components/incidents/IncidentAlertFactsTable.vue'
 import MarkdownText from '@/components/common/MarkdownText.vue'
 import { nextStep } from '@/utils/nextStep'
 import { feedback } from '@/utils/feedback'
 import { useI18n, type MsgKey } from '@/i18n'
 import { hasMsg } from '@/i18n/messages'
 import { timelineText } from '@/utils/systemText'
+import { incidentSla } from '@/utils/triage'
 import {
   incidentsApi,
+  slaApi,
+  type IncidentSla,
   items as asItems,
   type AiAnalysis,
   type Evidence,
@@ -73,17 +78,22 @@ const tickets = ref<WorkTicket[]>([])
 const audit = ref<AuditEntry[]>([])
 const auditError = ref('')
 const aiJobs = ref<AiJob[]>([])
+// Incident SLA (Policy) as targets under the title: "start responding within 4 h", "resolve within 3 days" + deadlines.
+const sla = ref<IncidentSla | null>(null)
+const slaTargets = computed(() => incidentSla(sla.value, new Date()))
 
 const session = useSessionStore()
 const ui = useUiStore()
 const { locale, t } = useI18n()
 
-type Tab = 'overview' | 'investigation' | 'evidence' | 'ai' | 'recommendation' | 'verification' | 'email' | 'audit'
-const ALL_TABS: Tab[] = ['overview', 'investigation', 'evidence', 'ai', 'recommendation', 'verification', 'email', 'audit']
+// Investigation and evidence are one tab: the alert facts, each investigation round with its evidence, IOC and MITRE.
+type Tab = 'overview' | 'investigation' | 'ai' | 'recommendation' | 'verification' | 'email' | 'audit'
+const ALL_TABS: Tab[] = ['overview', 'investigation', 'ai', 'recommendation', 'verification', 'email', 'audit']
 // Re-hunt verification is IR work; the IR decision and response execution live on the Response Tickets.
 const HIDDEN_TABS: Record<string, Tab[]> = { SOC: ['verification'] }
 const tabs = computed(() => ALL_TABS.filter((k) => !(HIDDEN_TABS[session.role ?? ''] ?? []).includes(k)))
-const requestedTab = typeof route.query.tab === 'string' ? (route.query.tab as Tab) : 'overview'
+// Old links to ?tab=evidence land on the merged tab.
+const requestedTab = typeof route.query.tab === 'string' ? ((route.query.tab === 'evidence' ? 'investigation' : route.query.tab) as Tab) : 'overview'
 const tab = ref<Tab>(tabs.value.includes(requestedTab) ? requestedTab : 'overview')
 
 
@@ -125,11 +135,13 @@ async function load() {
   void loadExtras()
 }
 async function loadExtras() {
-  const [tk, au, jobs] = await Promise.all([
+  const [tk, au, jobs, s] = await Promise.all([
     workApi.tickets('all', 200, 0, id.value).catch(() => null),
     workApi.audit(id.value).catch(() => null),
     workApi.aiJobs(id.value).catch(() => null),
+    slaApi.incident(id.value).catch(() => null),
   ])
+  sla.value = s
   tickets.value = tk?.items ?? []
   audit.value = au?.items ?? []
   auditError.value = au ? '' : t('inc.auditLoadFailed')
@@ -186,8 +198,11 @@ async function regenerate() {
 const severity = computed(() => toSeverity(incident.value?.priority))
 // The SOC confirms / sets the severity from the Wazuh evidence (backend: requireRole("SOC")).
 const canValidateSeverity = computed(() => ['SOC', 'admin'].includes(session.role ?? ''))
+// Bumped after the severity / type is confirmed: both setup panels reload (the group may have changed).
+const setupVersion = ref(0)
 async function severityDone(_message: string, result?: { changed: boolean; severity: string }) {
   const sev = result?.severity?.toUpperCase() ?? ''
+  setupVersion.value++
   await load()
   ui.notify(feedback(result?.changed ? 'severityChanged' : 'severityConfirmed', locale.value, { sev }))
 }
@@ -271,6 +286,18 @@ const assignment = computed(() => {
           <span v-if="assignment" class="text-xs">· {{ t('inc.responsible') }} <strong>{{ assignment.responsibleRole }}</strong><template v-if="assignment.executorRole"> · {{ t('inc.executor', { role: assignment.executorRole }) }}</template></span>
           <span class="text-slate-400">· {{ t('inc.opened', { at: formatDateTime(incident.openedAt) }) }}</span>
         </p>
+        <section v-if="slaTargets.length" class="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" :aria-label="t('tri.tgt.title')">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            {{ t('tri.tgt.title') }}<span v-if="sla?.priority" class="ml-1 font-normal normal-case tracking-normal">· {{ t('tri.tgt.hint', { p: sla.priority }) }}</span>
+          </p>
+          <ul class="mt-1 space-y-1">
+            <li v-for="s in slaTargets" :key="s.text" class="flex flex-wrap items-baseline gap-x-3">
+              <span class="font-medium text-slate-800">{{ s.text }}</span>
+              <span v-if="s.doneAt" class="text-xs text-emerald-700">{{ t('tri.tgt.done', { at: formatDateTime(s.doneAt) }) }}</span>
+              <span v-else class="text-xs" :class="s.late ? 'font-semibold text-rose-700' : 'text-slate-500'">{{ t('tri.tgt.due', { at: formatDateTime(s.dueAt) }) }}</span>
+            </li>
+          </ul>
+        </section>
         <div v-if="session.canRunAiAnalysis" class="mt-3 flex flex-wrap gap-2">
           <!-- RESOLVED is produced only by Verification (re-hunt NO MATCH); it is never a manual action. -->
           <WorkflowAction v-for="status in ['dismissed', 'escalated'].filter(s => s !== incident!.status && incident!.status !== 'resolved')" :key="`${incident.id}-${status}`" :label="status === 'dismissed' ? t('inc.dismiss') : t('inc.escalate')" :action="() => incidentsApi.updateStatus(id, status)" :reload="reloadWorkflow">
@@ -323,7 +350,8 @@ const assignment = computed(() => {
                 <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-400">{{ t('inc.verifications') }}</p><p class="text-lg font-bold">{{ verifications.length }}</p></div>
               </div>
               <WorkflowSummary :incident-status="incident.status" :investigation-number="incident.investigationNumber" :tickets="tickets" :verifications="verifications" />
-              <SeverityValidationPanel id="severity" class="scroll-mt-4" :key="`sev-${incident.priority}`" :incident-id="incident.id" :incident-status="incident.status" :can-validate="canValidateSeverity" @done="severityDone" />
+              <SeverityValidationPanel id="severity" class="scroll-mt-4" :key="`sev-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-validate="canValidateSeverity" @done="severityDone" />
+              <ResponseGuidancePanel id="guidance" class="scroll-mt-4" :key="`rg-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-edit="session.canTriage" @saved="(m: string) => ui.notify({ type: 'success', title: m, message: t('rgd.nextStep'), link: null })" />
               <p class="text-xs text-slate-500">{{ t('inc.ownerByPolicy') }} <strong>{{ assignment?.responsibleRole || t('inc.notAssigned') }}</strong><template v-if="assignment?.executorRole"> · {{ t('inc.executor', { role: assignment.executorRole }) }}</template></p>
               <div v-if="session.canTriage" class="rounded-lg border border-slate-200 p-3">
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.notification') }}</h3>
@@ -341,26 +369,20 @@ const assignment = computed(() => {
               </div>
             </div>
 
-            <!-- Investigation -->
-            <div v-else-if="tab === 'investigation'">
+            <!-- Investigation & evidence: what happened (alert facts), each investigation round with its evidence, then IOC / MITRE -->
+            <div v-else-if="tab === 'investigation'" class="space-y-5">
+              <IncidentAlertFactsTable :incident-id="incident.id" :incident-label="incidentLabel(incident.id)" :incident-title="incident.title" />
+              <template v-if="session.canRunAiAnalysis"><InvestigationForms v-for="i in investigations.filter(i => i.isCurrent && i.status === 'ACTIVE')" :key="i.id" :investigation-id="i.id" :reload="reloadWorkflow" /></template>
+              <RelatedAlertEvidence :incident-id="incident.id" :investigation-id="investigations.find(i => i.isCurrent && i.status === 'ACTIVE')?.id ?? null" :can-add="session.canTriage" :reload="load" />
               <p v-if="!investigations.length" class="text-slate-500">{{ t('inc.noInvestigation') }}</p>
-              <ul v-else class="space-y-2">
-                <li v-for="i in investigations" :key="i.id" class="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 px-3 py-2">
-                  <span class="font-semibold">{{ t('inc.investigationN', { n: i.investigationNumber }) }}</span>
+              <div v-for="i in investigations" :key="i.id" class="rounded-lg border border-slate-200 p-3" :class="i.isCurrent ? 'border-sky-200' : ''">
+                <div class="mb-2 flex flex-wrap items-center gap-3">
+                  <h3 class="font-semibold text-slate-900">{{ t('inc.investigationN', { n: i.investigationNumber }) }}</h3>
                   <StatusPill :status="i.status" />
                   <span class="text-slate-500">{{ t('inc.evidenceCount', { e: i.evidenceCount, i: i.iocCount }) }}</span>
                   <span v-if="i.isCurrent" class="rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700">{{ t('inc.current') }}</span>
                   <span class="ml-auto text-xs text-slate-400">{{ formatDateTime(i.startedAt) }}</span>
-                </li>
-              </ul>
-            </div>
-
-            <!-- Evidence / IOC / MITRE -->
-            <div v-else-if="tab === 'evidence'" class="space-y-5">
-              <template v-if="session.canRunAiAnalysis"><InvestigationForms v-for="i in investigations.filter(i => i.isCurrent && i.status === 'ACTIVE')" :key="i.id" :investigation-id="i.id" :reload="reloadWorkflow" /></template>
-              <RelatedAlertEvidence :incident-id="incident.id" :investigation-id="investigations.find(i => i.isCurrent && i.status === 'ACTIVE')?.id ?? null" :can-add="session.canTriage" :reload="load" />
-              <div v-for="i in investigations" :key="i.id">
-                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.evidenceOf', { n: i.investigationNumber }) }}</h3>
+                </div>
                 <ul class="space-y-1.5">
                   <li v-for="e in evidence[i.id] ?? []" :key="e.id" class="rounded-lg border border-slate-100 px-3 py-2">
                     <span class="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{{ e.type }}</span>

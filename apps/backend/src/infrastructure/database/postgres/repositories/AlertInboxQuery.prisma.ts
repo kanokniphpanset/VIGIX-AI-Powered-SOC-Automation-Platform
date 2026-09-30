@@ -25,11 +25,11 @@ export class PrismaAlertInboxQuery implements IAlertInboxQuery {
       + make_interval(mins => ${minutes})`;
     const sevRank = Prisma.sql`CASE lower(a.severity) WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END`;
 
-    const isOpen = Prisma.sql`(COALESCE(a.workflow_state, 'NEW') IN (${Prisma.join(OPEN_WORKFLOW_STATES)}) AND ia.incident_id IS NULL)`;
+    const isOpen = Prisma.sql`(COALESCE(a.workflow_state, 'NEW') IN (${Prisma.join(OPEN_WORKFLOW_STATES)}) AND i.id IS NULL)`;
     const where: Prisma.Sql[] = [Prisma.sql`a.tenant_id = ${p.tenantId}`, Prisma.sql`lower(a.severity) IN (${Prisma.join([...SOC_WORKFLOW_SEVERITIES])})`];
     if (p.status === "needs-review") where.push(isOpen);
-    if (p.status === "in-incident") where.push(Prisma.sql`ia.incident_id IS NOT NULL`);
-    if (p.status === "closed") where.push(Prisma.sql`(a.workflow_state = 'TRIAGED' AND ia.incident_id IS NULL)`);
+    if (p.status === "in-incident") where.push(Prisma.sql`i.id IS NOT NULL`);
+    if (p.status === "closed") where.push(Prisma.sql`(a.workflow_state = 'TRIAGED' AND i.id IS NULL)`);
     if (p.severity) where.push(Prisma.sql`lower(a.severity) = ${p.severity.toLowerCase()}`);
     if (p.source) where.push(Prisma.sql`lower(a.siem_source) = ${p.source.toLowerCase()}`);
     if (p.agent) where.push(Prisma.sql`lower(a.raw_payload->'agent'->>'name') = ${p.agent.trim().toLowerCase()}`);
@@ -39,8 +39,8 @@ export class PrismaAlertInboxQuery implements IAlertInboxQuery {
         CASE WHEN jsonb_typeof(a.raw_payload->'rule'->'mitre'->'id') = 'array' THEN a.raw_payload->'rule'->'mitre'->'id' ELSE '[]'::jsonb END) mt(v)
         WHERE mt.v = ${t} OR mt.v LIKE ${`${t}.%`})`);
     }
-    if (p.incident === "linked") where.push(Prisma.sql`ia.incident_id IS NOT NULL`);
-    if (p.incident === "unlinked") where.push(Prisma.sql`ia.incident_id IS NULL`);
+    if (p.incident === "linked") where.push(Prisma.sql`i.id IS NOT NULL`);
+    if (p.incident === "unlinked") where.push(Prisma.sql`i.id IS NULL`);
     if (p.scenarioIds) where.push(p.scenarioIds.length ? Prisma.sql`st.scenario_id IN (${Prisma.join(p.scenarioIds)})` : Prisma.sql`FALSE`);
     if (p.search?.trim()) {
       const q = like(p.search.trim());
@@ -50,9 +50,16 @@ export class PrismaAlertInboxQuery implements IAlertInboxQuery {
     if (p.from) where.push(Prisma.sql`a.received_at >= ${p.from}`);
     if (p.to) where.push(Prisma.sql`a.received_at <= ${p.to}`);
 
+    // An alert belongs to an incident through incident_alerts, or as the incident's originating alert (incidents.alert_id):
+    // an incident opened automatically at ingestion has only the latter until investigation starts. A link row wins
+    // (same precedence as IncidentRepository.findLinkedIncidents).
     const from = Prisma.sql`FROM alerts a
-      LEFT JOIN incident_alerts ia ON ia.alert_id = a.id
-      LEFT JOIN incidents i ON i.id = ia.incident_id
+      LEFT JOIN LATERAL (
+        SELECT inc.id, inc.title, inc.status, inc.priority FROM incidents inc
+         WHERE inc.tenant_id = a.tenant_id
+           AND (inc.alert_id = a.id OR EXISTS (SELECT 1 FROM incident_alerts ia WHERE ia.alert_id = a.id AND ia.incident_id = inc.id))
+         ORDER BY EXISTS (SELECT 1 FROM incident_alerts ia WHERE ia.alert_id = a.id AND ia.incident_id = inc.id) DESC, inc.opened_at ASC
+         LIMIT 1) i ON TRUE
       LEFT JOIN alert_scenario_tags st ON st.alert_id = a.id
       WHERE ${Prisma.join(where, " AND ")}`;
 

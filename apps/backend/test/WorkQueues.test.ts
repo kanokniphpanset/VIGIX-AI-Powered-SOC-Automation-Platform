@@ -165,9 +165,9 @@ describe("Alert review workflow (canonical states, shared by backend and fronten
     expect(displayState({ workflowState: null, incidentId: null })).toBe("NEEDS_REVIEW");
   });
 
-  it("required fields per decision", () => {
-    expect(validateTriageInput({ decision: "FALSE_POSITIVE", reason: " " })).toBe("REASON_REQUIRED");
-    expect(validateTriageInput({ decision: "INFORMATIONAL", reason: null })).toBe("REASON_REQUIRED");
+  it("the reason is optional for every decision", () => {
+    expect(validateTriageInput({ decision: "FALSE_POSITIVE", reason: " " })).toBeNull();
+    expect(validateTriageInput({ decision: "INFORMATIONAL", reason: null })).toBeNull();
     expect(validateTriageInput({ decision: "INFORMATIONAL", reason: "benign admin job" })).toBeNull();
     expect(validateTriageInput({ decision: "FALSE_POSITIVE", reason: "known scanner" })).toBeNull();
     // The incident keeps the Wazuh severity, so creating one needs nothing else.

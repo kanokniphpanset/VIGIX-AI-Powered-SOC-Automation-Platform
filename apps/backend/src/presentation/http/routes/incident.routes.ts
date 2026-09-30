@@ -17,12 +17,19 @@ export function buildIncidentRoutes(controller: IncidentController): Router {
   router.get("/:id", authenticate, controller.getById);
   router.get("/:id/timeline", authenticate, controller.getTimeline);
   router.get("/:id/alerts", authenticate, controller.getAlerts);
+  router.get("/:id/alert-facts", authenticate, controller.getAlertFacts);
   // Set Group (analyst correlation) is a SOC action, like creating an incident from alerts.
   router.post("/:id/alerts", authenticate, requireRole("SOC"), controller.addAlerts);
   router.get("/:id/iocs", authenticate, controller.getIocs);
   router.get("/:id/mitre-mappings", authenticate, controller.getMitreMappings);
   router.get("/:id/ai-analysis", authenticate, controller.getAiAnalysis);
   router.get("/:id/sla", authenticate, controller.getSla);
+  // SOC response setup before a Recommendation: incident type, case guidance, group (RESPONSE_GUIDANCE) policy.
+  router.get("/:id/response-setup", authenticate, controller.getResponseSetup);
+  router.put("/:id/incident-type", authenticate, requireRole("SOC"), controller.setIncidentType);
+  router.put("/:id/response-guidance", authenticate, requireRole("SOC"), controller.setCaseGuidance);
+  router.delete("/:id/response-guidance", authenticate, requireRole("SOC"), controller.clearCaseGuidance);
+  router.put("/:id/response-guidance/group", authenticate, requireRole("SOC"), controller.saveGroupGuidance);
   router.patch("/:id/status", authenticate, requireRole("SOC", "IR_TEAM"), controller.updateStatus);
 
   return router;

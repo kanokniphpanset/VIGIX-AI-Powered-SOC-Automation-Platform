@@ -111,6 +111,15 @@ async function knowledgeDeleted(message: 'pol.deleted' | 'pbd.deleted', code: st
   ui.success(t(message, { code }))
   await load()
 }
+// Runbooks / Policies / Actions are configuration: the admin role creates them (backend requireAdmin()), via the same
+// "+ Add" button in the library header as Playbooks.
+const isAdminManaged = computed(() => (['runbooks', 'policies', 'actions'] as Key[]).includes(active.value))
+const canManageCatalog = computed(() => session.role === 'admin')
+const subtitle = computed(() => {
+  if (active.value === 'playbooks') return t(canManagePlaybooks.value ? 'pb.managed' : 'pb.readOnlyRole')
+  if (isAdminManaged.value) return canManageCatalog.value ? t('kbc.managed') : t('kbc.readOnlyRole', { lib: current.value.label })
+  return t('kb.readOnly')
+})
 const setPlaybookStatus = (r: Row) => knowledgeApi.update('playbooks', r.id, { status: r.status === 'ACTIVE' ? 'DEPRECATED' : 'ACTIVE' })
 const evaluation = ref<Record<string, unknown> | null>(null)
 const evaluationFields = computed<FormField[]>(() => [
@@ -125,9 +134,8 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
 <template>
   <div>
     <PageHeader :title="t('kb.title')" :description="t('kb.description')" />
-    <div class="mb-4 flex flex-wrap gap-2">
-      <KnowledgeControls v-if="active === 'playbooks' || active === 'runbooks' || active === 'policies' || active === 'actions'" :key="active" :library="active" :reload="reloadLibrary" />
-      <BackendForm v-if="active === 'policies'" :label="t('kb.evaluate')" :fields="evaluationFields" :action="evaluate" :reload="async () => {}" :description="t('kb.evaluateHint')" />
+    <div v-if="active === 'policies'" class="mb-4 flex flex-wrap gap-2">
+      <BackendForm :label="t('kb.evaluate')" :fields="evaluationFields" :action="evaluate" :reload="async () => {}" :description="t('kb.evaluateHint')" />
     </div>
     <section v-if="active === 'policies' && evaluation" class="card mb-4 p-4 text-sm"><h2 class="font-semibold">{{ t('kb.evalResult') }}</h2><KnowledgeValue :value="evaluation" /></section>
 
@@ -159,9 +167,10 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-semibold text-slate-900">{{ current.label }}</h2>
-          <p class="text-xs text-slate-500">{{ active === 'playbooks' ? t(canManagePlaybooks ? 'pb.managed' : 'pb.readOnlyRole') : t('kb.readOnly') }}</p>
+          <p class="text-xs text-slate-500">{{ subtitle }}</p>
         </div>
         <button v-if="active === 'playbooks' && canManagePlaybooks" type="button" class="btn-primary ml-auto sm:order-last" @click="playbookForm = { open: true, id: null }">{{ t('pb.add') }}</button>
+        <div v-else-if="isAdminManaged && canManageCatalog" class="ml-auto sm:order-last"><KnowledgeControls :key="active" :library="active as 'runbooks' | 'policies' | 'actions'" :reload="reloadLibrary" /></div>
         <label v-if="(rows[active]?.length ?? 0) > 0" class="relative w-full sm:w-64">
           <Search class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input v-model="search" type="search" :placeholder="t('kb.searchIn', { lib: current.label })" :aria-label="t('kb.searchAria', { lib: current.label })" class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-sm focus:border-accent-500 focus:outline-none" />

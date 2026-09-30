@@ -54,10 +54,10 @@ export class GetDashboardSummaryUseCase {
     private readonly probes: { key: string; label: string; probe: HealthProbe }[] = []
   ) {}
 
-  async execute(input: { tenantId: string; days?: number }): Promise<Result<DashboardSummary>> {
+  async execute(input: { tenantId: string; days?: number; since?: Date | null }): Promise<Result<DashboardSummary>> {
     const now = new Date();
     const [counts, open, rehuntHealth, ai, dbLatency, probed] = await Promise.all([
-      this.repo.counts(input.tenantId, input.days ?? 14),
+      this.repo.counts(input.tenantId, input.days ?? 14, input.since),
       this.repo.openIncidents(input.tenantId, SLA_WATCH_LIMIT),
       this.rehunt.health().catch((e: unknown) => ({ configured: false, reachable: false, indexPattern: "", error: e instanceof Error ? e.message : String(e) })) as Promise<RehuntHealth>,
       this.aiHealth().catch(() => ({ reachable: false, latencyMs: null })),

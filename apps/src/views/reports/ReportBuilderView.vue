@@ -5,34 +5,36 @@ import { ArrowLeft, Eye, EyeOff, FileText, Plus, Printer, RotateCw, X } from 'lu
 import { dashboardApi } from '@/api/vigix'
 import ReportTableEditor from '@/components/reports/ReportTableEditor.vue'
 import logoUrl from '@/assets/report/tnet-logo.png'
-import { COMPANY, buildSocReport, isSocReport, periodOf, setReportPeriod, type ReportSection, type SocReport } from '@/utils/socReport'
+import { COMPANY, DEFAULT_WINDOW, REPORT_WINDOWS, buildSocReport, isReportWindow, isSocReport, windowStart, type ReportSection, type ReportWindow, type SocReport } from '@/utils/socReport'
 import { socReportDocx } from '@/utils/socReportDocx'
 import { socReportHtml } from '@/utils/socReportHtml'
 import { useI18n } from '@/i18n'
 
 /**
- * Monthly SOC Operations Report on the T-NET company template (header, logo, section layout and table styling are
- * the template; see utils/socReport.ts). Values are pre-filled from the live VIGIX summary and every text/number is
- * editable before export. Export = Word (.docx) or Print / Save as PDF. The draft stays in this browser only
- * (localStorage) so an unfinished edit survives a reload.
+ * SOC Operations Report on the T-NET company template (header, logo, section layout and table styling are the
+ * template; see utils/socReport.ts). The report window (daily / weekly / 1 month / 3 months) decides which events
+ * are counted; values are pre-filled from the live VIGIX summary for that window and every text/number is editable
+ * before export. Export = Word (.docx) or Print / Save as PDF. The draft stays in this browser only (localStorage) so
+ * an unfinished edit survives a reload.
  */
 const router = useRouter()
 const { t } = useI18n()
-const DRAFT_KEY = 'vigix.report.soc.v2'
+const DRAFT_KEY = 'vigix.report.soc.v3'
 
 const loading = ref(false)
 const exporting = ref(false)
 const error = ref('')
 const report = ref<SocReport | null>(null)
-const period = ref(periodOf(new Date()))
+const period = ref<ReportWindow>(DEFAULT_WINDOW)
 
 async function fill(confirmOverwrite: boolean) {
   if (confirmOverwrite && report.value && !window.confirm(t('rp.refillConfirm'))) return
   loading.value = true
   error.value = ''
   try {
-    const summary = await dashboardApi.summary(30)
-    report.value = buildSocReport(summary, { period: period.value, preparedAt: new Date() })
+    const now = new Date()
+    const summary = await dashboardApi.summary(14, windowStart(period.value, now))
+    report.value = buildSocReport(summary, { period: period.value, preparedAt: now })
   } catch {
     error.value = t('rp.loadFailed')
   } finally {
@@ -68,9 +70,18 @@ watch(
   { deep: true },
 )
 
-watch(period, (p) => {
-  if (report.value && p && p !== report.value.period) setReportPeriod(report.value, p)
-})
+/** A different window counts different events, so the report is rebuilt (after confirming edits may be replaced). */
+async function changePeriod(e: Event) {
+  const select = e.target as HTMLSelectElement
+  const next = select.value
+  if (!isReportWindow(next) || next === period.value) return
+  if (report.value && !window.confirm(t('rp.refillConfirm'))) {
+    select.value = period.value
+    return
+  }
+  period.value = next
+  await fill(false)
+}
 
 function addText(sec: ReportSection) {
   sec.blocks.push({ kind: 'text', text: '' })
@@ -95,7 +106,7 @@ async function exportDocx() {
     const blob = await socReportDocx(report.value, await (await logoBytes()).arrayBuffer())
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `VIGIX_Monthly_SOC_Report_${report.value.period}.docx`
+    a.download = `VIGIX_SOC_Report_${report.value.period}_${new Date().toISOString().slice(0, 10)}.docx`
     a.click()
     setTimeout(() => URL.revokeObjectURL(a.href), 1000)
   } catch {
@@ -135,7 +146,9 @@ async function printPdf() {
       <div class="flex flex-wrap items-center gap-2">
         <label class="flex items-center gap-2 text-xs text-slate-600">
           {{ t('rp.period') }}
-          <input v-model="period" type="month" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
+          <select :value="period" :disabled="loading" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" @change="changePeriod">
+            <option v-for="w in REPORT_WINDOWS" :key="w.key" :value="w.key">{{ w.label }}</option>
+          </select>
         </label>
         <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="loading" @click="fill(true)">
           <RotateCw class="size-4" :class="loading ? 'animate-spin' : ''" /> {{ t('rp.refill') }}

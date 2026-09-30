@@ -50,14 +50,36 @@ export class PlaybookSelector {
 
     const best = ranked[0];
     if (!best) return null;
+    return this.toSelected(best.p, best.matched.sort());
+  }
+
+  /** The incident-level playbooks a SOC analyst can choose a type from (ACTIVE, scope INCIDENT, with a type). */
+  incidentPlaybooks(playbooks: Playbook[]): Playbook[] {
+    return playbooks
+      .filter((p) => p.status === "ACTIVE" && p.code && p.triggerConditions.scope === "INCIDENT" && typeof p.triggerConditions.incidentType === "string")
+      .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+  }
+
+  /**
+   * The playbook for an incident type the SOC confirmed (instead of the MITRE match). Techniques already recorded
+   * that the playbook lists are kept as matchedTechniques. Unknown / inactive type -> null.
+   */
+  selectByType(playbooks: Playbook[], incidentType: string, techniqueIds: string[] = []): SelectedPlaybook | null {
+    const p = this.incidentPlaybooks(playbooks).find((x) => x.triggerConditions.incidentType === incidentType);
+    if (!p) return null;
+    const listed = asStrings(p.triggerConditions.mitreTechniques);
+    return this.toSelected(p, [...new Set(techniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l))))].sort());
+  }
+
+  private toSelected(p: Playbook, matchedTechniques: string[]): SelectedPlaybook {
     return {
-      code: best.p.code as string,
-      name: best.p.name,
-      version: best.p.version ?? "1.0",
-      incidentType: typeof best.p.triggerConditions.incidentType === "string" ? best.p.triggerConditions.incidentType : "UNKNOWN",
-      allowedActions: asStrings(best.p.triggerConditions.allowedActions),
-      matchedTechniques: best.matched.sort(),
-      strategy: best.p.steps.map((s) => ({ stepOrder: s.stepOrder, title: s.title, description: s.description })),
+      code: p.code as string,
+      name: p.name,
+      version: p.version ?? "1.0",
+      incidentType: typeof p.triggerConditions.incidentType === "string" ? p.triggerConditions.incidentType : "UNKNOWN",
+      allowedActions: asStrings(p.triggerConditions.allowedActions),
+      matchedTechniques,
+      strategy: p.steps.map((s) => ({ stepOrder: s.stepOrder, title: s.title, description: s.description })),
     };
   }
 }

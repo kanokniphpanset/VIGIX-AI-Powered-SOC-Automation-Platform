@@ -3,10 +3,12 @@ import { IRecommendationContextRepository } from "../recommendation/ports/IRecom
 import { IAssetCriticalityProvider } from "../approval/ports/IAssetCriticalityProvider";
 import { IResponsePlanRepository } from "../../domain/response/repositories/IResponsePlanRepository";
 import { PolicyEvaluator } from "../../infrastructure/policy-engine/PolicyEvaluator";
-import { SLAEvaluator, SlaStatus } from "../../infrastructure/policy-engine/SLAEvaluator";
+import { SLAEvaluator, SlaStatus, SlaTarget } from "../../infrastructure/policy-engine/SLAEvaluator";
 
 export interface SlaClock {
   targetMinutes: number;
+  /** The target as the Policy states it (e.g. 3 business days); null when a policy override sets other minutes. */
+  target: SlaTarget | null;
   dueAt: string;
   /** When the clock was satisfied (first response started / incident resolved), or null. */
   at: string | null;
@@ -64,10 +66,12 @@ export class IncidentSlaService {
     const cancelled = incident.status === "dismissed";
     const resolvedAt = incident.status === "resolved" ? incident.closedAt : null;
 
-    const clock = (minutes: number, doneAt: Date | null): SlaClock => {
+    const baseline = result.priority ? this.sla.getBaseline(result.priority) : null;
+    const clock = (minutes: number, doneAt: Date | null, baseMinutes?: number, baseTarget?: SlaTarget): SlaClock => {
       const dueAt = new Date(incident.openedAt.getTime() + minutes * 60_000);
       return {
         targetMinutes: minutes,
+        target: baseTarget && baseMinutes === minutes ? baseTarget : null,
         dueAt: dueAt.toISOString(),
         at: doneAt ? doneAt.toISOString() : null,
         status: this.sla.getStatus({ dueAt, startedAt: incident.openedAt, completedAt: doneAt, cancelled }, now),
@@ -75,8 +79,8 @@ export class IncidentSlaService {
     };
     return {
       ...base,
-      firstResponse: clock(result.sla.firstResponseMinutes, firstStart),
-      resolution: clock(result.sla.resolutionMinutes, resolvedAt),
+      firstResponse: clock(result.sla.firstResponseMinutes, firstStart, baseline?.firstResponseMinutes, baseline?.firstResponseTarget),
+      resolution: clock(result.sla.resolutionMinutes, resolvedAt, baseline?.resolutionMinutes, baseline?.resolutionTarget),
     };
   }
 }

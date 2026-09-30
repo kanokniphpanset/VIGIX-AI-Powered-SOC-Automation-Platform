@@ -79,7 +79,7 @@ export class TriageAlertUseCase {
       return Result.ok({ alert: await this.alerts.findById(alert.id, input.tenantId), incidentId: created.value.id });
     }
 
-    const committed = await this.alerts.commitTriage(alert.id, input.tenantId, input.actor, { disposition: input.decision, reason: reason!, at: now });
+    const committed = await this.alerts.commitTriage(alert.id, input.tenantId, input.actor, { disposition: input.decision, reason, at: now });
     if (!committed) return Result.fail("ALERT_ALREADY_DECIDED");
     await this.auditLogger.record({
       tenantId: input.tenantId,
@@ -135,13 +135,13 @@ const SEVERITY_LOCKING_TICKETS = ["PENDING_IR_DECISION", "PENDING_APPROVAL", "IN
 /**
  * SOC Severity Validation. VIGIX has ONE severity source: the Wazuh rule level, mapped deterministically at ingestion
  * (alert severity = wazuhSeverity, immutable). The incident severity starts as that value; the SOC confirms it from the
- * Wazuh evidence, or overrides it — kept separate from the Wazuh value, with a mandatory reason. AI never produces,
+ * Wazuh evidence, or overrides it — kept separate from the Wazuh value, with an optional reason. AI never produces,
  * suggests or changes either value (there is no AI severity anywhere in VIGIX).
  *   confirm  -> audit SEVERITY_VALIDATED {changed:false}
  *   override -> incident severity updated (+ timeline), audit SEVERITY_VALIDATED {wazuhSeverity, previous, severity,
  *               overridesWazuh, reason}, then Policy re-evaluates ownership (INCIDENT_ASSIGNED). Tickets created from now
  *               on use the new severity; existing tickets keep the Policy decision they were created with.
- * REASON_REQUIRED whenever the severity changes or the final value differs from the Wazuh severity.
+ * The reason is optional (SOC usability); when given it is kept in the timeline and the audit record.
  * Refused while a ticket is awaiting the IR decision or in progress (SEVERITY_LOCKED), and on resolved / dismissed
  * incidents.
  */
@@ -164,7 +164,6 @@ export class ValidateIncidentSeverityUseCase {
     const wazuhSeverity = incident.alertSeverity ? toSeverity(incident.alertSeverity) : null;
     const overridesWazuh = !!wazuhSeverity && wazuhSeverity !== input.severity;
     const reason = input.note?.trim() || null;
-    if ((changed || overridesWazuh) && !reason) return Result.fail("REASON_REQUIRED");
     if (changed && (await this.writer.ticketStatuses(input.tenantId, input.incidentId)).some((s) => SEVERITY_LOCKING_TICKETS.includes(s))) {
       return Result.fail("SEVERITY_LOCKED");
     }

@@ -59,7 +59,11 @@ export interface OpenIncidentRow {
 }
 
 export interface IDashboardReadRepository {
-  counts(tenantId: string, days: number): Promise<DashboardCounts>;
+  /**
+   * `since` (report window): event-scoped totals count only rows from that instant on; backlog snapshots (open by
+   * priority, pending approvals, triage queue, awaiting re-hunt, workload) stay "as of now". Omitted = all time.
+   */
+  counts(tenantId: string, days: number, since?: Date | null): Promise<DashboardCounts>;
   /** Unresolved incidents (open / investigating / escalated), newest first — the SLA watchlist candidates. */
   openIncidents(tenantId: string, limit: number): Promise<OpenIncidentRow[]>;
   /** Round-trip time of a trivial query (PostgreSQL health); throws when the database is unreachable. */

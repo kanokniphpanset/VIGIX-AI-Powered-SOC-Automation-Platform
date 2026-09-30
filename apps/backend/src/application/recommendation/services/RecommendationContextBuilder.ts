@@ -6,6 +6,7 @@ import { IPlaybookRepository } from "../../../domain/playbook/repositories/IPlay
 import { RecommendationContextActionProcedure, RecommendationContextDto, RecommendationContextPolicy } from "../dto/RecommendationContextDto";
 import { PlaybookSelector } from "./PlaybookSelector";
 import type { ApprovalService } from "../../approval/services/ApprovalService";
+import type { IncidentResponseSetupService } from "../../incident/services/IncidentResponseSetupService";
 import { Result } from "../../../shared/result/Result";
 
 /**
@@ -33,7 +34,9 @@ export class RecommendationContextBuilder {
     private readonly runbookRepository: IRunbookRepository,
     private readonly playbookRepository?: IPlaybookRepository,
     private readonly policyService?: Pick<ApprovalService, "evaluate">,
-    private readonly playbookSelector: PlaybookSelector = new PlaybookSelector()
+    private readonly playbookSelector: PlaybookSelector = new PlaybookSelector(),
+    /** SOC response setup: confirmed incident type (-> playbook) and the case / group guidance (-> allowed actions). */
+    private readonly responseSetup?: Pick<IncidentResponseSetupService, "resolve">
   ) {}
 
   async build(incidentId: string, tenantId: string): Promise<Result<RecommendationContextDto, "INCIDENT_NOT_FOUND">> {
@@ -50,8 +53,13 @@ export class RecommendationContextBuilder {
       this.contextRepository.getLatestAiAnalysis(incidentId),
     ]);
 
-    const playbooks = this.playbookRepository ? await this.playbookRepository.findAll(tenantId) : [];
-    const playbook = this.playbookSelector.select(playbooks, mitreMappings.map((m) => m.techniqueId));
+    // With the SOC setup: the SOC-confirmed type picks the playbook, and only the actions its guidance allows are
+    // offered (RecommendationValidator rejects any other). Without it: the MITRE match and all playbook actions.
+    const setup = this.responseSetup ? await this.responseSetup.resolve(incidentId, tenantId) : null;
+    const playbooks = setup ? [] : this.playbookRepository ? await this.playbookRepository.findAll(tenantId) : [];
+    const selected = setup?.isSuccess ? setup.value.selected : this.playbookSelector.select(playbooks, mitreMappings.map((m) => m.techniqueId));
+    const guidance = setup?.isSuccess ? setup.value.effective : null;
+    const playbook = selected && guidance ? { ...selected, allowedActions: selected.allowedActions.filter((a) => guidance.allowedActions.includes(a)) } : selected;
     const runbookById = new Map(runbooks.map((r) => [r.id, r]));
     const actionProcedures: RecommendationContextActionProcedure[] = [];
     for (const code of playbook?.allowedActions ?? []) {
@@ -131,6 +139,7 @@ export class RecommendationContextBuilder {
       incidentType: playbook?.incidentType ?? null,
       playbook,
       actionProcedures,
+      socGuidance: guidance ? { source: guidance.source, allowedActions: playbook?.allowedActions ?? [], instructions: guidance.instructions } : null,
     };
 
     return Result.ok(context);
