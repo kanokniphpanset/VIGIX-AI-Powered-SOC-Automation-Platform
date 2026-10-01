@@ -1,0 +1,53 @@
+{
+ "recordedAt": "2026-10-01T07:16:36.190908+00:00",
+ "checks": [
+  {
+   "check": "previous frozen manifest unchanged",
+   "ok": true,
+   "detail": "31 files, changed=[]"
+  },
+  {
+   "check": "final DB soar_final_eval unchanged (10 alerts: 9 main + 1 reject)",
+   "ok": true,
+   "detail": "10"
+  },
+  {
+   "check": "development DB soar_platform untouched (260 alerts / 39 incidents)",
+   "ok": true,
+   "detail": "260/39"
+  },
+  {
+   "check": "Knowledge Base of soar_ext_eval equals soar_final_eval",
+   "ok": true,
+   "detail": "14/11/29/17/26"
+  },
+  {
+   "check": "frozen groundTruthReal.ts unchanged",
+   "ok": true,
+   "detail": "8f97fa8f088e148a"
+  },
+  {
+   "check": "extended ground truth pinned before the runs",
+   "ok": true,
+   "detail": [
+    "lowFp",
+    "escalation",
+    "rag"
+   ]
+  },
+  {
+   "check": "custom Wazuh rules/decoders on the manager equal the repo",
+   "ok": true,
+   "detail": {
+    "vigix_eval_rules.xml": true,
+    "vigix_eval_decoders.xml": true
+   }
+  },
+  {
+   "check": "isolated Qdrant holds the 17 runbooks; soar-qdrant (dev) still empty",
+   "ok": true,
+   "detail": "6335: 17 points; 6333: no collections"
+  }
+ ],
+ "allPass": true
+}

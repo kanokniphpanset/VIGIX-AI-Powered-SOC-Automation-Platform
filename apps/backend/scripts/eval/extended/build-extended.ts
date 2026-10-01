@@ -152,13 +152,26 @@ function stats(xs: (number | null | undefined)[]) {
         ipRole: (() => { const s = per.flatMap((x) => x.ipSteps ?? []); const d = s.filter((x: any) => x.action === "ACT-BLOCK-DESTINATION-IP"); return { allIpSteps: { correct: s.filter((x: any) => x.correctRole).length, of: s.length }, destinationIpSteps: { correct: d.filter((x: any) => x.correctRole).length, of: d.length } }; })(),
       };
     }
+    // repeated generation on the SAME evidence (TC-07, TC-09), populated vs empty corpus, + the IP-order diagnostic
+    const repeated: Record<string, any> = {};
+    for (const [tag, name] of [["_rag_on", "B_runbook_corpus"], ["_rag_off", "A_empty_corpus"]] as const) {
+      const f = path.join(OUT, "data", `consistency${tag}.json`);
+      if (!fs.existsSync(f)) continue;
+      const cj = readJson(f);
+      const bySrc: Record<string, { s: string; d: string }> = {};
+      for (const c of arms.B_runbook_corpus.cases) if (c.incidentId) { const a = (await q(`select a.raw_payload->'data'->>'srcip' s, a.raw_payload->'data'->>'dstip' d from alerts a join incident_alerts ia on ia.alert_id::text = a.id::text where ia.incident_id::text = $1 limit 1`, c.incidentId))[0]; bySrc[c.case] = a; }
+      const dest: any[] = [];
+      for (const r of cj.runs.filter((x: any) => x.recommendation_status === "VALIDATED")) for (const st of r.all_steps ?? []) { const [act, tgt] = String(st.action ? `${st.action}>${st.target}` : st).split(">"); if (act === "ACT-BLOCK-DESTINATION-IP") dest.push({ case: r.case_id, rep: r.repetition, target: tgt, correctRole: tgt === bySrc[r.case_id]?.d }); }
+      repeated[name] = { file: `data/consistency${tag}.json`, overall: cj.overall, infrastructureFailuresExcluded: cj.infrastructure_failure_count, destinationIpSteps: { correct: dest.filter((x) => x.correctRole).length, of: dest.length, note: "ALL destination-IP steps of the validated recommendations (a recommendation may list two)" }, recommendationsWithAWrongRoleDestinationStep: (() => { const recs = new Set(dest.filter((x) => !x.correctRole).map((x) => `${x.case}#${x.rep}`)); return { n: recs.size, of: cj.runs.filter((x: any) => x.recommendation_status === "VALIDATED").length }; })(), note: tag === "_rag_off" ? "the Qdrant collection was deleted for this arm (retrieval returns no document) and re-created afterwards" : "17 runbooks indexed" };
+    }
+    const orderExp = fs.existsSync(path.join(OUT, "data", "order-experiment.json")) ? readJson(path.join(OUT, "data", "order-experiment.json")).results.map((x: any) => ({ incident: x.incidentId.slice(0, 8), variant: x.variant, destinationIpPicks: { correct: x.correct, of: x.of }, picks: x.picks.map((p: any) => p.role) })) : null;
     const searchLog = fs.existsSync(path.join(OUT, "logs", "rag-search-requests.jsonl")) ? fs.readFileSync(path.join(OUT, "logs", "rag-search-requests.jsonl"), "utf8").trim().split("\n").length : 0;
     const A = arms.A_empty_corpus, B = arms.B_runbook_corpus;
     const paired = A.cases.map((a: any) => { const b = B.cases.find((x: any) => x.case === a.case); return { case: a.case, A: { compliance: a.compliance, retries: a.retries, workflow: a.workflowCompleted, playbook: a.playbook }, B: b ? { compliance: b.compliance, retries: b.retries, workflow: b.workflowCompleted, playbook: b.playbook } : null, complianceChanged: b ? a.compliance !== b.compliance : null }; });
     const res = {
       part: "B", title: "RAG evaluation (runbook corpus)", design: "same 10 cases, same pipeline (clean mode, no analyst correction), two conditions: A = RAG reachable but the isolated Qdrant is EMPTY (retrieval status not_found); B = the 17 ACTIVE runbooks indexed by the project's own indexer. One run per case per arm: differences are NOT attributable to RAG beyond LLM run-to-run variation.",
       corpus: { runbooks: 17, indexer: "apps/backend/scripts/indexRunbooksToQdrant.ts", embeddingModel: "BAAI/bge-small-en-v1.5 (384-d, cosine)", qdrant: "isolated container vigix-eval-qdrant (1.19.1) on :6335", knowledgeTypeDocuments: 0, note: "all runbooks carry sourceType PLAYBOOK; the KNOWLEDGE side of the dual retrieval has no documents by construction" },
-      groundTruthSha256: pin.rag, arms, paired, searchRequestsLogged: searchLog,
+      groundTruthSha256: pin.rag, arms, paired, repeatedGenerationSameEvidence: repeated, ipOrderDiagnostic: orderExp, searchRequestsLogged: searchLog,
       limitations: ["Relevance labels are the author's (frozen before retrieval) and the corpus has only 17 short runbooks; Hit@3 on 17 documents is easy.", "n = 9 cases; one run per arm; no statistical test is reported.", "The recommendation prompt also receives runbook text (PLAYBOOK top-3) — the effect on the recommendation cannot be separated from LLM variance.", "TC-05 ENVIRONMENT_UNAVAILABLE in this part."],
     };
     write("extended-rag.json", res);

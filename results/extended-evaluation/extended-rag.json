@@ -359,7 +359,7 @@
         {
           "case": "TC-01",
           "incidentId": "536eef5b-4d49-4f01-b4c1-b7735e2eb310",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-BRUTEFORCE-001",
@@ -413,7 +413,7 @@
         {
           "case": "TC-02",
           "incidentId": "19213acc-7d66-48e9-af16-5c322ac0bcaf",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-MALWARE-001",
@@ -464,7 +464,7 @@
         {
           "case": "TC-03",
           "incidentId": "2d14868c-7cd0-41dc-98ff-fae46e8e65e0",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-PHISHING-001",
@@ -515,7 +515,7 @@
         {
           "case": "TC-04",
           "incidentId": "0a8984c4-2694-4f53-9345-ecaab14f533e",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-BRUTEFORCE-001",
@@ -574,7 +574,7 @@
         {
           "case": "TC-06",
           "incidentId": "df5ee60f-4bad-43b0-afe0-524d7620eaea",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-BLOCK-URL",
@@ -625,7 +625,7 @@
         {
           "case": "TC-07",
           "incidentId": "d08e240d-a553-46bb-a76c-d479313989b4",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-C2-CONTAINMENT",
@@ -681,7 +681,7 @@
         {
           "case": "TC-08",
           "incidentId": "64472667-407d-4e39-9b82-9ff700765b22",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-KILL-MALICIOUS-PROCESS",
@@ -732,7 +732,7 @@
         {
           "case": "TC-09",
           "incidentId": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-C2-CONTAINMENT",
@@ -788,7 +788,7 @@
         {
           "case": "TC-10",
           "incidentId": "5fc3c577-b124-4a86-89c2-a5d827c7425f",
-          "ragStatus": "NOT_RECORDED",
+          "ragStatus": "found (no status field; chunks present)",
           "ragError": null,
           "retrieved": [
             "RB-MALWARE-001",
@@ -861,7 +861,7 @@
         "max": 126.81
       },
       "ragStatuses": {
-        "NOT_RECORDED": 9
+        "found (no status field; chunks present)": 9
       },
       "retrieval": {
         "casesWithRetrieval": 9,
@@ -1066,7 +1066,117 @@
       "complianceChanged": false
     }
   ],
-  "searchRequestsLogged": 100,
+  "repeatedGenerationSameEvidence": {
+    "B_runbook_corpus": {
+      "file": "data/consistency_rag_on.json",
+      "overall": {
+        "runs": 10,
+        "consistent_runs": 10,
+        "consistency_pct": 100,
+        "per_case_mean_pct": 100,
+        "per_case_sd_pct": 0,
+        "validated_runs": 10,
+        "all_evidence_snapshots_identical": true
+      },
+      "infrastructureFailuresExcluded": 4,
+      "destinationIpSteps": {
+        "correct": 10,
+        "of": 14,
+        "note": "ALL destination-IP steps of the validated recommendations (a recommendation may list two)"
+      },
+      "recommendationsWithAWrongRoleDestinationStep": {
+        "n": 4,
+        "of": 10
+      },
+      "note": "17 runbooks indexed"
+    },
+    "A_empty_corpus": {
+      "file": "data/consistency_rag_off.json",
+      "overall": {
+        "runs": 10,
+        "consistent_runs": 10,
+        "consistency_pct": 100,
+        "per_case_mean_pct": 100,
+        "per_case_sd_pct": 0,
+        "validated_runs": 10,
+        "all_evidence_snapshots_identical": true
+      },
+      "infrastructureFailuresExcluded": 5,
+      "destinationIpSteps": {
+        "correct": 10,
+        "of": 14,
+        "note": "ALL destination-IP steps of the validated recommendations (a recommendation may list two)"
+      },
+      "recommendationsWithAWrongRoleDestinationStep": {
+        "n": 4,
+        "of": 10
+      },
+      "note": "the Qdrant collection was deleted for this arm (retrieval returns no document) and re-created afterwards"
+    }
+  },
+  "ipOrderDiagnostic": [
+    {
+      "incident": "d08e240d",
+      "variant": "as_built",
+      "destinationIpPicks": {
+        "correct": 4,
+        "of": 5
+      },
+      "picks": [
+        "destination (correct)",
+        "no destination-IP step",
+        "destination (correct)",
+        "destination (correct)",
+        "destination (correct)"
+      ]
+    },
+    {
+      "incident": "d08e240d",
+      "variant": "ips_reversed",
+      "destinationIpPicks": {
+        "correct": 0,
+        "of": 5
+      },
+      "picks": [
+        "source (wrong)",
+        "source (wrong)",
+        "no destination-IP step",
+        "source (wrong)",
+        "source (wrong)"
+      ]
+    },
+    {
+      "incident": "db575272",
+      "variant": "as_built",
+      "destinationIpPicks": {
+        "correct": 5,
+        "of": 5
+      },
+      "picks": [
+        "destination (correct)",
+        "destination (correct)",
+        "destination (correct)",
+        "destination (correct)",
+        "destination (correct)"
+      ]
+    },
+    {
+      "incident": "db575272",
+      "variant": "ips_reversed",
+      "destinationIpPicks": {
+        "correct": 0,
+        "of": 5
+      },
+      "picks": [
+        "source (wrong)",
+        "no destination-IP step",
+        "source (wrong)",
+        "source (wrong)",
+        "source (wrong)"
+      ]
+    }
+  ],
+  "searchRequestsLogged": 154,
   "limitations": [
     "Relevance labels are the author's (frozen before retrieval) and the corpus has only 17 short runbooks; Hit@3 on 17 documents is easy.",
     "n = 9 cases; one run per arm; no statistical test is reported.",

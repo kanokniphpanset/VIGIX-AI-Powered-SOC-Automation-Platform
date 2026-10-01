@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T06:34:17.655Z",
+  "generatedAt": "2026-10-01T07:14:53.703Z",
   "database": "soar_ext_eval",
   "groundTruthPins": {
     "lowFp": "19e2f2236dbe70583075664efa5c4a1d96fc68da777736273dca0ba122423e15",
@@ -282,7 +282,7 @@
           }
         },
         "ragStatuses": {
-          "NOT_RECORDED": 9
+          "found (no status field; chunks present)": 9
         }
       }
     },

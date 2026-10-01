@@ -16,6 +16,6 @@ It must be stated as a limitation of the evaluated system; the Recommendation Co
 ## 2026-10-01 (later) — cause of the wrong IP role identified
 
 A controlled re-run (`apps/backend/scripts/eval/extended/order-experiment.ts`, `results/extended-evaluation/data/order-experiment.json`) shows the model picks the first IP listed
-among the candidate targets of BLOCK-DESTINATION-IP, and the context carries no source/destination role. With the destination listed first: 9/10 correct; with only the order reversed: 0/10 correct
-(8 source IPs, 2 runs without a destination-IP step). The listing order is whatever the database returns, which is why the final run (source first) was wrong in 12/12 and later runs (destination first) were right in 20/20.
+among the candidate targets of BLOCK-DESTINATION-IP, and the context carries no source/destination role. With the destination listed first: the first destination-IP step was correct in 9/10 runs; with only the order reversed: 0/10 (8 source IPs, 2 runs without a destination-IP step). The listing order is whatever the database returns, which is why the final run (source first) was wrong in 12/12, while later runs (destination first) had a correct first destination-IP step in 20/20.
+Note: even then 8/20 of those later recommendations ALSO listed a second destination-IP step aimed at the endpoint (172.19.0.5), with and without the runbook corpus (4/10 each), so the wrong-role pick is reduced by ordering, not eliminated.
 Suggested product fixes (not applied; the evaluated code was not changed): carry the role (srcip/dstip) with each IP IOC, restrict BLOCK-DESTINATION-IP candidates to the destination IP, order candidates deterministically, and add a role check to the validator and to the compliance evaluator.
