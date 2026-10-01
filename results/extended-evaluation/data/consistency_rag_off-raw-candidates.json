@@ -1,0 +1,2574 @@
+[
+  {
+    "case_id": "TC-07",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to contain the beaconing activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.7 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound connections to 172.19.0.7 are rejected.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL http://vigix-eval-c2.net:8080/gate.php is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control used by the affected host.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The host attack-endpoint is the source of the outbound beaconing activity.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity restricted"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to contain the beaconing activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.7 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify new outbound connections from the affected endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the beaconing activity.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to contain the beaconing activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The destination IP is identified as a C2 server in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.7 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from attack-endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection or recurrence of the beaconing pattern.",
+              "expectedResult": "Communication to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control used by the affected host.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the outbound beaconing to the C2 server.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Reachability reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to prevent lateral movement or further beaconing.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control used by the affected hosts.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific C2 URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the outbound beaconing to the C2 server.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the beaconing channel, and isolate the affected endpoint to contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Communication to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.5",
+              "reason": "The IP 172.19.0.5 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.5 against the incident evidence and IOC record.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "17.19.0.5",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Communication to 172.19.0.5 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on that control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control used by the affected host.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 5,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the beaconing activity.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint attack-endpoint is isolated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      },
+      {
+        "correction": true,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.7 on the perimeter firewall.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the firewall control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.5",
+              "reason": "The IP 172.19.0.5 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.5 against the incident evidence and IOC record.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.5 on the perimeter firewall.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the firewall control.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.5 are rejected.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound traffic to 172.19.0.5 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain vigix-eval-c2.net to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL http://vigix-eval-c2.net:8080/gate.php is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 5,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the beaconing activity.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Communication restricted"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint attack-endpoint is isolated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the destination IP, domain, and URL to stop the data exfiltration transfer, and isolate the affected endpoint to contain the source of the activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP is identified as a destination for the large outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the firewall control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the endpoint to the IP are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to the destination IP.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-exfil.net",
+              "reason": "The domain is linked to the large outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-exfil.net against the incident evidence.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain are blocked.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-exfil.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-exfil.net:8080/upload",
+              "reason": "The URL is the specific destination for the data exfiltration observed in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I5"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific upload URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the large outbound transfer identified in the evidence.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "External reachability lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the exfiltration destinations (IPs, domain, and URL) and isolate the affected endpoint to contain the data transfer and prevent further spread.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified as a destination for the large outbound transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Confirm the supporting IOC evidence that the destination is malicious.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Evidence verified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.7 on the perimeter firewall.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the perimeter firewall.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Confirm new outbound connections from the affected endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to 172.19.0.7.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.5",
+              "reason": "The IP 172.19.0.5 is identified as a destination for the large outbound transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.5 against the incident evidence and IOC record.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Confirm the supporting IOC evidence that the destination is malicious.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Evidence verified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.5 on the perimeter firewall.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the perimeter firewall.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Confirm new outbound connections from the affected endpoint to 172.19.0.5 are rejected.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to 172.19.0.5.",
+              "expectedResult": "Outbound traffic to 172.19.0.5 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-exfil.net",
+              "reason": "The domain is a recorded destination for the data exfiltration event.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-exfil.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain are blocked.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Resolution/connection blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry and time applied in the execution result.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-exfil.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-exfil.net:8080/upload",
+              "reason": "The URL is the specific destination for the data transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I5"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry and time applied in the execution result.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 5,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the high-severity data exfiltration.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the exfiltration destinations (IPs, domain, and URL) and isolate the affected endpoint to stop the data transfer and contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP is identified as a destination for the large outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.7 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.7 are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to the destination IP.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.5",
+              "reason": "The IP is identified as a destination for the large outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.5 against the incident evidence and IOC record.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP 172.19.0.5 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.5 are rejected.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to the destination IP.",
+              "expectedResult": "Outbound traffic to 172.19.0.5 is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-exfil.net",
+              "reason": "The domain is linked to the large outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-exfil.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain vigix-eval-exfil.net to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that name resolution or connection attempts to vigix-eval-exfil.net are blocked.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Resolution/connection fails"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-exfil.net:8080/upload",
+              "reason": "The URL is identified as the destination for the data transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I5"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-exfil.net:8080/upload against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that requests to the URL are blocked from the affected host.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Requests are blocked"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 5,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the large outbound transfer.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint attack-endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "Endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified exfiltration destinations (IP, Domain, and URL) and isolate the affected endpoint to stop the data transfer and contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP is part of the large outbound transfer evidence indicating exfiltration.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to the destination IP.",
+              "expectedResult": "Outbound traffic to 172.19.0.7 is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-exfil.net",
+              "reason": "The domain is identified as the destination for the large outbound transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-exfil.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Resolution/connection blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-exfil.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-exfil.net:8080/upload",
+              "reason": "The URL is the specific destination for the data transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I5"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Block entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is the source of the large outbound transfer.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Communication stopped"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "Endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Contain the data exfiltration by blocking the destination IP, domain, and URL, and isolating the affected endpoint to prevent further data loss.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.7",
+              "reason": "The IP 172.19.0.7 is identified in the evidence as a destination for the large outbound transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.7 against the incident evidence and IOC record.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Verify the destination IP is associated with the exfiltration event.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "IP verified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.7 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the perimeter firewall.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.7",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to 172.19.0.7.",
+              "expectedResult": "Outbound connections to 172.19.0.7 are rejected.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.5",
+              "reason": "The IP 172.19.0.5 is identified in the evidence as a destination for the large outbound transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.5 against the incident evidence and IOC record.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Verify the destination IP is associated with the exfiltration event.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "IP verified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.5 on the perimeter firewall or egress control.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the perimeter firewall.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.5",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the transfer pattern to 172.19.0.5.",
+              "expectedResult": "Outbound connections to 172.19.0.5 are rejected.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-exfil.net",
+              "reason": "The domain vigix-eval-exfil.net is linked to the outbound transfer in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-exfil.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-exfil.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to vigix-eval-exfil.net fail from the affected host.",
+              "expectedResult": "Domain resolution or connection is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-exfil.net:8080/upload",
+              "reason": "The URL is explicitly identified in the evidence as the destination for the data transfer.",
+              "evidenceRefs": [
+                "E1",
+                "I5"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-exfil.net:8080/upload",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 5,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the large outbound transfer.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Reachability stopped"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-DATA-EXFIL",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

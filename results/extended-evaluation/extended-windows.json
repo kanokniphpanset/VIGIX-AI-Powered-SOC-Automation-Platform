@@ -1,0 +1,6 @@
+{
+  "part": "D",
+  "title": "Windows endpoint (TC-05 PowerShell)",
+  "result": "ENVIRONMENT_UNAVAILABLE",
+  "reason": "No Windows endpoint with a Wazuh agent has been connected; nothing was simulated or fabricated."
+}

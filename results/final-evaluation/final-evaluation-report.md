@@ -123,7 +123,10 @@ The six-criterion evaluator only requires a target to be *any* evidence-linked I
 
 Consequence: the "100 %" Recommendation Compliance and "29/30" Recommendation Consistency are real values of *what they measure*, but the consistent TC-07/TC-09 answer is consistently wrong in one step.
 Executed, that step would cut the endpoint off the network; in this evaluation only the IR approval gate (and the scripted, simulated response) stood between the recommendation and an action. The other steps of the same recommendations (domain, URL, isolate) were correct.
-Likely cause (not tested): the system-extracted IOCs list both IPs without a source/destination role. This is a limitation of the evaluated system and of the compliance criteria, not a change to any frozen number.
+Cause (tested afterwards, `results/extended-evaluation/data/order-experiment.json`): the recommendation context lists the candidate IP targets of BLOCK-DESTINATION-IP without a source/destination role, and the model takes the **first listed** IP.
+The list order comes from the database and differs between incidents: the final-run contexts list `[172.19.0.5 (source), 172.19.0.7 (destination)]`, the later extended-run contexts `[172.19.0.7, 172.19.0.5]`; the two contexts differ in nothing else.
+Re-running the same evidence with only the IP order reversed: destination-first 9/10 correct (1 run produced no destination-IP step); source-first **0/10** correct (8 picked the source IP, 2 produced no such step).
+This is a limitation of the evaluated system (role-agnostic, order-dependent target candidates) and of the compliance criteria; it is not a change to any frozen number. Retrieval-augmented generation is not the cause and does not fix it (see the extended evaluation).
 The earlier runs (clean-v2, intervention-v2) show the same pattern for TC-07/TC-09, so it predates this run. See `CORRECTIONS-final.md`.
 
 ---

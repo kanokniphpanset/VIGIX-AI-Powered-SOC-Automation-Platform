@@ -1,0 +1,738 @@
+{
+  "evaluation": "B_recommendation_consistency",
+  "startedAt": "2026-10-01T06:44:42.582Z",
+  "finishedAt": "2026-10-01T06:53:50.416Z",
+  "database": "soar_ext_eval",
+  "orchestrator": "http://localhost:8001",
+  "source_run": "ext-rag-on-20261001",
+  "repetitions": 5,
+  "cases": [
+    "TC-07",
+    "TC-09"
+  ],
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "firstRoundContext": "the incident's earlier recommendations are hidden from the context (previousSteps=[]) — the condition of the original first-round generation; otherwise the NO_NEW_STEP validator rule would reject any repeat by design",
+  "nothingPersisted": true,
+  "infrastructure_failures": [
+    {
+      "case_id": "TC-07",
+      "repetition": 3,
+      "attempt": 1,
+      "at": "2026-10-01T06:46:13.561Z",
+      "classification": "INFRASTRUCTURE",
+      "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+      "generation_seconds": 10.51,
+      "recovered": true,
+      "waitedSeconds": 15
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 5,
+      "attempt": 1,
+      "at": "2026-10-01T06:47:50.231Z",
+      "classification": "INFRASTRUCTURE",
+      "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+      "generation_seconds": 10.51,
+      "recovered": true,
+      "waitedSeconds": 16
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "attempt": 1,
+      "at": "2026-10-01T06:49:34.191Z",
+      "classification": "INFRASTRUCTURE",
+      "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+      "generation_seconds": 10.53,
+      "recovered": true,
+      "waitedSeconds": 16
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "attempt": 1,
+      "at": "2026-10-01T06:51:18.669Z",
+      "classification": "INFRASTRUCTURE",
+      "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+      "generation_seconds": 10.54,
+      "recovered": true,
+      "waitedSeconds": 16
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "attempt": 1,
+      "at": "2026-10-01T06:52:54.420Z",
+      "classification": "INFRASTRUCTURE",
+      "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+      "generation_seconds": 10.53,
+      "recovered": true,
+      "waitedSeconds": 16
+    }
+  ],
+  "infrastructure_failure_count": 5,
+  "evidenceSnapshots": {
+    "TC-07": {
+      "incidentId": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidenceSnapshotHashes": [
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192",
+        "b14ead12c0a7be7cfd0327e187d45eda81cb3bab1ec4aa11085d5c12a862f192"
+      ],
+      "iocCount": 4,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-C2",
+      "matchedTechniques": [
+        "T1071.001"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    },
+    "TC-09": {
+      "incidentId": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidenceSnapshotHashes": [
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721",
+        "65e029be66931f4a40062ebd8543af51e45b1c9c951444727ced88eb6b341721"
+      ],
+      "iocCount": 5,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-DATA-EXFIL",
+      "matchedTechniques": [
+        "T1048"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    }
+  },
+  "overall": {
+    "runs": 10,
+    "consistent_runs": 10,
+    "consistency_pct": 100,
+    "per_case_mean_pct": 100,
+    "per_case_sd_pct": 0,
+    "validated_runs": 10,
+    "all_evidence_snapshots_identical": true
+  },
+  "perCase": [
+    {
+      "case_id": "TC-07",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.7",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.7": 5
+      },
+      "step_set_agreement_runs": 4,
+      "step_set_agreement_pct": 80,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 45.68,
+        "median": 41.89,
+        "min": 28.55,
+        "max": 77.77,
+        "sd": 19.44
+      }
+    },
+    {
+      "case_id": "TC-09",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.7",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.7": 5
+      },
+      "step_set_agreement_runs": 3,
+      "step_set_agreement_pct": 60,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 37.57,
+        "median": 37.2,
+        "min": 32.21,
+        "max": 41.06,
+        "sd": 3.49
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "TC-07",
+      "repetition": 1,
+      "incident_id": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidence_snapshot_hash": "b14ead12c0a7be7c",
+      "generation_seconds": 47.57,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 2,
+      "incident_id": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidence_snapshot_hash": "b14ead12c0a7be7c",
+      "generation_seconds": 32.62,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 3,
+      "incident_id": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidence_snapshot_hash": "b14ead12c0a7be7c",
+      "generation_seconds": 28.55,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": true,
+      "previous_infrastructure_failures": [
+        {
+          "case_id": "TC-07",
+          "repetition": 3,
+          "attempt": 1,
+          "at": "2026-10-01T06:46:13.561Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+          "generation_seconds": 10.51,
+          "recovered": true,
+          "waitedSeconds": 15
+        }
+      ]
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 4,
+      "incident_id": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidence_snapshot_hash": "b14ead12c0a7be7c",
+      "generation_seconds": 41.89,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 5,
+      "incident_id": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "evidence_snapshot_hash": "b14ead12c0a7be7c",
+      "generation_seconds": 77.77,
+      "attempts": 2,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 5,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": true,
+      "previous_infrastructure_failures": [
+        {
+          "case_id": "TC-07",
+          "repetition": 5,
+          "attempt": 1,
+          "at": "2026-10-01T06:47:50.231Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+          "generation_seconds": 10.51,
+          "recovered": true,
+          "waitedSeconds": 16
+        }
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "incident_id": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidence_snapshot_hash": "65e029be66931f4a",
+      "generation_seconds": 41.06,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": true,
+      "previous_infrastructure_failures": [
+        {
+          "case_id": "TC-09",
+          "repetition": 1,
+          "attempt": 1,
+          "at": "2026-10-01T06:49:34.191Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+          "generation_seconds": 10.53,
+          "recovered": true,
+          "waitedSeconds": 16
+        }
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 2,
+      "incident_id": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidence_snapshot_hash": "65e029be66931f4a",
+      "generation_seconds": 37.06,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 5,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "incident_id": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidence_snapshot_hash": "65e029be66931f4a",
+      "generation_seconds": 37.2,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 5,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": true,
+      "previous_infrastructure_failures": [
+        {
+          "case_id": "TC-09",
+          "repetition": 3,
+          "attempt": 1,
+          "at": "2026-10-01T06:51:18.669Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+          "generation_seconds": 10.54,
+          "recovered": true,
+          "waitedSeconds": 16
+        }
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 4,
+      "incident_id": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidence_snapshot_hash": "65e029be66931f4a",
+      "generation_seconds": 32.21,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "incident_id": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "evidence_snapshot_hash": "65e029be66931f4a",
+      "generation_seconds": 40.31,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 5,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": true,
+      "previous_infrastructure_failures": [
+        {
+          "case_id": "TC-09",
+          "repetition": 5,
+          "attempt": 1,
+          "at": "2026-10-01T06:52:54.420Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}",
+          "generation_seconds": 10.53,
+          "recovered": true,
+          "waitedSeconds": 16
+        }
+      ]
+    }
+  ]
+}
