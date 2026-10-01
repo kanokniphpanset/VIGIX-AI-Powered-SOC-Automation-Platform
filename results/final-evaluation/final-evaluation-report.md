@@ -38,7 +38,7 @@ Code-under-test hash differences between the pre-run snapshot (08:33) and the po
 
 | Metric | Result | Unit | N | Source | Notes |
 |---|---|---|---|---|---|
-| Recommendation Compliance | **100** | % | 9/9 evaluated (9/9 of attempted) | DB | deterministic six-criterion evaluator against the frozen Ground Truth; no LLM judge |
+| Recommendation Compliance | **100** | % | 9/9 evaluated (9/9 of attempted) | DB | deterministic six-criterion evaluator against the frozen Ground Truth; no LLM judge. **Measures validity (allowed action, evidence-linked target, playbook, policy), NOT target role — see §5a: BLOCK-DESTINATION-IP aimed at the endpoint's own IP in TC-07/TC-09 is still scored compliant** |
 | Investigation Time | **126.106** | s (mean) | 9 | DB | median 84.674, SD 108.013, min 47.002, max 390.723 |
 | Time-to-Decision | **0.053** | s (mean) | 9 | DB | median 0.054, SD 0.008, min 0.040, max 0.065. **Scripted IR API call, not human deliberation** |
 | Workflow Completion | **77.78** | % | 7/9 | DB | 12 stages + supported final state; TC-02, TC-10 stop at stage 11 (re-hunt) |
@@ -110,6 +110,22 @@ No case reached 3 re-hunt rounds, so no `ESCALATED` outcome exists (none was ind
 | TC-10 cannot be verified | **Persists.** No searchable IOC (IP/domain/URL/hash only) → `REHUNT_INSUFFICIENT_CRITERIA`; workflow INCOMPLETE. Same for TC-02. |
 | TC-04 | New observation: main action 5/5 but step set 3/5 (optional RESET-CREDENTIAL / REVOKE-SESSION added in 2 repetitions). |
 
+### 5a. Addendum (found after the report was first issued): IP target role
+
+`addendum-target-role-check.json` (read-only over `soar_final_eval`) checks that ACT-BLOCK-SOURCE-IP targets the alert's `srcip` and ACT-BLOCK-DESTINATION-IP its `dstip`.
+The six-criterion evaluator only requires a target to be *any* evidence-linked IOC/host, so it did not see the following:
+
+| Check | Result |
+|---|---|
+| ACT-BLOCK-SOURCE-IP → alert source IP (TC-01, TC-04, TC-06, plus TC-06 in the reject run) | 4/4 correct |
+| ACT-BLOCK-DESTINATION-IP → alert destination IP (TC-07, TC-09) | **0/2 correct** — both aimed at 172.19.0.5, the monitored endpoint itself (the *source* of the traffic); the C2 / exfiltration server is 172.19.0.7 |
+| Same check over the consistency repetitions (TC-07, TC-09) | **0/10** BLOCK-DESTINATION-IP steps correct; all 25 IP steps: 15/25 |
+
+Consequence: the "100 %" Recommendation Compliance and "29/30" Recommendation Consistency are real values of *what they measure*, but the consistent TC-07/TC-09 answer is consistently wrong in one step.
+Executed, that step would cut the endpoint off the network; in this evaluation only the IR approval gate (and the scripted, simulated response) stood between the recommendation and an action. The other steps of the same recommendations (domain, URL, isolate) were correct.
+Likely cause (not tested): the system-extracted IOCs list both IPs without a source/destination role. This is a limitation of the evaluated system and of the compliance criteria, not a change to any frozen number.
+The earlier runs (clean-v2, intervention-v2) show the same pattern for TC-07/TC-09, so it predates this run. See `CORRECTIONS-final.md`.
+
 ---
 
 ## 6. Baseline comparison (procedural reference only)
@@ -151,7 +167,8 @@ non-approved ticket; no incident marked resolved without a RESOLVED verification
 10. **Mock verification (10/10)** comes from the archived frozen MOCK run and includes a simulated no-match; it is not detection evidence.
 11. Sample size is small (9 cases, one run); no confidence intervals are claimed. A single LLM and single endpoint were used. Investigation Time depends on endpoint latency.
 12. The vLLM endpoint host name is stored in `pre-run-integrity.json`.
-13. Known unrelated failing test at HEAD: `test/PolicyApprovalWorkflow.test.ts` ("high-impact action on a non-critical asset at MEDIUM"); not touched.
+13. **Compliance does not check IP role** (source vs destination) — see §5a.
+14. Known unrelated failing test at HEAD: `test/PolicyApprovalWorkflow.test.ts` ("high-impact action on a non-critical asset at MEDIUM"); not touched.
 
 ---
 
