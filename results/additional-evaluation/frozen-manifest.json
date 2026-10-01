@@ -1,0 +1,176 @@
+{
+  "createdAt": "2026-09-30T12:45:23.257832Z",
+  "purpose": "FROZEN inputs of the additional evaluation; re-verified at the end of the task",
+  "files": [
+    {
+      "path": "results/archive/mock-run-pre-real-20260930-174523/evaluation.csv",
+      "sha256": "65e3ce1e7bf8ff1cd3d084137c6641b382dd71e37f22e87ccf0caf96572cbe9e",
+      "bytes": 2324
+    },
+    {
+      "path": "results/archive/mock-run-pre-real-20260930-174523/evaluation.json",
+      "sha256": "38a83f2fbf590b2ca6ded56d08a7c226f5ef50a3ac98f5e50edff23898be1852",
+      "bytes": 22122
+    },
+    {
+      "path": "results/archive/mock-run-pre-real-20260930-174523/repeated-evaluation-N2.json",
+      "sha256": "b9de6a7524f5781b51c7c360259817fe789ed8719ca3486df3b26979ce05e604",
+      "bytes": 3316
+    },
+    {
+      "path": "results/archive/smoke-tc01-harness-check/preflight-failed.json",
+      "sha256": "ee6d6bb1d8a0f53ac45501b737348e1112f06a3565c04c151dbadd02db01a4ef",
+      "bytes": 3235
+    },
+    {
+      "path": "results/archive/smoke-tc01-harness-check/run.json",
+      "sha256": "6936c6890f09ae5e31ee50b7798fb7d192343b78331e1da0b44b87b554fafad9",
+      "bytes": 10280
+    },
+    {
+      "path": "results/case-results.csv",
+      "sha256": "4727b644fa0425dc46fff30f24cb5c5c9b64d99de32230590086b792ba81c859",
+      "bytes": 9466
+    },
+    {
+      "path": "results/case-results.json",
+      "sha256": "3a4ee676232d2d53f78db9c08abef36fa3dabf55b9f0b3037bc0dc8ef4232988",
+      "bytes": 62149
+    },
+    {
+      "path": "results/compliance-results.json",
+      "sha256": "30e7b30ca0b5c2acbc2c2188fd9a2b79560de76eac3b8aaf55581f6871522205",
+      "bytes": 13283
+    },
+    {
+      "path": "results/evaluation-audit.json",
+      "sha256": "fef2978dc5c193f672d558901d97aebb0515e73c263be605a6a42615c0efd983",
+      "bytes": 111210
+    },
+    {
+      "path": "results/evaluation-audit.md",
+      "sha256": "6cf36e9a05613ddde03676416bf44d0076fbac613751b238f2d8072a277d2e78",
+      "bytes": 41152
+    },
+    {
+      "path": "results/evaluation-summary.md",
+      "sha256": "4ab6884f13b6f1c8bd5f61f5d78127b1c72c7b7c04a024a13375713c68eaeaf9",
+      "bytes": 23635
+    },
+    {
+      "path": "results/evaluation.csv",
+      "sha256": "2da014962aeef79aab2ca7e0dbc857680a3629b13d054bcb00dbf6b005bc6888",
+      "bytes": 2881
+    },
+    {
+      "path": "results/evaluation.json",
+      "sha256": "316f337bb59206de7929a1bb72888589a90781d219bd5fad6e15421770d10965",
+      "bytes": 17371
+    },
+    {
+      "path": "results/findings-and-limitations.md",
+      "sha256": "029088a20f5cfb4a942629fb1e77e071a03b93ad5544034bfe2e9565abc6f7c0",
+      "bytes": 12305
+    },
+    {
+      "path": "results/intervention-results.json",
+      "sha256": "48ddf354ef5083ba4d63ece31ebf46a6d4f61dae5d553135742ade27416b51fe",
+      "bytes": 12792
+    },
+    {
+      "path": "results/logs/clean-real-wazuh-20260930.log",
+      "sha256": "2eb7f7a336aca9e73f205acd59af509f8fe4b8070d710263a906b864ed692cb8",
+      "bytes": 4779
+    },
+    {
+      "path": "results/logs/clean-v2-real-wazuh-20260930.log",
+      "sha256": "dd94c44713f07c463af40bbf173b545815e9a6fdea76280beeb7e36ecbc0347e",
+      "bytes": 5161
+    },
+    {
+      "path": "results/logs/control-recurrence-real-wazuh-20260930.log",
+      "sha256": "979333da8e69f1f2e1940cc93610c8ca9f99df7d61f4a0e073a5dd1cd40b26b0",
+      "bytes": 1975
+    },
+    {
+      "path": "results/logs/intervention-v2-real-wazuh-20260930.log",
+      "sha256": "432febe96b712bd5f74af23f875c68e77036a6f5be12532e19e858cacf894427",
+      "bytes": 5894
+    },
+    {
+      "path": "results/logs/postfix-clean-real-wazuh-20260930.log",
+      "sha256": "71d9b04a5593f1a504052d1731e076a4c658211761a64a6cffdc9d3fd3f8b76e",
+      "bytes": 3164
+    },
+    {
+      "path": "results/runs/README.md",
+      "sha256": "9e3ac4d05088b4477e79720d728a73a98c0174dad5ff8eccc2eea08460ee170d",
+      "bytes": 1212
+    },
+    {
+      "path": "results/runs/clean-real-wazuh-20260930/run.json",
+      "sha256": "ee6c242bdc2e6d04eaf6b752ca96cf2922f659d21b50483cb8d6f94aae7ea87f",
+      "bytes": 64440
+    },
+    {
+      "path": "results/runs/clean-v2-real-wazuh-20260930/run.json",
+      "sha256": "28ba5f7cf49485e960c0a7eab8f3d4e320d6a4f8b030317ddb072ccec780252b",
+      "bytes": 68383
+    },
+    {
+      "path": "results/runs/control-recurrence-real-wazuh-20260930/run.json",
+      "sha256": "cf26e9614fb02cb551baf4c0c9c0da3c6a2e077452e1ac2946b6ed18412b6df6",
+      "bytes": 10479
+    },
+    {
+      "path": "results/runs/intervention-v2-real-wazuh-20260930/run.json",
+      "sha256": "83242f34695a502276eaa021c04ca414fa8b8f2a494c9aa2cdffa22b7f8d4917",
+      "bytes": 72885
+    },
+    {
+      "path": "results/runs/postfix-clean-real-wazuh-20260930/run.json",
+      "sha256": "dbd0925d75457913c976dc4cf1198e97e3d4492ad0a2504e9ee1b3b7899da5ce",
+      "bytes": 19130
+    },
+    {
+      "path": "results/timing-results.json",
+      "sha256": "79dbeffd197995644f962c8d868c4e445fb318767345d3a6225b53d5ddf95ae0",
+      "bytes": 10224
+    },
+    {
+      "path": "results/verification-results.json",
+      "sha256": "5bc6580429e45b07b717cf9a8e673f658395042d1e4638f1f665dd38051212e6",
+      "bytes": 20456
+    },
+    {
+      "path": "apps/backend/src/evaluation/groundTruthReal.ts",
+      "sha256": "8f97fa8f088e148a30a136d88f2558ced1e8726f2a38c90a6815aed0062b7c9f",
+      "bytes": 14833
+    },
+    {
+      "path": "apps/backend/src/evaluation/groundTruth.ts",
+      "sha256": "23fef05952fde9b4fd3052f93c1ff87dd10b068952f971cc6063f797d46cb5f2",
+      "bytes": 8229
+    },
+    {
+      "path": "apps/backend/src/evaluation/EvaluationService.ts",
+      "sha256": "be4debc7069cbe60ed6f24f7ff5faa9866731ff20a40532eecc087ac27a9b903",
+      "bytes": 17459
+    }
+  ],
+  "soar_eval": {
+    "alerts": 19,
+    "incidents": 19,
+    "recommendations": 17,
+    "response_plans": 17,
+    "approvals": 17,
+    "verifications": 13,
+    "audit_logs": 429,
+    "threat_intel_iocs": 53,
+    "evidence": 39
+  },
+  "soar_eval_last_audit_row": "2026-09-30 12:13:00.727",
+  "policies": 29,
+  "playbooks": 11,
+  "mitre": 26
+}

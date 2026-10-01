@@ -1,0 +1,334 @@
+{
+  "recordedAt": "2026-10-01T01:33:43.438745+00:00",
+  "phase": "pre",
+  "git": {
+    "branch": "feature/report-period-windows",
+    "commit": "cdfcaf7a5e90e2f5f438556b0a0e14e2fb828a15",
+    "commitSubject": "feat(evaluation): demo the real Wazuh re-hunt path (REAL_WAZUH)",
+    "backendLastCommit": "cdfcaf7a5e90e2f5f438556b0a0e14e2fb828a15",
+    "aiServiceLastCommit": "ac0a6119b5b13411df8247e15a7513d941d1c1ba",
+    "frontendLastCommit": "dd03028bc7054d6255332c6ef3cd1634565cd406",
+    "monorepo": "backend, AI service and frontend live in one repository (one commit)",
+    "workingTreeDirty": true,
+    "trackedModifiedFilesExcludingFrontend": [
+      "gitignore",
+      "apps/backend/src/application/incident/services/IncidentResponseSetupService.ts",
+      "apps/backend/src/application/incident/use-cases/GetIncidentAlertFacts.usecase.ts",
+      "apps/backend/src/application/recommendation/services/PlaybookSelector.ts",
+      "infra/docker/attack-endpoint/Dockerfile",
+      "infra/docker/attack-endpoint/ossec-agent.conf.append"
+    ],
+    "trackedDiffSha256": "dd57a2df7803d6cdeaf2c024d328f1f640d5921f2d3be49f8f8264bd9f85bed6",
+    "codeUnderTestFiles": {
+      "apps/backend/scripts/eval/additional/baseline.ts": "495c8a04b7fc6e5110a30929e0b9d2304f23d8f645a750aa750a701920dfdf59",
+      "apps/backend/scripts/eval/additional/build-paper-outputs.ts": "56eaaf26aaa19e11116b08540be2d6a0d59e32e9f0ab6fef872f28a82fe0c623",
+      "apps/backend/scripts/eval/additional/common.ts": "d9703dc622d5008aa0470488f9c2d76aff30083dfe0d3b04787e7ad4b7ac630f",
+      "apps/backend/scripts/eval/additional/consistency.ts": "2b26405bb0f0afb7a9d7e5001682d133dd127dc5021becc1f16cb2cb765963c7",
+      "apps/backend/scripts/eval/additional/merge-consistency.ts": "d279550986c4826dcab639211672715904b1db5dd80e577c7b27e0f0815572e1",
+      "apps/backend/scripts/eval/additional/negative.ts": "90d6dcb9ebf623dcb69a19955af43f96a0606d2b09df4f385904a8560432fffd",
+      "apps/backend/scripts/eval/audit-evaluation.ts": "27f0d248e28963d28232ce4102237fea84f3072fbef6764b5ea21390581b61e4",
+      "apps/backend/scripts/eval/build-audit-report.ts": "c2999e47369f6861d02b8def47828dc744932a78cfe984caec940e05212a3f85",
+      "apps/backend/scripts/eval/build-report.ts": "1007c51f4aa97dfe3da2594160261df605396d9cdaca8d66db76be2b21476744",
+      "apps/backend/scripts/eval/eval-env.sh": "a10b8af9dc69da8d64e64abf8e58774abc105e38eca7f00276399ee915fe31ac",
+      "apps/backend/scripts/eval/final/create-final-db.py": "8a386d333e8be6cf4a24875d3c8767a63208804cc227ec2243d0c3dd00899867",
+      "apps/backend/scripts/eval/final/pre-run-integrity.py": "093ada4e15ebd5c4532521ceb522ea3a3307bb3e55d4599addcb3789ea929f32",
+      "apps/backend/scripts/eval/final/reset-final-db.sql": "be96a522730316f1c86b05f5ff4079b13b042c84db45cd4c82d1adc76cbed3fd",
+      "apps/backend/scripts/eval/indexerClient.ts": "77193c0f221b45943db78651e1b08c0663b235b8a9e965572767becaae3c374f",
+      "apps/backend/scripts/eval/reset-eval-db.sql": "98845f7d450604d6ca1921dcdcbaea38659c94c635c213841277c50aea99855f",
+      "apps/backend/scripts/eval/run-real-evaluation.ts": "97eb6999047cf4b78b7609486e1a7c02e7044ab1f482cf78d7be85b10adb96b8",
+      "apps/backend/scripts/eval/simulations.ts": "7b1225dc9fe1bfd5daed6ddb20fa54d168ced6ad22d0f9f12153b7f0c2bca662",
+      "apps/backend/scripts/eval/wiring.ts": "e94d1c18fd9d1932a2a56ff82dd973f6f211dccd91dc28818c94bae3658c8335",
+      "apps/backend/src/application/incident/services/IncidentResponseSetupService.ts": "c098051a678bbc4c7a8cc5ded089d51a29322b89c56b84629b6c3add01064e2c",
+      "apps/backend/src/application/incident/use-cases/GetIncidentAlertFacts.usecase.ts": "92306c5978b3fc3c5ed0b804e21e4d71b052e8131bf7374e9bf5203add322a7d",
+      "apps/backend/src/application/recommendation/services/PlaybookSelector.ts": "17b9a543ff49157d555b811004f92aeb4d98659ce7929ff24a518203d097263f",
+      "apps/backend/src/evaluation/groundTruthReal.ts": "8f97fa8f088e148a30a136d88f2558ced1e8726f2a38c90a6815aed0062b7c9f",
+      "apps/backend/test/PlaybookSelectorTieBreak.test.ts": "73577d9f4e1abacce69f1e339bc56f292bb32cb30fc0678705e8d82384a6d52c",
+      "infra/docker/attack-endpoint/Dockerfile": "0fa2fd95157d6acce912712b31276429bb51133b170ce6e5c37dc2c7d43d6038",
+      "infra/docker/attack-endpoint/eval/sink.py": "452f13705a65284c98c7fae86e37d5b0adf2455d8fb23ba7486bd0e1656e7d75",
+      "infra/docker/attack-endpoint/ossec-agent.conf.append": "d634b31ee91fbcff9e716c21060d115a751ceaf2db0ba77b8500f90b5d5fa9bf",
+      "infra/docker/wazuh-manager/vigix_eval_decoders.xml": "1c6f35cb53ac8e721786062204f528d6625733bfa5acff63edd576913c57c27c",
+      "infra/docker/wazuh-manager/vigix_eval_rules.xml": "6e277934767125c7b4bb254187ee3f906425c3e58ff04f8b133132df488b805f"
+    },
+    "note": "The code under test includes UNCOMMITTED changes (listed above, with SHA-256). For a reproducible thesis the working tree should be committed before the final claims are made."
+  },
+  "llm": {
+    "configuredModel": "vllm-spark-01/gemma4-26b-uncensored",
+    "endpoint": "http://hg609vvgf6q.sn.mynetname.net:8080/v1",
+    "endpointNote": "self-hosted OpenAI-compatible vLLM; the orchestrator uses LlamaProvider(LLM_BASE_URL, LLM_MODEL) — OpenRouter is not on this path",
+    "endpointReachable": true,
+    "modelOffered": {
+      "id": "vllm-spark-01/gemma4-26b-uncensored",
+      "created": 1790818426,
+      "owned_by": "vllm"
+    },
+    "endpointVersion": "endpoint does not expose /version",
+    "timeoutSeconds": "120",
+    "modelsOnEndpoint": [
+      "vllm-msi-01/qwen3-coder",
+      "vllm-msi-02/google/gemma-4-31B-it",
+      "vllm-msi-03-huihui-gptoss/huihui-gpt-oss-120b-abliterated-mxfp4-moe-gguf",
+      "vllm-msi-03-huihui-qwen3coder/huihui-qwen3-coder-30b-a3b-instruct-abliterated-gguf",
+      "vllm-msi-04/muse-glimmer-30b-gguf",
+      "vllm-msi-05-8001/gemma-4-31b-it-abliterated-gguf",
+      "vllm-msi-06/qwen3-coder-next",
+      "vllm-spark-01/gemma4-26b-uncensored",
+      "vllm-spark-02-8081/qwen3-6-35b-uncensored",
+      "vllm-spark-03-embedding/qwen3-embedding-8b",
+      "vllm-spark-04-embedding/qwen3-embedding-8b",
+      "vllm-spark-04-reranker/qwen3-reranker-4b"
+    ]
+  },
+  "qdrant": {
+    "version": "1.19.1",
+    "commit": "6ab21cac18ebb6f4ae29102c7f8f5cc11affd5de",
+    "collections": [],
+    "note": "EMPTY: RAG retrieval returns status=not_found / chunks=[] (also in the frozen runs). The final evaluation keeps this state by decision of the owner; the RAG stage is therefore NOT evaluated."
+  },
+  "misp": {
+    "containerStatus": "Up 5 minutes (health: starting)",
+    "note": "CTI provider 'misp' returned status FAILED / verdict UNKNOWN in the frozen runs; its state at run time is recorded here and per analysis in the database."
+  },
+  "wazuh": {
+    "manager": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\"",
+    "agentOnEndpoint": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"agent\"",
+    "attackEndpointAgent": [
+      "ID: 009, Name: attack-endpoint, IP: any, Active"
+    ],
+    "daemons": {
+      "wazuh-clusterd": true,
+      "wazuh-modulesd": true,
+      "wazuh-monitord": true,
+      "wazuh-logcollector": true,
+      "wazuh-remoted": true,
+      "wazuh-syscheckd": true,
+      "wazuh-analysisd": true,
+      "wazuh-maild": true,
+      "wazuh-execd": true,
+      "wazuh-db": true,
+      "wazuh-authd": true,
+      "wazuh-agentlessd": true,
+      "wazuh-integratord": true,
+      "wazuh-dbd": true,
+      "wazuh-csyslogd": true,
+      "wazuh-apid": true
+    },
+    "customRuleFiles": {
+      "/var/ossec/etc/rules/vigix_eval_rules.xml": {
+        "managerSha256": "6e277934767125c7b4bb254187ee3f906425c3e58ff04f8b133132df488b805f",
+        "repoSha256": "6e277934767125c7b4bb254187ee3f906425c3e58ff04f8b133132df488b805f",
+        "same": true
+      },
+      "/var/ossec/etc/decoders/vigix_eval_decoders.xml": {
+        "managerSha256": "1c6f35cb53ac8e721786062204f528d6625733bfa5acff63edd576913c57c27c",
+        "repoSha256": "1c6f35cb53ac8e721786062204f528d6625733bfa5acff63edd576913c57c27c",
+        "same": true
+      }
+    }
+  },
+  "frozenFiles": {
+    "results/case-results.csv": "4727b644fa0425dc46fff30f24cb5c5c9b64d99de32230590086b792ba81c859",
+    "results/case-results.json": "3a4ee676232d2d53f78db9c08abef36fa3dabf55b9f0b3037bc0dc8ef4232988",
+    "results/compliance-results.json": "30e7b30ca0b5c2acbc2c2188fd9a2b79560de76eac3b8aaf55581f6871522205",
+    "results/evaluation-audit.json": "fef2978dc5c193f672d558901d97aebb0515e73c263be605a6a42615c0efd983",
+    "results/evaluation-audit.md": "6cf36e9a05613ddde03676416bf44d0076fbac613751b238f2d8072a277d2e78",
+    "results/evaluation-summary.md": "4ab6884f13b6f1c8bd5f61f5d78127b1c72c7b7c04a024a13375713c68eaeaf9",
+    "results/evaluation.csv": "2da014962aeef79aab2ca7e0dbc857680a3629b13d054bcb00dbf6b005bc6888",
+    "results/evaluation.json": "316f337bb59206de7929a1bb72888589a90781d219bd5fad6e15421770d10965",
+    "results/findings-and-limitations.md": "029088a20f5cfb4a942629fb1e77e071a03b93ad5544034bfe2e9565abc6f7c0",
+    "results/intervention-results.json": "48ddf354ef5083ba4d63ece31ebf46a6d4f61dae5d553135742ade27416b51fe",
+    "results/timing-results.json": "79dbeffd197995644f962c8d868c4e445fb318767345d3a6225b53d5ddf95ae0",
+    "results/verification-results.json": "5bc6580429e45b07b717cf9a8e673f658395042d1e4638f1f665dd38051212e6",
+    "results/additional-evaluation/CORRECTIONS.md": "2004e4c4bbe594db8bec07c0cab1d5057dbbba40b595e69439dbbda4d36c9ee1",
+    "results/additional-evaluation/figure-captions.md": "9a0f0ba8b5daaf6713dedb705c107ec5ec1a339431934a4dfa837f05aec57ce5",
+    "results/additional-evaluation/figure-data.json": "f9e96d83ba5c6f8783d9759f041f4d0151be96e164697bde2e1c12538ddfe52a",
+    "results/additional-evaluation/frozen-manifest.json": "80c571c9ad93343951a9934c1805ed8fe59ac90f8cdc6ca20ca640c3cfd9fc06",
+    "results/additional-evaluation/frozen-verification.json": "97b1f4a94fc02588c0dfbde2acfa03888c0b9c00e633d9ce4c543bd004374300",
+    "results/additional-evaluation/generate-paper-figures.py": "3bffbdde9b9106c109c4b45030e283d7817a93515b9a2d67d86e0ff4cfaa1649",
+    "results/additional-evaluation/paper-metrics.json": "e034e13a41f0b6b2ab00bebb53d5641f21703539c40216e8ad543f1650ad948a",
+    "results/additional-evaluation/paper-results-narrative.md": "58b58342562c22c400cc2178453e93950b7e778e8d53679241a1f7fc5bc1974e",
+    "results/additional-evaluation/paper-results.md": "aef716c12f96c135ffc3b6b90c201f6e6eeba5332cb97a2a2373546a67a29769",
+    "results/additional-evaluation/README.md": "018bc41922c3a8c64261bb91e85cf1b38b2da6b5853ba46f2644acf15cb67e66",
+    "results/additional-evaluation/data/baseline.json": "063d6b94136ff475819d9f0cc16b8ea5daeb1f80589bd98e14b1459b3367902e",
+    "results/additional-evaluation/data/consistency-attempt1-raw-candidates.json": "e71272dc4aeeff6d104c0ef9ccf5754a47f72fc5ed509cb865a9b6d9fb7e12a8",
+    "results/additional-evaluation/data/consistency-attempt1.json": "5266aaf1db26ff3edef3bfb2809a3979ba46546a2392b9e0587f39f50d9b2628",
+    "results/additional-evaluation/data/consistency-attempt1.log": "089adf0a4a144c9faf90a2bd775b62a22d2b5ee29b5c071a281b9103147f54bf",
+    "results/additional-evaluation/data/consistency-rerun-tc09-outage-raw-candidates.json": "daca9d40fbd3d5d56cb33ad10c85a4273af7d885ada5195c48e61e7a8eea90da",
+    "results/additional-evaluation/data/consistency-rerun-tc09-outage.json": "1e6e8819437ea12a5a52edeb53ce329be45b348389a1e1c71595ed469946c6e2",
+    "results/additional-evaluation/data/consistency-rerun-tc09-outage.log": "177d1b065bbd9f02444abc4dca81f841d3a41bb96b0f7180c6c5609b0179e72f",
+    "results/additional-evaluation/data/consistency-rerun-tc09-raw-candidates.json": "36463b76c6302ea949583d4a157adf88d57d3ac7479bbd82361ba6ec2f509b48",
+    "results/additional-evaluation/data/consistency-rerun-tc09.json": "67b3d8cb347273207874f66abfcb4e3b6da380552e153cfc3f79f551de7b84f5",
+    "results/additional-evaluation/data/consistency-rerun-tc09.log": "16487b6ef5dc635cb9081b366d6ac59f81b7e062fbba4ce915156042bfd82850",
+    "results/additional-evaluation/data/consistency.json": "135ec263bb0b8cdb8eead27a05c5015669372cf97470e79a75054b6fa62023ff",
+    "results/additional-evaluation/data/negative.json": "040a6cb5b52c6e54904c3daeab8c1eb877b7c333b9af6e4d710d0a604f841b07",
+    "results/additional-evaluation/data/pip-install.log": "e9423da8095473b28d47bb1ae00040c709bb12b3a0a4cca7d73ffe3facd4d694",
+    "results/additional-evaluation/figures/figure1_main_metrics.pdf": "0829ed11580d6e35413aa8165d43596c09f55f349e99b73d224548815db2c1e7",
+    "results/additional-evaluation/figures/figure1_main_metrics.png": "801216ea20efbdfbf61a83e23c201524682563c541d30245a69653a7066f9d85",
+    "results/additional-evaluation/figures/figure2_clean_vs_intervention.pdf": "646ba30fadd062742b822e36b1a393c74999e5edeadc797ecef97ce15f33649e",
+    "results/additional-evaluation/figures/figure2_clean_vs_intervention.png": "9e614f1d49e47e8ba930f1d2f80f1ea4c0e23c4ccb33ea6026abbdd891ae8831",
+    "results/additional-evaluation/figures/figure3_investigation_time.pdf": "52be73be4f05b24e6edaaa171818f3637055b43fc369abb4e575bcb5883060b7",
+    "results/additional-evaluation/figures/figure3_investigation_time.png": "5186fed4da4b887a04948686943f42ca1dc6731ef6466cb411bc4be7f3354c2b",
+    "results/additional-evaluation/figures/figure4_recommendation_consistency.pdf": "2991bb6892f7d384c4c52106b77fac1ee88fb1d606832ea4c5e19765199a75fa",
+    "results/additional-evaluation/figures/figure4_recommendation_consistency.png": "bbb27b95a7274dc524d62fc554aac2c17d1fb58a4bd4c5b07c3db13a25e5238b",
+    "results/additional-evaluation/figures/figure5_verification_outcomes.pdf": "9216c103b316a00d0227eb8c15de56c5bb61e485a3f3865ef6811618ea9c4bba",
+    "results/additional-evaluation/figures/figure5_verification_outcomes.png": "b3830ce1e2f9228275954bc977528a2869221395f25fafea3f600d25a6ee0f89",
+    "results/additional-evaluation/figures/figure6_negative_validation.pdf": "7c495b8a679d495334f3bfe131011764827c52a775ef6ec591e5ec6de1a90308",
+    "results/additional-evaluation/figures/figure6_negative_validation.png": "95e3af48f34383c9f09c866598efd008e2c95a72493a3f0eb3b7718be405d23e",
+    "results/archive/mock-run-pre-real-20260930-174523/evaluation.csv": "65e3ce1e7bf8ff1cd3d084137c6641b382dd71e37f22e87ccf0caf96572cbe9e",
+    "results/archive/mock-run-pre-real-20260930-174523/evaluation.json": "38a83f2fbf590b2ca6ded56d08a7c226f5ef50a3ac98f5e50edff23898be1852",
+    "results/archive/mock-run-pre-real-20260930-174523/repeated-evaluation-N2.json": "b9de6a7524f5781b51c7c360259817fe789ed8719ca3486df3b26979ce05e604",
+    "results/archive/smoke-tc01-harness-check/preflight-failed.json": "ee6d6bb1d8a0f53ac45501b737348e1112f06a3565c04c151dbadd02db01a4ef",
+    "results/archive/smoke-tc01-harness-check/run.json": "6936c6890f09ae5e31ee50b7798fb7d192343b78331e1da0b44b87b554fafad9",
+    "results/logs/clean-real-wazuh-20260930.log": "2eb7f7a336aca9e73f205acd59af509f8fe4b8070d710263a906b864ed692cb8",
+    "results/logs/clean-v2-real-wazuh-20260930.log": "dd94c44713f07c463af40bbf173b545815e9a6fdea76280beeb7e36ecbc0347e",
+    "results/logs/control-recurrence-real-wazuh-20260930.log": "979333da8e69f1f2e1940cc93610c8ca9f99df7d61f4a0e073a5dd1cd40b26b0",
+    "results/logs/intervention-v2-real-wazuh-20260930.log": "432febe96b712bd5f74af23f875c68e77036a6f5be12532e19e858cacf894427",
+    "results/logs/postfix-clean-real-wazuh-20260930.log": "71d9b04a5593f1a504052d1731e076a4c658211761a64a6cffdc9d3fd3f8b76e",
+    "results/runs/README.md": "9e3ac4d05088b4477e79720d728a73a98c0174dad5ff8eccc2eea08460ee170d",
+    "results/runs/clean-real-wazuh-20260930/run.json": "ee6c242bdc2e6d04eaf6b752ca96cf2922f659d21b50483cb8d6f94aae7ea87f",
+    "results/runs/clean-v2-real-wazuh-20260930/run.json": "28ba5f7cf49485e960c0a7eab8f3d4e320d6a4f8b030317ddb072ccec780252b",
+    "results/runs/control-recurrence-real-wazuh-20260930/run.json": "cf26e9614fb02cb551baf4c0c9c0da3c6a2e077452e1ac2946b6ed18412b6df6",
+    "results/runs/intervention-v2-real-wazuh-20260930/run.json": "83242f34695a502276eaa021c04ca414fa8b8f2a494c9aa2cdffa22b7f8d4917",
+    "results/runs/postfix-clean-real-wazuh-20260930/run.json": "dbd0925d75457913c976dc4cf1198e97e3d4492ad0a2504e9ee1b3b7899da5ce",
+    "apps/backend/src/evaluation/groundTruth.ts": "23fef05952fde9b4fd3052f93c1ff87dd10b068952f971cc6063f797d46cb5f2",
+    "apps/backend/src/evaluation/groundTruthReal.ts": "8f97fa8f088e148a30a136d88f2558ced1e8726f2a38c90a6815aed0062b7c9f",
+    "apps/backend/src/evaluation/EvaluationService.ts": "be4debc7069cbe60ed6f24f7ff5faa9866731ff20a40532eecc087ac27a9b903",
+    "apps/backend/src/evaluation/types.ts": "b0bc654a0078b786201cdf6d56f2bb4a4066c5132ff24e6d1586a478f2852d71"
+  },
+  "groundTruth": {
+    "file": "apps/backend/src/evaluation/groundTruthReal.ts",
+    "fileSha256": "8f97fa8f088e148a30a136d88f2558ced1e8726f2a38c90a6815aed0062b7c9f",
+    "sha256RecordedInFrozenRuns": {
+      "clean-v2-real-wazuh-20260930": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "intervention-v2-real-wazuh-20260930": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "control-recurrence-real-wazuh-20260930": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056"
+    },
+    "note": "the hash inside run.json is the SHA-256 of JSON.stringify(REAL_GROUND_TRUTH) — recomputed by the evaluation runner and compared at run time"
+  },
+  "databases": {
+    "present": [
+      "soar_addl_eval",
+      "soar_eval",
+      "soar_final_eval",
+      "soar_platform"
+    ],
+    "frozenEvaluationDb": "soar_eval",
+    "isProduction": false,
+    "rowCountsFrozenDb": {
+      "alerts": 19,
+      "incidents": 19,
+      "investigations": 20,
+      "recommendations": 17,
+      "approvals": 17,
+      "response_plans": 17,
+      "verifications": 13,
+      "audit_logs": 429,
+      "threat_intel_iocs": 53,
+      "evidence": 39
+    },
+    "developmentDbCounts": {
+      "alerts": 260,
+      "incidents": 39
+    },
+    "knowledgeBaseChecksumsFrozenDb": {
+      "actions": "14:8de3b5280fd61dbb3e669d92552f90ef",
+      "playbooks": "11:900c57850482af21bc60097b4af2d088",
+      "playbook_steps": "36:8110433b9dbcc6e6426dc929e8db3f41",
+      "policies": "29:8641b3e8dbc9feb9bf77987c5abc7a01",
+      "policy_rules": "29:f64c9b1f3c16d6ba64b930de75ab449f",
+      "runbooks": "17:7242472bbb475bb0dfaf666dc68426aa",
+      "mitre_techniques": "26:f711c2ade31569ba50848b4dc08f2529"
+    },
+    "knowledgeBaseChecksumsFinalDb": {
+      "actions": "14:8de3b5280fd61dbb3e669d92552f90ef",
+      "playbooks": "11:900c57850482af21bc60097b4af2d088",
+      "playbook_steps": "36:8110433b9dbcc6e6426dc929e8db3f41",
+      "policies": "29:8641b3e8dbc9feb9bf77987c5abc7a01",
+      "policy_rules": "29:f64c9b1f3c16d6ba64b930de75ab449f",
+      "runbooks": "17:7242472bbb475bb0dfaf666dc68426aa",
+      "mitre_techniques": "26:f711c2ade31569ba50848b4dc08f2529"
+    },
+    "finalDbRows": {
+      "alerts": 0,
+      "incidents": 0,
+      "recommendations": 0,
+      "verifications": 0
+    }
+  },
+  "backups": {
+    "backups/db/soar_eval-after-clean-run-20260930.sql": {
+      "sha256": "a6b9d2eaf2a82ed33c454c5fdec2f0a8b36075f6c4ec019992f515f970f17259",
+      "bytes": 1112495,
+      "restorable": null
+    },
+    "backups/db/soar_eval-after-run1-and-postfix-20260930.sql": {
+      "sha256": "82a1b5b91bc249915052c2fa72119ca486163d71be371c4363ea91c1f906734a",
+      "bytes": 1393007,
+      "restorable": null
+    },
+    "backups/db/soar_eval-frozen-before-additional-20260930.sql": {
+      "sha256": "fbfb572954ba9983d3bb599a9a814539446fb4e39d1ebf8e919517c136908544",
+      "bytes": 3047164,
+      "restorable": "verified by restoring into a scratch database and comparing row counts (see create-final-db output)"
+    },
+    "backups/db/soar_platform-pre-eval-20260930-174523.sql": {
+      "sha256": "1d83de7150ed8f348651d58d5ebdce9d9f7401a9730e850b9c148c1b422027fd",
+      "bytes": 8170726,
+      "restorable": null
+    }
+  },
+  "checks": [
+    {
+      "check": "git commit recorded",
+      "ok": true,
+      "detail": "feature/report-period-windows @ cdfcaf7a5e90 (dirty=True)"
+    },
+    {
+      "check": "LLM model offered by the endpoint",
+      "ok": true,
+      "detail": "vllm-spark-01/gemma4-26b-uncensored owned_by=vllm"
+    },
+    {
+      "check": "Qdrant reachable",
+      "ok": true,
+      "detail": "1.19.1"
+    },
+    {
+      "check": "Wazuh 4.9.2 + agent active",
+      "ok": true,
+      "detail": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"se | ['ID: 009, Name: attack-endpoint, IP: any, Active']"
+    },
+    {
+      "check": "custom Wazuh rules/decoders on the manager equal the repo (unchanged)",
+      "ok": true,
+      "detail": "{\"vigix_eval_rules.xml\": true, \"vigix_eval_decoders.xml\": true}"
+    },
+    {
+      "check": "previous frozen manifest (31 files) unchanged",
+      "ok": true,
+      "detail": "31 files, changed=[]"
+    },
+    {
+      "check": "Knowledge Base of the final DB identical to the frozen DB (actions, playbooks, steps, policies, rules, runbooks, MITRE)",
+      "ok": true,
+      "detail": "{\"actions\": \"14:8de3b5280fd61dbb3e669d92552f90ef\", \"playbooks\": \"11:900c57850482af21bc60097b4af2d088\", \"playbook_steps\": \"36:8110433b9dbcc6e6426dc929e8db3f41\", "
+    },
+    {
+      "check": "evaluation database is not production",
+      "ok": true,
+      "detail": "frozen soar_eval / final soar_final_eval; development soar_platform untouched: {\"alerts\": 260, \"incidents\": 39}"
+    },
+    {
+      "check": "development DB unchanged (260 alerts / 39 incidents)",
+      "ok": true,
+      "detail": {
+        "alerts": 260,
+        "incidents": 39
+      }
+    },
+    {
+      "check": "database backup present",
+      "ok": true,
+      "detail": "4 dump files hashed"
+    }
+  ]
+}

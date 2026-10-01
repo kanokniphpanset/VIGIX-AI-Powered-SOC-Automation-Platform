@@ -1,0 +1,548 @@
+{
+  "generatedAt": "2026-09-30T13:13:16.032Z",
+  "frozenSource": "results/evaluation-audit.json",
+  "frozenValueCheck": "17/17 quoted values identical to the audit",
+  "corrections": [
+    {
+      "id": "C1-LLM-identity",
+      "affects_frozen_files_without_modifying_them": [
+        "results/findings-and-limitations.md",
+        "results/evaluation-summary.md",
+        "results/evaluation-audit.md",
+        "results/runs/*/run.json (preflight.env.llm)"
+      ],
+      "earlier_statement": "LLM: provider openrouter, model google/gemma-4-26b-a4b-it (assumed; LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env)",
+      "verified_fact": "The orchestrator's analysis and recommendation calls use LlamaProvider(settings.llm_base_url, settings.llm_model, …) only; the model recorded in all 19 llm_analyst results of the frozen database is 'vllm-spark-01/gemma4-26b-uncensored' on a self-hosted OpenAI-compatible vLLM endpoint; 'google/gemma' appears in none of them. OPENROUTER_* settings are not used on that path.",
+      "effect_on_numbers": "none — no metric was computed from the provider name; only the description of the environment changes",
+      "how_verified": "source read (apps/ai-orchestrator/src/api/routes/recommendations.py, agents/llm_analyst_agent/agent.py, config/settings.py) and a query of agent_results.output in soar_eval"
+    }
+  ],
+  "terminology": "Recommendation Compliance / Consistency, Evidence Coverage, Playbook Alignment, Policy Compliance, Workflow Completion, Verification Outcome, Recurrence Detection — never 'accuracy'; RESOLVED = the verification procedure did not detect the specified recurrence condition within the tested window (not proof of eradication).",
+  "conditions": {
+    "real_wazuh": "Clean Run v2 and Intervention Run v2 (frozen)",
+    "baseline": "controlled procedural baseline (new)",
+    "consistency": "repeated recommendation generation on identical evidence (new)",
+    "negative": "controlled invalid recommendations and governance gates (new)",
+    "previous_mock": "NOT used anywhere in this file (kept separately in results/evaluation.json)"
+  },
+  "metrics": {
+    "recommendation_compliance": {
+      "clean_run__among_evaluated": {
+        "value": 100,
+        "numerator": 7,
+        "denominator": 7,
+        "population": "recommendations that passed the validator and were scored (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.recommendationCompliance",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Share of validated recommendations satisfying all six deterministic criteria (attack alignment, evidence support, knowledge validity, policy compliance, playbook alignment, approval correctness). Not accuracy.",
+        "limitation": "10 predefined test cases (9 evaluable; TC-05 needs a Windows endpoint that does not exist); one run per condition; not representative of all SOC situations. Cases that produced no valid recommendation (TC-03, TC-08) are outside this denominator."
+      },
+      "clean_run__among_attempted": {
+        "value": 77.78,
+        "numerator": 7,
+        "denominator": 9,
+        "population": "all attempted cases (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.recommendationCompliance",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Same numerator over every attempted case; a case with no valid recommendation counts as not compliant.",
+        "limitation": "10 predefined test cases (9 evaluable; TC-05 needs a Windows endpoint that does not exist); one run per condition; not representative of all SOC situations."
+      },
+      "intervention_run__among_evaluated": {
+        "value": 100,
+        "numerator": 9,
+        "denominator": 9,
+        "population": "recommendations scored after analyst IOC correction (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.recommendationCompliance",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "Compliance of an analyst-assisted condition; must be reported next to the Clean Run and never as unaided performance.",
+        "limitation": "10 predefined test cases (9 evaluable; TC-05 needs a Windows endpoint that does not exist); one run per condition; not representative of all SOC situations. The analyst is a fixed script."
+      }
+    },
+    "evidence_coverage": {
+      "clean_run__per_attempted_case": {
+        "value": 77.78,
+        "numerator": 7,
+        "denominator": 9,
+        "population": "attempted cases (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.evidenceCoverage",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Cases whose recommendation has every step target evidence-backed (evidence-linked IOC, analyst-added IOC or affected host); cases without a validator-passing recommendation count as not covered.",
+        "limitation": "Membership test, not semantic: a step aimed at the endpoint's own IP (TC-07) is counted as covered. Per-recommendation coverage is 100% by construction of the validator and is not reported as a result."
+      },
+      "intervention_run__per_attempted_case": {
+        "value": 100,
+        "numerator": 9,
+        "denominator": 9,
+        "population": "attempted cases (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.evidenceCoverage",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above, after analyst IOC correction.",
+        "limitation": "As above; obtained with analyst intervention."
+      }
+    },
+    "playbook_alignment": {
+      "clean_run": {
+        "value": 100,
+        "numerator": 7,
+        "denominator": 7,
+        "population": "validated recommendations (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.playbookAlignment",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Selected playbook equals the ground-truth playbook and every action is inside it.",
+        "limitation": "Measured after a PlaybookSelector tie-break defect (TC-09 chose PB-C2) was fixed; that defect and fix are disclosed in the main evaluation findings."
+      },
+      "intervention_run": {
+        "value": 100,
+        "numerator": 9,
+        "denominator": 9,
+        "population": "validated recommendations (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.playbookAlignment",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above."
+      }
+    },
+    "policy_compliance": {
+      "clean_run": {
+        "value": 100,
+        "numerator": 7,
+        "denominator": 7,
+        "population": "validated recommendations (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.policyCompliance",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Step approval flag equals the Policy snapshot and a responsible role is present.",
+        "limitation": "Current Policy implementation is the source of truth; negative policy behaviour is covered separately in the negative validation."
+      },
+      "intervention_run": {
+        "value": 100,
+        "numerator": 9,
+        "denominator": 9,
+        "population": "validated recommendations (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.policyCompliance",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above."
+      }
+    },
+    "workflow_completion": {
+      "clean_run": {
+        "value": 55.56,
+        "numerator": 5,
+        "denominator": 9,
+        "population": "attempted cases (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.workflowCompletion",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "All 11 workflow steps present in the database through a stored verification; does not mean RESOLVED.",
+        "limitation": "Incomplete cases: 2 without a valid recommendation, 2 whose re-hunt had no searchable IOC."
+      },
+      "intervention_run": {
+        "value": 77.78,
+        "numerator": 7,
+        "denominator": 9,
+        "population": "attempted cases (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.workflowCompletion",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "Incomplete cases: 2 whose re-hunt had no searchable IOC."
+      }
+    },
+    "investigation_time": {
+      "clean_run": {
+        "value": 40.27,
+        "numerator": 281.89,
+        "denominator": 7,
+        "population": "cases with a recommendation (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.investigationTime",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "T_recommendation − T_investigation_start, uninterrupted scripted run; includes third-party LLM latency.",
+        "limitation": "Excludes the two cases with no valid recommendation (right-censored); no human in the loop.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 33.79,
+        "sd": 26.61,
+        "min": 22.32,
+        "max": 98.12,
+        "n": 7,
+        "numerator_meaning": "sum of the measured durations (s)"
+      },
+      "intervention_run": {
+        "value": 72.23,
+        "numerator": 650.05,
+        "denominator": 9,
+        "population": "cases with a recommendation (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.investigationTime",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above, including retry rounds and the analyst-correction step.",
+        "limitation": "As above.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 46.46,
+        "sd": 79.55,
+        "min": 22.07,
+        "max": 265.41,
+        "n": 9,
+        "numerator_meaning": "sum of the measured durations (s)"
+      }
+    },
+    "detection_to_response": {
+      "clean_run__from_vigix_ingest": {
+        "value": 40.39,
+        "numerator": null,
+        "denominator": 7,
+        "population": "executed responses (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.detectionToResponse.fromVigixIngest",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "T_response_start − T_alert_received_by_VIGIX; includes LLM latency and a scripted SOC/IR step.",
+        "limitation": "Webhook (custom-vigix → backend) latency was not part of the evaluation path.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 33.9,
+        "sd": 26.61,
+        "min": 22.41,
+        "max": 98.25,
+        "n": 7
+      },
+      "intervention_run__from_vigix_ingest": {
+        "value": 72.34,
+        "numerator": null,
+        "denominator": 9,
+        "population": "executed responses (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.detectionToResponse.fromVigixIngest",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 46.57,
+        "sd": 79.55,
+        "min": 22.18,
+        "max": 265.52,
+        "n": 9
+      }
+    },
+    "verification_time": {
+      "clean_run": {
+        "value": 0.03,
+        "numerator": null,
+        "denominator": 5,
+        "population": "stored verifications (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.verificationTime.total",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "REHUNT_STARTED → verification stored (Wazuh Indexer query plus verification); total only.",
+        "limitation": "Query and processing time cannot be separated; small index; excludes the harness' indexer-refresh wait.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 0.03,
+        "sd": 0.01,
+        "min": 0.02,
+        "max": 0.04,
+        "n": 5
+      },
+      "intervention_run": {
+        "value": 0.03,
+        "numerator": null,
+        "denominator": 7,
+        "population": "stored verifications (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.verificationTime.total",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 0.03,
+        "sd": 0.01,
+        "min": 0.02,
+        "max": 0.04,
+        "n": 7
+      }
+    },
+    "intervention_rate": {
+      "clean_run": {
+        "value": 0,
+        "numerator": 0,
+        "denominator": 9,
+        "population": "attempted cases (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.interventionRate",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "0% by construction: no correction is allowed in a Clean Run; blocked cases are counted as failures instead.",
+        "limitation": "10 predefined test cases (9 evaluable; TC-05 needs a Windows endpoint that does not exist); one run per condition; not representative of all SOC situations."
+      },
+      "intervention_run": {
+        "value": 22.22,
+        "numerator": 2,
+        "denominator": 9,
+        "population": "attempted cases (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.interventionRate",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "Cases in which an analyst IOC correction was needed (TC-03 e-mail, TC-08 process/command).",
+        "limitation": "The analyst is a fixed script, not a human judgement."
+      }
+    },
+    "retry_rate": {
+      "clean_run": {
+        "value": 22.22,
+        "numerator": 2,
+        "denominator": 9,
+        "population": "attempted cases (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.retry",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Cases with at least one failed generation call. Total retry count is a count, not a percentage.",
+        "limitation": "Retry counts of the two blocked cases are censored at the harness cap of 5.",
+        "total_retry_count": 10,
+        "average_retries_per_case": 1.11,
+        "per_case": {
+          "TC-01": 0,
+          "TC-02": 0,
+          "TC-03": 5,
+          "TC-04": 0,
+          "TC-06": 0,
+          "TC-07": 0,
+          "TC-08": 5,
+          "TC-09": 0,
+          "TC-10": 0
+        }
+      },
+      "intervention_run": {
+        "value": 22.22,
+        "numerator": 2,
+        "denominator": 9,
+        "population": "attempted cases (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.retry",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above.",
+        "total_retry_count": 6,
+        "average_retries_per_case": 0.67,
+        "per_case": {
+          "TC-01": 0,
+          "TC-02": 0,
+          "TC-03": 3,
+          "TC-04": 0,
+          "TC-06": 0,
+          "TC-07": 0,
+          "TC-08": 3,
+          "TC-09": 0,
+          "TC-10": 0
+        }
+      }
+    },
+    "verification_outcomes": {
+      "clean_run": {
+        "value": {
+          "RESOLVED": 5,
+          "ERROR": 2
+        },
+        "numerator": 5,
+        "denominator": 7,
+        "population": "cases with a completed (simulated) response (Clean Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-clean.verificationEffectiveness",
+        "run_id": "clean-v2-real-wazuh-20260930",
+        "interpretation": "Outcome distribution of the real re-hunt. RESOLVED = the verification procedure did not detect the specified recurrence condition within the tested verification window. ERROR = the re-hunt could not run (no searchable IOC).",
+        "limitation": "Not proof of eradication or containment: responses were simulated, each attack ran once, and only IP/domain/URL/hash IOCs are searchable."
+      },
+      "intervention_run": {
+        "value": {
+          "RESOLVED": 7,
+          "ERROR": 2
+        },
+        "numerator": 7,
+        "denominator": 9,
+        "population": "cases with a completed (simulated) response (Intervention Run v2)",
+        "source": "results/evaluation-audit.json#kpi.real-intervention.verificationEffectiveness",
+        "run_id": "intervention-v2-real-wazuh-20260930",
+        "interpretation": "As above.",
+        "limitation": "As above."
+      }
+    },
+    "recurrence_detection": {
+      "control_tc01": {
+        "value": {
+          "result": "NOT_RESOLVED",
+          "matching_events": 29,
+          "ioc_recurrence": true,
+          "threat_contained": false,
+          "spread_detected": false,
+          "incident_status": "investigating",
+          "investigations": [
+            "#1:COMPLETED",
+            "#2:ACTIVE"
+          ]
+        },
+        "numerator": 1,
+        "denominator": 1,
+        "population": "single control: the TC-01 attack repeated after the simulated response",
+        "source": "results/evaluation-audit.json#control",
+        "run_id": "control-recurrence-real-wazuh-20260930",
+        "interpretation": "The real re-hunt detected the recurring attacker IP (29 matching events) and returned NOT_RESOLVED; the incident stayed open and Investigation #2 was opened by Policy.",
+        "limitation": "One positive control on one case and one IOC type; no negative control, no spread-detection test."
+      }
+    },
+    "baseline_investigation_time": {
+      "controlled_procedural_baseline": {
+        "value": 0.013,
+        "numerator": 0.119,
+        "denominator": 9,
+        "population": "9 evaluable cases, same alerts as the Clean Run",
+        "source": "results/additional-evaluation/data/baseline.json",
+        "run_id": "additional-baseline-20260930T124932",
+        "interpretation": "Wall-clock duration of a deterministic, non-AI procedure (evidence collection from the Wazuh Indexer → alert-declared MITRE → playbook lookup → response plan). Same interval definition as VIGIX Investigation Time (investigation start → a proposed response is available), but different content: no LLM stage.",
+        "limitation": "Machine procedure latency, NOT human analyst performance; must not be read as a real-world baseline or a speed-up claim.",
+        "unit": "seconds",
+        "statistic": "mean",
+        "median": 0.01,
+        "sd": 0.009,
+        "min": 0.008,
+        "max": 0.036,
+        "n": 9,
+        "numerator_meaning": "sum of the measured durations (s)"
+      }
+    },
+    "baseline_decision_latency": {
+      "controlled_procedural_baseline": {
+        "value": null,
+        "numerator": null,
+        "denominator": 0,
+        "population": "9 evaluable cases",
+        "source": "results/additional-evaluation/data/baseline.json",
+        "run_id": "additional-baseline-20260930T124932",
+        "interpretation": "NOT MEASURED (NULL). The baseline has no approval workflow instance and no human participant; a decision latency would have to be invented.",
+        "limitation": "No baseline decision latency exists; VIGIX Time-to-Decision (a scripted approval, ≈0.06 s) is therefore not compared with anything.",
+        "n": 0,
+        "null_reason": "no human or approval instance in the baseline; reaction time is not invented"
+      }
+    },
+    "recommendation_consistency": {
+      "overall_pooled": {
+        "value": 96.67,
+        "numerator": 29,
+        "denominator": 30,
+        "population": "6 cases × 5 repetitions on identical evidence snapshots (Clean Run v2 incidents)",
+        "source": "results/additional-evaluation/data/consistency.json",
+        "run_id": "additional-consistency-20260930T124847",
+        "interpretation": "Runs whose validated primary recommendation (same playbook, primary action, target type and target value) equals the modal one, over all runs. Not accuracy.",
+        "limitation": "Single LLM (vllm-spark-01/gemma4-26b-uncensored on a self-hosted vLLM server); representative cases only; 10 calls that failed because the LLM endpoint was unreachable (timeout / ConnectError) are excluded and listed; identical evidence is held fixed, so this measures the AI stage alone; first-round context (earlier recommendations hidden) as in the original generation.",
+        "per_case_mean_pct": 96.67,
+        "per_case_sd_pct": 8.16,
+        "validated_runs": 30,
+        "all_evidence_snapshots_identical": true,
+        "per_case": {
+          "TC-01": {
+            "consistent_runs": 5,
+            "runs": 5,
+            "consistency_pct": 100,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 1,
+            "step_set_agreement_pct": 100
+          },
+          "TC-02": {
+            "consistent_runs": 5,
+            "runs": 5,
+            "consistency_pct": 100,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 1,
+            "step_set_agreement_pct": 100
+          },
+          "TC-04": {
+            "consistent_runs": 5,
+            "runs": 5,
+            "consistency_pct": 100,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 1,
+            "step_set_agreement_pct": 40
+          },
+          "TC-06": {
+            "consistent_runs": 5,
+            "runs": 5,
+            "consistency_pct": 100,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 1,
+            "step_set_agreement_pct": 100
+          },
+          "TC-07": {
+            "consistent_runs": 4,
+            "runs": 5,
+            "consistency_pct": 80,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 2,
+            "step_set_agreement_pct": 100
+          },
+          "TC-09": {
+            "consistent_runs": 5,
+            "runs": 5,
+            "consistency_pct": 100,
+            "validated_runs": 5,
+            "distinct_primary_recommendations": 1,
+            "step_set_agreement_pct": 80
+          }
+        }
+      }
+    },
+    "unsupported_recommendation_rejection_rate": {
+      "controlled_invalid_recommendations": {
+        "value": 100,
+        "numerator": 10,
+        "denominator": 10,
+        "population": "10 controlled invalid recommendations (each a validated candidate with ONE injected fault)",
+        "source": "results/additional-evaluation/data/negative.json",
+        "run_id": "additional-negative-20260930T125146",
+        "interpretation": "Share of controlled invalid recommendations rejected by the deterministic validator/Policy checks; every scenario had a positive control proving the unmodified candidate validates.",
+        "limitation": "Scenarios are single-fault and written by the evaluator; they test rule coverage, not the AI, and are not adversarial or multi-fault.",
+        "rejected_with_expected_code": {
+          "numerator": 10,
+          "denominator": 10
+        },
+        "by_expected_layer": {
+          "validator": {
+            "rejected": 7,
+            "total": 7
+          },
+          "policy": {
+            "rejected": 3,
+            "total": 3
+          }
+        },
+        "by_actual_layer": {
+          "policy": {
+            "rejected": 2,
+            "total": 2
+          },
+          "validator": {
+            "rejected": 8,
+            "total": 8
+          }
+        },
+        "layer_expectation_mismatch": [
+          "NEG-02"
+        ],
+        "accepted_invalid": []
+      }
+    },
+    "self_targeting_steps_in_repeated_runs": {
+      "consistency_runs": {
+        "value": 3.85,
+        "numerator": 1,
+        "denominator": 26,
+        "population": "26 IP-blocking steps in 30 repeated recommendation runs",
+        "source": "results/additional-evaluation/data/consistency.json",
+        "run_id": "additional-consistency-20260930T124847",
+        "interpretation": "IP-blocking steps aimed at the monitored endpoint's own address (172.19.0.5): TC-09#2 ACT-BLOCK-DESTINATION-IP. In the frozen runs such a step was the primary step of TC-07 (both runs) and occurred in TC-09 (Intervention Run).",
+        "limitation": "Supplementary deterministic observation outside the six compliance criteria; the evidence-support criterion cannot see the role of an IP.",
+        "self_targeting": [
+          "TC-09#2 ACT-BLOCK-DESTINATION-IP"
+        ]
+      }
+    },
+    "governance_gate_checks": {
+      "human_and_policy_gates": {
+        "value": 100,
+        "numerator": 17,
+        "denominator": 17,
+        "population": "17 checks with the real use cases on the cloned database",
+        "source": "results/additional-evaluation/data/negative.json#governance_gates",
+        "run_id": "additional-negative-20260930T125146",
+        "interpretation": "IR reject → PENDING_MANUAL_DECISION without execution and without closing the incident; manual decision only by IR with a note; wrong-role, AI and admin approvals denied; start before approval, re-hunt before completion and manual RESOLVED are blocked.",
+        "limitation": "One incident and one reject path exercised; expected outcomes were defined before the checks ran."
+      }
+    }
+  }
+}

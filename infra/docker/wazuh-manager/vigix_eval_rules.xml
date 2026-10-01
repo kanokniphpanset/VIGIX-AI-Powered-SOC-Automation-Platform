@@ -1,0 +1,91 @@
+<!--
+  VIGIX evaluation rules — installed on the Wazuh manager as /var/ossec/etc/rules/vigix_eval_rules.xml
+  (and vigix_eval_decoders.xml). TEST ENVIRONMENT ONLY.
+
+  Why they exist: the stock Wazuh 4.9.2 ruleset has no rule for these evaluation cases, so a real
+  event on the endpoint would otherwise produce no alert (verified with wazuh-logtest / live probe):
+    TC-02  dropped .exe artifact           -> FIM "file added" (554, L5) is below the VIGIX forwarding level
+    TC-03  phishing URL delivery            -> no rule
+    TC-07  C2 beaconing                     -> no rule
+    TC-08  process from a world-writable dir-> no rule (auditd unavailable in the container)
+    TC-09  large outbound transfer          -> no rule
+    TC-10  usermod -aG sudo                 -> no decoder, no rule (only useradd 5902 / FIM 550 fire)
+  TC-01 (5712), TC-04 (40112) and TC-06 (31103) use STOCK rules and need nothing here.
+
+  Rule ids stay in the Wazuh custom range 100200-100399 and deliberately reuse the ids of the
+  mock TC alerts (resources/mock-attacks-tc) so both evaluations refer to the same rule per case.
+  Events for TC-03/07/08/09 are JSON lines the simulation appends to
+  /var/log/vigix-eval/events.json (localfile log_format=json) — controlled telemetry that
+  accompanies a REAL action on the endpoint (real HTTP request, real process, real file).
+-->
+<group name="vigix_eval,">
+
+  <!-- TC-02: EICAR-named executable created in /root/Downloads (real file, real FIM hash).
+       type="pcre2" is required: the default OS_Regex engine has no '.+', so the first version of this
+       rule never matched (Clean Run finding: WAZUH_ALERT_MISSING for TC-02). -->
+  <rule id="100301" level="12">
+    <if_sid>554</if_sid>
+    <field name="file" type="pcre2">Downloads/.+\.exe$</field>
+    <description>VIGIX-EVAL: executable dropped in a user Downloads folder (malware-like artifact)</description>
+    <mitre>
+      <id>T1204.002</id>
+    </mitre>
+    <group>malware,syscheck,vigix_eval,</group>
+  </rule>
+
+  <!-- TC-03 -->
+  <rule id="100310" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="vigix.event_type">^phishing_url_delivered$</field>
+    <description>VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox</description>
+    <mitre>
+      <id>T1566.002</id>
+    </mitre>
+    <group>email,phishing,vigix_eval,</group>
+  </rule>
+
+  <!-- TC-07 -->
+  <rule id="100320" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="vigix.event_type">^c2_beacon$</field>
+    <description>VIGIX-EVAL: outbound beaconing to a command-and-control server</description>
+    <mitre>
+      <id>T1071.001</id>
+    </mitre>
+    <group>c2,threat_intel,vigix_eval,</group>
+  </rule>
+
+  <!-- TC-08 -->
+  <rule id="100330" level="10">
+    <decoded_as>json</decoded_as>
+    <field name="vigix.event_type">^suspicious_process$</field>
+    <description>VIGIX-EVAL: suspicious process executed from a world-writable path</description>
+    <mitre>
+      <id>T1059.004</id>
+    </mitre>
+    <group>process_execution,vigix_eval,</group>
+  </rule>
+
+  <!-- TC-09 -->
+  <rule id="100340" level="13">
+    <decoded_as>json</decoded_as>
+    <field name="vigix.event_type">^data_exfiltration$</field>
+    <description>VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)</description>
+    <mitre>
+      <id>T1048</id>
+    </mitre>
+    <group>exfiltration,vigix_eval,</group>
+  </rule>
+
+  <!-- TC-10: real `usermod -aG sudo <user>` line in auth.log -->
+  <rule id="100350" level="14">
+    <decoded_as>vigix-usermod</decoded_as>
+    <field name="vigix_group">^sudo$|^wheel$</field>
+    <description>VIGIX-EVAL: user added to a privileged group (privilege change)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <group>account_changed,privilege_escalation,vigix_eval,</group>
+  </rule>
+
+</group>

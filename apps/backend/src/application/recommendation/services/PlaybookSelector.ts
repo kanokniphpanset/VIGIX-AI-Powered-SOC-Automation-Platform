@@ -30,20 +30,28 @@ function techniqueMatches(incidentTechnique: string, playbookTechnique: string):
  * the most distinct techniques wins; ties go to the most specific playbook
  * (fewest listed techniques), then to code order, so the result never depends
  * on row order. No match -> null (no incident-level playbook applies).
+ *
+ * `primaryTechniqueIds` are the techniques the SIEM itself asserted in the alert(s). When two playbooks match the
+ * same NUMBER of techniques, the one matching more SIEM-asserted techniques wins BEFORE the specificity / code-order
+ * tie-breaks: a technique the AI analysis inferred on top of the SIEM's own must not be able to flip the playbook by
+ * alphabetical accident (found in the Real-Wazuh evaluation: Wazuh T1048 + AI-inferred T1071.001 tied PB-DATA-EXFIL
+ * with PB-C2 and code order picked PB-C2). Scores that differ are unaffected.
  */
 export class PlaybookSelector {
-  select(playbooks: Playbook[], techniqueIds: string[]): SelectedPlaybook | null {
+  select(playbooks: Playbook[], techniqueIds: string[], primaryTechniqueIds: string[] = []): SelectedPlaybook | null {
     const ranked = playbooks
       .filter((p) => p.status === "ACTIVE" && p.code && p.triggerConditions.scope === "INCIDENT")
       .map((p) => {
         const listed = asStrings(p.triggerConditions.mitreTechniques);
         const matched = [...new Set(techniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l))))];
-        return { p, listed, matched };
+        const primaryMatched = new Set(primaryTechniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l)))).size;
+        return { p, listed, matched, primaryMatched };
       })
       .filter((r) => r.matched.length > 0)
       .sort(
         (a, b) =>
           b.matched.length - a.matched.length ||
+          b.primaryMatched - a.primaryMatched ||
           a.listed.length - b.listed.length ||
           String(a.p.code).localeCompare(String(b.p.code))
       );

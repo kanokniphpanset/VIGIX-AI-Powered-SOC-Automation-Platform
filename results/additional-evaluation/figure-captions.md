@@ -1,0 +1,13 @@
+# Figure captions
+
+**Figure 1.** Main evaluation metrics of the Real Wazuh Clean Run (n = 9 attempted cases; 7 produced a validated recommendation; TC-05 unavailable). For each metric the first bar uses all attempted cases as denominator, the second (where defined) uses only validated recommendations. Recommendation Compliance is a deterministic six-criterion score, not accuracy; Workflow Completion means all workflow steps were recorded through a stored verification, not that the incident was resolved. Results apply only to the 10 predefined test cases.
+
+**Figure 2.** Recommendation Compliance and Workflow Completion (percentage of attempted cases) for the Clean Run (no correction allowed) and the Intervention Run (a scripted analyst corrected IOCs in 2 of 9 cases), n = 9 each. The Intervention Run is a different, analyst-assisted condition and is not the unaided performance of the system.
+
+**Figure 3.** Investigation time (start of investigation to availability of a proposed response) on a logarithmic scale for a controlled procedural baseline (deterministic lookup, no AI, no human; n = 9), VIGIX Clean Run (n = 7) and VIGIX Intervention Run (n = 9). Bars are means, dots are individual cases; median, SD, minimum and maximum are annotated. The baseline is a machine procedure latency without an LLM stage, not an analyst benchmark; no statistical significance is implied.
+
+**Figure 4.** Recommendation consistency across 5 repetitions of the recommendation pipeline on identical evidence snapshots for 6 representative attack cases (TC-01, TC-02, TC-04, TC-06, TC-07, TC-09). Consistency is the share of runs whose validated primary recommendation (playbook, primary action, target type and target value) equals the modal one; it is not accuracy. The dashed line is the pooled value over all 30 runs. A single language model was used and only these cases were tested.
+
+**Figure 5.** Outcomes of the real Wazuh re-hunt verification for completed (simulated) responses in the Clean Run (n = 7), the Intervention Run (n = 9) and the recurrence control (n = 1). Only outcomes that occurred are drawn; NOT_CONTAINED occurred only as a flag on the control's NOT_RESOLVED result and SPREAD did not occur. RESOLVED means the verification procedure did not detect the specified recurrence condition within the tested window and is not proof of eradication; ERROR means the re-hunt could not run because no searchable IOC existed.
+
+**Figure 6.** Result of negative validation: number of 10 controlled invalid recommendations (each a validated candidate with one injected fault, confirmed by a positive control) that the deterministic validator/Policy checks rejected versus accepted. The scenarios test rule coverage and do not measure the accuracy of the AI.

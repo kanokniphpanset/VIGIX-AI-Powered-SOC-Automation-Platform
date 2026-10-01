@@ -1,0 +1,409 @@
+{
+  "note": "Investigation Time = T_recommendation − T_investigation_start; Time-to-Decision = T_decision − T_recommendation (PostgreSQL timestamps). REAL runs are uninterrupted scripted passes: Time-to-Decision is the latency of a scripted IR decision, NOT human deliberation. The MOCK stepwise run contains manual gaps (hours between steps) — use mockRepeatedSinglePass for its clean latency.",
+  "runs": {
+    "mock-original": {
+      "evaluationType": "MOCK",
+      "investigationTime": {
+        "unit": "seconds",
+        "n": 10,
+        "average": 2151.98,
+        "median": 2062.9,
+        "min": 22.35,
+        "max": 5195.02,
+        "stdDev": 1693.07
+      },
+      "timeToDecision": {
+        "unit": "seconds",
+        "n": 10,
+        "average": 1387.1,
+        "median": 975.34,
+        "min": 0.05,
+        "max": 3426.44,
+        "stdDev": 1539.93
+      },
+      "timingMode": [
+        "WITH_MANUAL_GAPS (stepwise, interrupted run; see repeated single-pass for clean latency)"
+      ],
+      "cases": [
+        {
+          "caseId": "TC-01",
+          "investigationSeconds": 22.35,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-02",
+          "investigationSeconds": 2052.1,
+          "decisionSeconds": 3426.44
+        },
+        {
+          "caseId": "TC-03",
+          "investigationSeconds": 1539.62,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-04",
+          "investigationSeconds": 2073.71,
+          "decisionSeconds": 3417.65
+        },
+        {
+          "caseId": "TC-05",
+          "investigationSeconds": 2104.73,
+          "decisionSeconds": 3385.57
+        },
+        {
+          "caseId": "TC-06",
+          "investigationSeconds": 41.53,
+          "decisionSeconds": 0.05
+        },
+        {
+          "caseId": "TC-07",
+          "investigationSeconds": 3797.68,
+          "decisionSeconds": 1690.4
+        },
+        {
+          "caseId": "TC-08",
+          "investigationSeconds": 868.1,
+          "decisionSeconds": 0.05
+        },
+        {
+          "caseId": "TC-09",
+          "investigationSeconds": 3825.01,
+          "decisionSeconds": 1660.88
+        },
+        {
+          "caseId": "TC-10",
+          "investigationSeconds": 5195.02,
+          "decisionSeconds": 289.8
+        }
+      ]
+    },
+    "real-clean": {
+      "evaluationType": "REAL_WAZUH",
+      "investigationTime": {
+        "unit": "seconds",
+        "n": 7,
+        "average": 40.27,
+        "median": 33.79,
+        "min": 22.32,
+        "max": 98.12,
+        "stdDev": 26.61
+      },
+      "timeToDecision": {
+        "unit": "seconds",
+        "n": 7,
+        "average": 0.06,
+        "median": 0.06,
+        "min": 0.04,
+        "max": 0.07,
+        "stdDev": 0.01
+      },
+      "timingMode": [
+        "UNINTERRUPTED_SCRIPTED"
+      ],
+      "cases": [
+        {
+          "caseId": "TC-01",
+          "investigationSeconds": 23.05,
+          "decisionSeconds": 0.07
+        },
+        {
+          "caseId": "TC-02",
+          "investigationSeconds": 33.79,
+          "decisionSeconds": 0.05
+        },
+        {
+          "caseId": "TC-03",
+          "investigationSeconds": null,
+          "decisionSeconds": null
+        },
+        {
+          "caseId": "TC-04",
+          "investigationSeconds": 41.55,
+          "decisionSeconds": 0.05
+        },
+        {
+          "caseId": "TC-05",
+          "investigationSeconds": null,
+          "decisionSeconds": null
+        },
+        {
+          "caseId": "TC-06",
+          "investigationSeconds": 22.32,
+          "decisionSeconds": 0.04
+        },
+        {
+          "caseId": "TC-07",
+          "investigationSeconds": 98.12,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-08",
+          "investigationSeconds": null,
+          "decisionSeconds": null
+        },
+        {
+          "caseId": "TC-09",
+          "investigationSeconds": 38.09,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-10",
+          "investigationSeconds": 24.97,
+          "decisionSeconds": 0.06
+        }
+      ]
+    },
+    "real-intervention": {
+      "evaluationType": "REAL_WAZUH",
+      "investigationTime": {
+        "unit": "seconds",
+        "n": 9,
+        "average": 72.23,
+        "median": 46.46,
+        "min": 22.07,
+        "max": 265.41,
+        "stdDev": 79.55
+      },
+      "timeToDecision": {
+        "unit": "seconds",
+        "n": 9,
+        "average": 0.06,
+        "median": 0.06,
+        "min": 0.05,
+        "max": 0.06,
+        "stdDev": 0
+      },
+      "timingMode": [
+        "UNINTERRUPTED_SCRIPTED"
+      ],
+      "cases": [
+        {
+          "caseId": "TC-01",
+          "investigationSeconds": 22.18,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-02",
+          "investigationSeconds": 56.9,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-03",
+          "investigationSeconds": 265.41,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-04",
+          "investigationSeconds": 34.28,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-05",
+          "investigationSeconds": null,
+          "decisionSeconds": null
+        },
+        {
+          "caseId": "TC-06",
+          "investigationSeconds": 22.07,
+          "decisionSeconds": 0.05
+        },
+        {
+          "caseId": "TC-07",
+          "investigationSeconds": 47.8,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-08",
+          "investigationSeconds": 128.9,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-09",
+          "investigationSeconds": 46.46,
+          "decisionSeconds": 0.06
+        },
+        {
+          "caseId": "TC-10",
+          "investigationSeconds": 26.05,
+          "decisionSeconds": 0.05
+        }
+      ]
+    },
+    "real-recurrence-control": {
+      "evaluationType": "REAL_WAZUH",
+      "investigationTime": {
+        "unit": "seconds",
+        "n": 1,
+        "average": 21.22,
+        "median": 21.22,
+        "min": 21.22,
+        "max": 21.22,
+        "stdDev": 0
+      },
+      "timeToDecision": {
+        "unit": "seconds",
+        "n": 1,
+        "average": 0.06,
+        "median": 0.06,
+        "min": 0.06,
+        "max": 0.06,
+        "stdDev": 0
+      },
+      "timingMode": [
+        "UNINTERRUPTED_SCRIPTED"
+      ],
+      "cases": [
+        {
+          "caseId": "TC-01",
+          "investigationSeconds": 21.22,
+          "decisionSeconds": 0.06
+        }
+      ]
+    }
+  },
+  "mockRepeatedSinglePass": {
+    "generatedAt": "2026-09-30T10:26:45.942Z",
+    "runs": 2,
+    "overall": {
+      "runs": 2,
+      "overallCompliancePassRatePct": 100,
+      "investigationTimeMean": 53.09,
+      "investigationTimeSd": 29.05,
+      "decisionTimeMean": 0.05,
+      "decisionTimeSd": 0.01,
+      "interventionCasesPerRun": 4.5
+    },
+    "perCase": [
+      {
+        "tc": "TC-01",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 25.63,
+        "investigationSd": 0.47,
+        "decisionMean": 0.06,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-02",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 55.26,
+        "investigationSd": 21.21,
+        "decisionMean": 0.04,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-03",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 87.2,
+        "investigationSd": 19.98,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-04",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 87.84,
+        "investigationSd": 60.66,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0.5,
+        "interventionRuns": 1,
+        "runs": 2
+      },
+      {
+        "tc": "TC-05",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 67.26,
+        "investigationSd": 21.84,
+        "decisionMean": 0.06,
+        "decisionSd": 0.02,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-06",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 24.93,
+        "investigationSd": 0.73,
+        "decisionMean": 0.05,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-07",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 52.09,
+        "investigationSd": 7.16,
+        "decisionMean": 0.05,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-08",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 59.88,
+        "investigationSd": 33.79,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0.5,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-09",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 42.39,
+        "investigationSd": 5.69,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-10",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 28.4,
+        "investigationSd": 3.56,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      }
+    ]
+  }
+}

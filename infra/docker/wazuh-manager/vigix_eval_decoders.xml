@@ -1,0 +1,12 @@
+<!-- VIGIX evaluation decoders (TEST ENVIRONMENT ONLY) — see vigix_eval_rules.xml.
+     Stock Wazuh 4.9.2 has no decoder for usermod group changes. -->
+<decoder name="vigix-usermod">
+  <program_name>^usermod$</program_name>
+</decoder>
+
+<!-- usermod[1234]: add 'evaluser' to group 'sudo' -->
+<decoder name="vigix-usermod-group">
+  <parent>vigix-usermod</parent>
+  <regex>^add '(\S+)' to group '(\S+)'$</regex>
+  <order>dstuser,vigix_group</order>
+</decoder>

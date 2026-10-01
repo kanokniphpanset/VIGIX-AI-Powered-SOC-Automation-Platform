@@ -57,7 +57,7 @@ export class GetIncidentAlertFactsUseCase {
     const techniques = [...new Set([...mappings.value.map((m) => m.techniqueId), ...summaries.flatMap((s) => s.summary.mitreTechniques)])];
     const resolved = this.setup ? await this.setup.resolve(input.incidentId, input.tenantId) : null;
     const socConfirmed = resolved?.isSuccess && resolved.value.typeSource === "SOC";
-    const incident = resolved?.isSuccess ? resolved.value.selected : this.selector.select(playbooks, techniques);
+    const incident = resolved?.isSuccess ? resolved.value.selected : this.selector.select(playbooks, techniques, summaries.flatMap((s) => s.summary.mitreTechniques));
     const incidentType = incident?.incidentType ?? null;
 
     return Result.ok({

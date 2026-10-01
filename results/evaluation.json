@@ -1,0 +1,570 @@
+{
+  "generatedAt": "2026-09-30T12:14:38.553Z",
+  "note": "MOCK and REAL_WAZUH are separate sections; never combine their numbers. MOCK verification uses CleanRehuntAdapter: NO_MATCH is simulated.",
+  "mockRepeatedSinglePass": {
+    "generatedAt": "2026-09-30T10:26:45.942Z",
+    "runs": 2,
+    "overall": {
+      "runs": 2,
+      "overallCompliancePassRatePct": 100,
+      "investigationTimeMean": 53.09,
+      "investigationTimeSd": 29.05,
+      "decisionTimeMean": 0.05,
+      "decisionTimeSd": 0.01,
+      "interventionCasesPerRun": 4.5
+    },
+    "perCase": [
+      {
+        "tc": "TC-01",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 25.63,
+        "investigationSd": 0.47,
+        "decisionMean": 0.06,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-02",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 55.26,
+        "investigationSd": 21.21,
+        "decisionMean": 0.04,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-03",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 87.2,
+        "investigationSd": 19.98,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-04",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 87.84,
+        "investigationSd": 60.66,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0.5,
+        "interventionRuns": 1,
+        "runs": 2
+      },
+      {
+        "tc": "TC-05",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 67.26,
+        "investigationSd": 21.84,
+        "decisionMean": 0.06,
+        "decisionSd": 0.02,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-06",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 24.93,
+        "investigationSd": 0.73,
+        "decisionMean": 0.05,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      },
+      {
+        "tc": "TC-07",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 52.09,
+        "investigationSd": 7.16,
+        "decisionMean": 0.05,
+        "decisionSd": 0,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-08",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 59.88,
+        "investigationSd": 33.79,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0.5,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-09",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 42.39,
+        "investigationSd": 5.69,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 2,
+        "runs": 2
+      },
+      {
+        "tc": "TC-10",
+        "evaluated": 2,
+        "compliant": 2,
+        "compliancePassRatePct": 100,
+        "investigationMean": 28.4,
+        "investigationSd": 3.56,
+        "decisionMean": 0.05,
+        "decisionSd": 0.01,
+        "retryMean": 0,
+        "interventionRuns": 0,
+        "runs": 2
+      }
+    ]
+  },
+  "runs": {
+    "mock-original": {
+      "evaluationType": "MOCK",
+      "source": "results/archive/mock-run-pre-real-20260930-174523",
+      "summary": {
+        "totalCases": 10,
+        "attemptedCases": 10,
+        "environmentUnavailableCases": 0,
+        "recommendationCompliance": {
+          "evaluated": 10,
+          "compliant": 10,
+          "ratePercent": 100,
+          "formula": "compliant / evaluated recommendations × 100",
+          "perCriterionPassed": {
+            "attackAlignment": 10,
+            "evidenceSupport": 10,
+            "knowledgeValidity": 10,
+            "policyCompliance": 10,
+            "playbookAlignment": 10,
+            "approvalCorrectness": 10
+          },
+          "automaticCompliant": 6
+        },
+        "investigationTime": {
+          "unit": "seconds",
+          "n": 10,
+          "average": 2151.98,
+          "median": 2062.9,
+          "min": 22.35,
+          "max": 5195.02,
+          "stdDev": 1693.07
+        },
+        "timeToDecision": {
+          "unit": "seconds",
+          "n": 10,
+          "average": 1387.1,
+          "median": 975.34,
+          "min": 0.05,
+          "max": 3426.44,
+          "stdDev": 1539.93
+        },
+        "workflowCompletion": {
+          "completed": 10,
+          "ofAttempted": 10,
+          "ofTotal": 10,
+          "ratePercentOfAttempted": 100,
+          "ratePercentOfTotal": 100
+        },
+        "interventionRate": {
+          "cases": 4,
+          "ofAttempted": 10,
+          "ratePercentOfAttempted": 40,
+          "byTypeCases": {
+            "ANALYST_IOC_CORRECTION": 2,
+            "PLAYBOOK_SEED_UPDATE": 2,
+            "MITRE_CATALOG_UPDATE": 2
+          },
+          "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+        },
+        "retry": {
+          "caseLevelRatePercent": 40,
+          "casesWithRetry": 4,
+          "ofAttempted": 10,
+          "totalRetryCount": 43,
+          "perCase": {
+            "TC-01": 0,
+            "TC-02": 0,
+            "TC-03": 13,
+            "TC-04": 0,
+            "TC-05": 0,
+            "TC-06": 0,
+            "TC-07": 12,
+            "TC-08": 6,
+            "TC-09": 12,
+            "TC-10": 0
+          },
+          "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+        },
+        "verification": {
+          "casesVerified": 10,
+          "resolved": 10,
+          "notResolved": 0,
+          "modes": {
+            "MOCK": 10,
+            "REAL_WAZUH": 0,
+            "NONE": 0
+          }
+        }
+      }
+    },
+    "real-clean": {
+      "evaluationType": "REAL_WAZUH",
+      "source": "results/runs/clean-v2-real-wazuh-20260930/run.json",
+      "startedAt": "2026-09-30T11:34:54.662Z",
+      "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "environment": {
+        "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+        "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+        "wazuhManagerApi": {
+          "status": "UP",
+          "detail": "analysisd, remoted, logcollector, integratord running · agents 2 active / 4 total (2 disconnected)",
+          "latencyMs": 228
+        },
+        "indexer": {
+          "configured": true,
+          "reachable": true,
+          "indexPattern": "wazuh-alerts-4.x-*",
+          "clusterStatus": "green",
+          "alertIndices": 2
+        },
+        "aiOrchestrator": "http://localhost:8001",
+        "llm": {
+          "provider": "openrouter",
+          "model": "google/gemma-4-26b-a4b-it",
+          "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+        },
+        "database": "soar_eval",
+        "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+        "recommendationAgent": "llm",
+        "node": "v24.19.0"
+      },
+      "summary": {
+        "totalCases": 10,
+        "attemptedCases": 9,
+        "environmentUnavailableCases": 1,
+        "recommendationCompliance": {
+          "evaluated": 7,
+          "compliant": 7,
+          "ratePercent": 100,
+          "formula": "compliant / evaluated recommendations × 100",
+          "perCriterionPassed": {
+            "attackAlignment": 7,
+            "evidenceSupport": 7,
+            "knowledgeValidity": 7,
+            "policyCompliance": 7,
+            "playbookAlignment": 7,
+            "approvalCorrectness": 7
+          },
+          "automaticCompliant": 7
+        },
+        "investigationTime": {
+          "unit": "seconds",
+          "n": 7,
+          "average": 40.27,
+          "median": 33.79,
+          "min": 22.32,
+          "max": 98.12,
+          "stdDev": 26.61
+        },
+        "timeToDecision": {
+          "unit": "seconds",
+          "n": 7,
+          "average": 0.06,
+          "median": 0.06,
+          "min": 0.04,
+          "max": 0.07,
+          "stdDev": 0.01
+        },
+        "workflowCompletion": {
+          "completed": 5,
+          "ofAttempted": 9,
+          "ofTotal": 10,
+          "ratePercentOfAttempted": 55.56,
+          "ratePercentOfTotal": 50
+        },
+        "interventionRate": {
+          "cases": 0,
+          "ofAttempted": 9,
+          "ratePercentOfAttempted": 0,
+          "byTypeCases": {},
+          "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+        },
+        "retry": {
+          "caseLevelRatePercent": 22.22,
+          "casesWithRetry": 2,
+          "ofAttempted": 9,
+          "totalRetryCount": 10,
+          "perCase": {
+            "TC-01": 0,
+            "TC-02": 0,
+            "TC-03": 5,
+            "TC-04": 0,
+            "TC-06": 0,
+            "TC-07": 0,
+            "TC-08": 5,
+            "TC-09": 0,
+            "TC-10": 0
+          },
+          "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+        },
+        "verification": {
+          "casesVerified": 5,
+          "resolved": 5,
+          "notResolved": 0,
+          "modes": {
+            "MOCK": 0,
+            "REAL_WAZUH": 5,
+            "NONE": 4
+          }
+        }
+      }
+    },
+    "real-intervention": {
+      "evaluationType": "REAL_WAZUH",
+      "source": "results/runs/intervention-v2-real-wazuh-20260930/run.json",
+      "startedAt": "2026-09-30T11:54:08.091Z",
+      "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "environment": {
+        "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+        "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+        "wazuhManagerApi": {
+          "status": "UP",
+          "detail": "analysisd, remoted, logcollector, integratord running · agents 2 active / 4 total (2 disconnected)",
+          "latencyMs": 242
+        },
+        "indexer": {
+          "configured": true,
+          "reachable": true,
+          "indexPattern": "wazuh-alerts-4.x-*",
+          "clusterStatus": "green",
+          "alertIndices": 2
+        },
+        "aiOrchestrator": "http://localhost:8001",
+        "llm": {
+          "provider": "openrouter",
+          "model": "google/gemma-4-26b-a4b-it",
+          "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+        },
+        "database": "soar_eval",
+        "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+        "recommendationAgent": "llm",
+        "node": "v24.19.0"
+      },
+      "summary": {
+        "totalCases": 10,
+        "attemptedCases": 9,
+        "environmentUnavailableCases": 1,
+        "recommendationCompliance": {
+          "evaluated": 9,
+          "compliant": 9,
+          "ratePercent": 100,
+          "formula": "compliant / evaluated recommendations × 100",
+          "perCriterionPassed": {
+            "attackAlignment": 9,
+            "evidenceSupport": 9,
+            "knowledgeValidity": 9,
+            "policyCompliance": 9,
+            "playbookAlignment": 9,
+            "approvalCorrectness": 9
+          },
+          "automaticCompliant": 7
+        },
+        "investigationTime": {
+          "unit": "seconds",
+          "n": 9,
+          "average": 72.23,
+          "median": 46.46,
+          "min": 22.07,
+          "max": 265.41,
+          "stdDev": 79.55
+        },
+        "timeToDecision": {
+          "unit": "seconds",
+          "n": 9,
+          "average": 0.06,
+          "median": 0.06,
+          "min": 0.05,
+          "max": 0.06,
+          "stdDev": 0
+        },
+        "workflowCompletion": {
+          "completed": 7,
+          "ofAttempted": 9,
+          "ofTotal": 10,
+          "ratePercentOfAttempted": 77.78,
+          "ratePercentOfTotal": 70
+        },
+        "interventionRate": {
+          "cases": 2,
+          "ofAttempted": 9,
+          "ratePercentOfAttempted": 22.22,
+          "byTypeCases": {
+            "ANALYST_IOC_CORRECTION": 2
+          },
+          "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+        },
+        "retry": {
+          "caseLevelRatePercent": 22.22,
+          "casesWithRetry": 2,
+          "ofAttempted": 9,
+          "totalRetryCount": 6,
+          "perCase": {
+            "TC-01": 0,
+            "TC-02": 0,
+            "TC-03": 3,
+            "TC-04": 0,
+            "TC-06": 0,
+            "TC-07": 0,
+            "TC-08": 3,
+            "TC-09": 0,
+            "TC-10": 0
+          },
+          "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+        },
+        "verification": {
+          "casesVerified": 7,
+          "resolved": 7,
+          "notResolved": 0,
+          "modes": {
+            "MOCK": 0,
+            "REAL_WAZUH": 7,
+            "NONE": 2
+          }
+        }
+      }
+    },
+    "real-recurrence-control": {
+      "evaluationType": "REAL_WAZUH",
+      "source": "results/runs/control-recurrence-real-wazuh-20260930/run.json",
+      "startedAt": "2026-09-30T12:11:19.884Z",
+      "groundTruthSha256": "ddb18d5d4dee4ffe32730474b5a227a256ddd9c20805a83fbad4c94a81e64056",
+      "environment": {
+        "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+        "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+        "wazuhManagerApi": {
+          "status": "UP",
+          "detail": "analysisd, remoted, logcollector, integratord running · agents 2 active / 4 total (2 disconnected)",
+          "latencyMs": 235
+        },
+        "indexer": {
+          "configured": true,
+          "reachable": true,
+          "indexPattern": "wazuh-alerts-4.x-*",
+          "clusterStatus": "green",
+          "alertIndices": 2
+        },
+        "aiOrchestrator": "http://localhost:8001",
+        "llm": {
+          "provider": "openrouter",
+          "model": "google/gemma-4-26b-a4b-it",
+          "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+        },
+        "database": "soar_eval",
+        "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+        "recommendationAgent": "llm",
+        "node": "v24.19.0"
+      },
+      "summary": {
+        "totalCases": 1,
+        "attemptedCases": 1,
+        "environmentUnavailableCases": 0,
+        "recommendationCompliance": {
+          "evaluated": 1,
+          "compliant": 1,
+          "ratePercent": 100,
+          "formula": "compliant / evaluated recommendations × 100",
+          "perCriterionPassed": {
+            "attackAlignment": 1,
+            "evidenceSupport": 1,
+            "knowledgeValidity": 1,
+            "policyCompliance": 1,
+            "playbookAlignment": 1,
+            "approvalCorrectness": 1
+          },
+          "automaticCompliant": 1
+        },
+        "investigationTime": {
+          "unit": "seconds",
+          "n": 1,
+          "average": 21.22,
+          "median": 21.22,
+          "min": 21.22,
+          "max": 21.22,
+          "stdDev": 0
+        },
+        "timeToDecision": {
+          "unit": "seconds",
+          "n": 1,
+          "average": 0.06,
+          "median": 0.06,
+          "min": 0.06,
+          "max": 0.06,
+          "stdDev": 0
+        },
+        "workflowCompletion": {
+          "completed": 1,
+          "ofAttempted": 1,
+          "ofTotal": 1,
+          "ratePercentOfAttempted": 100,
+          "ratePercentOfTotal": 100
+        },
+        "interventionRate": {
+          "cases": 0,
+          "ofAttempted": 1,
+          "ratePercentOfAttempted": 0,
+          "byTypeCases": {},
+          "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+        },
+        "retry": {
+          "caseLevelRatePercent": 100,
+          "casesWithRetry": 1,
+          "ofAttempted": 1,
+          "totalRetryCount": 1,
+          "perCase": {
+            "TC-01": 1
+          },
+          "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+        },
+        "verification": {
+          "casesVerified": 1,
+          "resolved": 0,
+          "notResolved": 1,
+          "modes": {
+            "MOCK": 0,
+            "REAL_WAZUH": 1,
+            "NONE": 0
+          }
+        }
+      }
+    }
+  }
+}

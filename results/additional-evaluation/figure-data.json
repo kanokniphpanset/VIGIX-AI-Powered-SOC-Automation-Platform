@@ -1,0 +1,193 @@
+{
+  "fig1_main_metrics": {
+    "n_attempted": 9,
+    "n_evaluated": 7,
+    "metrics": [
+      {
+        "label": "Recommendation\nCompliance",
+        "attempted_pct": 77.78,
+        "evaluated_pct": 100
+      },
+      {
+        "label": "Evidence\nCoverage",
+        "attempted_pct": 77.78,
+        "evaluated_pct": null
+      },
+      {
+        "label": "Playbook\nAlignment",
+        "attempted_pct": 77.78,
+        "evaluated_pct": 100
+      },
+      {
+        "label": "Policy\nCompliance",
+        "attempted_pct": 77.78,
+        "evaluated_pct": 100
+      },
+      {
+        "label": "Workflow\nCompletion",
+        "attempted_pct": 55.56,
+        "evaluated_pct": null
+      }
+    ]
+  },
+  "fig2_clean_vs_intervention": {
+    "n_clean": 9,
+    "n_intervention": 9,
+    "metrics": [
+      {
+        "label": "Recommendation\nCompliance",
+        "clean_pct": 77.78,
+        "intervention_pct": 100
+      },
+      {
+        "label": "Workflow\nCompletion",
+        "clean_pct": 55.56,
+        "intervention_pct": 77.78
+      }
+    ]
+  },
+  "fig3_investigation_time": {
+    "conditions": [
+      {
+        "label": "Controlled procedural\nbaseline (no AI)",
+        "mean": 0.013,
+        "median": 0.01,
+        "sd": 0.009,
+        "min": 0.008,
+        "max": 0.036,
+        "n": 9,
+        "values": [
+          0.008,
+          0.009,
+          0.009,
+          0.009,
+          0.01,
+          0.01,
+          0.01,
+          0.018,
+          0.036
+        ]
+      },
+      {
+        "label": "VIGIX\nClean Run",
+        "mean": 40.27,
+        "median": 33.79,
+        "sd": 26.61,
+        "min": 22.32,
+        "max": 98.12,
+        "n": 7,
+        "values": [
+          23.05,
+          33.79,
+          41.55,
+          22.32,
+          98.12,
+          38.09,
+          24.97
+        ]
+      },
+      {
+        "label": "VIGIX\nIntervention Run",
+        "mean": 72.23,
+        "median": 46.46,
+        "sd": 79.55,
+        "min": 22.07,
+        "max": 265.41,
+        "n": 9,
+        "values": [
+          22.18,
+          56.9,
+          265.41,
+          34.28,
+          22.07,
+          47.8,
+          128.9,
+          46.46,
+          26.05
+        ]
+      }
+    ]
+  },
+  "fig4_consistency": {
+    "repetitions": 5,
+    "overall_pct": 96.67,
+    "overall_consistent": 29,
+    "overall_runs": 30,
+    "cases": [
+      {
+        "case": "TC-01",
+        "consistency_pct": 100,
+        "consistent": 5,
+        "runs": 5
+      },
+      {
+        "case": "TC-02",
+        "consistency_pct": 100,
+        "consistent": 5,
+        "runs": 5
+      },
+      {
+        "case": "TC-04",
+        "consistency_pct": 100,
+        "consistent": 5,
+        "runs": 5
+      },
+      {
+        "case": "TC-06",
+        "consistency_pct": 100,
+        "consistent": 5,
+        "runs": 5
+      },
+      {
+        "case": "TC-07",
+        "consistency_pct": 80,
+        "consistent": 4,
+        "runs": 5
+      },
+      {
+        "case": "TC-09",
+        "consistency_pct": 100,
+        "consistent": 5,
+        "runs": 5
+      }
+    ]
+  },
+  "fig5_verification_outcomes": {
+    "categories_observed": [
+      "RESOLVED",
+      "ERROR",
+      "NOT_RESOLVED"
+    ],
+    "groups": [
+      {
+        "label": "Clean Run\n(n=7)",
+        "counts": {
+          "RESOLVED": 5,
+          "ERROR": 2
+        }
+      },
+      {
+        "label": "Intervention Run\n(n=9)",
+        "counts": {
+          "RESOLVED": 7,
+          "ERROR": 2
+        }
+      },
+      {
+        "label": "Recurrence control\n(n=1)",
+        "counts": {
+          "NOT_RESOLVED": 1
+        }
+      }
+    ],
+    "not_observed": [
+      "NOT_CONTAINED (only as a flag on the control's NOT_RESOLVED result)",
+      "SPREAD"
+    ]
+  },
+  "fig6_negative_validation": {
+    "total": 10,
+    "rejected": 10,
+    "accepted": 0
+  }
+}

