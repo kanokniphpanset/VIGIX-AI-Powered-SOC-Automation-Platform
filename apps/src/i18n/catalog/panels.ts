@@ -50,7 +50,7 @@ export const panels = {
   // lifecycle branches
   'lcb.aria': ['ขั้นตอนของ Incident', 'Incident lifecycle'],
   'lcb.resolved': ['ไม่พบภัย (NO MATCH) → แก้ไขแล้ว (จบ)', 'NO MATCH → RESOLVED (terminal)'],
-  'lcb.loop': ['ยังพบภัย (MATCH) → ยังไม่แก้ไข → สืบสวน → Recommendation → ลงมือ → Re-hunt', 'MATCH → NOT_RESOLVED → Investigation → Recommendation → Response → Re-hunt'],
+  'lcb.loop': ['ยังพบภัย (MATCH) → ยังไม่แก้ไข → สืบสวนรอบใหม่ → Recommendation → IR ตัดสินใจ → ลงมือ → Re-hunt', 'MATCH → NOT_RESOLVED → new investigation round → Recommendation → IR decision → Response → Re-hunt'],
   'lcb.cycle': ['(รอบ #{n})', '(cycle #{n})'],
   'lcb.cycleOf': ['(รอบ #{n} จาก {max})', '(cycle #{n} of {max})'],
   'lcb.escalated': ['ครบจำนวนรอบ / Policy → ยกระดับ', 'MAX ROUND / Policy → ESCALATED'],

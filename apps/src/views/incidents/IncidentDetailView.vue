@@ -500,7 +500,7 @@ const assignment = computed(() => {
                   v-if="canGenerate"
                   type="button"
                   class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="regenerating || incident.status === 'resolved' || incident.status === 'escalated'"
+                  :disabled="regenerating || ['resolved', 'escalated', 'dismissed'].includes(incident.status)"
                   :aria-busy="regenerating"
                   @click="regenerate"
                 >
@@ -518,7 +518,7 @@ const assignment = computed(() => {
                 <p v-if="locale === 'th'" class="mb-2 inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{{ t('ai.originalLang') }}</p>
                 <p class="mb-4 text-slate-800">{{ currentRecommendation.summary }}</p>
                 <div class="mb-4 flex flex-wrap gap-2">
-                  <button v-if="canGenerate" type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="regenerating || incident.status === 'resolved' || incident.status === 'escalated'" :aria-busy="regenerating" @click="regenerate">
+                  <button v-if="canGenerate" type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="regenerating || ['resolved', 'escalated', 'dismissed'].includes(incident.status)" :aria-busy="regenerating" @click="regenerate">
                     <Loader2 v-if="regenerating" class="size-3.5 animate-spin" /><RotateCw v-else class="size-3.5" /> {{ generateButtonLabel(genState, true) }}
                   </button>
                   <button v-if="responses.length" type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50" @click="router.push(`/tickets?incident=${incident.id}`)">

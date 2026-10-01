@@ -42,6 +42,7 @@ export const ticket = {
   'tk.aiAndRec': ['AI Analysis และ Recommendation', 'AI analysis & recommendation'],
   'tk.ungrounded': ['AI Analysis ต้องตรวจทาน — มีตัวบ่งชี้ที่ไม่พบในหลักฐาน Wazuh', 'AI analysis requires review — it names indicators not found in the Wazuh evidence'],
   'tk.recReviewed': ['Recommendation (SOC ตรวจแล้ว)', 'Recommendation (reviewed by SOC)'],
+  'tk.recNewRound': ['Recommendation รอบใหม่ #{n} (ส่งให้ IR ตัดสินใจโดยตรง)', 'New-round recommendation #{n} (sent straight to the IR decision)'],
   'tk.whyAction': ['เหตุผลของการลงมือนี้: {text}', 'Why this action: {text}'],
   'tk.stepUnavailable': ['ไม่พบขั้นของ Recommendation', 'Recommendation step unavailable'],
   'tk.target': ['เป้าหมาย', 'Target'],

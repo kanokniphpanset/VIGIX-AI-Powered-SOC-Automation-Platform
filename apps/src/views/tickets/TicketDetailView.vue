@@ -63,6 +63,8 @@ const confirmOpen = ref(false)
 /** The IR decision note — mandatory for both APPROVE and REJECT. */
 const decisionNote = ref('')
 const recommendationSummary = ref<string | null>(null)
+/** Round of the ticket's recommendation: rounds after the first go straight to the IR decision (no SOC review). */
+const recommendationRound = ref(1)
 
 const settle = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback)
 
@@ -86,6 +88,7 @@ async function load() {
     incident.value = inc
     step.value = rec?.steps.find((x) => x.id === p.recommendationStepId) ?? null
     recommendationSummary.value = rec?.summary ?? null
+    recommendationRound.value = rec?.investigationNumber ?? 1
     chain.value = approvalChainFor(apps, p.id)
     approval.value = currentApproval(chain.value)
     verification.value = vers.find((v) => v.responseId === p.id) ?? null
@@ -379,7 +382,7 @@ const matched = computed(() => (verification.value?.matchingEvents ?? 0) > 0)
             <MarkdownText v-if="ai?.summary" :text="ai.summary" class="mt-2" />
             <p v-else class="mt-2 text-sm text-slate-800">{{ t('tk.noAi') }}</p>
             <ul v-if="ai?.keyFindings.length" class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700"><li v-for="f in ai.keyFindings" :key="f">{{ f }}</li></ul>
-            <h3 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('tk.recReviewed') }}</h3>
+            <h3 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ recommendationRound > 1 ? t('tk.recNewRound', { n: recommendationRound }) : t('tk.recReviewed') }}</h3>
             <p class="mt-1 text-sm text-slate-800">{{ recommendationSummary ?? t('c.notAvailable') }}</p>
             <p v-if="step" class="mt-2 text-xs text-slate-500">{{ t('tk.whyAction', { text: step.reason }) }}</p>
             <p v-if="step?.evidence.length" class="mt-1 text-[11px] text-slate-400">{{ t('inc.evidence', { text: step.evidence.join(' · ') }) }}</p>

@@ -387,6 +387,9 @@ export const common = {
   'ai.done.partial': [' (บาง agent รายงานข้อผิดพลาด)', ' (some agents reported errors)'],
   // Recommendation generation
   'err.rec.AI_UNAVAILABLE': ['บริการ AI ใช้งานไม่ได้ ไม่มีอะไรถูกบันทึก — ลองใหม่เมื่อระบบกลับมา', 'The AI service is unavailable; nothing was saved. Try again when it is running.'],
+  'err.rec.NO_NEW_RECOMMENDATION': ['ไม่มี Action + Target ใหม่ที่หลักฐานรองรับ — ทุกคู่เคยอยู่ใน Recommendation ก่อนหน้าแล้ว จึงไม่สร้างซ้ำ กรุณาเพิ่มหลักฐาน/IOC ใหม่ หรือ Escalate', 'No new Action + target pair is supported by the evidence — every pair was in an earlier Recommendation, so none was created. Add new evidence / IOCs, or escalate.'],
+  'err.rec.DUPLICATE_RECOMMENDATION': ['AI เสนอเฉพาะ Action + Target ที่เคยเสนอแล้ว จึงไม่บันทึก — ลองสร้างใหม่อีกครั้ง', 'The AI only repeated Action + target pairs from earlier Recommendations, so nothing was saved. Try generating again.'],
+  'err.rec.INSUFFICIENT_EVIDENCE': ['หลักฐานยังไม่พอสำหรับ Action ใดใน Playbook นี้ — ไม่มีการสร้าง Recommendation กรุณาสืบสวนเพิ่มเติม (ดูหลักฐานที่ขาดใน Audit log)', 'No playbook action has its required evidence recorded yet, so no recommendation was created. Investigate further (the audit log lists the missing evidence).'],
   'err.rec.forbidden': ['บทบาทของคุณสร้าง Recommendation ไม่ได้', 'Your role is not allowed to generate recommendations.'],
   'err.rec.withCode': ['Backend ไม่รับคำขอ ({code})', 'The backend refused the request ({code}).'],
   'rec.btn.running': ['กำลังสร้าง...', 'Generating...'],
