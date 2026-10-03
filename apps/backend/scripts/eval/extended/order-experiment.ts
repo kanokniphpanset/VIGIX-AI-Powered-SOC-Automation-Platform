@@ -64,7 +64,7 @@ function reverseIps(ctx: any) {
       out.push({ incidentId, srcip: a.s, dstip: a.d, variant: name, targetsListInContext: firstTarget(ctx), picks, correct: picks.filter((p) => p.role.startsWith("destination")).length, of: picks.length });
     }
   }
-  const f = path.join(__dirname, "..", "..", "..", "..", "..", "results", "extended-evaluation", "data", "order-experiment.json");
+  const f = process.env.ORDER_EXPERIMENT_OUT ?? path.join(__dirname, "..", "..", "..", "..", "..", "results", "extended-evaluation", "data", "order-experiment.json"); // override so a rerun never overwrites the frozen file
   fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, JSON.stringify({ at: new Date().toISOString(), note: "diagnostic: only the order of IP candidates in the context differs between variants", results: out }, null, 2));
   console.log("wrote", f);

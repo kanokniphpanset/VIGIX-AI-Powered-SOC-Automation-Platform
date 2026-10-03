@@ -42,11 +42,18 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
             },
       include: { sourceAlert: { select: { externalAlertId: true } } },
     });
+    // IP role comes from the triggering alert's own fields; an IP that is both (or neither) gets no role.
+    const alert = (await this.prisma.incident.findUnique({ where: { id: incidentId }, select: { alert: { select: { rawPayload: true } } } }))?.alert;
+    const data = ((alert?.rawPayload as any)?.data ?? {}) as Record<string, unknown>;
+    const src = typeof data.srcip === "string" ? data.srcip : null;
+    const dst = typeof data.dstip === "string" ? data.dstip : null;
+    const roleOf = (v: string): "source" | "destination" | undefined => (src !== dst ? (v === src ? "source" : v === dst ? "destination" : undefined) : undefined);
     return rows.map((r) => ({
       iocType: r.iocType,
       iocValue: r.iocValue,
       source: r.source,
       reputationScore: r.reputationScore,
+      ...(r.iocType === "IPV4" || r.iocType === "IPV6" ? { networkRole: roleOf(r.iocValue) } : {}),
       manual: !!r.createdBy && r.createdBy !== "system",
       id: r.id,
       createdBy: r.createdBy,

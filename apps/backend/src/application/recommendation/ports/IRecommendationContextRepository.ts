@@ -25,6 +25,8 @@ export interface IocContextRow {
   sourceAlertId?: string | null;
   sourceExternalAlertId?: string | null;
   addedReason?: string | null;
+  /** Role of an IP IOC in the alert that raised the incident (data.srcip -> source, data.dstip -> destination). */
+  networkRole?: "source" | "destination";
 }
 
 export interface MitreMappingContextRow {

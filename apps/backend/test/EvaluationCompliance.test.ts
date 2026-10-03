@@ -96,6 +96,27 @@ describe("Recommendation Compliance (deterministic)", () => {
     const r = evaluateCompliance(i);
     expect(r.compliant).toBe(false);
   });
+
+  it("BLOCK-DESTINATION-IP aimed at the alert's source (endpoint) -> NON_COMPLIANT (targetRole)", () => {
+    // TC-07/TC-09: endpoint .5 is the SOURCE, lab server .7 the destination
+    const i = base();
+    i.steps = [{ actionCode: "ACT-BLOCK-DESTINATION-IP", target: "172.19.0.5", requiresApproval: true }];
+    i.allowedActions.push("ACT-BLOCK-DESTINATION-IP");
+    i.playbookAllowedActions.push("ACT-BLOCK-DESTINATION-IP");
+    i.policyByAction["ACT-BLOCK-DESTINATION-IP"] = { approvalRequired: true, responsibleRole: "IR_TEAM", approvalRole: "IR_TEAM" };
+    i.knownActionCodes.add("ACT-BLOCK-DESTINATION-IP");
+    i.targetableValues.add("172.19.0.5").add("172.19.0.7");
+    i.alertSrcIp = "172.19.0.5";
+    i.alertDstIp = "172.19.0.7";
+    const wrong = evaluateCompliance(i);
+    expect(wrong.evidenceSupport).toBe(true);
+    expect(wrong.targetRole).toBe(false);
+    expect(wrong.compliant).toBe(false);
+    i.steps[0].target = "172.19.0.7";
+    const right = evaluateCompliance(i);
+    expect(right.targetRole).toBe(true);
+    expect(right.compliant).toBe(true);
+  });
 });
 
 describe("KPI timing (real timestamps)", () => {

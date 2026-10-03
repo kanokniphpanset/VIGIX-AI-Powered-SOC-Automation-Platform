@@ -88,4 +88,20 @@
     <group>account_changed,privilege_escalation,vigix_eval,</group>
   </rule>
 
+  <!-- TC-05: REAL Windows endpoint (Wazuh agent 4.9.2 + Sysmon). powershell.exe resolves the lab "stager" hostname
+       (RFC 2606 reserved .test TLD: nothing is downloaded, nothing real is contacted). The stock ruleset has no rule
+       for a PowerShell DNS query (Sysmon event 22 -> 61650, level 0), and no stock rule that maps T1059.001 at
+       level >= 7 carries an IOC that the VIGIX re-hunt adapter can search (data.win.eventdata.queryName).
+       Sysmon event 22 fields: queryName, queryStatus, image, user. -->
+  <rule id="100300" level="12">
+    <if_sid>61650</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$</field>
+    <field name="win.eventdata.queryName" type="pcre2">^vigix-eval-ps-stager\.test$</field>
+    <description>VIGIX-EVAL: PowerShell resolved a lab stager hostname (Sysmon DNS query)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>windows,sysmon,powershell,vigix_eval,</group>
+  </rule>
+
 </group>

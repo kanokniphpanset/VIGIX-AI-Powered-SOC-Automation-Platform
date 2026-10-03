@@ -22,12 +22,16 @@ import { PrismaClient } from "@prisma/client";
 import { REAL_GROUND_TRUTH, RealTcGroundTruth, resolveGroundTruth } from "../../src/evaluation/groundTruthReal";
 import { collectEvaluationCase, knownActionCodes, verificationModeOf } from "../../src/evaluation/EvaluationService";
 import { EvaluationCase } from "../../src/evaluation/types";
+import { isExpectedIocPresent } from "../../src/evaluation/iocRecall";
+import { evaluateCorrectRecommendation, CorrectnessGroundTruth, CorrectnessResult } from "../../src/evaluation/correctRecommendation";
+import { correctnessGroundTruthByCase, correctnessGroundTruthMetadata, resolveCorrectnessGroundTruth } from "../../src/evaluation/groundTruthCorrectness";
+import { findActionKnowledge } from "../../src/domain/knowledge/actionKnowledge";
 import { probeWazuhManagerApi, wazuhManagerConfigFromEnv } from "../../src/infrastructure/external-services/siem/WazuhManagerHealth";
 import { ManualDecisionUseCase } from "../../src/application/approval/use-cases/ManualDecision.usecase";
 import { AuditLogger } from "../../src/infrastructure/database/postgres/repositories/AuditLogger";
 import { buildEvalContext, TENANT, SOC, IR } from "./wiring";
 import { waitForAlert } from "./indexerClient";
-import { environmentFacts, prepareLab, simulate, cleanupCase, docker, dockerAll, ENDPOINT_AGENT, SimResult } from "./simulations";
+import { environmentFacts, prepareLab, simulate, cleanupCase, docker, dockerAll, ENDPOINT_AGENT, WINDOWS_AGENT, agentForCase, alertWaitMsForCase, SimResult } from "./simulations";
 
 const arg = (n: string, d?: string) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? process.argv[i + 1] : d; };
 const MODE = (arg("mode", "clean") as "clean" | "intervention");
@@ -91,6 +95,16 @@ async function preflight(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalC
   let agents = "", version = "";
   try { agents = docker(["exec", MANAGER, "/var/ossec/bin/agent_control", "-l"]); version = docker(["exec", MANAGER, "/var/ossec/bin/wazuh-control", "info"]).replace(/\r?\n/g, " "); } catch (e) { agents = String((e as Error).message); }
   add("Wazuh agent attack-endpoint", new RegExp(`Name: ${ENDPOINT_AGENT}, IP: any, Active`).test(agents), (agents.match(new RegExp(`.*Name: ${ENDPOINT_AGENT}.*`)) ?? ["not listed"])[0].trim());
+  // TC-05 (REAL Windows endpoint): its own agent must be Active and rule 100300 must be the one in the repository
+  if (gts.some((g) => g.caseId === "TC-05" && g.mode !== "ENVIRONMENT_UNAVAILABLE")) {
+    add("Wazuh agent " + WINDOWS_AGENT + " (TC-05)", new RegExp(`Name: ${WINDOWS_AGENT}, IP: any, Active`).test(agents), (agents.match(new RegExp(`.*Name: ${WINDOWS_AGENT}.*`)) ?? ["not listed"])[0].trim());
+    let installed = "", repoSha = "";
+    try {
+      installed = docker(["exec", MANAGER, "sha256sum", "/var/ossec/etc/rules/vigix_eval_rules.xml"]).split(/\s+/)[0];
+      repoSha = createHash("sha256").update(fs.readFileSync(path.join(ROOT, "infra", "docker", "wazuh-manager", "vigix_eval_rules.xml"))).digest("hex");
+    } catch (e) { installed = String((e as Error).message).slice(0, 80); }
+    add("custom rule 100300 installed (TC-05)", !!installed && installed === repoSha, `manager vigix_eval_rules.xml ${installed.slice(0, 12)} vs repository ${repoSha.slice(0, 12)}`);
+  }
   // custom rules: logtest each controlled-telemetry rule
   const lines: [string, string][] = [
     ["100310", '{"vigix":{"event_type":"phishing_url_delivered"},"srcip":"203.0.113.45"}'], ["100320", '{"vigix":{"event_type":"c2_beacon"},"srcip":"172.19.0.5"}'],
@@ -151,6 +165,8 @@ interface CaseOutcome extends EvaluationCase {
   interventions: Intervention[]; observations: string[]; timeline: Record<string, string | number | null>; iocRecall: { expected: number; found: number; missing: string[] } | null;
   actionMatch: { expectedActions: string[]; actualActions: string[]; expectedActionHit: boolean; expectedTargetHit: boolean; actualTargets: string[] } | null;
   verificationDetail: Record<string, unknown> | null; rehuntError: string | null; timingMode: string; environmentStatus: string;
+  /** Correct Recommendation (Action -> Target vs Ground Truth v3). Separate from recommendationCompliance. null = not evaluable. */
+  correctnessGroundTruth?: CorrectnessGroundTruth | null; correctRecommendation?: CorrectnessResult | null;
 }
 
 async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalContext>, gt0: RealTcGroundTruth, facts: Record<string, string>, known: Set<string>): Promise<CaseOutcome> {
@@ -161,6 +177,7 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
     verificationDetail: null, rehuntError: null, timingMode: "UNINTERRUPTED_SCRIPTED", environmentStatus: "AVAILABLE",
   };
   base.caseId = gt.caseId; base.attackName = gt.attackName; base.attackType = gt.attackType;
+  { const cg = correctnessGroundTruthByCase(gt.caseId); base.correctnessGroundTruth = cg ? resolveCorrectnessGroundTruth(cg, facts) : null; base.correctRecommendation = null; }
   const obs = (m: string) => { base.observations.push(m); console.log(`   ! ${m}`); };
   const ivn = (i: Intervention) => { base.interventions.push(i); console.log(`   > INTERVENTION [${i.type}] ${i.detail}`); };
   if (gt.mode === "ENVIRONMENT_UNAVAILABLE") {
@@ -177,9 +194,9 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
   const since = new Date(new Date(sim.startedAt).getTime() - 2000).toISOString();
 
   // ---- 2. the REAL Wazuh alert
-  const found = await waitForAlert(ENDPOINT_AGENT, gt.expectedWazuh.ruleId, since);
+  const found = await waitForAlert(agentForCase(gt.caseId), gt.expectedWazuh.ruleId, since, alertWaitMsForCase(gt.caseId));
   cleanupCase(gt.caseId);
-  if (!found) { obs(`WAZUH_ALERT_MISSING: no alert of rule ${gt.expectedWazuh.ruleId} from ${ENDPOINT_AGENT} within 150s of the simulation`); base.recommendationCompliance = "NOT_EVALUATED"; return base; }
+  if (!found) { obs(`WAZUH_ALERT_MISSING: no alert of rule ${gt.expectedWazuh.ruleId} from ${agentForCase(gt.caseId)} within ${Math.round(alertWaitMsForCase(gt.caseId) / 1000)}s of the simulation`); base.recommendationCompliance = "NOT_EVALUATED"; return base; }
   const raw = { ...found.source } as Record<string, any>;
   const r = raw.rule ?? {};
   const wazuh = { indexerDocId: found.docId, alertId: raw.id, timestamp: raw.timestamp, ruleId: r.id, level: r.level, description: r.description, mitre: r.mitre?.id ?? [], agent: raw.agent?.name, srcip: raw.data?.srcip ?? null, stockRule: gt.expectedWazuh.stockRule,
@@ -218,7 +235,7 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
   }
   if (analysis?.isFailure) obs(`AI_ANALYSIS_FAILED: ${JSON.stringify(analysis.error).slice(0, 200)}`);
   const ioc0 = await prisma.threatIntelIoc.findMany({ where: { incidentId }, select: { iocType: true, iocValue: true, createdBy: true } });
-  const missing = gt.expectedIocs.filter((e) => !ioc0.some((i) => e.value.toLowerCase().split("|").includes(i.iocValue.toLowerCase()))).map((e) => `${e.type}:${e.value}`);
+  const missing = gt.expectedIocs.filter((e) => !isExpectedIocPresent(e, ioc0)).map((e) => `${e.type}:${e.value}`);
   base.iocRecall = { expected: gt.expectedIocs.length, found: gt.expectedIocs.length - missing.length, missing };
   if (missing.length) obs(`EXPECTED_IOC_MISSING (before any correction): ${missing.join(", ")}`);
 
@@ -320,7 +337,7 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
           // cannot see this would be vacuous; REAL_WAZUH must answer NOT_RESOLVED with matchingEvents > 0.
           const after = new Date().toISOString();
           const again = await simulate(gt.caseId, facts);
-          const seen = await waitForAlert(ENDPOINT_AGENT, gt.expectedWazuh.ruleId, after);
+          const seen = await waitForAlert(agentForCase(gt.caseId), gt.expectedWazuh.ruleId, after, alertWaitMsForCase(gt.caseId));
           cleanupCase(gt.caseId);
           base.observations.push(`RECURRENCE_CONTROL: attack repeated ${again.startedAt} after the response completed; recurrence alert ${seen ? "seen in the indexer (" + (seen.source as any).id + ")" : "NOT seen in the indexer"}`);
           console.log(`   > RECURRENCE CONTROL: attack repeated after containment; alert in indexer: ${!!seen}`);
@@ -340,7 +357,7 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
 }
 
 async function finalize(prisma: PrismaClient, base: CaseOutcome, c: EvaluationCase, gt: RealTcGroundTruth, sim: SimResult, wazuh: Record<string, unknown>, tIngestStart?: Date): Promise<CaseOutcome> {
-  const out: CaseOutcome = { ...base, ...c, mode: base.mode, telemetry: sim.telemetry, simulation: sim, wazuh, groundTruth: gt, interventions: base.interventions, observations: base.observations, iocRecall: base.iocRecall, rehuntError: base.rehuntError, irReject: (base as any).irReject ?? null, timingMode: "UNINTERRUPTED_SCRIPTED", environmentStatus: "AVAILABLE" } as CaseOutcome;
+  const out: CaseOutcome = { ...base, ...c, mode: base.mode, telemetry: sim.telemetry, simulation: sim, wazuh, groundTruth: gt, interventions: base.interventions, observations: base.observations, iocRecall: base.iocRecall, rehuntError: base.rehuntError, irReject: (base as any).irReject ?? null, timingMode: sim.facts.triggerMode === "manual" ? "OPERATOR_TRIGGERED" : "UNINTERRUPTED_SCRIPTED", environmentStatus: "AVAILABLE" } as CaseOutcome;
   out.findings = [...c.findings, ...gt.knownFindings.map((f) => `(ground-truth note) ${f}`)];
   const iid = c.incidentId;
   if (iid) {
@@ -356,6 +373,10 @@ async function finalize(prisma: PrismaClient, base: CaseOutcome, c: EvaluationCa
       const actual = steps.map((s) => s.action?.code ?? "");
       const targets = steps.map((s) => s.target ?? "");
       out.actionMatch = { expectedActions: gt.expectedActions, actualActions: actual, expectedActionHit: actual.some((a) => gt.expectedActions.includes(a)), actualTargets: targets, expectedTargetHit: targets.some((t) => gt.expectedTargets.some((e) => e.toLowerCase() === t.toLowerCase())) };
+      // Correct Recommendation: the FINAL validated recommendation's (action, target) set vs Ground Truth v3. Target type = the Action Catalog's targetKind for the action.
+      if (out.correctnessGroundTruth && out.correctnessGroundTruth.expectedRecommendations.length > 0) {
+        out.correctRecommendation = evaluateCorrectRecommendation(out.correctnessGroundTruth, { playbook: out.playbookCode ?? null, steps: steps.map((s) => ({ action: s.action?.code ?? "", target: s.target ?? "", targetType: findActionKnowledge(s.action?.code ?? "")?.targetKind ?? null })) });
+      }
       if (!out.actionMatch.expectedActionHit) out.observations.push(`ACTION_DIFFERS_FROM_PREFERRED: actual [${actual.join(",")}] vs preferred [${gt.expectedActions.join(",")}] (allowed set still governs compliance)`);
     }
     if (ver) {
@@ -399,7 +420,7 @@ async function finalize(prisma: PrismaClient, base: CaseOutcome, c: EvaluationCa
   }
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  fs.writeFileSync(path.join(OUT_DIR, "run.json"), JSON.stringify({ runLabel: RUN_LABEL, mode: MODE, evaluationType: "REAL_WAZUH", startedAt: runStart.toISOString(), finishedAt: new Date().toISOString(), groundTruthFrozenAt, groundTruthSha256: frozen, groundTruthSource: "apps/backend/src/evaluation/groundTruthReal.ts", decisionMode: DECISION, infrastructureEvents: infraEvents, scoring: "deterministic (EvaluationService.evaluateCompliance) — no LLM judge", preflight: pre, labSetup: labLog, cases }, null, 2));
+  fs.writeFileSync(path.join(OUT_DIR, "run.json"), JSON.stringify({ runLabel: RUN_LABEL, mode: MODE, evaluationType: "REAL_WAZUH", startedAt: runStart.toISOString(), finishedAt: new Date().toISOString(), groundTruthFrozenAt, groundTruthSha256: frozen, groundTruthSource: "apps/backend/src/evaluation/groundTruthReal.ts", correctnessGroundTruth: correctnessGroundTruthMetadata(), decisionMode: DECISION, infrastructureEvents: infraEvents, scoring: "deterministic (EvaluationService.evaluateCompliance) — no LLM judge", preflight: pre, labSetup: labLog, cases }, null, 2));
   console.log(`\nWrote ${path.join(OUT_DIR, "run.json")}`);
   await prisma.$disconnect();
 })().catch((e) => { console.error("real evaluation crashed:", String(e?.stack ?? e).slice(0, 900)); process.exit(2); });

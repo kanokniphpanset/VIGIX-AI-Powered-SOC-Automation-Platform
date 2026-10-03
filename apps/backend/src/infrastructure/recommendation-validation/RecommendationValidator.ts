@@ -170,9 +170,14 @@ export class RecommendationValidator {
     // Only IOCs linked to this cycle's evidence or added by an analyst are actionable targets. An IOC the
     // pipeline merely extracted (e.g. the victim agent's own IP) is context, not something to contain.
     const targetable = targetableIocValues(context);
-    const iocKindByValue = new Map<string, TargetKind>(
-      context.iocs.filter((i) => targetable.has(i.iocValue)).map((i) => [i.iocValue, iocKind(i.iocType)])
-    );
+    // One value can be several kinds at once (a binary's path is both a FILE_PATH and a PROCESS_NAME): keep every kind.
+    const iocKindsByValue = new Map<string, Set<TargetKind>>();
+    for (const i of context.iocs) {
+      if (!targetable.has(i.iocValue)) continue;
+      const kinds = iocKindsByValue.get(i.iocValue) ?? new Set<TargetKind>();
+      kinds.add(iocKind(i.iocType));
+      iocKindsByValue.set(i.iocValue, kinds);
+    }
     const evidenceText = [
       context.incidentTitle,
       ...context.iocs.map((i) => i.iocValue),
@@ -234,15 +239,16 @@ export class RecommendationValidator {
       }
 
       // ---- Target --------------------------------------------------------------------------------
-      const targetKind: TargetKind | undefined = hosts.includes(step.target) ? "host" : iocKindByValue.get(step.target);
-      if (!targetKind) {
+      const targetKinds: ReadonlySet<TargetKind> | undefined = hosts.includes(step.target) ? new Set<TargetKind>(["host"]) : iocKindsByValue.get(step.target);
+      const requiredKind = ACTION_TARGET_KIND[action.code];
+      if (!targetKinds) {
         flag("INVENTED_TARGET", `${label}: target "${step.target}" is not an evidence-linked/analyst-added IOC or an affected host`);
-      } else if (ACTION_TARGET_KIND[action.code] && ACTION_TARGET_KIND[action.code] !== targetKind) {
-        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${targetKind}, but ${action.code} operates on a ${ACTION_TARGET_KIND[action.code]}`);
+      } else if (requiredKind && !targetKinds.has(requiredKind)) {
+        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${[...targetKinds].join("/")}, but ${action.code} operates on a ${requiredKind}`);
       }
       // Required evidence (Action knowledge + ACTION_COMPLIANCE policy). VALIDATED_IOC_TARGET is reported by the
       // INVENTED_TARGET / TARGET_TYPE_MISMATCH checks above with a more precise message.
-      if (targetKind) {
+      if (targetKinds) {
         const compliance = procedure?.compliance;
         const missing = missingEvidenceForTarget(context, action.code, step.target, compliance?.requiredEvidence ?? []).filter((r) => r !== "VALIDATED_IOC_TARGET");
         if (missing.length) {
@@ -285,7 +291,7 @@ export class RecommendationValidator {
         flag("INVALID_INSTRUCTIONS", `${label}: instruction order must be 1..${instructions.length} without gaps or duplicates`);
       }
       for (const ins of instructions) {
-        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindByValue.has(ins.target)) {
+        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindsByValue.has(ins.target)) {
           flag("INVENTED_TARGET", `${label}: instruction ${ins.order} targets "${ins.target}", which is not an evidence-linked/analyst-added IOC or an affected host`);
         }
       }

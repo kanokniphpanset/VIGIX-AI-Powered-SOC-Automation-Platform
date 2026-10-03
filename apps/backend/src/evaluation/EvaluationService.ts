@@ -31,6 +31,9 @@ export interface ComplianceInput {
   policyByAction: Record<string, { approvalRequired: boolean; responsibleRole: string | null; approvalRole: string | null }>;
   approvalRoleUsed: string | null;       // role of the approval actually created
   approvalDecided: boolean;              // a human decision was recorded
+  /** Alert's data.srcip / data.dstip. When either is supplied, IP-blocking steps are role-checked (targetRole). */
+  alertSrcIp?: string | null;
+  alertDstIp?: string | null;
 }
 
 /** Deterministic Recommendation Compliance — six mandatory criteria; compliant = all six (§3). */
@@ -64,8 +67,18 @@ export function evaluateCompliance(i: ComplianceInput): ComplianceChecks {
     : true;
   if (!approvalCorrectness) failed.push(`approvalCorrectness: approval role ${i.approvalRoleUsed ?? "none"} != Policy role ${expectedRole ?? "?"} (or no decision recorded)`);
 
-  const compliant = attackAlignment && evidenceSupport && knowledgeValidity && policyCompliance && playbookAlignment && approvalCorrectness;
-  return { attackAlignment, evidenceSupport, knowledgeValidity, policyCompliance, playbookAlignment, approvalCorrectness, compliant, failedChecks: failed };
+  // targetRole: BLOCK-SOURCE-IP must hit the alert's srcip, BLOCK-DESTINATION-IP its dstip (membership in evidence is not enough).
+  const roleChecked = i.alertSrcIp !== undefined || i.alertDstIp !== undefined;
+  const wrongRole = !roleChecked ? [] : steps.filter((s) => {
+    if (s.actionCode === "ACT-BLOCK-SOURCE-IP") return !i.alertSrcIp || s.target !== i.alertSrcIp;
+    if (s.actionCode === "ACT-BLOCK-DESTINATION-IP") return !i.alertDstIp || s.target !== i.alertDstIp;
+    return false;
+  });
+  const targetRole = wrongRole.length === 0;
+  if (!targetRole) failed.push(`targetRole: ${wrongRole.map((s) => `${s.actionCode}->${s.target} (alert src=${i.alertSrcIp ?? "?"}, dst=${i.alertDstIp ?? "?"})`).join("; ")} targets the wrong IP role`);
+
+  const compliant = attackAlignment && evidenceSupport && knowledgeValidity && policyCompliance && playbookAlignment && approvalCorrectness && targetRole;
+  return { attackAlignment, evidenceSupport, knowledgeValidity, policyCompliance, playbookAlignment, approvalCorrectness, targetRole, compliant, failedChecks: failed };
 }
 
 const secondsBetween = (a: Date | null | undefined, b: Date | null | undefined): number | null =>
@@ -218,6 +231,8 @@ export async function collectEvaluationCase(prisma: PrismaClient, gt: TcGroundTr
     policyByAction: policyResult,
     approvalRoleUsed: approval?.approvalRole ?? null,
     approvalDecided: base.workflow.decisionCompleted,
+    alertSrcIp: ((alert.rawPayload as any)?.data?.srcip as string | undefined) ?? null,
+    alertDstIp: ((alert.rawPayload as any)?.data?.dstip as string | undefined) ?? null,
   });
   base.compliance = compliance;
   base.recommendationCompliance = compliance.compliant ? "COMPLIANT" : "NON_COMPLIANT";

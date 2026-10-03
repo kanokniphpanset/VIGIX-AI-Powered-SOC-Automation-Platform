@@ -30,6 +30,7 @@ export function extractAlertIocs(rawPayload: unknown): AlertIoc[] {
   const payload = asObject(rawPayload) ?? {};
   const data = asObject(payload.data) ?? {};
   const win = asObject(asObject(data.win)?.eventdata) ?? {};
+  const audit = asObject(data.audit) ?? {};
   const out: AlertIoc[] = [];
   const add = (iocType: IocType | null, raw: unknown, path: string) => {
     const value = str(raw);
@@ -41,6 +42,9 @@ export function extractAlertIocs(rawPayload: unknown): AlertIoc[] {
     add(ip && ip.includes(":") ? "IPV6" : "IPV4", ip, `data.${key}`);
   }
   add("DOMAIN", asObject(asObject(data.dns)?.question)?.name, "data.dns.question.name");
+  // Sysmon event 22 (DnsQuery): the name the process asked the resolver for - stated explicitly in the event, and the same
+  // field the Wazuh re-hunt adapter searches for DOMAIN IOCs (WazuhRehuntAdapter: data.win.eventdata.queryName).
+  add("DOMAIN", win.queryName, "data.win.eventdata.queryName");
 
   const url = str(data.url);
   if (url) {
@@ -67,6 +71,9 @@ export function extractAlertIocs(rawPayload: unknown): AlertIoc[] {
   add("PROCESS_NAME", win.image, "data.win.eventdata.image");
   add("PROCESS_NAME", win.parentImage, "data.win.eventdata.parentImage");
   add("PROCESS_NAME", data.process, "data.process");
+  // auditd-style layout: the executable of the audited process. A scalar data.process cannot be indexed by Wazuh (the
+  // index template maps data.process as an object), so process alerts from the Wazuh Indexer carry it here.
+  add("PROCESS_NAME", audit.exe, "data.audit.exe");
   add("COMMAND_LINE", win.commandLine, "data.win.eventdata.commandLine");
   add("COMMAND_LINE", data.command, "data.command");
   add("REGISTRY_KEY", win.targetObject, "data.win.eventdata.targetObject");

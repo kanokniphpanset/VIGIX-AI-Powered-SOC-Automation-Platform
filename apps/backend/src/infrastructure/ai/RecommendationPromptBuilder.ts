@@ -58,7 +58,7 @@ export class RecommendationPromptBuilder {
       const note = linkedIocs.has(ioc.iocValue)
         ? ioc.manual ? "added by an analyst" : "linked to evidence"
         : "CONTEXT ONLY — not linked to any evidence (e.g. the reporting agent's own address); NEVER a target, never block it";
-      lines.push(`  - [${ioc.ref}] type=${ioc.iocType} value=${ioc.iocValue} source=${ioc.source} reputationScore=${ioc.reputationScore ?? "unknown"} (${note})`);
+      lines.push(`  - [${ioc.ref}] type=${ioc.iocType} value=${ioc.iocValue} source=${ioc.source} reputationScore=${ioc.reputationScore ?? "unknown"}${ioc.networkRole ? ` role=${ioc.networkRole}` : ""} (${note})`);
     }
     lines.push("");
 
@@ -86,7 +86,7 @@ export class RecommendationPromptBuilder {
     lines.push("Targetable values (the ONLY allowed step targets):");
     const targetable = context.iocs.filter((i) => linkedIocs.has(i.iocValue));
     if (targetable.length === 0 && context.affectedHosts.length === 0) lines.push("  (none)");
-    for (const i of targetable) lines.push(`  - ${JSON.stringify(i.iocValue)} (${i.iocType})`);
+    for (const i of targetable) lines.push(`  - ${JSON.stringify(i.iocValue)} (${i.iocType}${i.networkRole ? `, ${i.networkRole} IP of the alert` : ""})`);
     for (const h of context.affectedHosts) lines.push(`  - ${JSON.stringify(h)} (affected host)`);
     lines.push("");
 

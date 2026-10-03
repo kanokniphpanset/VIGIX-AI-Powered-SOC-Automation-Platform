@@ -8,7 +8,8 @@ export interface ComplianceChecks {
   policyCompliance: boolean;  // step.requiresApproval matches the Policy snapshot; responsible role present
   playbookAlignment: boolean; // snapshot playbook == expected, and every action is in that playbook's allowed set
   approvalCorrectness: boolean; // the created approval's role matches Policy when approval is required
-  compliant: boolean;         // AND of the six mandatory criteria
+  targetRole: boolean;        // BLOCK-SOURCE-IP targets alert data.srcip, BLOCK-DESTINATION-IP targets data.dstip
+  compliant: boolean;         // AND of the six mandatory criteria + targetRole
   failedChecks: string[];     // traceable reasons
 }
 

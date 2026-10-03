@@ -111,6 +111,7 @@ export class RecommendationContextBuilder {
         reputationScore: i.reputationScore,
         manual: i.manual ?? false,
         ref: `I${n + 1}`,
+        ...(i.networkRole ? { networkRole: i.networkRole } : {}),
       })),
       mitreMappings: mitreMappings.map((m) => ({
         techniqueId: m.techniqueId,

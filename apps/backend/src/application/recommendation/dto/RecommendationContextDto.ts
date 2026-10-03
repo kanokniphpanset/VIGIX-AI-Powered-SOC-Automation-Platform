@@ -16,6 +16,8 @@ export interface RecommendationContextIoc {
   manual?: boolean;
   /** Stable citation id ("I1", "I2", ...) assigned by RecommendationContextBuilder; the AI cites this, not the value. */
   ref?: string;
+  /** IP role in the triggering alert (source = data.srcip, destination = data.dstip); absent for non-IP / unknown. */
+  networkRole?: "source" | "destination";
 }
 
 export interface RecommendationContextMitreMapping {

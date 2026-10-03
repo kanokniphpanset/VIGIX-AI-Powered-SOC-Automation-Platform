@@ -17,6 +17,10 @@ export const ATTACKER = "vigix-lab-attacker";
 export const ENDPOINT = "vigix-attack-endpoint";
 export const TESTSERVER = "vigix-eval-testserver";
 export const ENDPOINT_AGENT = "attack-endpoint";
+/** TC-05 runs on a separate REAL Windows 10 endpoint (VMware VM) whose Wazuh agent 4.9.2 is enrolled as this name. */
+export const WINDOWS_AGENT = "vigix-win10-ps";
+/** The Wazuh agent whose alert a case is read from. */
+export const agentForCase = (caseId: string): string => (caseId === "TC-05" ? WINDOWS_AGENT : ENDPOINT_AGENT);
 
 const EICAR = "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*";
 const EICAR_SHA256 = "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f";
@@ -38,14 +42,36 @@ export interface SimResult {
   caseId: string;
   startedAt: string;      // ISO UTC, taken BEFORE the first action
   endedAt: string;        // ISO UTC, after the last action
-  telemetry: "REAL_EVENTS_STOCK_RULE" | "REAL_ACTION_CUSTOM_RULE" | "CONTROLLED_TELEMETRY_CUSTOM_RULE" | "ENVIRONMENT_UNAVAILABLE";
+  telemetry: "REAL_EVENTS_STOCK_RULE" | "REAL_ACTION_CUSTOM_RULE" | "CONTROLLED_TELEMETRY_CUSTOM_RULE" | "REAL_WINDOWS_SYSMON_CUSTOM_RULE" | "ENVIRONMENT_UNAVAILABLE";
   facts: Record<string, string | number>;
   notes: string[];
 }
 
+/**
+ * TC-05 scenario DEFINITION (how to trigger it - not telemetry). The harness never writes an alert or an event: the
+ * Windows endpoint produces the Sysmon event, Wazuh raises rule 100300, and the runner reads that REAL alert from the
+ * Wazuh Indexer like for every other case.
+ *   TC05_TRIGGER=manual (default)  the runner prints the command and waits (TC05_OPERATOR_WAIT_MS, default 10 min) for the
+ *                                  operator to run it on the Windows VM;
+ *   TC05_TRIGGER=command           the runner runs TC05_TRIGGER_COMMAND (e.g. a vmrun/WinRM wrapper configured by the
+ *                                  operator; no credential is stored in the repository).
+ */
+export const TC05_SCENARIO = {
+  id: "TC-05 PowerShell DNS scenario",
+  agent: WINDOWS_AGENT,
+  domain: "vigix-eval-ps-stager.test",
+  command: `powershell.exe -NoProfile -Command "try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }"`,
+  expectedTelemetry: "Sysmon event 22 (DnsQuery): image=powershell.exe, queryName=vigix-eval-ps-stager.test",
+  expectedRule: { id: "100300", level: 12, mitre: "T1059.001" },
+} as const;
+export const TC05_OPERATOR_WAIT_MS = Number(process.env.TC05_OPERATOR_WAIT_MS ?? 10 * 60 * 1000);
+export const tc05TriggerMode = (): "manual" | "command" => (process.env.TC05_TRIGGER === "command" ? "command" : "manual");
+/** How long the runner waits for the REAL alert of a case (an operator-triggered case needs longer than a scripted one). */
+export const alertWaitMsForCase = (caseId: string): number => (caseId === "TC-05" && tc05TriggerMode() === "manual" ? TC05_OPERATOR_WAIT_MS : 150000);
+
 /** Facts known BEFORE any attack (used to resolve ground-truth placeholders). */
 export function environmentFacts(): Record<string, string> {
-  return { ATTACKER_IP: containerIp(ATTACKER), ENDPOINT_IP: containerIp(ENDPOINT), TESTSERVER_IP: containerIp(TESTSERVER), ATTEMPTED_USER: ["admin", "oracle", "test", "git", "postgres", "ubuntu", "deploy", "backup", "user1", "support"].join("|") };
+  return { ATTACKER_IP: containerIp(ATTACKER), ENDPOINT_IP: containerIp(ENDPOINT), TESTSERVER_IP: containerIp(TESTSERVER), KWORKERD_SHA256: sh(ENDPOINT, "sha256sum /bin/sleep | cut -d' ' -f1").trim(), ATTEMPTED_USER: ["admin", "oracle", "test", "git", "postgres", "ubuntu", "deploy", "backup", "user1", "support"].join("|") };
 }
 
 /** Idempotent lab preparation. Also removes artifacts of earlier runs so every case starts from a known state. */
@@ -150,14 +176,22 @@ export async function simulate(caseId: string, f: Record<string, string>): Promi
       const ps = sh(ENDPOINT, `test -d /proc/${pid} || { echo DEAD; exit 0; }; echo "$(tr '\\0' ' ' < /proc/${pid}/cmdline | cut -d' ' -f1)|$(ps -o ppid= -p ${pid} | tr -d ' ')|$(ps -o user= -p ${pid})|$(id -u www-data)"`).trim();
       if (ps === "DEAD" || ps.split("|").some((x) => !x)) throw new Error(`TC-08: simulated process ${pid} is not alive; refusing to fabricate process telemetry (${ps})`);
       const [exe, ppid, user, uid] = ps.split("|");
+      // Attributes the real process has, read from the endpoint (nothing invented): sha256 of the real dropped file and the
+      // parent process name. The sha256 must equal the pre-attack fact KWORKERD_SHA256 (the file is a copy of /bin/sleep).
+      const sha256 = sh(ENDPOINT, "sha256sum /tmp/.cache/kworkerd | cut -d' ' -f1").trim();
+      const parent = sh(ENDPOINT, `ps -o comm= -p ${ppid} | tr -d ' '`).trim();
+      if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error(`TC-08: could not read the sha256 of the real dropped file (${sha256})`);
+      if (sha256 !== f.KWORKERD_SHA256) throw new Error(`TC-08: sha256 of /tmp/.cache/kworkerd (${sha256}) differs from the pre-attack fact (${f.KWORKERD_SHA256})`);
       // (exe comes from /proc/PID/cmdline: readlink /proc/PID/exe needs CAP_SYS_PTRACE, absent in the container)
       // auditd-style layout (data.audit.*): Wazuh's index template maps data.process as an OBJECT, so a scalar
       // `process` field is rejected by the indexer (mapper_parsing_exception) � found in the Clean Run.
       appendTelemetry({
-        vigix: { event_type: "suspicious_process" }, audit: { exe, command: cmdline, ppid: Number(ppid), uid, pid: Number(pid) }, agent_host: ENDPOINT_AGENT,
-        message: `process ${exe} (pid ${pid}, ppid ${ppid}, user ${user}) running from a world-writable path; parent shell command: ${cmdline}`,
+        vigix: { event_type: "suspicious_process" }, audit: { exe, command: cmdline, ppid: Number(ppid), parent, uid, user, pid: Number(pid) },
+        // same values again in the scalar fields the IOC extractor reads (data.command / data.file / data.sha256)
+        command: cmdline, file: exe, sha256, agent_host: ENDPOINT_AGENT,
+        message: `process ${exe} (pid ${pid}, ppid ${ppid} ${parent}, user ${user}, sha256 ${sha256}) running from a world-writable path; parent shell command: ${cmdline}`,
       });
-      facts.pid = pid; facts.exe = exe; facts.user = user;
+      facts.pid = pid; facts.exe = exe; facts.user = user; facts.sha256 = sha256; facts.parentProcess = parent; facts.commandLine = cmdline;
       notes.push("Process is real (sleep renamed kworkerd, alive when inspected); the telemetry line is generated by the harness from /proc, in the auditd data.audit.* layout.");
       break;
     }
@@ -185,8 +219,24 @@ export async function simulate(caseId: string, f: Record<string, string>): Promi
       notes.push("Test-only account evaluser; removed in cleanup.");
       break;
     }
-    case "TC-05":
-      return { caseId, startedAt: iso(startedAt), endedAt: iso(now()), telemetry: "ENVIRONMENT_UNAVAILABLE", facts, notes: ["No Windows endpoint with a Wazuh agent exists; nothing was simulated."] };
+    case "TC-05": {
+      telemetry = "REAL_WINDOWS_SYSMON_CUSTOM_RULE";
+      const mode = tc05TriggerMode();
+      facts.windowsAgent = TC05_SCENARIO.agent; facts.domain = TC05_SCENARIO.domain; facts.triggerMode = mode; facts.command = TC05_SCENARIO.command;
+      if (mode === "command") {
+        const cmd = process.env.TC05_TRIGGER_COMMAND;
+        if (!cmd) throw new Error("TC05_TRIGGER=command needs TC05_TRIGGER_COMMAND (a command that runs the scenario on the Windows endpoint)");
+        const r = spawnSync(cmd, { shell: true, encoding: "utf8", timeout: 120000, windowsHide: true });
+        facts.triggerExitCode = r.status ?? -1;
+        if (r.status !== 0) throw new Error(`TC-05 trigger command failed (exit ${r.status}): ${(r.stderr ?? "").slice(0, 200)}`);
+        notes.push("Triggered by TC05_TRIGGER_COMMAND on the Windows endpoint.");
+      } else {
+        console.log(`\n   >>> TC-05 OPERATOR ACTION: on the Windows VM (${TC05_SCENARIO.agent}) run, in PowerShell:\n   >>> ${TC05_SCENARIO.command}\n   >>> waiting up to ${Math.round(TC05_OPERATOR_WAIT_MS / 1000)}s for the REAL Wazuh alert (rule ${TC05_SCENARIO.expectedRule.id})...`);
+        notes.push("Operator-triggered: the scenario command is run by a person on the Windows endpoint; detection latency therefore includes the operator's reaction time.");
+      }
+      notes.push(`Scenario: ${TC05_SCENARIO.id}. Expected telemetry: ${TC05_SCENARIO.expectedTelemetry}. Nothing is simulated by the harness; the alert is read from the Wazuh Indexer.`);
+      break;
+    }
     default:
       throw new Error(`unknown case ${caseId}`);
   }
@@ -200,6 +250,7 @@ export function cleanupCase(caseId: string): void {
     "TC-08": "pkill -f /tmp/.cache/kworkerd; rm -f /tmp/.cache/kworkerd",
     "TC-09": "rm -f /tmp/test-data.txt",
     "TC-10": "userdel -r evaluser 2>/dev/null; true",
+    // TC-05: nothing to undo - a DNS lookup of a reserved-TLD name leaves no artifact on the Windows endpoint.
   };
   if (s[caseId]) { try { sh(ENDPOINT, s[caseId]); } catch { /* best effort */ } }
 }
