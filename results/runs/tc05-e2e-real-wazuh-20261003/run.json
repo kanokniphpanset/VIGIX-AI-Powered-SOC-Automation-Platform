@@ -1,0 +1,394 @@
+{
+  "runLabel": "tc05-e2e-real-wazuh-20261003",
+  "mode": "intervention",
+  "evaluationType": "REAL_WAZUH",
+  "startedAt": "2026-10-03T10:36:55.610Z",
+  "finishedAt": "2026-10-03T10:40:35.426Z",
+  "groundTruthFrozenAt": "2026-10-03T10:36:49.253Z",
+  "groundTruthSha256": "9a800baba905dfc8aca73810ef9f4984ac5923b3909eb013984bd11fcc69f6de",
+  "groundTruthSource": "apps/backend/src/evaluation/groundTruthReal.ts",
+  "correctnessGroundTruth": {
+    "version": "correctness-gt-v3.3",
+    "source": "apps/backend/src/evaluation/groundTruthCorrectness.ts",
+    "rule": "strict set of (action,target); playbook must match; every expected pair present; any unexpected pair => INCORRECT; no optional pairs; allowedActions not used; case-insensitive, trimmed, order-independent",
+    "rationale": [
+      "v3.0: each expectedActions entry of groundTruthReal.ts is paired with the expectedTargets value whose TargetKind equals the Action Catalog targetKind of that action.",
+      "v3.1: TC-04 adds ACT-BLOCK-SOURCE-IP -> @ATTACKER_IP (PB-ACCOUNT-COMPROMISE step 2) and TC-08 adds ACT-BLOCK-HASH -> @KWORKERD_SHA256 (PB-SUSPICIOUS-PROCESS step 2); both are unconditional playbook standard steps whose target is already an expectedTargets value. Verified against playbook.seed.ts before any v3 run; not derived from AI output or from v2/v3 results.",
+      "v3.2: TC-02 adds ACT-ISOLATE-ENDPOINT -> attack-endpoint (PB-MALWARE step 1): unconditional playbook standard step, Action Catalog targetKind host, and attack-endpoint (the monitored endpoint / Wazuh agent of the TC-02 simulation) was already an expectedTargets value frozen on 2026-09-30, before any AI output. Same criterion as v3.1; not derived from AI output or from v2/v3 results.",
+      "v3.3: TC-05 adds ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test (PB-POWERSHELL step 2). TC-05 uses a controlled REAL_WAZUH PowerShell/DNS scenario. The scenario produced Wazuh rule 100300 (level 12, MITRE T1059.001) from Sysmon Event ID 22 with queryName = vigix-eval-ps-stager.test. The domain was extracted deterministically from data.win.eventdata.queryName, validated as a DOMAIN IOC, re-hunted successfully through WazuhRehuntAdapter, and observed in two independent scenario runs. BLOCK-DOMAIN is therefore the expected action-target pair. ISOLATE-ENDPOINT is excluded because the scenario demonstrates PowerShell/DNS activity but does not provide sufficient evidence that the endpoint was compromised. Approval: IR_TEAM (RULE-P07, severity HIGH). Not derived from AI output, from v2/v3 results or from the mock TC-05 file.",
+      "Conditional playbook steps (ISOLATE-ENDPOINT in TC-04, TC-08) are not expected: no scenario evidence that the condition holds."
+    ],
+    "sha256": "d2f1dae6d576d8e0534bc8a26cae4a7afc5f6a529e06da2f675a5b44855951a8"
+  },
+  "decisionMode": "approve",
+  "infrastructureEvents": [],
+  "scoring": "deterministic (EvaluationService.evaluateCompliance) — no LLM judge",
+  "preflight": {
+    "checks": [
+      {
+        "name": "evaluation database",
+        "ok": true,
+        "detail": "connected to 'soar_tc05_eval' (must end with _eval; soar_platform is never touched)"
+      },
+      {
+        "name": "REHUNT_PROVIDER",
+        "ok": true,
+        "detail": "REHUNT_PROVIDER=wazuh — mock would make verification MOCK"
+      },
+      {
+        "name": "recommendation agent",
+        "ok": true,
+        "detail": "RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)"
+      },
+      {
+        "name": "AI orchestrator (eval instance)",
+        "ok": true,
+        "detail": "http://localhost:8001 -> {\"status\":\"ok\",\"service\":\"soar-ai-orchestrator\"}"
+      },
+      {
+        "name": "Wazuh Indexer + re-hunt provider",
+        "ok": true,
+        "detail": "WazuhRehuntAdapter health: reachable=true cluster=green indices=5 pattern=wazuh-alerts-4.x-*"
+      },
+      {
+        "name": "Wazuh manager API",
+        "ok": true,
+        "detail": "UP: analysisd, remoted, logcollector, integratord running · agents 3 active / 5 total (2 disconnected)"
+      },
+      {
+        "name": "Wazuh agent attack-endpoint",
+        "ok": true,
+        "detail": "ID: 009, Name: attack-endpoint, IP: any, Active"
+      },
+      {
+        "name": "Wazuh agent vigix-win10-ps (TC-05)",
+        "ok": true,
+        "detail": "ID: 010, Name: vigix-win10-ps, IP: any, Active"
+      },
+      {
+        "name": "custom rule 100300 installed (TC-05)",
+        "ok": true,
+        "detail": "manager vigix_eval_rules.xml f3da602b25f4 vs repository f3da602b25f4"
+      },
+      {
+        "name": "custom rule 100310 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100320 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100330 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100340 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100350 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "Knowledge Base complete for ground truth",
+        "ok": true,
+        "detail": "11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present"
+      }
+    ],
+    "kbGaps": [],
+    "env": {
+      "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+      "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+      "wazuhManagerApi": {
+        "status": "UP",
+        "detail": "analysisd, remoted, logcollector, integratord running · agents 3 active / 5 total (2 disconnected)",
+        "latencyMs": 213
+      },
+      "indexer": {
+        "configured": true,
+        "reachable": true,
+        "indexPattern": "wazuh-alerts-4.x-*",
+        "clusterStatus": "green",
+        "alertIndices": 5
+      },
+      "aiOrchestrator": "http://localhost:8001",
+      "llm": {
+        "provider": "openrouter",
+        "model": "google/gemma-4-26b-a4b-it",
+        "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+      },
+      "database": "soar_tc05_eval",
+      "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+      "recommendationAgent": "llm",
+      "node": "v24.19.0"
+    }
+  },
+  "labSetup": [
+    "attacker=172.19.0.3 endpoint=172.19.0.8 testserver=172.19.0.7"
+  ],
+  "cases": [
+    {
+      "caseId": "TC-05",
+      "attackType": "POWERSHELL",
+      "attackName": "PowerShell",
+      "severity": "high",
+      "risk": null,
+      "incidentId": "fb479b6b-9d58-4001-a82a-98f93c22d0ec",
+      "alertId": "9c0c4a55-dad2-418c-9e33-cffc2d264b44",
+      "investigationId": "f8ea201e-080b-4c70-8042-89adac3814e4",
+      "recommendationId": "6772dd98-b812-4c39-becc-20da79447f26",
+      "playbookCode": "PB-POWERSHELL",
+      "decisionId": "7b60b99a-ed9e-4c53-b3a4-8a1d4f4e59b0",
+      "responseTicketId": "3f515a32-34a7-4b73-bfce-1f3eeb3c6665",
+      "verificationId": "ff289965-2b8d-4cc1-be95-6a2e3de02119",
+      "recommendationStatus": "VALIDATED",
+      "compliance": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true,
+        "targetRole": true,
+        "compliant": true,
+        "failedChecks": []
+      },
+      "recommendationCompliance": "COMPLIANT",
+      "investigationStartAt": "2026-10-03T10:38:07.957Z",
+      "recommendationAt": "2026-10-03T10:40:17.198Z",
+      "decisionAt": "2026-10-03T10:40:17.256Z",
+      "investigationTimeSeconds": 129.24,
+      "timeToDecisionSeconds": 0.06,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": true,
+        "recommendationCreated": true,
+        "recommendationValidated": true,
+        "policyEvaluated": true,
+        "decisionCompleted": true,
+        "responseCompleted": true,
+        "verificationCompleted": true,
+        "rehuntExecuted": true
+      },
+      "workflowCompleted": true,
+      "finalStatus": "resolved",
+      "verificationMode": "REAL_WAZUH",
+      "verificationResult": "RESOLVED",
+      "rehuntRound": 1,
+      "recommendationAttemptCount": 2,
+      "invalidOutputCount": 1,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [
+        "(ground-truth note) REAL_WAZUH controlled scenario: the endpoint activity is real (Sysmon event 22 raised by powershell.exe) but the rule is a custom rule (100300) that matches this exact lab name; the stock ruleset has no rule for a PowerShell DNS query. Reported as CUSTOM_RULE_REAL_ACTION, never as a stock detection.",
+        "(ground-truth note) The scenario proves PowerShell/DNS activity only. It does not prove that the endpoint was compromised, so ACT-ISOLATE-ENDPOINT is not an expected action (Correct Recommendation GT v3.3).",
+        "(ground-truth note) Wazuh's eventchannel decoder doubles the backslashes inside data.win.eventdata.image and .user; the extractor reports them as stated."
+      ],
+      "notes": "",
+      "mode": "CUSTOM_RULE_REAL_ACTION",
+      "telemetry": "REAL_WINDOWS_SYSMON_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-05",
+        "startedAt": "2026-10-03T10:36:55.616Z",
+        "endedAt": "2026-10-03T10:36:55.616Z",
+        "telemetry": "REAL_WINDOWS_SYSMON_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.3",
+          "endpointIp": "172.19.0.8",
+          "testServerIp": "172.19.0.7",
+          "windowsAgent": "vigix-win10-ps",
+          "domain": "vigix-eval-ps-stager.test",
+          "triggerMode": "manual",
+          "command": "powershell.exe -NoProfile -Command \"try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }\""
+        },
+        "notes": [
+          "Operator-triggered: the scenario command is run by a person on the Windows endpoint; detection latency therefore includes the operator's reaction time.",
+          "Scenario: TC-05 PowerShell DNS scenario. Expected telemetry: Sysmon event 22 (DnsQuery): image=powershell.exe, queryName=vigix-eval-ps-stager.test. Nothing is simulated by the harness; the alert is read from the Wazuh Indexer."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "-cFXAaEBT0qgUD4ho08f",
+        "alertId": "1791023881.1721259",
+        "timestamp": "2026-10-03T10:38:01.155+0000",
+        "ruleId": "100300",
+        "level": 12,
+        "description": "VIGIX-EVAL: PowerShell resolved a lab stager hostname (Sysmon DNS query)",
+        "mitre": [
+          "T1059.001"
+        ],
+        "agent": "vigix-win10-ps",
+        "srcip": null,
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 65.54
+      },
+      "groundTruth": {
+        "caseId": "TC-05",
+        "ruleId": "100300",
+        "attackName": "PowerShell",
+        "attackType": "POWERSHELL",
+        "mode": "CUSTOM_RULE_REAL_ACTION",
+        "simulation": "REAL Windows 10 endpoint (Wazuh agent 4.9.2 + Sysmon): powershell.exe resolves the reserved-TLD lab name vigix-eval-ps-stager.test (DNS query only: nothing is downloaded or changed) -> Sysmon event 22 -> custom rule 100300",
+        "expectedWazuh": {
+          "ruleId": "100300",
+          "level": 12,
+          "stockRule": false
+        },
+        "expectedSeverity": "high",
+        "expectedMitre": [
+          "T1059.001"
+        ],
+        "expectedIocs": [
+          {
+            "type": "domain",
+            "value": "vigix-eval-ps-stager.test"
+          }
+        ],
+        "allowedActions": [
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH"
+        ],
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN"
+        ],
+        "expectedTargets": [
+          "vigix-eval-ps-stager.test"
+        ],
+        "expectedPlaybook": "PB-POWERSHELL",
+        "approvalExpected": true,
+        "expectedPolicy": "RULE-P07 (severity HIGH) IR_TEAM approval; POL-A02 action compliance (BLOCK-DOMAIN)",
+        "expectedApproval": "IR_TEAM approval required (Policy RULE-P07, severity HIGH) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [
+          "REAL_WAZUH controlled scenario: the endpoint activity is real (Sysmon event 22 raised by powershell.exe) but the rule is a custom rule (100300) that matches this exact lab name; the stock ruleset has no rule for a PowerShell DNS query. Reported as CUSTOM_RULE_REAL_ACTION, never as a stock detection.",
+          "The scenario proves PowerShell/DNS activity only. It does not prove that the endpoint was compromised, so ACT-ISOLATE-ENDPOINT is not an expected action (Correct Recommendation GT v3.3).",
+          "Wazuh's eventchannel decoder doubles the backslashes inside data.win.eventdata.image and .user; the extractor reports them as stated."
+        ]
+      },
+      "interventions": [],
+      "observations": [],
+      "timeline": {
+        "simulationStart": "2026-10-03T10:36:55.616Z",
+        "wazuhAlertTimestamp": "2026-10-03T10:38:01.155+0000",
+        "alertReceivedByVigix": "2026-10-03T10:38:07.906Z",
+        "incidentOpened": "2026-10-03T10:38:07.951Z",
+        "investigationStart": "2026-10-03T10:38:07.957Z",
+        "recommendationCreated": "2026-10-03T10:40:17.198Z",
+        "irDecision": "2026-10-03T10:40:17.256Z",
+        "responseCompleted": "2026-10-03T10:40:20.303Z",
+        "verificationAt": "2026-10-03T10:40:35.371Z",
+        "detectionLatencySeconds": 65.54,
+        "ingestToRecommendationSeconds": 129.3
+      },
+      "iocRecall": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "actionMatch": {
+        "expectedActions": [
+          "ACT-BLOCK-DOMAIN"
+        ],
+        "actualActions": [
+          "ACT-ISOLATE-ENDPOINT",
+          "ACT-BLOCK-DOMAIN"
+        ],
+        "expectedActionHit": true,
+        "actualTargets": [
+          "vigix-win10-ps",
+          "vigix-eval-ps-stager.test"
+        ],
+        "expectedTargetHit": true
+      },
+      "verificationDetail": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "affectedHosts": [],
+        "index": "wazuh-alerts-4.x-*",
+        "evidenceSource": "WAZUH_INDEXER",
+        "searchedIocs": [
+          {
+            "type": "DOMAIN",
+            "value": "vigix-eval-ps-stager.test"
+          }
+        ],
+        "skippedIocs": [],
+        "excludedIocs": [],
+        "window": {
+          "start": "2026-10-03T10:40:20.303Z",
+          "end": "2026-10-03T10:40:35.332Z"
+        }
+      },
+      "rehuntError": null,
+      "timingMode": "OPERATOR_TRIGGERED",
+      "environmentStatus": "AVAILABLE",
+      "correctnessGroundTruth": {
+        "caseId": "TC-05",
+        "expectedPlaybook": "PB-POWERSHELL",
+        "expectedRecommendations": [
+          {
+            "action": "ACT-BLOCK-DOMAIN",
+            "targets": [
+              {
+                "type": "domain",
+                "value": "vigix-eval-ps-stager.test"
+              }
+            ],
+            "rationale": "Playbook standard step 2: block the stager/C2 domain recorded in the evidence. REAL_WAZUH scenario: Sysmon event 22 queryName, rule 100300 L12 T1059.001.",
+            "source": {
+              "kind": "PLAYBOOK_STANDARD_STEP",
+              "playbook": "PB-POWERSHELL",
+              "stepOrder": 2,
+              "targetFrom": {
+                "kind": "REAL_WAZUH_SCENARIO",
+                "ruleId": "100300",
+                "field": "data.win.eventdata.queryName"
+              }
+            }
+          }
+        ]
+      },
+      "correctRecommendation": {
+        "caseId": "TC-05",
+        "correct": false,
+        "playbookMatch": true,
+        "actionTargetMatches": false,
+        "missingRecommendations": [],
+        "unexpectedRecommendations": [
+          {
+            "action": "ACT-ISOLATE-ENDPOINT",
+            "target": "vigix-win10-ps"
+          }
+        ],
+        "mismatchedTargets": [],
+        "matchedRecommendations": [
+          {
+            "action": "ACT-BLOCK-DOMAIN",
+            "target": "vigix-eval-ps-stager.test"
+          }
+        ],
+        "reason": "unexpected: ACT-ISOLATE-ENDPOINT -> vigix-win10-ps"
+      },
+      "irReject": null
+    }
+  ]
+}
