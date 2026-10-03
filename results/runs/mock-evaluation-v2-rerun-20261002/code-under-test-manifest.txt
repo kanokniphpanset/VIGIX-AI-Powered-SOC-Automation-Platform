@@ -1,0 +1,37 @@
+Code-under-test manifest - mock-evaluation-v2-rerun-20261002
+Generated 2026-10-02T10:55:10Z from the working tree. Tracked diff of apps/backend + apps/ai-orchestrator: SHA-256 f6b5951b55b12db0ccf16e721e8310fdb5dcb4922d0bafa046ff3d3b323ac22d (equals the value recorded before and after the run; stored as code-under-test.diff, sha256 f6b5951b55b12db0ccf16e721e8310fdb5dcb4922d0bafa046ff3d3b323ac22d).
+Base commit: f3114be24fb9e0f4a96f4ff5244d83ffa135fc86 on feature/report-period-windows. Files below are the ones that differ from that commit. SHA-256 is of the working file.
+Columns: sha256 | path | purpose | affects evaluation result?
+
+## Tracked, modified (their diff is also inside code-under-test.diff)
+90702d96ebc14a0a5758ec746fc51080c6e5c647991a45f13c226c588bf74e9a | apps/backend/src/domain/investigation/alertIocs.ts | PROCESS_NAME extracted from data.audit.exe | YES (TC-08 IOCs)
+e0c37133b21edfb817bcbe7aaf7e14836ed7d18a21514859fa36c10ba38507e3 | apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts | value -> Set<kind> map (multi-kind IOC) | YES (TC-08 target validation)
+47bbc8ad8b791606982eecde2fd776b080d213a0dd68eeed0efc4ca6c7feea3d | apps/backend/src/evaluation/EvaluationService.ts | targetRole compliance criterion (7th) | YES (compliance definition; all cases passed it)
+c5cf173a1c3707714ab33414bfa3f9bebb891f4530cb751ab0839c5984aa9f91 | apps/backend/src/evaluation/types.ts | ComplianceChecks.targetRole field | YES (type of the above)
+8f3eb5ea2d809329d5323391afec32345c1d53972173f22d16fa4261c71d3095 | apps/backend/src/evaluation/groundTruthReal.ts | TC-08 ground truth: file+hash IOCs, expectedEvidence, evidenceLimits; placeholder plumbing | YES (hash e54d003515bdcb19)
+cc2db872a3b3926a92c5ab3f2a7793caed1ed3515e9f507b9bf30abbadd28d9b | apps/backend/src/evaluation/groundTruth.ts | mock ground truth TC-08 file+hash IOCs | NO (not used by the real-Wazuh runner)
+00f75d460f36860cf5ab9ab2dc9784bb837fdada36357da51e95493281d4dd34 | apps/backend/scripts/eval/simulations.ts | TC-08 telemetry adds data.command/file/sha256 + KWORKERD_SHA256 fact | YES (TC-08 alert content)
+a4dc7bba114744895c45fcf062123ac8c95a7bc0c76d7568ef3311aa7a9738b6 | apps/backend/scripts/eval/run-real-evaluation.ts | IOC recall uses isExpectedIocPresent (pipe fix) | YES (IOC recall reporting only)
+060e5f08c3a2b9117f92dc37fe4c34e8e7591ebf965bbac172186f760f74811e | apps/backend/src/application/recommendation/dto/RecommendationContextDto.ts | networkRole in recommendation context | YES (TC-07/09 target role)
+ae64fc326b391bb53f257ce381a1021b39407a4789c2ccd5065b5c065345c812 | apps/backend/src/application/recommendation/ports/IRecommendationContextRepository.ts | networkRole port field | YES
+8766e03674668021185a59a6ec28e66c862220e704b4f8845120852ac020c8b7 | apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts | networkRole passthrough | YES
+b9d63c0767897cff8fc2a79e8866cb9aac888a7773bc532f65615fc9afe9362f | apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts | role= text in the prompt | YES (TC-07/09)
+dc9cf395f0272be8f7e91720e8a85a7c00daab5bb4cc80c11796f1cdf66d4616 | apps/backend/src/infrastructure/database/postgres/repositories/RecommendationContextRepository.prisma.ts | networkRole read from the alert | YES
+d16e4516f15edd48cb947b924953090680fa22e0e1069cc73b7c5f34be78dd37 | apps/backend/test/EvaluationCompliance.test.ts | unit tests incl. targetRole | NO (tests)
+8c61b3ed3e751bc4caa6c0a84849051c7e5a359d2ac1f7fa759dfb74a96f5100 | apps/backend/scripts/eval/extended/order-experiment.ts | ORDER_EXPERIMENT_OUT override (diagnostic experiment) | NO (not used in this run)
+228e10986885ffd5e2162af6c15e36e2901ceb82a924e1dd2eb8831a921b1b7d | resources/mock-attacks-tc/TC-08-suspicious-process.json | static mock alert JSON with the new fields | NO (the runner does not read it)
+
+## Untracked (NOT in code-under-test.diff - listed here so they are recoverable)
+09606cb59f8361c5b175a32b85c47525c2aed5395d22ce38f90926d637749c7b | apps/backend/src/evaluation/iocRecall.ts | expected-IOC presence helper (| literal except user alternatives) | YES (IOC recall reporting only)
+5658a4206e2c561732d5a278f30ec014d09e9176574581bc5e3fa3424ba2d5de | apps/backend/scripts/eval/final/final-metrics.v2.ts | KPI computation (copy of final-metrics.ts with null-guards) | YES (reporting of metrics; formulas unchanged). NOTE its supplementary target-kind check has the same single-kind-per-value blind spot (see FREEZE-AUDIT.md)
+1713e6060fcffa5facc3d89b7d0df71fa18b6473b9aff8f81afe89a04172f927 | apps/backend/test/IocRecallPipe.test.ts | regression tests for iocRecall.ts | NO (tests)
+1f1cf9369376c94b2747c7f111a6c2aa187f6a2f0be369217fd6661821608bd1 | apps/backend/test/RealWazuhProcessIoc.test.ts | regression tests for data.audit.exe extraction | NO (tests)
+5b781f375f64b2cf54f01b9dcda09b3ab58f8ae26a1511d2fc58d6cc99a486a9 | apps/backend/test/ValidatorMultiKindTarget.test.ts | regression tests for the validator multi-kind fix | NO (tests)
+apps/backend/scripts/figures/ | paper figure rendering (png/pdf) | NO (not hashed individually)
+.env.txt (repo root, untracked) | not part of the code; not hashed or inspected because it may contain secrets | NO
+
+## Evaluation inputs / outputs of this run
+26f06aea8ee6bfec1ae7e2b6c39592ef10cc8630d8729e1f3d0029204bae94fc | results/runs/mock-evaluation-v2-rerun-20261002/run.json | raw result of the main run (not modified after the run) | -
+ae531ba3edca5a3c73dec1867ad649d5fde2c0c7bd9c1c2e6bd6b0c5b51aadd8 | results/runs/mock-evaluation-v2-rerun-20261002/metrics/data/consistency.json | run artifact | -
+f10dd68977cd5ead3ffa34ef1f01b40c8d9ee5bc2c88aba827c5fd282a896821 | results/runs/mock-evaluation-v2-rerun-20261002/pre-run-integrity.json | run artifact | -
+f8d02c1ec77429a702b4a8a01553564c7575c171e60bcc44dcaa88358022802b | results/runs/mock-evaluation-v2-rerun-20261002/post-run-integrity.json | run artifact | -

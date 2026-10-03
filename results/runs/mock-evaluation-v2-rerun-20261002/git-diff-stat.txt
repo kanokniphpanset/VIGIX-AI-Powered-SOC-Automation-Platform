@@ -1,0 +1,16 @@
+ .../scripts/eval/extended/order-experiment.ts      |  2 +-
+ apps/backend/scripts/eval/run-real-evaluation.ts   |  3 ++-
+ apps/backend/scripts/eval/simulations.ts           | 16 +++++++++++----
+ .../recommendation/dto/RecommendationContextDto.ts |  2 ++
+ .../ports/IRecommendationContextRepository.ts      |  2 ++
+ .../services/RecommendationContextBuilder.ts       |  1 +
+ apps/backend/src/domain/investigation/alertIocs.ts |  4 ++++
+ apps/backend/src/evaluation/EvaluationService.ts   | 19 +++++++++++++++--
+ apps/backend/src/evaluation/groundTruth.ts         |  2 +-
+ apps/backend/src/evaluation/groundTruthReal.ts     | 16 ++++++++++++---
+ apps/backend/src/evaluation/types.ts               |  3 ++-
+ .../ai/RecommendationPromptBuilder.ts              |  4 ++--
+ .../RecommendationContextRepository.prisma.ts      |  7 +++++++
+ .../RecommendationValidator.ts                     | 24 ++++++++++++++--------
+ apps/backend/test/EvaluationCompliance.test.ts     | 21 +++++++++++++++++++
+ 15 files changed, 102 insertions(+), 24 deletions(-)

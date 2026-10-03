@@ -1,0 +1,208 @@
+{
+  "kpi": "Negative Validation",
+  "formula": "rejected invalid recommendations / tested invalid recommendations × 100",
+  "database": "soar_final_eval",
+  "summary": {
+    "unsupported_recommendation_rejection_rate": {
+      "numerator": 10,
+      "denominator": 10,
+      "pct": 100,
+      "definition": "rejected invalid recommendations / total invalid recommendations (only scenarios whose positive control validated are counted)"
+    },
+    "rejected_with_expected_code": {
+      "numerator": 10,
+      "denominator": 10
+    },
+    "scenarios_total": 10,
+    "scenarios_with_failed_control": 0,
+    "by_layer": {
+      "validator": {
+        "rejected": 7,
+        "total": 7
+      },
+      "policy": {
+        "rejected": 3,
+        "total": 3
+      }
+    },
+    "governance_gates": {
+      "passed": 17,
+      "total": 17
+    },
+    "accepted_invalid": []
+  },
+  "scenarios": [
+    {
+      "scenario_id": "NEG-01",
+      "name": "Unsupported target (IOC not in the evidence)",
+      "invalid_condition": "the recommended target is an IP address that does not exist in the incident's evidence",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (INVENTED_TARGET)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "INVENTED_TARGET",
+        "INVENTED_IOC"
+      ],
+      "validator_result": "INVALID: INVENTED_TARGET, INVENTED_IOC",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-02",
+      "name": "Required evidence type absent",
+      "invalid_condition": "ACT-KILL-PROCESS on a recorded process while the COMMAND_LINE evidence it requires is absent from the incident",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "POLICY REJECT (INSUFFICIENT_EVIDENCE)",
+      "expected_layer": "POLICY",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": false,
+      "rejection_reason": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "validator_result": "INVALID: INSUFFICIENT_EVIDENCE",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-03",
+      "name": "Policy: wrong responsible role",
+      "invalid_condition": "responsibleRole \"IR_TEAM\" while Policy assigns \"SOC\" to this action",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "POLICY REJECT (WRONG_RESPONSIBLE_ROLE)",
+      "expected_layer": "POLICY",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "POLICY",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "WRONG_RESPONSIBLE_ROLE"
+      ],
+      "validator_result": "INVALID: WRONG_RESPONSIBLE_ROLE",
+      "policy_result": "POLICY-DERIVED: WRONG_RESPONSIBLE_ROLE"
+    },
+    {
+      "scenario_id": "NEG-04",
+      "name": "Policy: approval waived",
+      "invalid_condition": "candidate marks approval as not required and says to execute without approval while Policy requires an approval",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "POLICY REJECT (POLICY_BYPASS)",
+      "expected_layer": "POLICY",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "POLICY",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "POLICY_BYPASS"
+      ],
+      "validator_result": "INVALID: POLICY_BYPASS",
+      "policy_result": "POLICY-DERIVED: POLICY_BYPASS"
+    },
+    {
+      "scenario_id": "NEG-05",
+      "name": "Action outside the selected playbook",
+      "invalid_condition": "ACT-ISOLATE-ENDPOINT is not allowed by the SQL-injection playbook",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (ACTION_NOT_IN_PLAYBOOK)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "ACTION_NOT_IN_PLAYBOOK",
+        "ACTION_NOT_APPLICABLE",
+        "RUNBOOK_MISMATCH"
+      ],
+      "validator_result": "INVALID: ACTION_NOT_IN_PLAYBOOK, ACTION_NOT_APPLICABLE, RUNBOOK_MISMATCH",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-06",
+      "name": "Action that does not exist in the Action Catalog",
+      "invalid_condition": "the recommended action code ACT-WIPE-DISK is not in the catalog",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (INVENTED_ACTION)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "INVENTED_ACTION"
+      ],
+      "validator_result": "INVALID: INVENTED_ACTION",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-07",
+      "name": "Target of the wrong type for the action",
+      "invalid_condition": "ACT-BLOCK-SOURCE-IP (operates on an IP) aimed at the host \"attack-endpoint\"",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (TARGET_TYPE_MISMATCH)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "TARGET_TYPE_MISMATCH"
+      ],
+      "validator_result": "INVALID: TARGET_TYPE_MISMATCH",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-08",
+      "name": "Playbook different from the backend-selected one",
+      "invalid_condition": "step names playbook PB-MALWARE while the backend selected PB-SQL-INJECTION",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (PLAYBOOK_MISMATCH)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "PLAYBOOK_MISMATCH"
+      ],
+      "validator_result": "INVALID: PLAYBOOK_MISMATCH",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-09",
+      "name": "Fabricated evidence reference",
+      "invalid_condition": "evidenceRefs cites \"E99\", an evidence id that does not exist in this investigation",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (INVENTED_EVIDENCE)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "INVENTED_EVIDENCE",
+        "NO_EVIDENCE"
+      ],
+      "validator_result": "INVALID: INVENTED_EVIDENCE, NO_EVIDENCE",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    },
+    {
+      "scenario_id": "NEG-10",
+      "name": "Invented indicator in free text",
+      "invalid_condition": "the reason cites the IP 203.0.113.250, which is not in the incident evidence",
+      "positive_control": "VALIDATED (unmodified candidate accepted)",
+      "expected": "VALIDATOR REJECT (INVENTED_IOC)",
+      "expected_layer": "VALIDATOR",
+      "actual_result": "REJECTED",
+      "rejection_layer_actual": "VALIDATOR",
+      "layer_matches_expectation": true,
+      "rejection_reason": [
+        "INVENTED_IOC"
+      ],
+      "validator_result": "INVALID: INVENTED_IOC",
+      "policy_result": "no Policy-derived violation (rejected by validator knowledge/grounding rules)"
+    }
+  ],
+  "tested": 10,
+  "rejected": 10,
+  "rate": {
+    "numerator": 10,
+    "denominator": 10,
+    "pct": 100
+  },
+  "note": "the layer is taken from the recorded violation: Policy-derived = responsible-role / approval-waiver rules; evidence required by the Action's own knowledge (e.g. COMMAND_LINE for ACT-KILL-PROCESS) is a validator-layer rejection, not a Policy rejection"
+}

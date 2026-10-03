@@ -1,0 +1,24 @@
+{
+  "kpi": "Human / Policy Validation",
+  "formula": "passed checks / total checks × 100",
+  "sources": [
+    "data/negative.json#governance_gates (real use cases on the final DB)",
+    "results/runs/none/run.json (IR reject → manual decision → manual response → real re-hunt)"
+  ],
+  "result": {
+    "passed": 0,
+    "total": 0,
+    "pct": null
+  },
+  "governanceGates": {
+    "passed": 0,
+    "total": 0
+  },
+  "irRejectFlow": {
+    "passed": 0,
+    "total": 0,
+    "case": null
+  },
+  "failures": [],
+  "checks": []
+}

@@ -1,0 +1,86 @@
+{
+  "kpi": "Time-to-Decision",
+  "formula": "T_IR_Decision − T_Recommendation",
+  "unit": "seconds",
+  "source": "approvals.decided_at (first IR decision of the case's response ticket) and recommendations.created_at",
+  "stats": {
+    "n": 8,
+    "mean": 0.063,
+    "median": 0.064,
+    "sd": 0.01,
+    "min": 0.051,
+    "max": 0.083
+  },
+  "casesWithoutIrDecision": [
+    {
+      "tc": "TC-08",
+      "reason": "no recommendation"
+    }
+  ],
+  "decisionActorNote": "every IR decision in this evaluation is a scripted call of the real DecideApproval use case with the IR_TEAM role; the value is the latency of that scripted decision, not human deliberation",
+  "perCase": [
+    {
+      "tc": "TC-01",
+      "recommendationAt": "2026-10-02T06:47:54.718Z",
+      "irDecisionAt": "2026-10-02T06:47:54.783Z",
+      "seconds": 0.065,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-02",
+      "recommendationAt": "2026-10-02T06:51:09.178Z",
+      "irDecisionAt": "2026-10-02T06:51:09.245Z",
+      "seconds": 0.067,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-03",
+      "recommendationAt": "2026-10-02T06:56:37.758Z",
+      "irDecisionAt": "2026-10-02T06:56:37.809Z",
+      "seconds": 0.051,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-04",
+      "recommendationAt": "2026-10-02T06:58:41.936Z",
+      "irDecisionAt": "2026-10-02T06:58:42.019Z",
+      "seconds": 0.083,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-06",
+      "recommendationAt": "2026-10-02T06:59:54.744Z",
+      "irDecisionAt": "2026-10-02T06:59:54.802Z",
+      "seconds": 0.058,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-07",
+      "recommendationAt": "2026-10-02T07:02:22.849Z",
+      "irDecisionAt": "2026-10-02T07:02:22.912Z",
+      "seconds": 0.063,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-08",
+      "recommendationAt": null,
+      "irDecisionAt": null,
+      "seconds": null,
+      "decidedBy": null
+    },
+    {
+      "tc": "TC-09",
+      "recommendationAt": "2026-10-02T07:09:57.038Z",
+      "irDecisionAt": "2026-10-02T07:09:57.102Z",
+      "seconds": 0.064,
+      "decidedBy": "eval-ir"
+    },
+    {
+      "tc": "TC-10",
+      "recommendationAt": "2026-10-02T07:11:42.863Z",
+      "irDecisionAt": "2026-10-02T07:11:42.919Z",
+      "seconds": 0.056,
+      "decidedBy": "eval-ir"
+    }
+  ]
+}
