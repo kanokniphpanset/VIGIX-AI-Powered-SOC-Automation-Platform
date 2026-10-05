@@ -13,6 +13,7 @@ import {
   buildVerificationNotResolvedEvent,
   buildInvestigationReopenedEvent,
 } from "../../notification/services/NotificationEventBuilder";
+import { RunIncidentAiAnalysisUseCase } from "../../incident/use-cases/RunIncidentAiAnalysis.usecase";
 
 export interface CreateVerificationInput {
   incidentId: string;
@@ -69,6 +70,11 @@ export const MAX_INVESTIGATION_ROUNDS = 3;
  * every other module uses) and, if it says requireNewInvestigation, bumps
  * Incident.investigationNumber.
  *
+ * When a new investigation is opened, the AI pipeline first re-analyses the incident for the new round (with the
+ * verification evidence that showed it was not resolved), so the new round's recommendation is built on a fresh AI
+ * analysis instead of the previous round's. If that analysis fails, the failure is audited by the analysis use case
+ * and the round continues.
+ *
  * When a new investigation is opened, a fresh recommendation is automatically
  * generated from the new investigation context. GenerateRecommendationUseCase
  * is responsible for obtaining the next recommendationNumber and superseding
@@ -97,7 +103,9 @@ export class CreateVerificationUseCase {
     private readonly notificationDispatcher: INotificationDispatcherPort,
     private readonly vigixBaseUrl: string,
     private readonly generateRecommendationUseCase: GenerateRecommendationUseCase,
-    private readonly inApp?: InAppNotifier
+    private readonly inApp?: InAppNotifier,
+    /** Re-runs the AI analysis (orchestrator, analysis-only) for each newly opened round. */
+    private readonly roundAnalysis?: Pick<RunIncidentAiAnalysisUseCase, "execute">
   ) {}
 
   async execute(
@@ -210,6 +218,40 @@ export class CreateVerificationUseCase {
           await input.onInvestigationReopened(newInvestigationNumber);
         } catch (err) {
           console.error("Failed to record new-cycle evidence before recommendation", verification.id, err);
+        }
+      }
+
+      // Fresh AI analysis for the new round, after its evidence is recorded and before its recommendation, so the
+      // recommendation context (latest grounded analysis) reflects this round rather than round 1.
+      if (this.roundAnalysis) {
+        try {
+          const analysis = await this.roundAnalysis.execute({
+            tenantId: input.tenantId,
+            incidentId: input.incidentId,
+            actor: "system",
+            trigger: "investigation_reopened",
+            investigationContext: {
+              investigationNumber: newInvestigationNumber,
+              verification: {
+                id: verification.id,
+                result,
+                query: input.query,
+                timeRangeStart: input.timeRangeStart?.toISOString() ?? null,
+                timeRangeEnd: input.timeRangeEnd?.toISOString() ?? null,
+                matchingEvents,
+                affectedHosts: input.affectedHosts ?? [],
+                iocRecurrence,
+                spreadDetected,
+                threatContained: input.threatContained,
+                evidenceSource: input.evidenceSource ?? "MANUAL_ENTRY",
+              },
+            },
+          });
+          if (analysis.isFailure) {
+            console.error("AI re-analysis for the new investigation round failed", verification.id, analysis.error);
+          }
+        } catch (err) {
+          console.error("AI re-analysis for the new investigation round failed", verification.id, err);
         }
       }
 

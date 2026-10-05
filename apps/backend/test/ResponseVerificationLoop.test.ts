@@ -12,6 +12,7 @@ import { CreateVerificationUseCase, MAX_INVESTIGATION_ROUNDS } from "../src/appl
 import { StartResponseUseCase } from "../src/application/response/use-cases/StartResponse.usecase";
 import { CompleteResponseUseCase } from "../src/application/response/use-cases/CompleteResponse.usecase";
 import { FailResponseUseCase } from "../src/application/response/use-cases/FailResponse.usecase";
+import { RunIncidentAiAnalysisInput, RunIncidentAiAnalysisUseCase } from "../src/application/incident/use-cases/RunIncidentAiAnalysis.usecase";
 import { GenerateRecommendationUseCase } from "../src/application/recommendation/use-cases/GenerateRecommendation.usecase";
 import { Incident } from "../src/domain/incident/entities/Incident.entity";
 import { Alert } from "../src/domain/alert/entities/Alert.entity";
@@ -66,7 +67,7 @@ function incidentIocs(c: any, correlated: boolean) {
     .map((i: any) => ({ iocType: { ip: "IPV4", domain: "DOMAIN", url: "URL", hash: "SHA256" }[i.type as "ip"], iocValue: i.value, source: "aggregated", reputationScore: null }));
 }
 
-function world(caseId: string, opts: { mode?: MockRehuntMode; correlated?: boolean; approvalStatus?: ResponseApprovalStatus; planStatus?: ResponseStatus } = {}) {
+function world(caseId: string, opts: { mode?: MockRehuntMode; correlated?: boolean; approvalStatus?: ResponseApprovalStatus; planStatus?: ResponseStatus; analysisFails?: boolean } = {}) {
   const c = fixtures[caseId];
   const audit: Array<{ action: string; actor: string; entityId: string; metadata?: any }> = [];
   const order: string[] = [];
@@ -142,7 +143,16 @@ function world(caseId: string, opts: { mode?: MockRehuntMode; correlated?: boole
     }),
   } as unknown as GenerateRecommendationUseCase;
 
-  const createVerification = new CreateVerificationUseCase(verificationRepository, responsePlanRepository, incidentRepository, new PolicyEvaluator({ findAllEnabled: async () => policies } as unknown as IPolicyRepository), auditLogger, contextRepository, notifications, "http://vigix.test", generate);
+  // Fresh AI analysis per round (recorded, so its timing and inputs can be asserted).
+  const roundAnalysis = {
+    execute: jest.fn(async (i: RunIncidentAiAnalysisInput) => {
+      order.push(`analysis:inv-${incident.investigationNumber}`);
+      if (opts.analysisFails) return { isFailure: true, isSuccess: false, error: "AI_UNAVAILABLE" };
+      return { isFailure: false, isSuccess: true, value: { incidentId: i.incidentId } };
+    }),
+  } as unknown as Pick<RunIncidentAiAnalysisUseCase, "execute"> & { execute: jest.Mock };
+
+  const createVerification = new CreateVerificationUseCase(verificationRepository, responsePlanRepository, incidentRepository, new PolicyEvaluator({ findAllEnabled: async () => policies } as unknown as IPolicyRepository), auditLogger, contextRepository, notifications, "http://vigix.test", generate, undefined, roundAnalysis);
   const runRehunt = new RunRehuntVerificationUseCase(new MockRehuntAdapter(opts.mode ?? "FIXTURE"), createVerification, incidentRepository, alertRepository, responsePlanRepository, verificationRepository, contextRepository, investigationRepository, auditLogger);
   const start = new StartResponseUseCase(responsePlanRepository, approvalRepository, auditLogger);
   const complete = new CompleteResponseUseCase(responsePlanRepository, auditLogger, incidentRepository, { findById: async () => null } as unknown as IActionRepository, contextRepository, notifications, "http://vigix.test");
@@ -175,7 +185,7 @@ function world(caseId: string, opts: { mode?: MockRehuntMode; correlated?: boole
     return runRehunt.execute({ incidentId: incident.id, responseId: plan.id, tenantId: TENANT, verifiedBy: "ir-1" });
   };
 
-  return { c, audit, order, plans, verifications, evidence, iocs, approvals, generate, start, complete, fail, runRehunt, createVerification, addPlan, executeAndVerify, incident: () => incident };
+  return { c, audit, order, plans, verifications, evidence, iocs, approvals, generate, roundAnalysis, start, complete, fail, runRehunt, createVerification, addPlan, executeAndVerify, incident: () => incident };
 }
 
 describe("Human execution (existing Start/Complete/Fail)", () => {
@@ -258,8 +268,8 @@ describe("Unresolved loop (fixture rounds)", () => {
     const r1 = await w.executeAndVerify();
     expect(r1.value.verification).toMatchObject({ result: "NOT_RESOLVED", iocRecurrence: true, spreadDetected: false, matchingEvents: 2 });
     expect(w.incident()).toMatchObject({ status: "investigating", investigationNumber: 2 });
-    // New evidence in the NEW cycle, then the new recommendation — in that order.
-    expect(w.order).toEqual(["investigation:2", "evidence:inv-2", "evidence:inv-2", "recommendation:inv-2"]);
+    // New evidence in the NEW cycle, then a fresh AI analysis, then the new recommendation — in that order.
+    expect(w.order).toEqual(["investigation:2", "evidence:inv-2", "evidence:inv-2", "analysis:inv-2", "recommendation:inv-2"]);
     expect(w.evidence.every((e) => e.investigationId === "inv-2" && e.type === "WAZUH_EVENT" && e.source === "MOCK_REHUNT")).toBe(true);
     expect(w.iocs).toEqual([expect.objectContaining({ investigationId: "inv-2", iocType: "IPV4", iocValue: "185.220.101.46", source: "REHUNT" })]);
     expect(w.evidence.find((e) => e.iocIds.length > 0)?.iocIds).toEqual(["ioc-1"]);
@@ -271,6 +281,40 @@ describe("Unresolved loop (fixture rounds)", () => {
     const r2 = await w.executeAndVerify();
     expect(r2.value.verification.result).toBe("RESOLVED");
     expect(w.incident()).toMatchObject({ status: "resolved", investigationNumber: 2 });
+  });
+
+  it("each new round re-runs the AI analysis with that round's re-hunt evidence (rounds 2 and 3), never reusing round 1's", async () => {
+    const w = world("ATK-04", { correlated: true });
+    expect(w.roundAnalysis.execute).not.toHaveBeenCalled();
+    await w.executeAndVerify();
+    await w.executeAndVerify();
+    expect(w.roundAnalysis.execute).toHaveBeenCalledTimes(2);
+    const [first, second] = w.roundAnalysis.execute.mock.calls.map(([i]: [RunIncidentAiAnalysisInput]) => i);
+    expect(first).toMatchObject({ incidentId: w.incident().id, actor: "system", trigger: "investigation_reopened", investigationContext: { investigationNumber: 2 } });
+    expect(second.investigationContext).toMatchObject({ investigationNumber: 3 });
+    // Each round's analysis carries the verification that opened it.
+    expect(first.investigationContext!.verification).toMatchObject({ id: w.verifications[0].id, result: "NOT_RESOLVED", iocRecurrence: true, evidenceSource: "MOCK_REHUNT" });
+    expect(second.investigationContext!.verification.id).toBe(w.verifications[1].id);
+    expect(w.order.filter((o) => /^(analysis|recommendation):/.test(o))).toEqual(["analysis:inv-2", "recommendation:inv-2", "analysis:inv-3", "recommendation:inv-3"]);
+  });
+
+  it("no new round (RESOLVED, or rounds exhausted): no AI re-analysis", async () => {
+    const resolved = world("ATK-01");
+    await resolved.executeAndVerify();
+    expect(resolved.roundAnalysis.execute).not.toHaveBeenCalled();
+
+    const exhausted = world("ATK-04", { correlated: true });
+    for (let round = 1; round <= MAX_INVESTIGATION_ROUNDS; round++) await exhausted.executeAndVerify();
+    expect(exhausted.roundAnalysis.execute).toHaveBeenCalledTimes(MAX_INVESTIGATION_ROUNDS - 1);
+  });
+
+  it("a failed AI re-analysis does not block the round: the recommendation is still generated", async () => {
+    const w = world("ATK-02", { analysisFails: true });
+    const r = await w.executeAndVerify();
+    expect(r.value.verification.result).toBe("NOT_RESOLVED");
+    expect(w.incident().investigationNumber).toBe(2);
+    expect(w.order).toEqual(expect.arrayContaining(["analysis:inv-2", "recommendation:inv-2"]));
+    expect(w.audit.map((a) => a.action)).toContain("INVESTIGATION_REOPENED");
   });
 
   it("ATK-06: SPREAD -> NOT_RESOLVED + spread -> Investigation #2 + escalation audited (RULE-V02) -> round 2 RESOLVED", async () => {
