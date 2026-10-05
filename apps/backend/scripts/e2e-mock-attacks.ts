@@ -19,7 +19,10 @@
  * ("phase34-e2e-soc", "ir-e2e"). Two operational roles only: SOC and IR_TEAM. Requirements: Postgres (DATABASE_URL), AI orchestrator (AI_ORCHESTRATOR_URL) with LLM.
  *
  * Result per check: PASS | FAIL | GAP. GAP = behaviour that deviates from the fixture because of a documented,
- * not-yet-built product capability (alert correlation, see .claude/cluade.md §45.7). A GAP is never a PASS.
+ * not-yet-built product capability (none open today; ATK-04's alert correlation gap is closed). A GAP is never a PASS.
+ * Related alerts are correlated into the case's incident at ingestion (domain/alert/alertCorrelation.ts); a primary
+ * alert must open its OWN incident, so an open incident left behind by an aborted run (same tenant, same fixture
+ * timestamps) shows up as a FAIL here — resolve or dismiss it first.
  * Exit code 1 if any check FAILs.
  */
 import "dotenv/config";
@@ -58,6 +61,7 @@ import { RecommendationValidator } from "../src/infrastructure/recommendation-va
 import { PolicyEvaluator } from "../src/infrastructure/policy-engine/PolicyEvaluator";
 import { ResourceAssetCriticalityProvider } from "../src/infrastructure/assets/ResourceAssetCriticalityProvider";
 import { IngestAlertFromSiemUseCase } from "../src/application/alert/use-cases/IngestAlertFromSiem.usecase";
+import { PrismaIncidentCorrelationReader } from "../src/infrastructure/database/postgres/repositories/IncidentCorrelationReader.prisma";
 import { CreateIncidentUseCase } from "../src/application/incident/use-cases/CreateIncident.usecase";
 import { PolicyIncidentIntake } from "../src/infrastructure/policy-engine/PolicyIncidentIntake";
 import { RecommendationContextBuilder } from "../src/application/recommendation/services/RecommendationContextBuilder";
@@ -98,7 +102,7 @@ const policy = new PolicyEvaluator(new PrismaPolicyRepository(prisma));
 const wazuh = new WazuhAdapter();
 
 // HIGH / CRITICAL open their incident at ingestion (Policy INTAKE); the AI analysis is run explicitly below.
-const ingest = new IngestAlertFromSiemUseCase(alerts, incidents, { enqueue: async () => { throw new Error("Ingestion must not queue AI"); }, latestForIncident: async () => null }, audit, new PolicyIncidentIntake(policy), new CreateIncidentUseCase(incidents, alerts, audit));
+const ingest = new IngestAlertFromSiemUseCase(alerts, incidents, { enqueue: async () => { throw new Error("Ingestion must not queue AI"); }, latestForIncident: async () => null }, audit, new PolicyIncidentIntake(policy), new CreateIncidentUseCase(incidents, alerts, audit), { reader: new PrismaIncidentCorrelationReader(prisma), investigations });
 const webhook = new SiemInboundWebhookController(ingest, { wazuh });
 const approvalService = new ApprovalService(ctxRepo, actions, policy, approvals, audit, noNotify, "http://localhost", new ResourceAssetCriticalityProvider());
 const makeGenerate = (agent: IRecommendationAgentPort) =>
@@ -164,6 +168,8 @@ async function ingestAlert(alert: Fixture) {
   const sev = r.value.alert.severity.toLowerCase();
   const actor = "phase34-e2e-soc";
   let incidentId = r.value.incidentId;
+  // A correlated (related) alert joined an incident that is already analysed and triaged: nothing more to do here.
+  if (r.value.correlation) return { ...r.value, pipelineDispatched: true, investigationSynced: true };
   if (sev === "high" || sev === "critical") {
     check("INTAKE", `${sev.toUpperCase()} alert opened its incident automatically (no claim, no AI queued by ingestion)`, !!incidentId && !r.value.triageRequired, incidentId ?? "none");
   } else if (sev === "medium") {
@@ -309,10 +315,13 @@ async function runCase(fx: Fixture, variant: "production" | "analyst-correlated"
   check(scope, "AI analysis stored (llm_analyst, ml_risk, recommendation_agent)", ["llm_analyst", "ml_risk", "recommendation_agent"].every((n) => aiRows.some((r) => r.agentName === n)));
   check(scope, "AI report references this incident", report?.incidentId === incidentId, report?.incidentId);
 
-  // Related alerts: today each becomes its OWN incident (no correlation) — recorded, not hidden.
+  check(scope, "primary alert opened its own incident (not correlated into an earlier one)", !ing.correlation, ing.correlation ?? "own incident");
+
+  // Related alerts are correlated into this incident at ingestion: their evidence + IOCs join Investigation #1.
   for (const ra of fx.relatedAlerts ?? []) {
     const r = await ingestAlert(ra);
-    check(scope, `related alert ${ra.id} -> separate incident (no correlation yet)`, !!r.incidentId && r.incidentId !== incidentId, r.incidentId ?? "none", true);
+    check(scope, `related alert ${ra.id} correlated into the case's incident`, r.incidentId === incidentId && !!r.correlation, r.correlation ?? r.incidentId ?? "none");
+    check(scope, `related alert ${ra.id} is WAZUH_ALERT evidence of Investigation #1`, (await prisma.evidence.count({ where: { investigationId: inv1.id, alertId: r.alert.id, type: "WAZUH_ALERT" } })) === 1);
   }
 
   // ATK-04 correlated variant: an ANALYST correlates the related alert by adding its C2 IOCs to Investigation #1
@@ -414,7 +423,7 @@ async function runCase(fx: Fixture, variant: "production" | "analyst-correlated"
     const verification = await prisma.verification.findFirst({ where: { responseId: hp.plan.id } });
     const fr = fx.rehunt.rounds.find((r: any) => r.round === round);
     const deviation = !fr || fr.expected.verification !== verification?.result || fr.expected.matchingEvents !== verification?.matchingEvents || fr.expected.spreadDetected !== verification?.spreadDetected;
-    check(rs, `verification vs fixture round ${round}`, !deviation, { db: { result: verification?.result, matching: verification?.matchingEvents, spread: verification?.spreadDetected }, fixture: fr?.expected }, variant === "production" && fx.id === "ATK-04");
+    check(rs, `verification vs fixture round ${round}`, !deviation, { db: { result: verification?.result, matching: verification?.matchingEvents, spread: verification?.spreadDetected }, fixture: fr?.expected });
     check(rs, "verification provenance MOCK_REHUNT + round index", (verification?.afterState as any)?.evidenceSource === "MOCK_REHUNT" && (verification?.wazuhIndex ?? "").endsWith(`#round-${round}`));
     roundResults.push(`${verification?.result}${verification?.spreadDetected ? "+SPREAD" : ""}`);
     finalVerdict = verification!.result;
@@ -461,7 +470,7 @@ async function runCase(fx: Fixture, variant: "production" | "analyst-correlated"
   const inc = await prisma.incident.findUnique({ where: { id: incidentId } });
   const primary = roundResults[0]?.includes("SPREAD") ? "SPREAD" : roundResults[0];
   check(scope, `primary result = fixture ${exp.primaryResult}`, primary === exp.primaryResult, primary);
-  check(scope, `final state = fixture ${expectedFinal}`, finalVerdict === expectedFinal, { db: finalVerdict, incident: inc?.status, cycles: (await invRows(incidentId)).length }, variant === "production" && fx.id === "ATK-04");
+  check(scope, `final state = fixture ${expectedFinal}`, finalVerdict === expectedFinal, { db: finalVerdict, incident: inc?.status, cycles: (await invRows(incidentId)).length });
 
   const mine = checks.slice(before);
   row.status = mine.some((c) => c.status === "FAIL") ? "FAIL" : mine.some((c) => c.status === "GAP") ? "GAP" : "PASS";

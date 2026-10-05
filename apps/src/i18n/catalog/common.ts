@@ -234,6 +234,7 @@ export const common = {
   'aud.a.APPROVAL_REJECTED': ['IR ปฏิเสธ', 'IR rejected'],
   'aud.a.RECOMMENDATION_SENT_TO_IR': ['ส่ง Recommendation ให้ IR', 'Recommendation sent to IR'],
   'aud.a.ALERT_ESCALATED_TO_INCIDENT': ['ยกระดับ Alert เป็น Incident', 'Alert escalated to an incident'],
+  'aud.a.ALERT_CORRELATED_TO_INCIDENT': ['รวม Alert ที่เกี่ยวข้องเข้า Incident ที่เปิดอยู่โดยอัตโนมัติ', 'Related alert correlated into the open incident automatically'],
   'aud.a.ALERT_OUTSIDE_SOC_WORKFLOW': ['เก็บ Alert LOW ไว้ (ไม่อยู่ในงาน SOC)', 'LOW alert stored (outside the SOC workflow)'],
   'aud.a.APPROVAL_ROLE_MIGRATED': ['ย้ายการอนุมัติที่ค้างไปให้ IR_TEAM (ปรับเป็นสองบทบาท)', 'Open approval moved to IR_TEAM (two-role migration)'],
   'aud.a.RESPONSE_STATUS_MIGRATED': ['ปรับสถานะ Ticket (ปรับเป็นสองบทบาท)', 'Ticket status migrated (two-role workflow)'],

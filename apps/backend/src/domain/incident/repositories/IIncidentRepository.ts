@@ -57,6 +57,8 @@ export interface AbsorbIntoIncidentData {
   /** Alerts that belong to no incident yet; linked to the target directly. */
   unlinkedAlertIds: string[];
   actor: string;
+  /** Timeline text for each added alert (default: the Set Group wording). */
+  timelineDescription?: (externalAlertId: string) => string;
 }
 
 export interface IIncidentRepository {

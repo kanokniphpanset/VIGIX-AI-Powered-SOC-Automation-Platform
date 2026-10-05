@@ -47,6 +47,7 @@ import {
 import { CreateEvidenceUseCase } from "../../application/investigation/use-cases/CreateEvidence.usecase";
 import { CreateIocUseCase } from "../../application/investigation/use-cases/CreateIoc.usecase";
 import { ListRelatedAlertEvidenceUseCase } from "../../application/investigation/use-cases/RelatedAlertEvidence.usecase";
+import { PrismaIncidentCorrelationReader } from "../database/postgres/repositories/IncidentCorrelationReader.prisma";
 import { PrismaRelatedAlertEvidenceReader } from "../database/postgres/repositories/RelatedAlertEvidenceReader.prisma";
 import { InvestigationController } from "../../presentation/http/controllers/InvestigationController";
 import { RunRehuntVerificationUseCase } from "../../application/verification/use-cases/RunRehuntVerification.usecase";
@@ -413,7 +414,9 @@ const ingestAlertFromSiemUseCase =
     auditLogger,
     new PolicyIncidentIntake(policyEvaluator),
     // HIGH / CRITICAL open their incident at ingestion (same use case the SOC uses; declared below, called at runtime).
-    { execute: (input) => createIncidentUseCase.execute(input) }
+    { execute: (input) => createIncidentUseCase.execute(input) },
+    // Automatic alert correlation: a related HIGH / CRITICAL alert joins the open incident instead of opening another.
+    { reader: new PrismaIncidentCorrelationReader(prisma), investigations: investigationRepository }
   );
 
 const listIncidentsUseCase =

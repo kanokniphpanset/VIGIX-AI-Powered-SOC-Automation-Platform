@@ -17,8 +17,8 @@ export type MergeAlertsFailure =
  * not open or a source incident is resolved or already has response plans (that work must not be orphaned).
  *
  * The merged alerts become WAZUH_ALERT evidence (+ their IOCs) of the target's Investigation #1 via the existing
- * syncIncident, so the next Recommendation cycle is grounded in them. This is analyst-driven correlation only;
- * automatic alert correlation (the ATK-04 GAP) is a separate, unbuilt capability.
+ * syncIncident, so the next Recommendation cycle is grounded in them. This is analyst-driven correlation; automatic
+ * correlation of a NEW alert into an open incident happens at ingestion (IngestAlertFromSiem + alertCorrelation.ts).
  */
 export class MergeAlertsIntoIncidentUseCase {
   constructor(
