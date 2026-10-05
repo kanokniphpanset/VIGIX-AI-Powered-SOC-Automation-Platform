@@ -42,6 +42,10 @@ test('policy validation: code, name, type, precedence, and each rule needs a val
   assert.equal(validatePolicyDraft(noResult).rules?.[0], 'polf.err.resultRequired')
   const badSla = { ...INTAKE, rules: [{ ...INTAKE.rules[0], result: { triageSlaMinutes: '-5' } }] }
   assert.equal(validatePolicyDraft(badSla).rules?.[0], 'polf.err.number')
+  const fractionalTriage = { ...INTAKE, rules: [{ ...INTAKE.rules[0], result: { triageSlaMinutes: '1.5' } }] }
+  assert.equal(validatePolicyDraft(fractionalTriage).rules?.[0], 'polf.err.number', 'the backend only accepts whole triage minutes')
+  const fractionalFirstResponse = { ...INTAKE, rules: [{ ...INTAKE.rules[0], result: { firstResponseSlaMinutes: '1.5' } }] }
+  assert.equal(validatePolicyDraft(fractionalFirstResponse).rules?.[0], undefined)
   const badChain = { ...INTAKE, rules: [{ ...INTAKE.rules[0], result: { approvalChain: 'MANAGER' } }] }
   assert.equal(validatePolicyDraft(badChain).rules?.[0], 'polf.err.chain')
 })

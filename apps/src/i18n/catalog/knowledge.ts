@@ -203,7 +203,7 @@ export const knowledge = {
   'polf.err.precedence': ['ลำดับการประเมินต้องเป็นจำนวนเต็ม', 'Precedence must be a whole number.'],
   'polf.err.condition': ['ทุกเงื่อนไขต้องเลือกฟิลด์ การเปรียบเทียบ และค่า', 'Every condition needs a field, a comparison and a value.'],
   'polf.err.resultRequired': ['กำหนดผลลัพธ์อย่างน้อย 1 ค่า', 'Set at least one result value.'],
-  'polf.err.number': ['ค่า SLA ต้องเป็นตัวเลขมากกว่า 0', 'SLA values must be numbers greater than 0.'],
+  'polf.err.number': ['ค่า SLA ต้องเป็นตัวเลขมากกว่า 0 (Triage SLA ต้องเป็นจำนวนเต็มนาที)', 'SLA values must be numbers greater than 0 (triage SLA in whole minutes).'],
   'polf.err.chain': ['ลำดับผู้อนุมัติใช้ได้เฉพาะ SOC หรือ IR_TEAM', 'The approval chain may only list SOC or IR_TEAM.'],
   'polf.err.forbidden': ['บทบาทของคุณเพิ่ม Policy ไม่ได้', 'Your role cannot add policies.'],
   'actf.createTitle': ['เพิ่ม Action', 'Add Action'],

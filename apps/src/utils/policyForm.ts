@@ -22,7 +22,8 @@ export const CONDITION_FIELDS = Object.keys(CONDITION_VALUES)
 const ROLES = ['SOC', 'IR_TEAM']
 export type ResultFieldKind = 'select' | 'boolean' | 'number' | 'text' | 'list'
 /** Result fields a rule can set (PolicyResultFragment), in the order the form shows them. */
-export const RESULT_FIELDS: { key: string; kind: ResultFieldKind; options?: string[] }[] = [
+/** `integer`: the backend only accepts whole numbers (triageSlaMinutes is .int()). */
+export const RESULT_FIELDS: { key: string; kind: ResultFieldKind; options?: string[]; integer?: boolean }[] = [
   { key: 'autoCreateIncident', kind: 'boolean' },
   { key: 'priority', kind: 'select', options: ['P0', 'P1', 'P2', 'P3'] },
   { key: 'responsibleRole', kind: 'select', options: ROLES },
@@ -39,7 +40,7 @@ export const RESULT_FIELDS: { key: string; kind: ResultFieldKind; options?: stri
   { key: 'requireEscalation', kind: 'boolean' },
   { key: 'requireAdditionalEvidence', kind: 'boolean' },
   { key: 'incidentStatus', kind: 'text' },
-  { key: 'triageSlaMinutes', kind: 'number' },
+  { key: 'triageSlaMinutes', kind: 'number', integer: true },
   { key: 'firstResponseSlaMinutes', kind: 'number' },
 ]
 
@@ -57,6 +58,7 @@ export type PolicyDraftErrors = Partial<Record<'code' | 'name' | 'type' | 'prece
   rules?: Record<number, MsgKey>
 }
 
+const validNumber = (raw: string, integer = false) => { const n = Number(raw.trim()); return n > 0 && (!integer || Number.isInteger(n)) }
 const splitList = (text: string) => text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)
 
 /** Field → message key; empty when the draft can be sent. */
@@ -73,7 +75,7 @@ export function validatePolicyDraft(d: PolicyDraft, existingCodes: string[] = []
   d.rules.forEach((r, i) => {
     if (!r.conditions.length || r.conditions.some((c) => !CONDITION_VALUES[c.field]?.includes(c.value) || !(CONDITION_OPERATORS as readonly string[]).includes(c.operator))) rules[i] = 'polf.err.condition'
     else if (!Object.keys(resultPayload(r.result)).length) rules[i] = 'polf.err.resultRequired'
-    else if (RESULT_FIELDS.some((f) => f.kind === 'number' && r.result[f.key]?.trim() && !(Number(r.result[f.key]) > 0))) rules[i] = 'polf.err.number'
+    else if (RESULT_FIELDS.some((f) => f.kind === 'number' && r.result[f.key]?.trim() && !validNumber(r.result[f.key], f.integer))) rules[i] = 'polf.err.number'
     else if ((r.result.approvalChain ?? '') && splitList(r.result.approvalChain).some((x) => !ROLES.includes(x.toUpperCase()))) rules[i] = 'polf.err.chain'
   })
   if (!d.rules.length) rules[0] = 'polf.err.condition'
