@@ -18,7 +18,10 @@ ALERT = {
 
 
 class FakeGraph:
+    last_state: dict | None = None
+
     async def ainvoke(self, state, config=None):
+        FakeGraph.last_state = state
         return {**state, "decision": "auto_response", "decision_result": {"stub": True}, "severity": "medium", "requires_approval": False, "errors": []}
 
 
@@ -105,3 +108,17 @@ def test_unknown_execution_id_is_404_and_nothing_runs(world):
     res = client.post("/pipeline/run", json={"alert_id": "alert-1", "tenant_id": "t-1", "analysis_only": True, "execution_id": "nope"})
     assert res.status_code == 404
     assert calls["persist"] == 0 and calls["incident_alert_ids"] == []
+
+
+def test_investigation_context_reaches_the_graph_state_for_a_new_round(world):
+    client, _calls = world
+    ctx = {"investigation_number": 2, "verification": {"id": "ver-1", "result": "NOT_RESOLVED", "matching_events": 2, "affected_hosts": ["WEB-01"]}}
+    res = client.post("/pipeline/run", json={"alert_id": "alert-1", "tenant_id": "t-1", "analysis_only": True, "investigation_context": ctx})
+    assert res.status_code == 200
+    assert FakeGraph.last_state["investigation_context"] == ctx
+
+
+def test_first_round_has_no_investigation_context(world):
+    client, _calls = world
+    client.post("/pipeline/run", json={"alert_id": "alert-1", "tenant_id": "t-1", "analysis_only": True})
+    assert "investigation_context" not in FakeGraph.last_state

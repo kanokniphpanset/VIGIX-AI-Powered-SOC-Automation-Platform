@@ -21,6 +21,8 @@ class AgentState(TypedDict, total=False):
     asset_criticality: Any
     organization_regulated: bool
     business_policy_tags: Any
+    # Investigation #2+ only: round number + the NOT_RESOLVED re-hunt verification that opened it.
+    investigation_context: dict[str, Any]
 
     # --- threat intel ---
     iocs: list[dict[str, Any]]

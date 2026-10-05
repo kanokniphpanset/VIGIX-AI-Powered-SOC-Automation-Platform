@@ -63,6 +63,24 @@ describe("Run / Re-run AI Analysis for an existing incident", () => {
     expect(w.audits[0].metadata.rerun).toBe(true);
   });
 
+  test("new investigation round: passes the round's verification evidence to the pipeline and audits the trigger", async () => {
+    const w = world({ analysedBefore: true });
+    const investigationContext = {
+      investigationNumber: 2,
+      verification: {
+        id: "ver-1", result: "NOT_RESOLVED", query: "rule.id:5710", timeRangeStart: null, timeRangeEnd: null, matchingEvents: 2,
+        affectedHosts: ["WEB-01"], iocRecurrence: true, spreadDetected: false, threatContained: false, evidenceSource: "MOCK_REHUNT",
+      },
+    };
+    const r = await w.useCase.execute({ tenantId: T, incidentId: INC, actor: "system", trigger: "investigation_reopened", investigationContext });
+    expect(r.isSuccess).toBe(true);
+    expect(w.runnerCalls).toEqual([{ alertId: ALERT, tenantId: T, investigationContext }]);
+    expect(w.audits[0]).toMatchObject({
+      actor: "system",
+      metadata: { trigger: "investigation_reopened", investigationNumber: 2, causedByVerificationId: "ver-1", outcome: "SUCCESS", rerun: true },
+    });
+  });
+
   test("incident not found: nothing runs", async () => {
     const w = world();
     const r = await w.useCase.execute({ tenantId: T, incidentId: "missing", actor: "u" });

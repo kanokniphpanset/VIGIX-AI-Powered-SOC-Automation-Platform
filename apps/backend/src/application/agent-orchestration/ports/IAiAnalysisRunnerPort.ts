@@ -11,6 +11,29 @@ export interface RunAnalysisInput {
    * id and uses that row's incident — it never opens an incident itself. Omitted by the direct manual run.
    */
   executionId?: string;
+  /** Present when the run is for a re-opened investigation round; omitted for the first analysis of an alert. */
+  investigationContext?: InvestigationRoundContext;
+}
+
+/**
+ * A later investigation round (Investigation #2+): the re-hunt verification that just came back NOT_RESOLVED. Sent to
+ * the pipeline so the analysis of the new round reasons over what the response did NOT fix, not only the original alert.
+ */
+export interface InvestigationRoundContext {
+  investigationNumber: number;
+  verification: {
+    id: string;
+    result: string;
+    query: string | null;
+    timeRangeStart: string | null;
+    timeRangeEnd: string | null;
+    matchingEvents: number | null;
+    affectedHosts: string[];
+    iocRecurrence: boolean;
+    spreadDetected: boolean;
+    threatContained: boolean;
+    evidenceSource: string;
+  };
 }
 
 export interface RunAnalysisOutput {

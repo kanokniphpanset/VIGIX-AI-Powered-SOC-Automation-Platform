@@ -615,6 +615,17 @@ const getResponseUseCase =
 const listResponsePlansUseCase =
   new ListResponsePlansUseCase(responsePlanRepository);
 
+// Run / Re-run AI Analysis for an existing incident: the same orchestrator adapter (analysis-only mode).
+export const runIncidentAiAnalysisUseCase = new RunIncidentAiAnalysisUseCase(
+  incidentRepository,
+  new PrismaAiAnalysisRunGuard(prisma),
+  aiOrchestrator,
+  investigationRepository,
+  new GetIncidentAiAnalysisUseCase(recommendationContextRepository),
+  auditLogger
+);
+
+// Also re-runs the AI analysis for every new investigation round a NOT_RESOLVED verification opens.
 const createVerificationUseCase =
   new CreateVerificationUseCase(
     verificationRepository,
@@ -626,7 +637,8 @@ const createVerificationUseCase =
     notificationDispatcher,
     vigixBaseUrl,
     generateRecommendationUseCase,
-    inAppNotifier
+    inAppNotifier,
+    runIncidentAiAnalysisUseCase
   );
 
 const getVerificationUseCase =
@@ -885,16 +897,6 @@ export const socTriageController = new SocTriageController(
 
 /** Periodic job (main.ts): legacy monitored alerts whose review date passed go back to the review queue. */
 export const returnDueMonitoredAlertsUseCase = transactionalAlertWorkflow.review;
-
-// Run / Re-run AI Analysis for an existing incident: the same orchestrator adapter (analysis-only mode).
-export const runIncidentAiAnalysisUseCase = new RunIncidentAiAnalysisUseCase(
-  incidentRepository,
-  new PrismaAiAnalysisRunGuard(prisma),
-  aiOrchestrator,
-  investigationRepository,
-  new GetIncidentAiAnalysisUseCase(recommendationContextRepository),
-  auditLogger
-);
 
 export const setAlertScenarioUseCase = new SetAlertScenarioUseCase(alertRepository, alertScenarioRepository, auditLogger);
 

@@ -129,14 +129,18 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
     return { summary, keyFindings, grounding, source: trusted.source, model: typeof out?.model === "string" ? out.model : null, generatedAt: trusted.createdAt };
   }
 
-  /** Everything the incident actually holds: its alerts' raw payloads, its evidence, its IOCs and MITRE mappings. */
+  /**
+   * Everything the incident actually holds: its alerts' raw payloads, its evidence, its IOCs and MITRE mappings, and
+   * its verifications' re-hunt query and affected hosts (a later round's analysis is given those as evidence).
+   */
   private async groundingSources(incidentId: string): Promise<string[]> {
-    const [incident, links, evidence, iocs, mitre] = await Promise.all([
+    const [incident, links, evidence, iocs, mitre, verifications] = await Promise.all([
       this.prisma.incident.findUnique({ where: { id: incidentId }, select: { title: true, alert: { select: { rawPayload: true } } } }),
       this.prisma.incidentAlert.findMany({ where: { incidentId }, select: { alert: { select: { rawPayload: true } } } }),
       this.prisma.evidence.findMany({ where: { investigation: { incidentId } }, select: { title: true, description: true, rawData: true, structuredData: true } }),
       this.prisma.threatIntelIoc.findMany({ where: { incidentId }, select: { iocValue: true } }),
       this.prisma.mitreMapping.findMany({ where: { incidentId }, select: { techniqueId: true } }),
+      this.prisma.verification.findMany({ where: { incidentId }, select: { query: true, affectedHosts: true } }),
     ]);
     return [
       incident?.title ?? "",
@@ -145,6 +149,7 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
       ...evidence.flatMap((e) => [e.title, e.description ?? "", ...stringLeaves(e.rawData), ...stringLeaves(e.structuredData)]),
       ...iocs.map((i) => i.iocValue),
       ...mitre.map((m) => m.techniqueId),
+      ...verifications.flatMap((v) => [v.query ?? "", ...stringLeaves(v.affectedHosts)]),
     ];
   }
 }

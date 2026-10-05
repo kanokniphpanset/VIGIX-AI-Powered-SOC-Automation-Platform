@@ -96,6 +96,9 @@ async def run_pipeline(request: RunPipelineRequest) -> RunPipelineResponse:
     # absent key exactly like a falsy one (`state.get("asset_id") or ...`).
     if asset_id:
         initial_state["asset_id"] = asset_id
+    # A re-opened investigation round: the LLM analyst reasons over the re-hunt that showed the threat was not resolved.
+    if request.investigation_context:
+        initial_state["investigation_context"] = request.investigation_context
 
     # asset_criticality always gets a real value (the catalog's own
     # default_tier when the host isn't catalogued) — unlike asset_id, this

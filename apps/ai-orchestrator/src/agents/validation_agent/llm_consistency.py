@@ -107,6 +107,8 @@ def _real_ipv4s(state: dict) -> set[str]:
     # evidence the LLM was given, not an invented IP. (Before this, quoting the
     # host IP failed ioc_consistency and re-ran the whole enrichment + LLM.)
     ips |= set(_IPV4_PATTERN.findall(json.dumps(state.get("raw_alert") or {}, default=str)))
+    # Same for a later round's re-hunt verification (_build_context "investigation_round").
+    ips |= set(_IPV4_PATTERN.findall(json.dumps(state.get("investigation_context") or {}, default=str)))
     return ips
 
 

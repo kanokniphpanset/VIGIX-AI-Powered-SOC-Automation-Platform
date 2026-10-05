@@ -333,6 +333,27 @@ describe("LangGraphOrchestratorAdapter.runAnalysis", () => {
   it("omits execution_id for the direct manual run", async () => {
     expect(await bodyFor({ alertId: "a", tenantId: TENANT })).toEqual({ alert_id: "a", tenant_id: TENANT, analysis_only: true });
   });
+
+  it("sends a new investigation round's verification evidence as investigation_context (snake_case)", async () => {
+    const body = await bodyFor({
+      alertId: "a",
+      tenantId: TENANT,
+      investigationContext: {
+        investigationNumber: 2,
+        verification: {
+          id: "ver-1", result: "NOT_RESOLVED", query: "data.srcip:185.220.101.46", timeRangeStart: "2026-10-01T00:00:00.000Z", timeRangeEnd: null,
+          matchingEvents: 2, affectedHosts: ["WEB-02"], iocRecurrence: true, spreadDetected: true, threatContained: false, evidenceSource: "MOCK_REHUNT",
+        },
+      },
+    });
+    expect(body.investigation_context).toEqual({
+      investigation_number: 2,
+      verification: {
+        id: "ver-1", result: "NOT_RESOLVED", query: "data.srcip:185.220.101.46", time_range_start: "2026-10-01T00:00:00.000Z", time_range_end: null,
+        matching_events: 2, affected_hosts: ["WEB-02"], ioc_recurrence: true, spread_detected: true, threat_contained: false, evidence_source: "MOCK_REHUNT",
+      },
+    });
+  });
 });
 
 describe("OrchestratorCallbackController (AI decision is advisory)", () => {

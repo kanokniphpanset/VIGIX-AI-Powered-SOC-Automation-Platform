@@ -1,7 +1,7 @@
 import { Result } from "../../../shared/result/Result";
 import { IIncidentRepository } from "../../../domain/incident/repositories/IIncidentRepository";
 import { IInvestigationRepository } from "../../../domain/investigation/IInvestigationRepository";
-import { AiAnalysisRunnerError, IAiAnalysisRunnerPort } from "../../agent-orchestration/ports/IAiAnalysisRunnerPort";
+import { AiAnalysisRunnerError, IAiAnalysisRunnerPort, InvestigationRoundContext } from "../../agent-orchestration/ports/IAiAnalysisRunnerPort";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 import { GetIncidentAiAnalysisUseCase, IncidentAiAnalysis } from "./GetIncidentAiAnalysis.usecase";
 
@@ -34,6 +34,18 @@ export interface RunIncidentAiAnalysisOutput {
 /** A RUNNING execution older than this is treated as abandoned (e.g. the orchestrator was restarted mid-run). */
 const STALE_RUN_MS = 15 * 60_000;
 
+/** "manual": Run / Re-run AI Analysis button. "investigation_reopened": a NOT_RESOLVED verification opened a new round. */
+export type AiAnalysisRunTrigger = "manual" | "investigation_reopened";
+
+export interface RunIncidentAiAnalysisInput {
+  tenantId: string;
+  incidentId: string;
+  actor: string;
+  trigger?: AiAnalysisRunTrigger;
+  /** The new round and the verification that opened it, passed to the pipeline (trigger "investigation_reopened"). */
+  investigationContext?: InvestigationRoundContext;
+}
+
 /**
  * Run / Re-run AI Analysis for an existing incident — reuses the existing AI pipeline (IAiAnalysisRunnerPort →
  * orchestrator /pipeline/run in analysis-only mode) on the incident's own alert. It never creates an alert, never
@@ -52,7 +64,7 @@ export class RunIncidentAiAnalysisUseCase {
     private readonly auditLogger: AuditLogger
   ) {}
 
-  async execute(input: { tenantId: string; incidentId: string; actor: string }): Promise<Result<RunIncidentAiAnalysisOutput, RunIncidentAiAnalysisError>> {
+  async execute(input: RunIncidentAiAnalysisInput): Promise<Result<RunIncidentAiAnalysisOutput, RunIncidentAiAnalysisError>> {
     const key = `${input.tenantId}:${input.incidentId}`;
     // Claimed synchronously (before any await) so two concurrent requests can never both start a run.
     if (this.running.has(key)) return Result.fail("ANALYSIS_IN_PROGRESS");
@@ -73,7 +85,11 @@ export class RunIncidentAiAnalysisUseCase {
 
       let run;
       try {
-        run = await this.runner.runAnalysis({ alertId: incident.alertId, tenantId: input.tenantId });
+        run = await this.runner.runAnalysis({
+          alertId: incident.alertId,
+          tenantId: input.tenantId,
+          ...(input.investigationContext ? { investigationContext: input.investigationContext } : {}),
+        });
       } catch (err) {
         const code = err instanceof AiAnalysisRunnerError ? err.code : "AI_FAILED";
         const reason = err instanceof AiAnalysisRunnerError ? err.reason : null;
@@ -104,14 +120,20 @@ export class RunIncidentAiAnalysisUseCase {
     }
   }
 
-  private audit(input: { tenantId: string; incidentId: string; actor: string }, metadata: Record<string, unknown>): Promise<void> {
+  private audit(input: RunIncidentAiAnalysisInput, metadata: Record<string, unknown>): Promise<void> {
     return this.auditLogger.record({
       tenantId: input.tenantId,
       actor: input.actor,
       action: "AI_ANALYSIS_RUN",
       entity: "Incident",
       entityId: input.incidentId,
-      metadata: { trigger: "manual", ...metadata },
+      metadata: {
+        trigger: input.trigger ?? "manual",
+        ...(input.investigationContext
+          ? { investigationNumber: input.investigationContext.investigationNumber, causedByVerificationId: input.investigationContext.verification.id }
+          : {}),
+        ...metadata,
+      },
     });
   }
 }

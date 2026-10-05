@@ -72,7 +72,7 @@ def _build_context(state: AgentState) -> dict:
     given to the model it was echoed back as a "Severity: …" rating inside the analysis (seen in the real-LLM E2E).
     """
 
-    return {
+    context = {
         "alert": state.get("raw_alert") or {},
         "alert_text": state.get("alert_text", ""),
         "iocs": state.get("iocs") or [],
@@ -80,6 +80,10 @@ def _build_context(state: AgentState) -> dict:
         "mitre": state.get("mitre_mapping_report") or {},
         "rag": state.get("rag_result") or {},
     }
+    # Investigation #2+: the latest evidence is the re-hunt after the previous round's response.
+    if state.get("investigation_context"):
+        context["investigation_round"] = state["investigation_context"]
+    return context
 
 
 def _heuristic_analysis(state: AgentState) -> AnalystReport:
@@ -155,6 +159,14 @@ set only by the Wazuh rule level and is not part of your assessment.
         f"{context}\n\n"
         f"Structured evidence-backed findings:\n{findings}\n"
     )
+    round_context = context.get("investigation_round")
+    if round_context:
+        user_prompt += (
+            f"\nThis is investigation round {round_context.get('investigation_number')}. The previous round's response "
+            "was carried out and the re-hunt verification in `investigation_round.verification` shows the threat is NOT "
+            "resolved. Analyze what that verification evidence shows (matching events, affected hosts, IOC recurrence, "
+            "spread) and what it means for this round; do not repeat the previous round's analysis.\n"
+        )
 
     response = await _get_llm().complete(
         system_prompt=system_prompt,

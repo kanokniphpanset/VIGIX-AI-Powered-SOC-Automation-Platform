@@ -8,7 +8,29 @@ import {
   IAiAnalysisRunnerPort,
   RunAnalysisInput,
   RunAnalysisOutput,
+  InvestigationRoundContext,
 } from "../../application/agent-orchestration/ports/IAiAnalysisRunnerPort";
+
+/** The orchestrator's request schema is snake_case. */
+function toWire(ctx: InvestigationRoundContext) {
+  const v = ctx.verification;
+  return {
+    investigation_number: ctx.investigationNumber,
+    verification: {
+      id: v.id,
+      result: v.result,
+      query: v.query,
+      time_range_start: v.timeRangeStart,
+      time_range_end: v.timeRangeEnd,
+      matching_events: v.matchingEvents,
+      affected_hosts: v.affectedHosts,
+      ioc_recurrence: v.iocRecurrence,
+      spread_detected: v.spreadDetected,
+      threat_contained: v.threatContained,
+      evidence_source: v.evidenceSource,
+    },
+  };
+}
 
 /** A full pipeline run (9 agents incl. the LLM) takes seconds to a few minutes. */
 const ANALYSIS_TIMEOUT_MS = 180_000;
@@ -56,6 +78,7 @@ export class LangGraphOrchestratorAdapter implements IAiOrchestratorPort, IAiAna
           tenant_id: input.tenantId,
           analysis_only: true,
           ...(input.executionId ? { execution_id: input.executionId } : {}),
+          ...(input.investigationContext ? { investigation_context: toWire(input.investigationContext) } : {}),
         }),
         signal: AbortSignal.timeout(ANALYSIS_TIMEOUT_MS),
       });

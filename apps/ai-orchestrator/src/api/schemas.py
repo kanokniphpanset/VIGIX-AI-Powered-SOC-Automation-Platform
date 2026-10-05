@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 from src.contracts._base import CamelModel
@@ -18,6 +20,10 @@ class RunPipelineRequest(BaseModel):
     # decision callback to the backend (n8n playbook) and no notification
     # dispatch. Defaults to False, so the ingestion path is unchanged.
     analysis_only: bool = False
+    # Investigation #2+ (backend CreateVerificationUseCase): the round number and the re-hunt verification that came
+    # back NOT_RESOLVED and opened it. The LLM analyst re-analyses the incident with this as the latest evidence.
+    # Omitted for the first analysis of an alert.
+    investigation_context: dict[str, Any] | None = None
 
 
 class RunPipelineResponse(BaseModel):

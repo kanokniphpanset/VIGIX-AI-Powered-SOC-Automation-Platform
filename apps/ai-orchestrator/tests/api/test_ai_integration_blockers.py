@@ -326,3 +326,45 @@ def test_llm_context_carries_no_severity(monkeypatch):
 
     run_analyst(monkeypatch, CapturingLlm())
     assert "'severity'" not in seen["user"]
+
+
+# ---------------------------------------------------------------- fresh analysis for each investigation round
+ROUND_2 = {
+    "investigation_number": 2,
+    "verification": {"id": "ver-1", "result": "NOT_RESOLVED", "query": "data.srcip:185.220.101.46", "matching_events": 2,
+                     "affected_hosts": ["WEB-02"], "ioc_recurrence": True, "spread_detected": True, "threat_contained": False},
+}
+
+
+def test_new_round_analysis_is_given_the_rehunt_verification_evidence(monkeypatch):
+    seen = {}
+
+    class CapturingLlm(FakeLlm):
+        async def complete(self, system_prompt: str, user_prompt: str):
+            seen["user"] = user_prompt
+            return "Recurrence on WEB-02 after containment."
+
+    monkeypatch.setattr(analyst, "_get_llm", lambda: CapturingLlm())
+    out = asyncio.run(analyst.run({**STATE, "investigation_context": ROUND_2}))
+    assert out["analysis_source"] == "LLM"
+    assert "investigation round 2" in seen["user"]
+    assert "WEB-02" in seen["user"] and "185.220.101.46" in seen["user"]
+
+
+def test_first_round_prompt_has_no_round_section(monkeypatch):
+    seen = {}
+
+    class CapturingLlm(FakeLlm):
+        async def complete(self, system_prompt: str, user_prompt: str):
+            seen["user"] = user_prompt
+            return "Grounded analysis."
+
+    run_analyst(monkeypatch, CapturingLlm())
+    assert "investigation_round" not in seen["user"] and "investigation round" not in seen["user"]
+
+
+def test_ioc_consistency_accepts_ips_from_the_rehunt_verification_the_llm_was_given():
+    from src.agents.validation_agent.llm_consistency import check_ioc_consistency
+
+    state = {**STATE, "investigation_context": ROUND_2, "llm_summary": "The threat recurred from 185.220.101.46."}
+    assert check_ioc_consistency(state).status == "PASS"
