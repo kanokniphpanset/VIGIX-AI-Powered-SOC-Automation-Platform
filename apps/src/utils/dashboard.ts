@@ -162,12 +162,12 @@ export function dueText(iso: string, now = Date.now(), lang: Lang = 'th'): strin
   return translate(lang, ms >= 0 ? 'due.in' : 'due.over', { t })
 }
 
-export type GlossaryKey = 'SLA' | 'MTTR' | 'CONTAINMENT' | 'REHUNT' | 'MITRE' | 'INVESTIGATION' | 'DECISION' | 'SEVERITY'
+export type GlossaryKey = 'SLA' | 'MTTR' | 'CONTAINMENT' | 'REHUNT' | 'MITRE' | 'INVESTIGATION' | 'DECISION' | 'SEVERITY' | 'IOC'
 /** Glossary for the (?) help tips — short and plain. */
 export const glossary = (key: GlossaryKey, lang: Lang = 'th') => translate(lang, `gloss.${key}` as MsgKey)
 /** Thai glossary (kept for callers that only need Thai). */
 export const GLOSSARY: Record<GlossaryKey, string> = Object.fromEntries(
-  (['SLA', 'MTTR', 'CONTAINMENT', 'REHUNT', 'MITRE', 'INVESTIGATION', 'DECISION', 'SEVERITY'] as const).map((k) => [k, glossary(k)]),
+  (['SLA', 'MTTR', 'CONTAINMENT', 'REHUNT', 'MITRE', 'INVESTIGATION', 'DECISION', 'SEVERITY', 'IOC'] as const).map((k) => [k, glossary(k)]),
 ) as Record<GlossaryKey, string>
 
 /** "เมื่อสักครู่" / "27 นาทีที่แล้ว" / "5 ชม.ที่แล้ว" / "3 วันที่แล้ว" (or the English equivalents). */

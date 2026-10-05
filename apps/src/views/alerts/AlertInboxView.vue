@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
+import HelpTip from '@/components/common/HelpTip.vue'
 import AlertReviewDialog from '@/components/alerts/AlertReviewDialog.vue'
 import { alertsApi, type InboxAlert, type InboxFilters } from '@/api/vigix'
 import { useSessionStore } from '@/stores/session'
@@ -12,6 +13,7 @@ import { workflowError } from '@/utils/workflow'
 import { formatDateTime, SEVERITY_LABEL } from '@/utils/formatters'
 import { useUiStore } from '@/stores/ui'
 import { feedback } from '@/utils/feedback'
+import { glossary } from '@/utils/dashboard'
 import { useI18n } from '@/i18n'
 
 /**
@@ -25,6 +27,8 @@ const session = useSessionStore()
 const ui = useUiStore()
 const { locale, t } = useI18n()
 const pageSize = 50
+/** The SIEM sources the backend accepts. It matches the source exactly, so a free-text box found nothing for a partial name. */
+const SOURCES = [['wazuh', 'Wazuh'], ['splunk', 'Splunk'], ['defender', 'Defender'], ['elk', 'ELK']] as const
 const items = ref<InboxAlert[]>([])
 const total = ref(0)
 const offset = ref(0)
@@ -69,21 +73,21 @@ onUnmounted(() => { clearInterval(refresh); clearTimeout(debounce); requestNumbe
 
 <template>
   <div>
-    <PageHeader :title="t('ui.page.alerts')" subtitle="Wazuh alerts in the SOC workflow · MEDIUM / HIGH / CRITICAL · HIGH and CRITICAL open an incident automatically" />
+    <PageHeader :title="t('ui.page.alerts')" :description="t('al.subtitle')" />
     <div class="mb-4 flex flex-wrap gap-2" role="tablist" :aria-label="t('al.tabsAria')">
       <button v-for="[value, label] in STATUS_TABS" :key="value" type="button" role="tab" :aria-selected="filters.status === value" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="filters.status === value ? 'bg-navy-800 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200'" @click="filters.status = value">{{ label }}</button>
     </div>
     <div class="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
       <label class="text-xs text-slate-500">{{ t('al.search') }}<input v-model="filters.search" type="search" :placeholder="t('al.searchPlaceholder')" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm text-slate-800" /></label>
       <label class="text-xs text-slate-500">{{ t('al.severity') }}<select v-model="filters.severity" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm text-slate-800"><option value="">{{ t('al.sevAll') }}</option><option v-for="s in ['critical', 'high', 'medium']" :key="s" :value="s">{{ SEVERITY_LABEL[toSeverity(s)] }}</option></select></label>
-      <label class="text-xs text-slate-500">{{ t('al.source') }}<input v-model="filters.source" :placeholder="t('al.sourceAll')" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm text-slate-800" /></label>
+      <label class="text-xs text-slate-500">{{ t('al.source') }}<select v-model="filters.source" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm text-slate-800"><option value="">{{ t('al.sourceAll') }}</option><option v-for="[value, name] in SOURCES" :key="value" :value="value">{{ name }}</option></select></label>
       <label class="text-xs text-slate-500">{{ t('al.order') }}<select v-model="filters.sort" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm text-slate-800"><option value="urgency">{{ t('al.order.urgency') }}</option><option value="severity">{{ t('al.order.severity') }}</option><option value="oldest">{{ t('al.order.oldest') }}</option><option value="newest">{{ t('al.order.newest') }}</option></select></label>
     </div>
     <p v-if="error" role="alert" class="mb-3 rounded bg-rose-50 p-3 text-sm text-rose-700">{{ error }}</p>
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white" :aria-busy="loading">
       <table class="w-full text-left text-sm">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr><th class="p-3">{{ t('al.col.id') }}</th><th class="p-3">{{ t('al.col.severity') }}</th><th class="p-3">{{ t('al.col.rule') }}</th><th class="p-3">{{ t('al.col.time') }}</th><th class="p-3">{{ t('al.col.source') }}</th><th class="p-3">{{ t('al.col.status') }}</th><th class="p-3">{{ t('al.col.sla') }}</th><th class="p-3">{{ t('al.col.action') }}</th></tr>
+          <tr><th class="p-3">{{ t('al.col.id') }}</th><th class="p-3">{{ t('al.col.severity') }}</th><th class="p-3">{{ t('al.col.rule') }}</th><th class="p-3">{{ t('al.col.time') }}</th><th class="p-3">{{ t('al.col.source') }}</th><th class="p-3">{{ t('al.col.status') }}</th><th class="p-3"><span class="inline-flex items-center gap-1">{{ t('al.col.sla') }} <HelpTip :text="glossary('SLA', locale)" /></span></th><th class="p-3">{{ t('al.col.action') }}</th></tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr v-for="a in items" :key="a.id" class="align-top hover:bg-slate-50">
