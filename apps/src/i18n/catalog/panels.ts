@@ -48,12 +48,6 @@ export const panels = {
   'wf.by': ['โดย {who}', 'by {who}'],
   'wf.historyNote': ['Re-hunt แต่ละครั้งเก็บคำค้นและเหตุการณ์ของตัวเอง หลักฐานที่ Re-hunt พบจะถูกเพิ่มในรอบการสืบสวนถัดไป (ดูแท็บหลักฐาน) โดยไม่เขียนทับหลักฐานเดิม', 'Each re-hunt keeps its own query and events; evidence found by a re-hunt is added to the next investigation cycle (see Evidence), never overwriting earlier evidence.'],
   // lifecycle branches
-  'lcb.aria': ['ขั้นตอนของ Incident', 'Incident lifecycle'],
-  'lcb.resolved': ['ไม่พบภัย (NO MATCH) → แก้ไขแล้ว (จบ)', 'NO MATCH → RESOLVED (terminal)'],
-  'lcb.loop': ['ยังพบภัย (MATCH) → ยังไม่แก้ไข → สืบสวน → Recommendation → ลงมือ → Re-hunt', 'MATCH → NOT_RESOLVED → Investigation → Recommendation → Response → Re-hunt'],
-  'lcb.cycle': ['(รอบ #{n})', '(cycle #{n})'],
-  'lcb.cycleOf': ['(รอบ #{n} จาก {max})', '(cycle #{n} of {max})'],
-  'lcb.escalated': ['ครบจำนวนรอบ / Policy → ยกระดับ', 'MAX ROUND / Policy → ESCALATED'],
   // investigation forms
   'invf.addEvidence': ['เพิ่มหลักฐาน', 'Add evidence'],
   'invf.addIoc': ['เพิ่ม IOC', 'Add IOC'],
