@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MarkdownText from '@/components/common/MarkdownText.vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   AlertTriangle, ArrowLeft, ArrowUpRight, CheckCircle2, CircleDashed, Clock3, Crosshair, Database, Loader2, Play,
@@ -94,6 +94,8 @@ async function load() {
     iocs.value = ioc
     sla.value = s
     rehuntSource.value = health
+    seen.value = ticketFingerprint(p, inc, apps, vers)
+    stale.value = false
     alertRef.value = inc ? await settle(alertsApi.view(inc.alertId).then((v) => v.alert), null) : null
   } catch {
     loadError.value = t('tk.loadFailed')
@@ -103,6 +105,25 @@ async function load() {
   }
 }
 onMounted(load)
+
+// Others act on the same ticket / incident (IR colleague, SOC, re-hunt): check every 30 s and offer the change with a
+// banner instead of reloading under the reader, who may be writing the decision note.
+const seen = ref('')
+const stale = ref(false)
+function ticketFingerprint(p: Plan, inc: Incident | null, apps: Approval[], vers: Verification[]) {
+  return JSON.stringify([p.status, inc?.status, inc?.investigationNumber, apps.map((a) => `${a.id}:${a.status}`).sort(), vers.map((v) => v.id).sort()])
+}
+async function checkForUpdates() {
+  const p0 = plan.value
+  if (!p0 || loading.value || stale.value || busy.value || document.hidden) return
+  try {
+    const p = await workflowApi.response(planId.value)
+    const [inc, apps, vers] = await Promise.all([incidentsApi.get(p.incidentId), workflowApi.approvalsFor(p.recommendationId).then((r) => r.items), incidentsApi.verifications(p.incidentId).then((r) => r.items)])
+    if (!loading.value && plan.value?.id === p.id && ticketFingerprint(p, inc, apps, vers) !== seen.value) stale.value = true
+  } catch { /* offline for a moment — try again on the next tick */ }
+}
+const poll = setInterval(checkForUpdates, 30_000)
+onUnmounted(() => clearInterval(poll))
 async function reloadAfterAction() { await load(); if (loadError.value) throw new Error('Reload failed') }
 watch(planId, load)
 
@@ -295,6 +316,10 @@ const matched = computed(() => (verification.value?.matchingEvents ?? 0) > 0)
     </div>
 
     <template v-else-if="plan && stage">
+      <div v-if="stale" class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900" role="status">
+        <span>{{ t('tk.updatedBanner') }}</span>
+        <button type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" @click="load"><RotateCw class="size-3.5" /> {{ t('tk.updatedShow') }}</button>
+      </div>
       <!-- Header -->
       <header class="rounded-xl border border-slate-200 bg-white p-5">
         <div class="flex flex-wrap items-start gap-4">

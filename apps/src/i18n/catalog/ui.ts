@@ -16,7 +16,6 @@ export const ui = {
   'ui.page.incident': ['Incident', 'Incident'],
   'ui.page.tickets': ['Response Tickets', 'Response Tickets'],
   'ui.page.ticket': ['Response Ticket', 'Response Ticket'],
-  'ui.page.verification': ['Verification', 'Verification'],
   'ui.page.reports': ['รายงาน', 'Reports'],
   'ui.page.knowledge': ['คลังความรู้', 'Knowledge'],
   'ui.page.settings': ['ตั้งค่า', 'Settings'],

@@ -149,6 +149,13 @@ export const common = {
   'tq.failed': ['ลงมือไม่สำเร็จ', 'Failed'],
   'tq.escalated': ['ยกระดับ', 'Escalated'],
   'tq.all': ['ทั้งหมด', 'All'],
+  'tqg.my-work': ['งานของฉัน', 'My work'],
+  'tqg.awaiting-decision': ['รอตัดสินใจ', 'Awaiting decision'],
+  'tqg.active': ['กำลังทำ', 'In progress'],
+  'tqg.completed': ['เสร็จแล้ว', 'Completed'],
+  'tqg.other': ['สถานะอื่น', 'Other status'],
+  'tqg.pick': ['เลือก…', 'Choose…'],
+  'tqg.attention': ['Ticket ที่ลงมือไม่สำเร็จหรือถูกยกระดับ — ต้องมีคนดู', 'Failed or escalated tickets — someone needs to look'],
 
   // ---------------------------------------------------------------- incident list presets
   'iv.all.title': ['Incidents', 'Incidents'],

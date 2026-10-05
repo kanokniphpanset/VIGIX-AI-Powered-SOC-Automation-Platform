@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  LayoutDashboard, BellRing, ShieldAlert, ShieldCheck, ScanSearch, TriangleAlert,
+  LayoutDashboard, BellRing, ShieldAlert, ShieldCheck, TriangleAlert,
   FileBarChart2, LibraryBig, Settings, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
@@ -24,7 +24,7 @@ onUnmounted(() => media?.removeEventListener('change', onMedia))
 
 const ICON: Record<NavKey, unknown> = {
   dashboard: LayoutDashboard, alerts: BellRing, incidents: ShieldAlert,
-  tickets: ShieldCheck, verification: ScanSearch, escalated: TriangleAlert,
+  tickets: ShieldCheck, escalated: TriangleAlert,
   reports: FileBarChart2, knowledge: LibraryBig, settings: Settings,
 }
 

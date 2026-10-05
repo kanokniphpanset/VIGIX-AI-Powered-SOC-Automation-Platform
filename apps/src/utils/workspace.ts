@@ -10,7 +10,6 @@ export type NavKey =
   | 'alerts'
   | 'incidents'
   | 'tickets'
-  | 'verification'
   | 'escalated'
   | 'reports'
   | 'knowledge'
@@ -27,7 +26,6 @@ const ITEM: Record<NavKey, NavItem> = {
   alerts: { key: 'alerts', label: 'Alert Inbox', to: '/alerts' },
   incidents: { key: 'incidents', label: 'Incidents', to: '/incidents' },
   tickets: { key: 'tickets', label: 'Response Tickets', to: '/tickets' },
-  verification: { key: 'verification', label: 'Verification', to: '/verification' },
   escalated: { key: 'escalated', label: 'Escalated', to: '/incidents?view=escalated' },
   reports: { key: 'reports', label: 'Reports', to: '/reports' },
   knowledge: { key: 'knowledge', label: 'Knowledge', to: '/knowledge' },
@@ -36,8 +34,8 @@ const ITEM: Record<NavKey, NavItem> = {
 
 const NAV_BY_ROLE: Record<string, NavKey[]> = {
   SOC: ['dashboard', 'alerts', 'incidents', 'reports', 'knowledge', 'settings'],
-  IR_TEAM: ['dashboard', 'incidents', 'tickets', 'verification', 'reports', 'knowledge', 'settings'],
-  admin: ['dashboard', 'alerts', 'incidents', 'tickets', 'verification', 'escalated', 'reports', 'knowledge', 'settings'],
+  IR_TEAM: ['dashboard', 'incidents', 'tickets', 'reports', 'knowledge', 'settings'],
+  admin: ['dashboard', 'alerts', 'incidents', 'tickets', 'escalated', 'reports', 'knowledge', 'settings'],
 }
 
 export function navFor(role: string | null): NavItem[] {

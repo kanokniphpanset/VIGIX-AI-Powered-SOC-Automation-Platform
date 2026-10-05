@@ -10,7 +10,7 @@ const keys = (role: string | null) => navFor(role).map((i) => i.key)
 
 test('two operational roles, each with its own workspace navigation', () => {
   assert.deepEqual(keys('SOC'), ['dashboard', 'alerts', 'incidents', 'reports', 'knowledge', 'settings'])
-  assert.deepEqual(keys('IR_TEAM'), ['dashboard', 'incidents', 'tickets', 'verification', 'reports', 'knowledge', 'settings'])
+  assert.deepEqual(keys('IR_TEAM'), ['dashboard', 'incidents', 'tickets', 'reports', 'knowledge', 'settings'])
   assert.ok(keys('admin').includes('settings'))
   // A retired MANAGER account gets only the minimal read-only fallback — there is no Manager workspace.
   assert.deepEqual(keys('MANAGER'), keys(null))

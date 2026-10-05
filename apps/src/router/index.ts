@@ -34,7 +34,8 @@ const router = createRouter({
     { path: '/triage', redirect: '/alerts?triage=pending' },
     // The IR decision happens on the Response Ticket itself; the old approval-queue link lands on the tickets awaiting it.
     { path: '/approvals', redirect: '/tickets?queue=awaiting-decision' },
-    { path: '/verification', name: 'verification', component: () => import('@/views/verification/VerificationView.vue'), meta: { title: 'ui.page.verification' } },
+    // The former Verification page now lives on the Response Tickets page ("awaiting re-hunt" queue + recent verdicts).
+    { path: '/verification', redirect: { path: '/tickets', query: { queue: 'awaiting-rehunt' } } },
     { path: '/incidents', name: 'incidents', component: () => import('@/views/incidents/IncidentsView.vue'), meta: { title: 'ui.page.incidents' } },
     { path: '/incidents/:id', name: 'incident-detail', component: () => import('@/views/incidents/IncidentDetailView.vue'), meta: { title: 'ui.page.incident' } },
     // IR Ticket queue: IR decision (approve / reject, note required) -> respond -> re-hunt -> resolved / new cycle / escalated.

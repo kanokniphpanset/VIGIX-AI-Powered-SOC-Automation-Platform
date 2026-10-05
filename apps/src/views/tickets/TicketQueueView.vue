@@ -1,27 +1,31 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, CheckCircle2, Database, Play, RotateCw, ScanSearch } from 'lucide-vue-next'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import StatusPill from '@/components/common/StatusPill.vue'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
+import RecentRehuntResults from '@/components/tickets/RecentRehuntResults.vue'
 import { incidentsApi, slaApi, workflowApi, type RehuntHealth } from '@/api/vigix'
 import { workApi, type TicketQueue, type WorkTicket } from '@/api/work'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
 import { feedback, rehuntKind } from '@/utils/feedback'
-import { useI18n } from '@/i18n'
+import { useI18n, type MsgKey } from '@/i18n'
 import { incidentLabel, toSeverity, timeAgo } from '@/utils/vigix'
 import { formatDateTime } from '@/utils/formatters'
 import { describeWorkflowError } from '@/utils/ticket'
 import { TICKET_TABS, WORK_STAGE_LABEL } from '@/utils/workspace'
+import { ACTIVE_QUEUES, OTHER_QUEUES, TICKET_GROUPS, attentionCount, groupCount, groupOf, initialQueue, queueForGroup, type TicketGroup } from '@/utils/ticketTabs'
 
 /**
  * Response Tickets (one ticket = one response plan = one RecommendationStep). Queues come from the backend and follow
  * backend assignment: Policy executor role, the user who started the response, the ACTIVE approval step — never who
  * received an email. Flow: Awaiting Approval → Ready → In Progress → Awaiting Re-hunt → Completed (or a new cycle /
  * Escalated). Every button calls the existing role-gated route; the backend re-checks state and role.
+ * Four tabs (my work · awaiting decision · in progress · completed) with the less common queues behind an "other status"
+ * filter; the "completed" tab also holds the recent re-hunt verdicts (formerly the Verification page).
  */
 const route = useRoute()
 const router = useRouter()
@@ -29,8 +33,12 @@ const session = useSessionStore()
 const ui = useUiStore()
 const { locale, t } = useI18n()
 
-const initial = String(route.query.queue ?? '') as TicketQueue
-const queue = ref<TicketQueue>(TICKET_TABS.some((tab) => tab.queue === initial) ? initial : session.canExecuteResponse ? 'my-work' : 'all')
+const queue = ref<TicketQueue>(initialQueue(route.query.queue, session.canExecuteResponse))
+const group = computed(() => groupOf(queue.value))
+const label = (q: TicketQueue) => TICKET_TABS.find((tab) => tab.queue === q)?.label ?? q
+const groupLabel = (g: TicketGroup) => t(`tqg.${g}` as MsgKey)
+const pickGroup = (g: TicketGroup) => (queue.value = queueForGroup(g, counts.value))
+const attention = computed(() => attentionCount(counts.value))
 const incidentFilter = computed(() => (typeof route.query.incident === 'string' ? route.query.incident : undefined))
 const PAGE = 25
 const offset = ref(0)
@@ -65,6 +73,12 @@ watch(queue, () => {
   else void load()
 })
 watch(offset, load)
+// Keep the queue current while IR works (others approve, start, re-hunt): re-read every 30 s, except while this user is
+// in the middle of something (an action running or the eradication note open) or the browser tab is hidden.
+const poll = setInterval(() => {
+  if (!loading.value && !busyId.value && !eradicateFor.value && !document.hidden) void load()
+}, 30_000)
+onUnmounted(() => clearInterval(poll))
 watch(incidentFilter, () => (offset.value ? (offset.value = 0) : void load()))
 
 const rehuntLabel = computed(() => (rehuntSource.value?.provider === 'mock' || rehuntSource.value?.clusterStatus === 'mock' ? t('tk.mockFixtures') : t('tqv.wazuhIndex')))
@@ -134,9 +148,24 @@ async function reloadAfterAction() {
     </p>
     <p v-if="incidentFilter" class="mb-3 text-sm text-slate-600">{{ t('tqv.ticketsOf') }} <strong>{{ incidentLabel(incidentFilter) }}</strong></p>
 
-    <div class="mb-4 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist">
-      <button v-for="tab in TICKET_TABS" :key="tab.queue" type="button" role="tab" :aria-selected="queue === tab.queue" class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold" :class="queue === tab.queue ? 'bg-navy-800 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" @click="queue = tab.queue">
-        {{ tab.label }} <span class="ml-1 opacity-70">{{ counts[tab.queue] ?? '·' }}</span>
+    <div class="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-slate-200">
+      <div class="-mb-px flex gap-1 overflow-x-auto" role="tablist">
+        <button v-for="g in TICKET_GROUPS" :key="g" type="button" role="tab" :aria-selected="group === g" class="whitespace-nowrap border-b-2 px-3 py-2 text-sm" :class="group === g ? 'border-accent-500 font-semibold text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'" @click="pickGroup(g)">
+          {{ groupLabel(g) }} <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{{ groupCount(g, counts) ?? '·' }}</span>
+        </button>
+      </div>
+      <label class="mb-1.5 flex items-center gap-2 text-xs text-slate-500">
+        {{ t('tqg.other') }}
+        <select :value="group === 'other' ? queue : ''" class="rounded-lg border px-2 py-1.5 text-xs" :class="group === 'other' ? 'border-accent-400 bg-accent-50 text-slate-900' : 'border-slate-200 bg-white text-slate-700'" @change="(e) => { const v = (e.target as HTMLSelectElement).value as TicketQueue; if (v) queue = v }">
+          <option value="" disabled>{{ t('tqg.pick') }}</option>
+          <option v-for="q in OTHER_QUEUES" :key="q" :value="q">{{ label(q) }} ({{ counts[q] ?? '·' }})</option>
+        </select>
+        <span v-if="attention" class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200" :title="t('tqg.attention')">● {{ attention }}</span>
+      </label>
+    </div>
+    <div v-if="group === 'active'" class="mb-3 flex flex-wrap gap-1.5" role="tablist" :aria-label="t('tqg.active')">
+      <button v-for="q in ACTIVE_QUEUES" :key="q" type="button" role="tab" :aria-selected="queue === q" class="rounded-full px-3 py-1 text-xs font-semibold" :class="queue === q ? 'bg-navy-800 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'" @click="queue = q">
+        {{ label(q) }} <span class="ml-1 opacity-70">{{ counts[q] ?? '·' }}</span>
       </button>
     </div>
     <p class="mb-3 text-[11px] text-slate-500">{{ t('tqv.myWorkHint') }}</p>
@@ -204,6 +233,8 @@ async function reloadAfterAction() {
         </div>
       </li>
     </ul>
+
+    <RecentRehuntResults v-if="queue === 'completed'" />
 
     <div v-if="total > PAGE" class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
       <span>{{ t('c.pageOf', { from: offset + 1, to: Math.min(offset + PAGE, total), total }) }}</span>

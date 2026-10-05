@@ -1,5 +1,7 @@
 // Response Ticket page (IR decision, execution, re-hunt): [Thai, English].
 export const ticket = {
+  'tk.updatedBanner': ['Ticket นี้มีการอัปเดตจากผู้ใช้คนอื่น', 'Someone else updated this ticket'],
+  'tk.updatedShow': ['ดูข้อมูลใหม่', 'Show the update'],
   'tk.loadFailed': ['โหลด Ticket นี้จาก VIGIX backend ไม่ได้', 'This ticket could not be loaded from the VIGIX backend.'],
   'tk.approveFailed': ['อนุมัติไม่สำเร็จ', 'Approve failed'],
   'tk.rejectFailed': ['ปฏิเสธไม่สำเร็จ', 'Reject failed'],
