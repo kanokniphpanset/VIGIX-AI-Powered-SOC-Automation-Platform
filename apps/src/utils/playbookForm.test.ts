@@ -4,13 +4,14 @@ import { draftFromPlaybook, emptyPlaybookDraft, hasErrors, playbookPayload, vali
 
 const STORED = {
   id: 'pb-ssh', code: 'PB-SSH-BRUTEFORCE', name: 'SSH Brute Force Response', description: null, status: 'ACTIVE', version: '1.0',
-  triggerConditions: { scope: 'INCIDENT', incidentType: 'SSH_BRUTE_FORCE', mitreTechniques: ['T1110'] },
+  triggerConditions: { scope: 'INCIDENT', incidentType: 'SSH_BRUTE_FORCE', mitreTechniques: ['T1110', 'T1110.001'], allowedActions: ['ACT-BLOCK-SOURCE-IP'] },
   steps: [{ stepOrder: 2, title: 'Reset', description: null }, { stepOrder: 1, title: 'Block', description: 'at the edge' }],
 }
 
-test('a stored playbook becomes a draft with ordered steps and its incident type', () => {
+test('a stored playbook becomes a draft with ordered steps, incident type, MITRE techniques and allowed actions', () => {
   assert.deepEqual(draftFromPlaybook(STORED), {
-    code: 'PB-SSH-BRUTEFORCE', name: 'SSH Brute Force Response', description: '', incidentType: 'SSH_BRUTE_FORCE', status: 'ACTIVE',
+    code: 'PB-SSH-BRUTEFORCE', name: 'SSH Brute Force Response', description: '', incidentType: 'SSH_BRUTE_FORCE',
+    mitreTechniques: 'T1110, T1110.001', allowedActions: ['ACT-BLOCK-SOURCE-IP'], status: 'ACTIVE',
     steps: [{ title: 'Block', description: 'at the edge' }, { title: 'Reset', description: '' }],
   })
 })
@@ -36,10 +37,17 @@ test('incident type must be an UPPER_SNAKE category; a step with text but no tit
 })
 
 test('payload: trimmed, empty rows dropped, steps renumbered, code only on create', () => {
-  const d = { code: ' pb-test ', name: ' Test ', description: ' ', incidentType: 'test_case', status: 'DEPRECATED' as const, steps: [{ title: ' First ', description: '' }, { title: '', description: '' }, { title: 'Second', description: 'why' }] }
+  const d = { code: ' pb-test ', name: ' Test ', description: ' ', incidentType: 'test_case', mitreTechniques: 't1566,  T1566.001\nT1566', allowedActions: ['ACT-BLOCK-SOURCE-IP'], status: 'DEPRECATED' as const, steps: [{ title: ' First ', description: '' }, { title: '', description: '' }, { title: 'Second', description: 'why' }] }
   assert.deepEqual(playbookPayload(d, true), {
-    code: 'PB-TEST', name: 'Test', description: null, incidentType: 'TEST_CASE', status: 'DEPRECATED',
+    code: 'PB-TEST', name: 'Test', description: null, incidentType: 'TEST_CASE',
+    mitreTechniques: ['T1566', 'T1566.001'], allowedActions: ['ACT-BLOCK-SOURCE-IP'], status: 'DEPRECATED',
     steps: [{ stepOrder: 1, title: 'First', description: null }, { stepOrder: 2, title: 'Second', description: 'why' }],
   })
   assert.equal('code' in playbookPayload(d, false), false)
+})
+
+test('MITRE techniques must be technique ids (T1234 or T1234.001)', () => {
+  const d = { ...emptyPlaybookDraft(), code: 'PB-A', name: 'A', steps: [{ title: 'ok', description: '' }] }
+  assert.equal(validatePlaybookDraft({ ...d, mitreTechniques: 'T1110, phishing' }, true).mitreTechniques, 'pbf.err.mitre')
+  assert.equal(validatePlaybookDraft({ ...d, mitreTechniques: 't1110 T1110.001' }, true).mitreTechniques, undefined)
 })

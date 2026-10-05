@@ -9,6 +9,8 @@ import KnowledgeValue from '@/components/knowledge/KnowledgeValue.vue'
 import BackendForm from '@/components/common/BackendForm.vue'
 import type { FormField } from '@/utils/forms'
 import PlaybookFormModal from '@/components/knowledge/PlaybookFormModal.vue'
+import PolicyFormModal from '@/components/knowledge/PolicyFormModal.vue'
+import ActionFormModal from '@/components/knowledge/ActionFormModal.vue'
 import KnowledgeDeleteButton from '@/components/knowledge/KnowledgeDeleteButton.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
 import { useUiStore } from '@/stores/ui'
@@ -18,12 +20,13 @@ import { useI18n, type MsgKey } from '@/i18n'
 import { hasMsg } from '@/i18n/messages'
 
 /**
- * Knowledge (read-only). Lists the libraries VIGIX already uses to build recommendations and evaluate Policy, straight
- * from the backend's existing list endpoints. No CRUD yet and nothing invented: a library without an endpoint (threat
+ * Knowledge. Lists the libraries VIGIX already uses to build recommendations and evaluate Policy, straight from the
+ * backend's existing list endpoints. Playbooks, policies and actions each have an "Add" form with the same fields as
+ * the stored records (SOC / IR_TEAM / admin, backend-enforced and audited). A library without an endpoint (threat
  * intelligence) shows an empty state.
  */
 type Key = 'playbooks' | 'policies' | 'runbooks' | 'actions' | 'threat-intel' | 'mitre'
-interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string }
+interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string; category?: string }
 
 const { t } = useI18n()
 /** Library tabs; label and blurb are getters so they follow the UI language. */
@@ -62,7 +65,7 @@ async function load() {
     }
   }
   await Promise.all([
-    take('actions', knowledgeApi.actions(), r => r.items.map(a => ({ id:a.id,code:a.code,name:a.name,description:a.description,meta:a.category,status:a.enabled?'active':'disabled' }))),
+    take('actions', knowledgeApi.actions(), r => r.items.map(a => ({ id:a.id,code:a.code,name:a.name,description:a.description,meta:a.category,category:a.category,status:a.enabled?'active':'disabled' }))),
     take('playbooks', knowledgeApi.playbooks(), (r) =>
       r.items.map((p: Playbook) => ({ id: p.id, code: p.code, name: p.name, get meta() { return [t('kb.steps', { v: p.version, n: p.steps?.length ?? 0 }), typeof p.triggerConditions?.incidentType === 'string' ? p.triggerConditions.incidentType : null].filter(Boolean).join(' · ') }, description: p.description, status: p.status }))),
     take('policies', knowledgeApi.policies(), (r) =>
@@ -94,6 +97,24 @@ const ui = useUiStore()
 const canManagePlaybooks = computed(() => ['SOC', 'IR_TEAM', 'admin'].includes(session.role ?? ''))
 const playbookForm = ref<{ open: boolean; id: string | null }>({ open: false, id: null })
 const playbookCodes = computed(() => (rows.value.playbooks ?? []).map((r) => r.code))
+// A playbook may only list CONTAINMENT actions that are enabled (the recommendation context ignores anything else).
+const containmentActions = computed(() => (rows.value.actions ?? []).filter((r) => r.category === 'CONTAINMENT' && r.status === 'active').map((r) => ({ code: r.code, name: r.name })))
+// Add forms for policies and actions — same roles as playbooks (backend-enforced, audited).
+type AddLibrary = 'playbooks' | 'policies' | 'actions'
+const ADD_LABEL: Record<AddLibrary, MsgKey> = { playbooks: 'pb.add', policies: 'pol.add', actions: 'act.add' }
+const addLibrary = computed<AddLibrary | null>(() => (['playbooks', 'policies', 'actions'].includes(active.value) ? (active.value as AddLibrary) : null))
+const addForm = ref<'policies' | 'actions' | null>(null)
+function openAdd(lib: AddLibrary) {
+  if (lib === 'playbooks') playbookForm.value = { open: true, id: null }
+  else addForm.value = lib
+}
+const codesOf = (k: Key) => (rows.value[k] ?? []).map((r) => r.code)
+const runbookOptions = computed(() => (rows.value.runbooks ?? []).map((r) => ({ id: r.id, code: r.code, name: r.name })))
+async function knowledgeCreated(message: 'polf.created' | 'actf.created', code: string) {
+  addForm.value = null
+  ui.success(t(message, { code }))
+  await load()
+}
 async function playbookSaved(code: string, created: boolean) {
   playbookForm.value = { open: false, id: null }
   ui.success(t(created ? 'pbf.created' : 'pbf.updated', { code }))
@@ -159,9 +180,9 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-semibold text-slate-900">{{ current.label }}</h2>
-          <p class="text-xs text-slate-500">{{ active === 'playbooks' ? t(canManagePlaybooks ? 'pb.managed' : 'pb.readOnlyRole') : t('kb.readOnly') }}</p>
+          <p class="text-xs text-slate-500">{{ active === 'playbooks' ? t(canManagePlaybooks ? 'pb.managed' : 'pb.readOnlyRole') : addLibrary && canManagePlaybooks ? t('kb.addManaged') : t('kb.readOnly') }}</p>
         </div>
-        <button v-if="active === 'playbooks' && canManagePlaybooks" type="button" class="btn-primary ml-auto sm:order-last" @click="playbookForm = { open: true, id: null }">{{ t('pb.add') }}</button>
+        <button v-if="addLibrary && canManagePlaybooks" type="button" class="btn-primary ml-auto sm:order-last" @click="openAdd(addLibrary)">{{ t(ADD_LABEL[addLibrary]) }}</button>
         <label v-if="(rows[active]?.length ?? 0) > 0" class="relative w-full sm:w-64">
           <Search class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input v-model="search" type="search" :placeholder="t('kb.searchIn', { lib: current.label })" :aria-label="t('kb.searchAria', { lib: current.label })" class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-sm focus:border-accent-500 focus:outline-none" />
@@ -224,8 +245,11 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
       :open="playbookForm.open"
       :playbook-id="playbookForm.id"
       :existing-codes="playbookCodes"
+      :action-options="containmentActions"
       @close="playbookForm = { open: false, id: null }"
       @saved="playbookSaved"
     />
+    <PolicyFormModal :open="addForm === 'policies'" :existing-codes="codesOf('policies')" @close="addForm = null" @saved="(code) => knowledgeCreated('polf.created', code)" />
+    <ActionFormModal :open="addForm === 'actions'" :existing-codes="codesOf('actions')" :runbooks="runbookOptions" @close="addForm = null" @saved="(code) => knowledgeCreated('actf.created', code)" />
   </div>
 </template>

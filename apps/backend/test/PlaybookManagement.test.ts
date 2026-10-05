@@ -12,6 +12,7 @@ import { ListPlaybooksUseCase } from "../src/application/playbook/use-cases/List
 import { Playbook } from "../src/domain/playbook/entities/Playbook.entity";
 import { CreatePlaybookData, IPlaybookRepository, UpdatePlaybookData } from "../src/domain/playbook/repositories/IPlaybookRepository";
 import { PlaybookSelector } from "../src/application/recommendation/services/PlaybookSelector";
+import { mergeTriggerConditions } from "../src/domain/playbook/triggerConditions";
 
 /**
  * Knowledge -> Playbooks is human-controlled process configuration: SOC, IR_TEAM and admin create / edit / activate /
@@ -49,7 +50,7 @@ class MemoryPlaybooks implements IPlaybookRepository {
     const id = `pb-${++this.seq}`;
     const p = Playbook.create({
       id, tenantId: d.tenantId, code: d.code, name: d.name, description: d.description, version: d.version, status: d.status,
-      triggerConditions: d.incidentType ? { incidentType: d.incidentType } : {},
+      triggerConditions: mergeTriggerConditions({}, d),
       steps: d.steps.map((s, i) => ({ id: `${id}-s${i}`, ...s })),
     });
     this.rows.set(id, p);
@@ -57,12 +58,8 @@ class MemoryPlaybooks implements IPlaybookRepository {
   }
   async update(id: string, _tenantId: string, d: UpdatePlaybookData) {
     const cur = this.rows.get(id)!.toJSON();
-    const { incidentType, steps, ...fields } = d;
-    const trigger = { ...(cur.triggerConditions ?? {}) };
-    if (incidentType !== undefined) {
-      if (incidentType) trigger.incidentType = incidentType;
-      else delete trigger.incidentType;
-    }
+    const { incidentType, mitreTechniques, allowedActions, steps, ...fields } = d;
+    const trigger = mergeTriggerConditions(cur.triggerConditions, { incidentType, mitreTechniques, allowedActions });
     const next = Playbook.create({
       ...cur,
       ...Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined)),
@@ -149,6 +146,17 @@ describe("Playbook management — create", () => {
     expect((r.body.steps as { title: string }[]).map((s) => s.title)).toEqual(["Confirm the scope", "Contain"]);
     expect(audits).toEqual([expect.objectContaining({ action: "CREATE_PLAYBOOK", actor: "u-admin", tenantId: TENANT, entityId: r.body.id })]);
   });
+  it("MITRE techniques and allowed actions are stored in the seeded format, so the selector can pick the new playbook", async () => {
+    const r = await call("POST", "/", { ...NEW, mitreTechniques: ["T1566", "T1566.001"], allowedActions: ["ACT-BLOCK-SOURCE-IP"] }, "SOC");
+    expect(r.status).toBe(201);
+    expect(r.body.triggerConditions).toEqual({ scope: "INCIDENT", incidentType: "TEST_CASE", mitreTechniques: ["T1566", "T1566.001"], allowedActions: ["ACT-BLOCK-SOURCE-IP"] });
+    const selected = new PlaybookSelector().select([repo.rows.get(String(r.body.id))!], ["T1566.001"]);
+    expect(selected).toMatchObject({ code: "PB-TEST-DEMO", allowedActions: ["ACT-BLOCK-SOURCE-IP"] });
+  });
+  it("without MITRE techniques the playbook is stored as before (no scope: not selectable)", async () => {
+    const r = await call("POST", "/", NEW, "admin");
+    expect(r.body.triggerConditions).toEqual({ incidentType: "TEST_CASE" });
+  });
   it("duplicate code -> 409 DUPLICATE_CODE, no audit", async () => {
     const r = await call("POST", "/", { ...NEW, code: "PB-SSH-BRUTEFORCE" }, "admin");
     expect(r).toMatchObject({ status: 409, body: { error: "DUPLICATE_CODE" } });
@@ -161,6 +169,8 @@ describe("Playbook management — create", () => {
     ["duplicate step order", { ...NEW, steps: [{ stepOrder: 1, title: "a" }, { stepOrder: 1, title: "b" }] }],
     ["bad incident type", { ...NEW, incidentType: "ssh brute force" }],
     ["unknown field", { ...NEW, objective: "not a Playbook field" }],
+    ["bad MITRE technique", { ...NEW, mitreTechniques: ["phishing"] }],
+    ["bad action code", { ...NEW, allowedActions: ["block ip"] }],
   ])("%s -> 400 VALIDATION_ERROR, nothing created", async (_label, body) => {
     const r = await call("POST", "/", body, "admin");
     expect(r).toMatchObject({ status: 400, body: { error: "VALIDATION_ERROR" } });
@@ -175,6 +185,11 @@ describe("Playbook management — edit / activate / deactivate", () => {
     expect(r.body.triggerConditions).toEqual(SSH.triggerConditions);
     expect((r.body.steps as { title: string }[]).map((s) => s.title)).toEqual(["Block the source", "Reset credentials"]);
     expect(audits).toEqual([expect.objectContaining({ action: "UPDATE_PLAYBOOK", actor: "u-admin", entityId: "pb-ssh", metadata: expect.objectContaining({ fields: ["name", "incidentType", "steps"] }) })]);
+  });
+  it("editing MITRE / allowed actions replaces only those keys; [] removes a key", async () => {
+    const r = await call("PUT", "/pb-ssh", { mitreTechniques: ["T1110", "T1110.003"], allowedActions: [] }, "IR_TEAM");
+    expect(r.status).toBe(200);
+    expect(r.body.triggerConditions).toEqual({ scope: "INCIDENT", incidentType: "SSH_BRUTE_FORCE", mitreTechniques: ["T1110", "T1110.003"] });
   });
   it("editing does not change which playbook the recommendation selector picks (it reads the stored keys)", async () => {
     await call("PUT", "/pb-ssh", { description: "clarified" }, "admin");

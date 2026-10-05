@@ -2,7 +2,9 @@ import { z } from "zod";
 import { POLICY_TYPES } from "../../../domain/policy/entities/PolicyEvaluationTypes";
 
 // "riskScore" is retired: new/updated rules cannot key on a risk score (Severity is the classification input).
-const CONDITION_FIELDS = ["severity", "verificationResult", "spreadDetected", "threatContained"] as const;
+// Every field of PolicyEvaluationInput is allowed, so a policy added in Knowledge can use the same conditions as the
+// seeded ones (e.g. APPROVAL rules on assetCriticality / actionImpactLevel).
+const CONDITION_FIELDS = ["severity", "assetCriticality", "actionImpactLevel", "verificationResult", "spreadDetected", "threatContained"] as const;
 const CONDITION_OPERATORS = ["eq", "neq", "gte", "lte", "gt", "lt"] as const;
 
 /**

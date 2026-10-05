@@ -10,6 +10,9 @@ export interface CreatePlaybookData {
   steps: { stepOrder: number; title: string; description: string | null }[];
   /** triggerConditions.incidentType (applicable incident category); null/undefined = not set. */
   incidentType?: string | null;
+  /** triggerConditions.mitreTechniques / allowedActions (selector keys); setting either also sets scope "INCIDENT". */
+  mitreTechniques?: string[];
+  allowedActions?: string[];
 }
 
 export interface UpdatePlaybookData {
@@ -19,6 +22,9 @@ export interface UpdatePlaybookData {
   status?: "ACTIVE" | "DEPRECATED" | null;
   /** Sets triggerConditions.incidentType (null removes it); every other triggerConditions key is kept as is. */
   incidentType?: string | null;
+  /** Replace triggerConditions.mitreTechniques / allowedActions ([] removes); undefined keeps them. */
+  mitreTechniques?: string[];
+  allowedActions?: string[];
   /** Replaces the response steps (the process for FUTURE recommendations; past ones keep their own snapshot). */
   steps?: { stepOrder: number; title: string; description: string | null }[];
 }

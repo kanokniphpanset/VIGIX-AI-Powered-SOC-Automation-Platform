@@ -70,8 +70,9 @@ async function save(body: Record<string, unknown>) {
 }
 </script>
 <template>
-  <!-- Playbooks have their own create / edit form (PlaybookFormModal on the Knowledge page). -->
-  <BackendForm v-if="!id && canEdit && library !== 'playbooks'" :key="library" :label="t(`kbc.create.${library}`)" :fields="fields" :action="save" :reload="reload" />
+  <!-- Playbooks, policies and actions have their own add forms on the Knowledge page (PlaybookFormModal,
+       PolicyFormModal, ActionFormModal); only runbooks are still created here. -->
+  <BackendForm v-if="!id && canEdit && library === 'runbooks'" :key="library" :label="t(`kbc.create.${library}`)" :fields="fields" :action="save" :reload="reload" />
   <button v-else-if="id && !autoOpen" class="btn-secondary" :disabled="busy" @click="detail">{{ busy ? t('c.loading') : t('kbc.viewDetails') }}</button>
   <Modal :open="open" :title="t('kbc.detailsTitle')" size="lg" @close="close">
     <p v-if="error" role="alert" class="text-rose-700">{{ error }} <button type="button" class="underline" @click="detail">{{ t('c.retry') }}</button></p>

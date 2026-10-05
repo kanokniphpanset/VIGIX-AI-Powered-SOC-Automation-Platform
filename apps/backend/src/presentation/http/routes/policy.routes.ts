@@ -9,8 +9,8 @@ export const POLICY_READ_ROLES = ["SOC", "IR_TEAM"] as const;
 /**
  * Mounted at /api/policies (see main.ts). Policy rules are organizational security configuration: nothing here is
  * public. Every route requires a valid JWT (401 without one). Reads (list / get / evaluate) are for the operational
- * roles SOC and IR_TEAM (+ admin) — any other role gets 403; create / edit / enable / disable remain admin-only, delete
- * is open to SOC / IR_TEAM (+ admin) and audited with a copy of the policy. evaluate stays read-only /
+ * roles SOC and IR_TEAM (+ admin) — any other role gets 403; create and delete are open to SOC / IR_TEAM (+ admin) and
+ * audited with the actor (delete with a copy of the policy); edit / enable / disable remain admin-only. evaluate stays read-only /
  * non-mutating by construction (see PolicyEvaluator.ts).
  */
 export function buildPolicyRoutes(controller: PolicyController, evaluationController: PolicyEvaluationController): Router {
@@ -21,7 +21,8 @@ export function buildPolicyRoutes(controller: PolicyController, evaluationContro
 
   router.get("/", ...canRead, controller.list);
   router.get("/:id", ...canRead, controller.getById);
-  router.post("/", authenticate, requireAdmin(), controller.create);
+  // Create (Knowledge → Policies → Add): SOC / IR_TEAM / admin; audited with the signed-in actor.
+  router.post("/", authenticate, requireRole(...POLICY_READ_ROLES), controller.create);
   router.put("/:id", authenticate, requireAdmin(), controller.update);
   router.patch("/:id/enable", authenticate, requireAdmin(), controller.enable);
   router.patch("/:id/disable", authenticate, requireAdmin(), controller.disable);

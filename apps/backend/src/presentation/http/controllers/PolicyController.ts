@@ -49,7 +49,8 @@ export class PolicyController {
     const body = validateBody(createPolicySchema, req, res);
     if (!body) return;
 
-    const result = await this.createPolicy.execute({ ...body, actor: body.actor ?? "system", precedence: body.precedence ?? 0, tenantId });
+    // The audit names the signed-in user (JWT); a body "actor" is only a fallback for callers without one.
+    const result = await this.createPolicy.execute({ ...body, actor: req.user?.id ?? body.actor ?? "system", precedence: body.precedence ?? 0, tenantId });
     if (result.isFailure) {
       res.status(409).json({ error: result.error });
       return;

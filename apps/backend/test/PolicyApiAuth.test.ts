@@ -70,8 +70,14 @@ describe("Policy API authentication", () => {
     }
   );
 
-  it("mutations stay admin-only (SOC -> 403)", async () => {
-    expect((await call("POST", "/api/policies", {}, `Bearer ${token("SOC")}`)).status).toBe(403);
+  it("create is open to SOC / IR_TEAM (reaches validation: 400), other roles -> 403", async () => {
+    for (const role of ["SOC", "IR_TEAM"]) expect((await call("POST", "/api/policies", {}, `Bearer ${token(role)}`)).status).toBe(400);
+    for (const role of ["MANAGER", "VIEWER"]) expect((await call("POST", "/api/policies", {}, `Bearer ${token(role)}`)).status).toBe(403);
+    expect((await call("POST", "/api/policies", {})).status).toBe(401);
+  });
+
+  it("edit / enable / disable stay admin-only (SOC / IR_TEAM -> 403)", async () => {
+    expect((await call("PUT", "/api/policies/p1", { name: "x" }, `Bearer ${token("SOC")}`)).status).toBe(403);
     expect((await call("PATCH", "/api/policies/p1/disable", {}, `Bearer ${token("IR_TEAM")}`)).status).toBe(403);
   });
 

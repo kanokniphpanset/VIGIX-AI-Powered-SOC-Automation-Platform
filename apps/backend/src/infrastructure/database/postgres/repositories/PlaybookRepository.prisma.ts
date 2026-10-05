@@ -6,6 +6,7 @@ import {
 } from "../../../../domain/playbook/repositories/IPlaybookRepository";
 import { Playbook } from "../../../../domain/playbook/entities/Playbook.entity";
 import { PlaybookMapper } from "../mappers/Playbook.mapper";
+import { mergeTriggerConditions } from "../../../../domain/playbook/triggerConditions";
 
 const includeSteps = { steps: true } as const;
 
@@ -36,7 +37,7 @@ export class PrismaPlaybookRepository implements IPlaybookRepository {
         description: data.description,
         version: data.version,
         status: data.status,
-        triggerConditions: (data.incidentType ? { incidentType: data.incidentType } : {}) as Prisma.InputJsonValue,
+        triggerConditions: mergeTriggerConditions({}, data) as Prisma.InputJsonValue,
         steps: { create: data.steps },
       },
       include: includeSteps,
@@ -57,20 +58,14 @@ export class PrismaPlaybookRepository implements IPlaybookRepository {
   }
 
   async update(id: string, tenantId: string, data: UpdatePlaybookData): Promise<Playbook> {
-    const { incidentType, steps, ...fields } = data;
+    const { incidentType, mitreTechniques, allowedActions, steps, ...fields } = data;
     const raw = await this.prisma.$transaction(async (tx) => {
       const current = await tx.playbook.findFirstOrThrow({ where: { id, tenantId } });
-      // incidentType lives inside triggerConditions: merge it, never drop scope / mitreTechniques / allowedActions.
-      let triggerConditions: Prisma.InputJsonValue | undefined;
-      if (incidentType !== undefined) {
-        const existing =
-          current.triggerConditions && typeof current.triggerConditions === "object" && !Array.isArray(current.triggerConditions)
-            ? { ...(current.triggerConditions as Record<string, unknown>) }
-            : {};
-        if (incidentType) existing.incidentType = incidentType;
-        else delete existing.incidentType;
-        triggerConditions = existing as Prisma.InputJsonValue;
-      }
+      // The selector keys live inside triggerConditions: merge them, never drop a key the edit does not name.
+      const touchesTrigger = incidentType !== undefined || mitreTechniques !== undefined || allowedActions !== undefined;
+      const triggerConditions = touchesTrigger
+        ? (mergeTriggerConditions(current.triggerConditions, { incidentType, mitreTechniques, allowedActions }) as Prisma.InputJsonValue)
+        : undefined;
       if (steps) {
         await tx.playbookStep.deleteMany({ where: { playbookId: id } });
         await tx.playbookStep.createMany({ data: steps.map((s) => ({ playbookId: id, stepOrder: s.stepOrder, title: s.title, description: s.description })) });

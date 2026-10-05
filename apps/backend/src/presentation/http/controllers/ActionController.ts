@@ -43,6 +43,7 @@ export class ActionController {
     const result = await this.createAction.execute({
       ...body,
       tenantId,
+      actor: req.user?.id ?? "system",
       defaultApprovalRequired: body.defaultApprovalRequired ?? false,
     });
     if (result.isFailure) {
