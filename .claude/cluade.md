@@ -2153,8 +2153,8 @@ CORE FLOW CHECK (code audit + E2E + DB):
 1. No per-cycle AI re-analysis: the LangGraph analysis runs once per alert; for cycle ≥2 the
    recommendation uses the new cycle's evidence but the `aiAnalysis` in its context is the
    cycle-1 analysis of the original alert (spec §26 "New AI Analysis" not implemented).
-2. No alert correlation → related alerts become separate incidents; ATK-04 can be falsely
-   RESOLVED (see decision above).
+2. ~~No alert correlation → related alerts become separate incidents; ATK-04 can be falsely
+   RESOLVED (see decision above).~~ FIXED 2026-10-05 — automatic correlation at ingestion (§45.11).
 3. No escalated status / escalation queue — escalation is audit-only.
 4. HTTP layer of the workflow routes not exercised end-to-end (role tokens); use cases are.
 5. Real Wazuh Indexer cannot report `matchedIocValues` → no carried IOCs with the real provider.
@@ -4351,3 +4351,32 @@ no longer defaults to "low"); decision agent / selector (high_severity signal, c
 analyst / validation use severity. Dashboard severityDistribution replaces riskDistribution; UI shows Severity + AI
 suggestion + Severity Validation panel (no risk score anywhere). Tests: backend 471 pass (only empty Approval suite fails),
 AI 147 pass, frontend 40 pass + vue-tsc + build; lint script absent in all workspaces.
+
+## 45.11 AUTOMATIC ALERT CORRELATION — 2026-10-05 (§45.7 issue 2)
+
+A HIGH / CRITICAL alert that Policy INTAKE would open an incident for first looks for an OPEN incident
+(`open` / `investigating`) of the same tenant holding the same activity; if one exists the alert JOINS it instead
+of opening a second incident. No schema change, no new table.
+
+* Rules (pure, `domain/alert/alertCorrelation.ts`, facts from the payloads only, no AI):
+  SHARED_IOC — same public IP / domain / URL / file hash on any host within 7 days, or the same file / process
+  path or private IP on the SAME host within 24 h (values < 7 chars, the agents' own IPs and OS paths such as
+  `C:\Windows\…`, `/usr/bin/…` never count; ACTIVE IOCs the incident records itself count too);
+  SAME_SOURCE_IP — same public `data.srcip` within 24 h; SAME_HOST_TECHNIQUE / SAME_HOST_RULE — same agent and a
+  shared MITRE technique / the same rule within 24 h. Same host alone never correlates. Several matches → most
+  shared IOCs, most reasons, newest incident; never merges two existing incidents (that stays Set Group).
+* Flow: `IngestAlertFromSiemUseCase` → `PrismaIncidentCorrelationReader.openCandidates` (SQL pre-filter, searches
+  Windows paths in their JSON-escaped form) → `absorbIntoIncident` (the Set Group write: `incident_alerts`, alert
+  escalated/TRIAGED, timeline `alert_added` "correlated … automatically (reasons: IOCs)") → `syncIncident`
+  (WAZUH_ALERT evidence + IOCs in Investigation #1, so recommendations and EVERY re-hunt include them) → audit
+  `ALERT_CORRELATED_TO_INCIDENT` {reasons, sharedIocs}. No new AI job. Webhook/API output gains `correlation`.
+* Failure-safe: lookup error, or the incident closed meanwhile (MergeBlockedError) → a new incident as before.
+  MEDIUM alerts (Alert Inbox) are never auto-correlated; resolved / dismissed / escalated incidents never absorb.
+* ATK-04: the C2 alert's process image IS the flagged file (SHARED_IOC, same host) → joins; round 3 (C2-only
+  traffic) now MATCHES → NOT_RESOLVED ×3 → escalated (proven on Postgres with MockRehuntAdapter in
+  `test/AlertCorrelation.postgres.test.ts`). Fixture cross-check: only ATK-01~02, 04~10, 05~06, 07~08 would
+  correlate if open at the same time (same host+rule / same C2 / same attacker IP).
+* E2E runner: related alerts must correlate (PASS, no GAP); a primary alert must open its own incident — an open
+  incident left by an aborted run in the same tenant now FAILs that check. Not re-run live (needs LLM).
+* Not done: two related alerts arriving concurrently can still open two incidents (no lock); a more severe joining
+  alert does not raise the incident priority; the AI analysis is not re-run for the joined alert (§45.7 issue 1).

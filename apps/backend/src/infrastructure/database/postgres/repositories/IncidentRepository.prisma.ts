@@ -137,7 +137,12 @@ export class PrismaIncidentRepository implements IIncidentRepository {
         await tx.alert.updateMany({ where: { id: { in: moved }, tenantId: data.tenantId, closedAt: null }, data: { closedAt: new Date() } });
       for (const a of added) {
         await tx.incidentTimeline.create({
-          data: { incidentId: target.id, eventType: "alert_added", description: `Alert ${a.externalAlertId} added to the incident (Set Group).`, actor: data.actor },
+          data: {
+            incidentId: target.id,
+            eventType: "alert_added",
+            description: data.timelineDescription?.(a.externalAlertId) ?? `Alert ${a.externalAlertId} added to the incident (Set Group).`,
+            actor: data.actor,
+          },
         });
       }
       return moved;
