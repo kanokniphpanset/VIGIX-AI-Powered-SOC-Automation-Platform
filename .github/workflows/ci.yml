@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vigix_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vigix_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client and apply schema
+        working-directory: apps/backend
+        run: |
+          npx prisma generate
+          npx prisma db push --skip-generate
+      - name: Jest
+        working-directory: apps/backend
+        run: npx jest
+
+  ai-orchestrator:
+    name: AI orchestrator tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-orchestrator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: apps/ai-orchestrator/requirements.txt
+      # CPU-only torch first so sentence-transformers doesn't pull the CUDA build.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt pytest
+      - name: Pytest
+        run: python -m pytest tests
+
+  frontend:
+    name: Frontend tests and type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        working-directory: apps
+        run: npm test
+      - name: Type-check
+        working-directory: apps
+        run: npx vue-tsc -b
