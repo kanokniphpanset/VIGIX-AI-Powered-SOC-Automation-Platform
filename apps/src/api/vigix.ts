@@ -4,6 +4,7 @@ import type { AlertWorkflowState, AlertDisplayState } from '../../backend/src/do
 import { api } from './http.ts'
 import type { IrEmailOutcome } from '@/utils/irEmail'
 import type { RunAiAnalysisResult } from '@/utils/aiAnalysis'
+import type { PlaybookRevisionItem } from '@/utils/playbookLifecycle'
 
 export interface AlertSummary {
   ruleId: string | null
@@ -575,6 +576,21 @@ export const knowledgeApi = {
   runbooks: () => api<{ items: Runbook[] }>('/api/runbooks'),
   policies: () => api<{ items: Policy[] }>('/api/policies'),
   techniques: () => api<{ techniques: MitreTechnique[] }>('/api/v1/mitre/techniques'),
+}
+/**
+ * Playbook versions (Phase 1D): SOC / IR_TEAM (and admin) create and edit drafts; SOC / IR_TEAM publish and roll back
+ * directly — there is no review or approval step.
+ */
+export const playbookVersionsApi = {
+  list: (id: string) => api<{ publishedRevisionId: string | null; items: PlaybookRevisionItem[] }>(`/api/playbooks/${id}/revisions`),
+  /** "Create New Version": a draft copy of the published version. */
+  createVersion: (id: string) => api<PlaybookRevisionItem>(`/api/playbooks/${id}/revisions`, { method: 'POST', body: {} }),
+  updateDraft: (id: string, revisionId: string, body: Record<string, unknown>) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}`, { method: 'PUT', body }),
+  publish: (id: string, revisionId: string) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}/publish`, { method: 'POST', body: {} }),
+  rollback: (id: string, revisionId: string) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}/rollback`, { method: 'POST', body: {} }),
 }
 export interface NotificationRecipient {
   role: 'SOC' | 'IR_TEAM' | 'ADMIN'

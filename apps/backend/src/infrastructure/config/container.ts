@@ -22,6 +22,7 @@ import { PrismaActionRepository } from "../database/postgres/repositories/Action
 import { PrismaRunbookRepository } from "../database/postgres/repositories/RunbookRepository.prisma";
 import { PrismaMitreTechniqueRepository } from "../database/postgres/repositories/MitreTechniqueRepository.prisma";
 import { PrismaPlaybookRepository } from "../database/postgres/repositories/PlaybookRepository.prisma";
+import { PrismaPlaybookRevisionRepository } from "../database/postgres/repositories/PlaybookRevisionRepository.prisma";
 import { PrismaRecommendationRepository } from "../database/postgres/repositories/RecommendationRepository.prisma";
 import { PrismaRecommendationContextRepository } from "../database/postgres/repositories/RecommendationContextRepository.prisma";
 import { AuditLogger } from "../database/postgres/repositories/AuditLogger";
@@ -152,6 +153,12 @@ import { UpdatePlaybookUseCase } from "../../application/playbook/use-cases/Upda
 import { DeletePlaybookUseCase } from "../../application/playbook/use-cases/DeletePlaybook.usecase";
 import { GetPlaybookUseCase } from "../../application/playbook/use-cases/GetPlaybook.usecase";
 import { ListPlaybooksUseCase } from "../../application/playbook/use-cases/ListPlaybooks.usecase";
+import { PublishPlaybookRevisionUseCase } from "../../application/playbook/use-cases/PublishPlaybookRevision.usecase";
+import { RollbackPlaybookRevisionUseCase } from "../../application/playbook/use-cases/RollbackPlaybookRevision.usecase";
+import { CreatePlaybookRevisionUseCase } from "../../application/playbook/use-cases/CreatePlaybookRevision.usecase";
+import { UpdatePlaybookDraftUseCase } from "../../application/playbook/use-cases/UpdatePlaybookDraft.usecase";
+import { ListPlaybookRevisionsUseCase } from "../../application/playbook/use-cases/ListPlaybookRevisions.usecase";
+import { PlaybookRevisionController } from "../../presentation/http/controllers/PlaybookRevisionController";
 import { GenerateRecommendationUseCase } from "../../application/recommendation/use-cases/GenerateRecommendation.usecase";
 import { GetRecommendationUseCase } from "../../application/recommendation/use-cases/GetRecommendation.usecase";
 import { ListRecommendationsUseCase } from "../../application/recommendation/use-cases/ListRecommendations.usecase";
@@ -556,6 +563,21 @@ const getPlaybookUseCase =
 
 const listPlaybooksUseCase =
   new ListPlaybooksUseCase(playbookRepository);
+
+// Phase 1D playbook versions: DRAFT -> publish (SOC / IR_TEAM, no approval step), new version, rollback. The playbook row is locked FOR UPDATE by the
+// "playbook" scope (input.id = playbook id) before any other statement.
+const playbookRevisionRepository = new PrismaPlaybookRevisionRepository(prisma);
+export const publishPlaybookRevisionUseCase =
+  atomicWorkflow.wrap(new PublishPlaybookRevisionUseCase(playbookRevisionRepository, auditLogger), "playbook");
+export const rollbackPlaybookRevisionUseCase =
+  atomicWorkflow.wrap(new RollbackPlaybookRevisionUseCase(playbookRevisionRepository, auditLogger), "playbook");
+export const playbookRevisionController = new PlaybookRevisionController(
+  new ListPlaybookRevisionsUseCase(playbookRepository, playbookRevisionRepository),
+  atomicWorkflow.wrap(new CreatePlaybookRevisionUseCase(playbookRevisionRepository, auditLogger), "playbook"),
+  atomicWorkflow.wrap(new UpdatePlaybookDraftUseCase(playbookRevisionRepository, auditLogger), "playbook"),
+  publishPlaybookRevisionUseCase,
+  rollbackPlaybookRevisionUseCase,
+);
 
 const generateRecommendationUseCase =
   new GenerateRecommendationUseCase(

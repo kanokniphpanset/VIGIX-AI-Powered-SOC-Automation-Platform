@@ -12,7 +12,7 @@ export class PlaybookMapper {
       name: raw.name,
       description: raw.description,
       version: raw.version,
-      status: raw.status as "ACTIVE" | "DEPRECATED" | null,
+      status: raw.status as "ACTIVE" | "DEPRECATED" | "DRAFT" | null,
       triggerConditions:
         raw.triggerConditions && typeof raw.triggerConditions === "object" && !Array.isArray(raw.triggerConditions)
           ? (raw.triggerConditions as Record<string, unknown>)

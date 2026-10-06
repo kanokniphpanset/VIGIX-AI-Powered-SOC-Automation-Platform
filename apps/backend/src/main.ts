@@ -14,6 +14,7 @@ import {
   runbookController,
   mitreController,
   playbookController,
+  playbookRevisionController,
   recommendationController,
   authController,
   approvalController,
@@ -89,7 +90,7 @@ app.use("/api/v1/evidence", buildEvidenceRoutes(investigationController));
 app.use("/api/policies", buildPolicyRoutes(policyController, policyEvaluationController));
 app.use("/api/actions", buildActionRoutes(actionController));
 app.use("/api/runbooks", buildRunbookRoutes(runbookController));
-app.use("/api/playbooks", buildPlaybookRoutes(playbookController));
+app.use("/api/playbooks", buildPlaybookRoutes(playbookController, playbookRevisionController));
 app.use("/api/recommendations", buildRecommendationRoutes(recommendationController));
 // Spec-literal path (distinct prefix from the legacy /api/v1/incidents mount above —
 // versioning is already inconsistent across this codebase; not introduced here).

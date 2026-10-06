@@ -106,10 +106,12 @@ async function main() {
   await seedPolicies(prisma, tenant.id);
 
   // 7. Recommendation/Response workflow catalogs — Runbook (RB-*), Action
-  // Action Catalog, Playbook (STC-001). Idempotent by code.
+  // Action Catalog, Playbook (STC-001). Idempotent by code. Playbooks follow the
+  // revision lifecycle: new ones are DRAFT (not selectable) until a human
+  // submits, approves and publishes them; existing ones are never overwritten.
   await seedRunbooks(prisma, tenant.id);
   await seedActions(prisma, tenant.id);
-  await seedPlaybooks(prisma, tenant.id);
+  const playbookOutcomes = await seedPlaybooks(prisma, tenant.id);
 
   console.log("Seed complete:");
   console.log(`  Tenant:  ${tenant.name} (${tenant.id})`);
@@ -117,6 +119,7 @@ async function main() {
   console.log(`  RBAC demo users (same password): ${rbacUsers.map((u) => `${u.email} [${u.role}]`).join(", ")}`);
   console.log(`  Alert:   ${alert.externalAlertId}`);
   console.log(`  Incident: ${incident.title}`);
+  console.log(`  Playbooks: ${playbookOutcomes.map((p) => `${p.code}=${p.outcome}`).join(", ")}`);
 }
 
 main()

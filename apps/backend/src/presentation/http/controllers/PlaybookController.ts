@@ -21,7 +21,10 @@ export class PlaybookController {
     private readonly deletePlaybook?: DeletePlaybookUseCase
   ) {}
 
-  /** DELETE /:id — optional reason; actor from the JWT; audited with a copy of the playbook. 409 when executions use it. */
+  /**
+   * DELETE /:id — optional reason; actor from the JWT; audited with a copy of the playbook. 409 PLAYBOOK_IN_USE when
+   * executions use it, 409 PLAYBOOK_REVISION_HISTORY_EXISTS when it has revisions.
+   */
   remove = async (req: Request, res: Response): Promise<void> => {
     if (!this.deletePlaybook) {
       res.status(501).json({ error: "NOT_IMPLEMENTED" });
@@ -33,6 +36,7 @@ export class PlaybookController {
     const result = await this.deletePlaybook.execute({ id: req.params.id, tenantId, actor: req.user?.id, reason: body.reason || null });
     if (result.isFailure) {
       if (result.error === "IN_USE") res.status(409).json({ error: "PLAYBOOK_IN_USE" });
+      else if (result.error === "REVISION_HISTORY_EXISTS") res.status(409).json({ error: "PLAYBOOK_REVISION_HISTORY_EXISTS" });
       else res.status(404).json({ error: "PLAYBOOK_NOT_FOUND" });
       return;
     }
@@ -56,6 +60,7 @@ export class PlaybookController {
   };
 
   // Mutations: tenant and actor come from the verified JWT (never from the query string), for the audit record.
+  /** POST / — creates a DRAFT playbook + DRAFT revision 1 (201 with the playbook and `revision`); never selectable until published. */
   create = async (req: Request, res: Response): Promise<void> => {
     const tenantId = authenticatedTenant(req);
     const body = validateBody(createPlaybookSchema, req, res);
@@ -71,16 +76,22 @@ export class PlaybookController {
       res.status(409).json({ error: result.error });
       return;
     }
-    res.status(201).json(result.value.toJSON());
+    res.status(201).json({ ...result.value.playbook.toJSON(), revision: result.value.revision });
   };
 
+  /**
+   * PUT /:id — 409 PLAYBOOK_PUBLISHED_IMMUTABLE for a published playbook, 409 PLAYBOOK_REVISION_MANAGED for an unpublished
+   * one with revisions (change either through a revision).
+   */
   update = async (req: Request, res: Response): Promise<void> => {
     const tenantId = authenticatedTenant(req);
     const body = validateBody(updatePlaybookSchema, req, res);
     if (!body) return;
     const result = await this.updatePlaybook.execute({ ...body, id: req.params.id, tenantId, actor: req.user?.id });
     if (result.isFailure) {
-      res.status(404).json({ error: "PLAYBOOK_NOT_FOUND" });
+      if (result.error === "PUBLISHED_IMMUTABLE") res.status(409).json({ error: "PLAYBOOK_PUBLISHED_IMMUTABLE" });
+      else if (result.error === "REVISION_MANAGED") res.status(409).json({ error: "PLAYBOOK_REVISION_MANAGED" });
+      else res.status(404).json({ error: "PLAYBOOK_NOT_FOUND" });
       return;
     }
     res.json(result.value.toJSON());

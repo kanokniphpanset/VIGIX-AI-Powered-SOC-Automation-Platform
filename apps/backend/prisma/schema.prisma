@@ -26,6 +26,7 @@ model Tenant {
   recommendations        Recommendation[]
   responsePlans          ResponsePlan[]
   responseTicketDrafts   ResponseTicketDraft[]
+  playbookRevisions      PlaybookRevision[]
   runbooks               Runbook[]
   users                  User[]
   verifications          Verification[]
@@ -317,11 +318,64 @@ model Playbook {
   code              String?             @unique
   status            String?             @default("ACTIVE")
   version           String?             @default("1.0")
+  /// The revision currently PUBLISHED (Phase 1D). This row stays the read model of that revision for existing readers
+  /// (PlaybookSelector, RecommendationValidator, EvaluationService). The DB keeps it consistent: it must point to this
+  /// playbook's single PUBLISHED revision (deferred constraint trigger, see migration 20261006030000_playbook_revisions).
+  publishedRevisionId String?           @unique @map("published_revision_id")
   executions        PlaybookExecution[]
   steps             PlaybookStep[]
   tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  revisions         PlaybookRevision[]  @relation("PlaybookRevisions")
+  publishedRevision PlaybookRevision?   @relation("PlaybookPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@map("playbooks")
+}
+
+/// Playbook revision lifecycle (Phase 1D): DRAFT -> IN_REVIEW -> APPROVED -> PUBLISHED -> SUPERSEDED, or IN_REVIEW -> REJECTED.
+/// Transitions are enforced by the application; the DB enforces immutability of APPROVED / PUBLISHED / SUPERSEDED content.
+enum PlaybookRevisionStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  SUPERSEDED
+  REJECTED
+
+  @@map("playbook_revision_status")
+}
+
+/// One immutable-once-approved version of a playbook's content. Rollback re-points playbooks.published_revision_id to an
+/// earlier revision; it never copies or edits revision content. DB triggers (migration 20261006030000_playbook_revisions):
+/// content / version / identity frozen from APPROVED on, no step back to DRAFT / IN_REVIEW / REJECTED from APPROVED+,
+/// APPROVED / PUBLISHED / SUPERSEDED never deleted, tenant must equal the playbook's tenant.
+model PlaybookRevision {
+  id             String                 @id @default(uuid())
+  tenantId       String                 @map("tenant_id")
+  playbookId     String                 @map("playbook_id")
+  revisionNumber Int                    @map("revision_number")
+  version        String
+  status         PlaybookRevisionStatus @default(DRAFT)
+  /// Full playbook content to reconstruct it: { code, name, description, triggerConditions, n8nWorkflowId,
+  /// playbookStatus, version, steps: [{ stepOrder, title, description }] } (steps ordered by stepOrder).
+  content        Json
+  proposalReason String?                @map("proposal_reason")
+  createdBy      String                 @map("created_by")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  reviewedBy     String?                @map("reviewed_by")
+  reviewedAt     DateTime?              @map("reviewed_at")
+  approvedBy     String?                @map("approved_by")
+  approvedAt     DateTime?              @map("approved_at")
+  publishedBy    String?                @map("published_by")
+  publishedAt    DateTime?              @map("published_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  playbook       Playbook               @relation("PlaybookRevisions", fields: [playbookId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id])
+  publishedFor   Playbook?              @relation("PlaybookPublishedRevision")
+
+  @@unique([playbookId, revisionNumber])
+  @@unique([playbookId, version])
+  @@index([tenantId])
+  @@map("playbook_revisions")
 }
 
 model PlaybookStep {

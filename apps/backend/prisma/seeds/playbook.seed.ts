@@ -1,10 +1,22 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 /**
- * playbook.seed.ts — seeds STC-001 "Short-Term Containment" v1.0 ACTIVE,
- * the process/lifecycle a Recommendation is generated against (never
- * attack-specific — that belongs to Runbook). Idempotent by `code`: steps
- * are replaced wholesale on every run so re-seeding never duplicates them.
+ * playbook.seed.ts — seeds STC-001 "Short-Term Containment" v1.0 and the
+ * incident-level playbooks, the process/lifecycle a Recommendation is generated
+ * against (never attack-specific — that belongs to Runbook).
+ *
+ * Phase 1D revision lifecycle: the seed never writes runtime or revision data of
+ * an existing playbook. Per code:
+ *   - missing        -> CREATED_DRAFT: playbook row status DRAFT (not selectable),
+ *                       no published revision, revision 1 DRAFT holding the
+ *                       definition (content.playbookStatus ACTIVE once published),
+ *                       created by "system:seed". It goes live only through
+ *                       submit -> approve -> publish by humans.
+ *   - published      -> PRESERVED_PUBLISHED (nothing written)
+ *   - has revisions  -> PRESERVED_DRAFT (nothing written; no duplicate revision)
+ *   - no revisions   -> SKIPPED_NO_REVISION (pre-revision row; nothing written)
+ *   - other tenant   -> SKIPPED_OTHER_TENANT (code is globally unique)
+ * Idempotent: a second run creates nothing.
  *
  * Step titles/order are exact per spec (7 lifecycle stages, generic —
  * Playbook itself never names a specific action or attack type; that
@@ -208,50 +220,74 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
   },
 ];
 
-async function upsertPlaybook(
-  prisma: PrismaClient,
-  tenantId: string,
-  data: { code: string; name: string; description: string; triggerConditions: object },
-  steps: { stepOrder: number; title: string; description: string }[],
-): Promise<void> {
-  // Steps are upserted by (playbookId, stepOrder) — re-seeding never duplicates and never deletes rows.
-  const playbook = await prisma.playbook.upsert({
-    where: { code: data.code },
-    update: { name: data.name, description: data.description, version: "1.0", status: "ACTIVE", triggerConditions: data.triggerConditions },
-    create: { tenantId, code: data.code, name: data.name, description: data.description, version: "1.0", status: "ACTIVE", triggerConditions: data.triggerConditions },
-  });
-  for (const step of steps) {
-    await prisma.playbookStep.upsert({
-      where: { playbookId_stepOrder: { playbookId: playbook.id, stepOrder: step.stepOrder } },
-      update: { title: step.title, description: step.description },
-      create: { playbookId: playbook.id, ...step },
-    });
-  }
+export type PlaybookSeedOutcome = "CREATED_DRAFT" | "PRESERVED_PUBLISHED" | "PRESERVED_DRAFT" | "SKIPPED_NO_REVISION" | "SKIPPED_OTHER_TENANT";
+
+export interface PlaybookSeedDefinition {
+  code: string;
+  name: string;
+  description: string;
+  triggerConditions: Record<string, unknown>;
+  steps: { stepOrder: number; title: string; description: string }[];
 }
 
-export async function seedPlaybooks(prisma: PrismaClient, tenantId: string): Promise<void> {
-  await upsertPlaybook(
-    prisma,
-    tenantId,
+export const PLAYBOOK_SEED_ACTOR = "system:seed";
+
+async function seedPlaybook(prisma: PrismaClient, tenantId: string, def: PlaybookSeedDefinition): Promise<PlaybookSeedOutcome> {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.playbook.findUnique({ where: { code: def.code }, select: { tenantId: true, publishedRevisionId: true, _count: { select: { revisions: true } } } });
+    if (existing) {
+      if (existing.tenantId !== tenantId) return "SKIPPED_OTHER_TENANT";
+      if (existing.publishedRevisionId) return "PRESERVED_PUBLISHED";
+      return existing._count.revisions > 0 ? "PRESERVED_DRAFT" : "SKIPPED_NO_REVISION";
+    }
+    const steps = [...def.steps].sort((a, b) => a.stepOrder - b.stepOrder);
+    const playbook = await tx.playbook.create({
+      data: {
+        tenantId, code: def.code, name: def.name, description: def.description, version: "1.0", status: "DRAFT",
+        triggerConditions: def.triggerConditions as Prisma.InputJsonValue, steps: { create: steps },
+      },
+    });
+    await tx.playbookRevision.create({
+      data: {
+        tenantId, playbookId: playbook.id, revisionNumber: 1, version: "1.0", status: "DRAFT", createdBy: PLAYBOOK_SEED_ACTOR,
+        proposalReason: "Initial seed definition",
+        content: {
+          code: def.code, name: def.name, description: def.description, triggerConditions: def.triggerConditions, n8nWorkflowId: null,
+          playbookStatus: "ACTIVE", version: "1.0", steps: steps.map((st) => ({ stepOrder: st.stepOrder, title: st.title, description: st.description })),
+        } as Prisma.InputJsonValue,
+      },
+    });
+    return "CREATED_DRAFT";
+  });
+}
+
+/** Seeds the given definitions (see the file header for the per-code outcome); returns the outcome per code. */
+export async function seedPlaybookDefinitions(prisma: PrismaClient, tenantId: string, defs: PlaybookSeedDefinition[]): Promise<{ code: string; outcome: PlaybookSeedOutcome }[]> {
+  const results: { code: string; outcome: PlaybookSeedOutcome }[] = [];
+  for (const def of defs) results.push({ code: def.code, outcome: await seedPlaybook(prisma, tenantId, def) });
+  return results;
+}
+
+/** STC-001 + INCIDENT_PLAYBOOKS as seed definitions (data unchanged). */
+export function playbookSeedDefinitions(): PlaybookSeedDefinition[] {
+  return [
     {
       code: PLAYBOOK_CODE,
       name: "Short-Term Containment",
       description: "Standard end-to-end process from triage through verification for an incident requiring short-term containment.",
       triggerConditions: {},
+      steps: STEPS,
     },
-    STEPS,
-  );
-  for (const pb of INCIDENT_PLAYBOOKS) {
-    await upsertPlaybook(
-      prisma,
-      tenantId,
-      {
-        code: pb.code,
-        name: pb.name,
-        description: pb.description,
-        triggerConditions: { scope: "INCIDENT", incidentType: pb.incidentType, mitreTechniques: pb.mitreTechniques, allowedActions: pb.allowedActions },
-      },
-      pb.steps,
-    );
-  }
+    ...INCIDENT_PLAYBOOKS.map((pb) => ({
+      code: pb.code,
+      name: pb.name,
+      description: pb.description,
+      triggerConditions: { scope: "INCIDENT", incidentType: pb.incidentType, mitreTechniques: pb.mitreTechniques, allowedActions: pb.allowedActions },
+      steps: pb.steps,
+    })),
+  ];
+}
+
+export async function seedPlaybooks(prisma: PrismaClient, tenantId: string): Promise<{ code: string; outcome: PlaybookSeedOutcome }[]> {
+  return seedPlaybookDefinitions(prisma, tenantId, playbookSeedDefinitions());
 }

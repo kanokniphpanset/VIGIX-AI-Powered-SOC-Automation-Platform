@@ -12,7 +12,8 @@ export interface PlaybookProps {
   name: string;
   description: string | null;
   version: string | null;
-  status: "ACTIVE" | "DEPRECATED" | null;
+  /** DRAFT = created but never published (Phase 1D): never selectable; ACTIVE / DEPRECATED come from a published revision. */
+  status: "ACTIVE" | "DEPRECATED" | "DRAFT" | null;
   steps: PlaybookStepProps[];
   /** Incident-level playbooks: { scope: "INCIDENT", incidentType, mitreTechniques[], allowedActions[] }. */
   triggerConditions?: Record<string, unknown>;

@@ -25,7 +25,13 @@ type Audit = { tenantId: string; actor: string; action: string; entityId: string
 class MemoryPlaybooks implements IPlaybookRepository {
   rows = new Map<string, Playbook>();
   executions = new Map<string, number>();
+  /** Phase 1D revision state; a playbook missing here has no revisions (pre-revision behavior). */
+  revisions = new Map<string, { publishedRevisionId: string | null; revisionCount: number; historyCount: number }>();
   private seq = 0;
+  async revisionState(id: string, tenantId: string) {
+    const p = this.rows.get(id);
+    return p && p.tenantId === tenantId ? this.revisions.get(id) ?? { publishedRevisionId: null, revisionCount: 0, historyCount: 0 } : null;
+  }
   async countExecutions(id: string) {
     return this.executions.get(id) ?? 0;
   }
@@ -45,15 +51,17 @@ class MemoryPlaybooks implements IPlaybookRepository {
   async findAll(tenantId: string) {
     return [...this.rows.values()].filter((p) => p.tenantId === tenantId);
   }
-  async create(d: CreatePlaybookData) {
+  /** Phase 1D: a new playbook is a DRAFT row + DRAFT revision 1. */
+  async createDraft(d: CreatePlaybookData) {
     const id = `pb-${++this.seq}`;
     const p = Playbook.create({
-      id, tenantId: d.tenantId, code: d.code, name: d.name, description: d.description, version: d.version, status: d.status,
+      id, tenantId: d.tenantId, code: d.code, name: d.name, description: d.description, version: d.version, status: "DRAFT",
       triggerConditions: d.incidentType ? { incidentType: d.incidentType } : {},
       steps: d.steps.map((s, i) => ({ id: `${id}-s${i}`, ...s })),
     });
     this.rows.set(id, p);
-    return p;
+    this.revisions.set(id, { publishedRevisionId: null, revisionCount: 1, historyCount: 0 });
+    return { playbook: p, revision: { id: `${id}-r1`, revisionNumber: 1, status: "DRAFT" as const, version: d.version } };
   }
   async update(id: string, _tenantId: string, d: UpdatePlaybookData) {
     const cur = this.rows.get(id)!.toJSON();
@@ -107,6 +115,7 @@ beforeEach(() => {
   repo.rows.clear();
   repo.seed(SSH);
   repo.executions.clear();
+  repo.revisions.clear();
   audits.length = 0;
 });
 
@@ -142,10 +151,10 @@ describe("Playbook management — authorization (SOC, IR_TEAM, admin manage; oth
 });
 
 describe("Playbook management — create", () => {
-  it("admin creates a playbook with incident type and steps; CREATE_PLAYBOOK audited with the actor", async () => {
+  it("admin creates a DRAFT playbook (revision 1 DRAFT) with incident type and steps; CREATE_PLAYBOOK audited with the actor", async () => {
     const r = await call("POST", "/", NEW, "admin");
     expect(r.status).toBe(201);
-    expect(r.body).toMatchObject({ code: "PB-TEST-DEMO", name: "Test Playbook", status: "ACTIVE", triggerConditions: { incidentType: "TEST_CASE" } });
+    expect(r.body).toMatchObject({ code: "PB-TEST-DEMO", name: "Test Playbook", status: "DRAFT", triggerConditions: { incidentType: "TEST_CASE" }, revision: { revisionNumber: 1, status: "DRAFT" } });
     expect((r.body.steps as { title: string }[]).map((s) => s.title)).toEqual(["Confirm the scope", "Contain"]);
     expect(audits).toEqual([expect.objectContaining({ action: "CREATE_PLAYBOOK", actor: "u-admin", tenantId: TENANT, entityId: r.body.id })]);
   });
@@ -202,6 +211,22 @@ describe("Playbook management — edit / activate / deactivate", () => {
   it("unknown playbook -> 404", async () => {
     expect((await call("PUT", "/nope", { name: "x" }, "admin")).status).toBe(404);
   });
+  it("a newly created (DRAFT, revision-managed) playbook -> 409 PLAYBOOK_REVISION_MANAGED, unchanged", async () => {
+    const created = await call("POST", "/", NEW, "admin");
+    audits.length = 0;
+    expect(await call("PUT", `/${created.body.id}`, { status: "ACTIVE" }, "admin")).toMatchObject({ status: 409, body: { error: "PLAYBOOK_REVISION_MANAGED" } });
+    expect(repo.rows.get(created.body.id as string)!.status).toBe("DRAFT");
+    expect(audits).toEqual([]);
+  });
+  it("published playbook -> 409 PLAYBOOK_PUBLISHED_IMMUTABLE, unchanged, no audit", async () => {
+    repo.revisions.set("pb-ssh", { publishedRevisionId: "rev-1", revisionCount: 1, historyCount: 1 });
+    const before = repo.rows.get("pb-ssh")!.toJSON();
+    for (const body of [{ name: "Renamed" }, { status: "DEPRECATED" }, { steps: [{ stepOrder: 1, title: "x" }] }]) {
+      expect(await call("PUT", "/pb-ssh", body, "admin")).toMatchObject({ status: 409, body: { error: "PLAYBOOK_PUBLISHED_IMMUTABLE" } });
+    }
+    expect(repo.rows.get("pb-ssh")!.toJSON()).toEqual(before);
+    expect(audits).toEqual([]);
+  });
 });
 
 describe("Playbook management — delete (x)", () => {
@@ -235,5 +260,11 @@ describe("Playbook management — delete (x)", () => {
   });
   it("unknown playbook -> 404", async () => {
     expect((await call("DELETE", "/nope", { reason: "x" }, "SOC")).status).toBe(404);
+  });
+  it("a published playbook (revision history) -> 409 PLAYBOOK_REVISION_HISTORY_EXISTS, not deleted, no audit", async () => {
+    repo.revisions.set("pb-ssh", { publishedRevisionId: "rev-1", revisionCount: 1, historyCount: 1 });
+    expect(await call("DELETE", "/pb-ssh", { reason: "x" }, "admin")).toMatchObject({ status: 409, body: { error: "PLAYBOOK_REVISION_HISTORY_EXISTS" } });
+    expect(repo.rows.has("pb-ssh")).toBe(true);
+    expect(audits).toEqual([]);
   });
 });

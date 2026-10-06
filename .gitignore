@@ -11,6 +11,7 @@ build/
 .DS_Store
 apps/backend/prisma/migrations/**/migration.sql
 !apps/backend/prisma/migrations/20261005111935_immutable_recommendation_snapshots/migration.sql
+!apps/backend/prisma/migrations/20261006030000_playbook_revisions/migration.sql
 
 # Never publish: database dumps (real data), scratch output, the vendored wazuh-docker checkout (own .git + .env)
 *.dump
