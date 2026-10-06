@@ -69,6 +69,7 @@ export class RecommendationController {
     if (result.isFailure) {
       // No recommendation was persisted in any failure case (see GenerateRecommendationUseCase).
       const status =
+        result.error.startsWith("PLAYBOOK_PROVENANCE_") || result.error === "RECOMMENDATION_INVESTIGATION_REQUIRED" ? 409 :
         result.error === "INCIDENT_NOT_FOUND" ? 404 : result.error === "AI_UNAVAILABLE" ? 503 : result.error === "INSUFFICIENT_EVIDENCE" || result.error === "NO_NEW_RECOMMENDATION" ? 422 : 502;
       res.status(status).json({ error: result.error });
       return;

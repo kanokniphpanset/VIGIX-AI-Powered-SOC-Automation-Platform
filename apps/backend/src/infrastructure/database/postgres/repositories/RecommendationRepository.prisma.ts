@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { canonicalRevisionContent, hashRevisionContent, pinRevision, PlaybookProvenanceError } from "../../../../domain/playbook/PlaybookRevisionProvenance";
 import {
   IRecommendationRepository,
   CreateRecommendationData,
@@ -46,7 +47,8 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
     return this.prisma.$transaction(async (tx) => {
       // Serialize numbering for this incident only. Snapshot and recommendation commit together,
       // so a failed recommendation insert cannot leave an unreferenced snapshot behind.
-      await tx.$queryRaw`SELECT id FROM incidents WHERE id = ${data.incidentId} AND tenant_id = ${data.tenantId} FOR UPDATE`;
+      const owned = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM incidents WHERE id = ${data.incidentId} AND tenant_id = ${data.tenantId} FOR UPDATE`;
+      if (!owned.length) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_NOT_FOUND");
       const latest = await tx.recommendation.findFirst({
         where: { incidentId: data.incidentId, tenantId: data.tenantId },
         orderBy: { recommendationNumber: "desc" }, select: { recommendationNumber: true },
@@ -57,11 +59,33 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
         where: { incidentId_investigationNumber: { incidentId: data.incidentId, investigationNumber: data.investigationNumber } },
         select: { id: true },
       });
+      if (!investigation) throw new PlaybookProvenanceError("RECOMMENDATION_INVESTIGATION_REQUIRED");
+      if (!data.snapshot || !data.provenance) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_INVALID");
+      if (data.provenance.tenantId !== data.tenantId) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_TENANT_MISMATCH");
+      // Copy once before awaiting: persistence never follows the current published pointer.
+      const pinned = pinRevision(data.provenance);
+      if (pinned.contentHash !== data.provenance.contentHash) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_MISMATCH");
+      const revision = await tx.playbookRevision.findFirst({
+        where: { id: pinned.revisionId, tenantId: data.tenantId, playbook: { tenantId: data.tenantId } },
+      });
+      // Wrong-tenant IDs are indistinguishable from missing IDs; no cross-tenant lookup.
+      if (!revision) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_NOT_FOUND");
+      if (revision.playbookId !== pinned.playbookId || revision.version !== pinned.version ||
+          !["PUBLISHED", "SUPERSEDED"].includes(revision.status) || !revision.publishedAt ||
+          data.snapshot.playbookVersion !== pinned.version ||
+          (revision.content as Record<string, unknown> | null)?.code !== data.snapshot.playbookCode ||
+          hashRevisionContent(revision.content) !== pinned.contentHash ||
+          canonicalRevisionContent(revision.content) !== canonicalRevisionContent(pinned.content))
+        throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_MISMATCH");
       // One immutable grounding artifact per successful generation, even when content is identical.
       let snapshotId: string | null = null;
       if (data.snapshot && investigation) {
         const snap = data.snapshot;
         const content = {
+          playbookId: pinned.playbookId,
+          playbookRevisionId: pinned.revisionId,
+          contentHash: pinned.contentHash,
+          frozenRevisionContent: pinned.content as Prisma.InputJsonValue,
           playbookCode: snap.playbookCode,
           playbookVersion: snap.playbookVersion,
           procedureCode: snap.procedureCode,

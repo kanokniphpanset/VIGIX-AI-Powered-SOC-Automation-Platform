@@ -1,3 +1,6 @@
+import { Playbook } from "../../../domain/playbook/entities/Playbook.entity";
+import { PlaybookRevisionProvenance, PlaybookProvenanceError } from "../../../domain/playbook/PlaybookRevisionProvenance";
+import { IGenerationPlaybookCatalogReader } from "../ports/IGenerationPlaybookCatalogReader";
 import { incidentSeverity } from "../../../domain/incident/severity";
 import { IRecommendationContextRepository } from "../ports/IRecommendationContextRepository";
 import { IActionRepository } from "../../../domain/action/repositories/IActionRepository";
@@ -47,10 +50,21 @@ export class RecommendationContextBuilder {
     /** SOC response setup: confirmed incident type (-> playbook) and the case / group guidance (-> allowed actions). */
     private readonly responseSetup?: Pick<IncidentResponseSetupService, "resolve">,
     /** ACTION_COMPLIANCE policies (evidence an Action requires). Absent -> only the Action's own knowledge applies. */
-    private readonly compliancePolicy?: Pick<PolicyEvaluator, "actionCompliance">
+    private readonly compliancePolicy?: Pick<PolicyEvaluator, "actionCompliance">,
+    private readonly generationCatalogReader?: IGenerationPlaybookCatalogReader
   ) {}
 
-  async build(incidentId: string, tenantId: string): Promise<Result<RecommendationContextDto, "INCIDENT_NOT_FOUND">> {
+  /** Provenance stays outside the DTO supplied to both AI and the deterministic validator. */
+  async buildForGeneration(incidentId: string, tenantId: string): Promise<Result<{ context: RecommendationContextDto; provenance: PlaybookRevisionProvenance | null }, "INCIDENT_NOT_FOUND">> {
+    if (!this.generationCatalogReader) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_NOT_FOUND");
+    const catalog = await this.generationCatalogReader.read(tenantId);
+    const result = await this.build(incidentId, tenantId, catalog.playbooks);
+    if (result.isFailure) return Result.fail(result.error);
+    const context = result.value;
+    return Result.ok({ context, provenance: context.playbook ? catalog.pinSelected(context.playbook.code) : null });
+  }
+
+  async build(incidentId: string, tenantId: string, generationCatalog?: Playbook[]): Promise<Result<RecommendationContextDto, "INCIDENT_NOT_FOUND">> {
     const incident = await this.contextRepository.getIncidentContext(incidentId, tenantId);
     if (!incident) return Result.fail("INCIDENT_NOT_FOUND");
 
@@ -68,8 +82,8 @@ export class RecommendationContextBuilder {
 
     // With the SOC setup: the SOC-confirmed type picks the playbook, and only the actions its guidance allows are
     // offered (RecommendationValidator rejects any other). Without it: the MITRE match and all playbook actions.
-    const setup = this.responseSetup ? await this.responseSetup.resolve(incidentId, tenantId) : null;
-    const playbooks = setup ? [] : this.playbookRepository ? await this.playbookRepository.findAll(tenantId) : [];
+    const setup = this.responseSetup ? await this.responseSetup.resolve(incidentId, tenantId, generationCatalog) : null;
+    const playbooks = setup ? [] : generationCatalog ?? (this.playbookRepository ? await this.playbookRepository.findAll(tenantId) : []);
     const selected = setup?.isSuccess ? setup.value.selected : this.playbookSelector.select(playbooks, mitreMappings.map((m) => m.techniqueId));
     const guidance = setup?.isSuccess ? setup.value.effective : null;
     const playbook = selected && guidance ? { ...selected, allowedActions: selected.allowedActions.filter((a) => guidance.allowedActions.includes(a)) } : selected;

@@ -1,3 +1,4 @@
+import { fixtureCatalog } from "./helpers/hc1Provenance";
 import { GenerateRecommendationUseCase } from "../src/application/recommendation/use-cases/GenerateRecommendation.usecase";
 import { RecommendationContextBuilder } from "../src/application/recommendation/services/RecommendationContextBuilder";
 import { PlaybookSelector } from "../src/application/recommendation/services/PlaybookSelector";
@@ -106,7 +107,7 @@ function contextRepository(overrides: Partial<IRecommendationContextRepository> 
   };
 }
 
-const builder = (repo = contextRepository()) => new RecommendationContextBuilder(repo, actionRepository, runbookRepository, playbookRepository, policyService);
+const builder = (repo = contextRepository()) => new RecommendationContextBuilder(repo, actionRepository, runbookRepository, playbookRepository, policyService, undefined, undefined, undefined, { read: async () => fixtureCatalog(playbooks) });
 
 const BLOCK_IP_STEP = {
   stepOrder: 1,
@@ -556,5 +557,34 @@ describe("New round / regenerate — at least one Action + target pair not propo
     const { useCase, created } = setup((ctx) => new FakeRecommendationAgent().generate(ctx), { nextNumber: 2, repo: withPrevious([BLOCK_45]) });
     expect((await run(useCase)).isSuccess).toBe(true);
     expect(created[0].steps.some((s) => !(s.actionId === "action-ACT-BLOCK-SOURCE-IP" && s.target === "185.220.101.45"))).toBe(true);
+  });
+});
+
+describe("HC1-07 / HC1-11 generation envelope parity", () => {
+  test("fallback catalog is read once; context, validator and actual AI request body retain baseline semantics", async () => {
+    const catalogRead = jest.fn(async () => fixtureCatalog(playbooks));
+    const ordinaryRead = jest.fn(async () => playbooks);
+    const b = new RecommendationContextBuilder(contextRepository(), actionRepository, runbookRepository,
+      { findAll: ordinaryRead } as never, policyService, undefined, undefined, undefined, { read: catalogRead });
+    const baseline = (await b.build(INCIDENT, TENANT)).value;
+    ordinaryRead.mockClear();
+    const envelope = (await b.buildForGeneration(INCIDENT, TENANT)).value;
+    expect(catalogRead).toHaveBeenCalledTimes(1);
+    expect(ordinaryRead).not.toHaveBeenCalled();
+    expect(envelope.context).toEqual(baseline);
+    expect(envelope.provenance).toMatchObject({ tenantId: TENANT, playbookId: "pb-PB-SSH-BRUTEFORCE", version: "1.0" });
+    const validator = new RecommendationValidator(actionRepository, runbookRepository);
+    expect(await validator.validate(candidate([BLOCK_IP_STEP]), envelope.context, TENANT))
+      .toEqual(await validator.validate(candidate([BLOCK_IP_STEP]), baseline, TENANT));
+    const { LlmRecommendationAgent } = await import("../src/infrastructure/ai/LlmRecommendationAgent");
+    const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, json: async () => candidate([BLOCK_IP_STEP]) } as Response);
+    try {
+      const agent = new LlmRecommendationAgent("http://hc1-no-network.invalid");
+      await agent.generate(baseline);
+      await agent.generate(envelope.context);
+      const bodies = fetchSpy.mock.calls.map(c => c[1]!.body as string);
+      expect(bodies[1]).toBe(bodies[0]);
+      for (const key of ["provenance", "revisionId", "contentHash", "frozenRevisionContent"]) expect(bodies[1]).not.toContain(key);
+    } finally { fetchSpy.mockRestore(); }
   });
 });

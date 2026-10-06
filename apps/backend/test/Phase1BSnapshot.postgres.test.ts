@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { PrismaRecommendationRepository } from "../src/infrastructure/database/postgres/repositories/RecommendationRepository.prisma";
 import { CreateRecommendationData } from "../src/domain/recommendation/repositories/IRecommendationRepository";
+import { revisionHistoryFixture } from "./helpers/hc1Provenance";
 
 // Opt-in only. Never fall back to DATABASE_URL or load a runtime .env.
 const url = process.env.PHASE1B_TEST_DATABASE_URL;
@@ -13,10 +14,14 @@ suite("Phase 1B — real PostgreSQL immutable snapshots", () => {
   let incidentId: string;
   let investigationId: string;
   const queries: string[] = [];
+  // HC-1.2: every new recommendation carries the exact pinned playbook revision of the version it was generated from.
+  let playbook: Awaited<ReturnType<typeof revisionHistoryFixture>>;
+  const VERSIONS = ["1", "2", "same", "concurrent-A", "concurrent-B", "final", "new"];
   const input = (number: number, version = "1"): CreateRecommendationData => ({
     tenantId, incidentId, investigationNumber: 1, recommendationNumber: number,
     status: "VALIDATED", summary: `generation ${number}`, createdBy: "test-agent", steps: [],
-    snapshot: { playbookCode: "PB-TEST", playbookVersion: version, procedureCode: "PROC-TEST",
+    provenance: playbook.provenance.get(version)!,
+    snapshot: { playbookCode: playbook.code, playbookVersion: version, procedureCode: "PROC-TEST",
       procedureVersion: version, procedureContent: { instructions: [`version ${version}`] }, policyResult: { approvalRequired: true } },
   });
   beforeAll(async () => {
@@ -33,6 +38,7 @@ suite("Phase 1B — real PostgreSQL immutable snapshots", () => {
     const incident = await db.incident.create({ data: { tenantId, alertId: alert.id, title: "Phase1B isolated" } });
     incidentId = incident.id;
     investigationId = (await db.investigation.create({ data: { incidentId, investigationNumber: 1, createdBy: "test" } })).id;
+    playbook = await revisionHistoryFixture(db, tenantId, VERSIONS);
   });
   afterAll(async () => { if (db) await db.$disconnect(); }); // Preserve fixtures; no cleanup DELETE/reset.
 

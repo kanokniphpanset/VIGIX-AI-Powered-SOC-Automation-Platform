@@ -1,3 +1,5 @@
+import { PrismaGenerationPlaybookCatalogReader } from "../database/postgres/repositories/GenerationPlaybookCatalogReader.prisma";
+import type { Playbook } from "../../domain/playbook/entities/Playbook.entity";
 import { alertWorkflow } from '../database/postgres/AlertWorkflow';
 import { IncidentSlaService } from "../../application/sla/IncidentSlaService";
 import { GetDashboardSummaryUseCase, HealthItem } from "../../application/dashboard/use-cases/GetDashboardSummary.usecase";
@@ -398,9 +400,10 @@ const recommendationContextBuilder =
     approvalService,
     undefined,
     // Late-bound: the setup service is built further down (it needs the Policy use cases).
-    { resolve: (incidentId: string, tenantId: string) => incidentResponseSetupService.resolve(incidentId, tenantId) },
+    { resolve: (incidentId: string, tenantId: string, catalog?: Playbook[]) => incidentResponseSetupService.resolve(incidentId, tenantId, catalog) },
     // ACTION_COMPLIANCE policies (POL-A02 / POL-A03): evidence each Action requires.
-    policyEvaluator
+    policyEvaluator,
+    new PrismaGenerationPlaybookCatalogReader(prisma)
   );
 
 const recommendationValidator =

@@ -1,3 +1,4 @@
+import { PlaybookRevisionProvenance } from "../../playbook/PlaybookRevisionProvenance";
 import { Recommendation, RecommendationInstruction, RecommendationStatus, RecommendationStepProps } from "../entities/Recommendation.entity";
 
 export interface CreateRecommendationStepData {
@@ -27,6 +28,8 @@ export interface RecommendationSnapshotData {
 }
 
 export interface CreateRecommendationData {
+  /** Required at runtime for all new persisted recommendations; legacy reads remain unchanged. */
+  provenance?: PlaybookRevisionProvenance | null;
   tenantId: string;
   incidentId: string;
   investigationNumber: number;

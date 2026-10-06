@@ -1,3 +1,4 @@
+import { PlaybookProvenanceError, PlaybookProvenanceErrorCode } from "../../../domain/playbook/PlaybookRevisionProvenance";
 import { IRecommendationRepository } from "../../../domain/recommendation/repositories/IRecommendationRepository";
 import { Recommendation } from "../../../domain/recommendation/entities/Recommendation.entity";
 import { RecommendationContextBuilder } from "../services/RecommendationContextBuilder";
@@ -9,6 +10,7 @@ import { buildCorrectionPrompt, evidenceValues, MAX_RECOMMENDATION_ATTEMPTS, sho
 import { isRecommendable, newStepOptions } from "../dto/RecommendationContextDto";
 
 export type GenerateRecommendationError =
+  | PlaybookProvenanceErrorCode
   | "INCIDENT_NOT_FOUND"
   | "AI_UNAVAILABLE"
   | "INVALID_AI_OUTPUT"
@@ -65,9 +67,19 @@ export class GenerateRecommendationUseCase {
   ) {}
 
   async execute(input: { incidentId: string; tenantId: string }): Promise<Result<Recommendation, GenerateRecommendationError>> {
-    const contextResult = await this.contextBuilder.build(input.incidentId, input.tenantId);
+    try {
+      return await this.generate(input);
+    } catch (error) {
+      // Repository/AtomicWorkflow have already rolled back before a semantic failure is returned.
+      if (error instanceof PlaybookProvenanceError) return Result.fail(error.code);
+      throw error;
+    }
+  }
+
+  private async generate(input: { incidentId: string; tenantId: string }): Promise<Result<Recommendation, GenerateRecommendationError>> {
+    const contextResult = await this.contextBuilder.buildForGeneration(input.incidentId, input.tenantId);
     if (contextResult.isFailure) return Result.fail("INCIDENT_NOT_FOUND");
-    const context = contextResult.value;
+    const { context, provenance } = contextResult.value;
 
     const procedures = context.actionProcedures ?? [];
     if (context.playbook && procedures.length > 0 && !procedures.some(isRecommendable)) {
@@ -142,6 +154,7 @@ export class GenerateRecommendationUseCase {
         createdBy: this.agentVersion,
         steps: outcome.steps,
         snapshot: outcome.snapshot,
+        provenance,
       });
 
       if (recommendation.recommendationNumber > 1) {

@@ -1,3 +1,4 @@
+import { Playbook } from "../../../domain/playbook/entities/Playbook.entity";
 import { IIncidentRepository } from "../../../domain/incident/repositories/IIncidentRepository";
 import { IPlaybookRepository } from "../../../domain/playbook/repositories/IPlaybookRepository";
 import { IActionRepository } from "../../../domain/action/repositories/IActionRepository";
@@ -70,13 +71,13 @@ export class IncidentResponseSetupService {
   ) {}
 
   /** The selected playbook (SOC type first, else the MITRE match) — also used by RecommendationContextBuilder. */
-  async resolve(incidentId: string, tenantId: string): Promise<Result<ResponseSetup & { selected: SelectedPlaybook | null }, "INCIDENT_NOT_FOUND">> {
+  async resolve(incidentId: string, tenantId: string, generationCatalog?: Playbook[]): Promise<Result<ResponseSetup & { selected: SelectedPlaybook | null }, "INCIDENT_NOT_FOUND">> {
     const incident = await this.store.get(incidentId, tenantId);
     if (!incident) return Result.fail("INCIDENT_NOT_FOUND");
     const [mappings, alerts, playbooks, actions] = await Promise.all([
       this.context.getMitreMappings(incidentId),
       this.incidents.findAlerts(incidentId, tenantId),
-      this.playbooks.findAll(tenantId),
+      generationCatalog ?? this.playbooks.findAll(tenantId),
       this.actions.findAll(tenantId),
     ]);
     const alertTechniques = alerts.flatMap((a) => summarizeAlert(a.rawPayload).mitreTechniques);

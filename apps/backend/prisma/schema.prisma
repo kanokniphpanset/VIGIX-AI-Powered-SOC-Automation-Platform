@@ -325,6 +325,7 @@ model Playbook {
   executions        PlaybookExecution[]
   steps             PlaybookStep[]
   tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  snapshots         PlaybookSnapshot[]
   revisions         PlaybookRevision[]  @relation("PlaybookRevisions")
   publishedRevision PlaybookRevision?   @relation("PlaybookPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
@@ -371,6 +372,7 @@ model PlaybookRevision {
   playbook       Playbook               @relation("PlaybookRevisions", fields: [playbookId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   tenant         Tenant                 @relation(fields: [tenantId], references: [id])
   publishedFor   Playbook?              @relation("PlaybookPublishedRevision")
+  snapshots      PlaybookSnapshot[]
 
   @@unique([playbookId, revisionNumber])
   @@unique([playbookId, version])
@@ -861,6 +863,13 @@ model StepExecution {
 }
 
 model PlaybookSnapshot {
+  /// HC-1: NULL for legacy snapshots; new generation requires the complete exact tuple.
+  playbookId           String?          @map("playbook_id")
+  playbookRevisionId   String?          @map("playbook_revision_id")
+  contentHash          String?          @map("content_hash")
+  frozenRevisionContent Json?           @map("frozen_revision_content")
+  playbook             Playbook?        @relation(fields: [playbookId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  playbookRevision     PlaybookRevision? @relation(fields: [playbookRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   id                  String           @id @default(uuid())
   tenantId            String           @map("tenant_id")
   incidentId          String           @map("incident_id")
@@ -880,6 +889,8 @@ model PlaybookSnapshot {
   recommendations     Recommendation[]
 
   @@index([incidentId, investigationNumber])
+  @@index([tenantId, playbookRevisionId])
+  @@index([playbookId])
   @@map("playbook_snapshots")
 }
 
