@@ -28,6 +28,7 @@ _embedding_provider = BgeEmbeddingProvider(settings.embedding_model)
 
 _vector_search_client = VectorSearchClient(
     settings.backend_url,
+    service_token=settings.backend_service_token or None,
     timeout_s=settings.rag_vector_search_timeout_s,
     max_retries=settings.rag_vector_search_max_retries,
 )

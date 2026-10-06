@@ -463,7 +463,8 @@ describe("RBAC — AI (or any non-human role) can neither approve nor execute", 
   // Real HTTP round trips on an ephemeral port: allow for a loaded machine during the full parallel run.
   jest.setTimeout(30_000);
   const secret = process.env.JWT_SECRET ?? "dev-only-insecure-secret-change-in-production";
-  const token = (role: string) => jwt.sign({ id: `${role}-user`, email: "x@corp.test", role, tenantId: TENANT }, secret);
+  // Phase 1A identity contract: a human token must expire (production signToken uses 8h).
+  const token = (role: string) => jwt.sign({ id: `${role}-user`, email: "x@corp.test", role, tenantId: TENANT }, secret, { expiresIn: "1h" });
   const reached: string[] = [];
   const ok = (name: string) => (_req: express.Request, res: express.Response) => void (reached.push(name), res.json({ ok: true }));
   let base = "";

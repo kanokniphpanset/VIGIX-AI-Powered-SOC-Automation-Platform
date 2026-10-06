@@ -7,10 +7,10 @@ export class PrismaIncidentSeverityWriter implements IIncidentSeverityWriter {
   constructor(private readonly prisma: PrismaClient) {}
 
   async setSeverity(input: { tenantId: string; incidentId: string; severity: Severity; actor: string; description: string }): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.incident.updateMany({ where: { id: input.incidentId, tenantId: input.tenantId }, data: { priority: input.severity.toLowerCase() } }),
-      this.prisma.incidentTimeline.create({ data: { incidentId: input.incidentId, eventType: "SEVERITY_VALIDATED", description: input.description, actor: input.actor } }),
-    ]);
+    await this.prisma.$transaction(async tx => {
+      await tx.incident.updateMany({ where: { id: input.incidentId, tenantId: input.tenantId }, data: { priority: input.severity.toLowerCase() } });
+      await tx.incidentTimeline.create({ data: { incidentId: input.incidentId, eventType: "SEVERITY_VALIDATED", description: input.description, actor: input.actor } });
+    });
   }
 
   async ticketStatuses(tenantId: string, incidentId: string): Promise<string[]> {

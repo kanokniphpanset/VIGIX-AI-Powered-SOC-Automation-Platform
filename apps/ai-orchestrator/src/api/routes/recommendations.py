@@ -45,7 +45,7 @@ logger = logging.getLogger("soar.ai-orchestrator")
 router = APIRouter()
 
 _embedding_provider = BgeEmbeddingProvider(settings.embedding_model)
-_vector_search_client = VectorSearchClient(settings.backend_url)
+_vector_search_client = VectorSearchClient(settings.backend_url, service_token=settings.backend_service_token or None)
 _retriever = RagRetriever(_embedding_provider, _vector_search_client, top_k=5, playbook_top_k=3)
 _llm = LlamaProvider(settings.llm_base_url, settings.llm_model, settings.llm_timeout_seconds, api_key=settings.llm_api_key)
 _prompts = PromptLoader()

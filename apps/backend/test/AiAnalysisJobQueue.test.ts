@@ -336,16 +336,19 @@ describe("LangGraphOrchestratorAdapter.runAnalysis", () => {
 });
 
 describe("OrchestratorCallbackController (AI decision is advisory)", () => {
+  // Phase 1A callback contract: a signed service principal granted this job, whose job really belongs to the incident.
+  const principal = { id: "service:ai-orchestrator", tenantId: "tenant-1", principalType: "SERVICE", scopes: ["orchestrator:callback"], jobIds: ["exec-1"] };
   function call(body: Record<string, unknown>) {
     const audits: Array<{ action: string; metadata: Record<string, unknown> }> = [];
-    const controller = new OrchestratorCallbackController({ record: async (e: never) => void audits.push(e) } as never);
+    const ownership = { findOwnedJob: async (q: { executionId: string; incidentId: string; tenantId: string }) => q.executionId === "exec-1" && q.incidentId === "inc-1" && q.tenantId === "tenant-1" };
+    const controller = new OrchestratorCallbackController({ record: async (e: never) => void audits.push(e) } as never, ownership);
     const res = { statusCode: 0, body: undefined as unknown, status(c: number) { this.statusCode = c; return this; }, json(b: unknown) { this.body = b; return this; } };
-    return { audits, res, run: () => controller.handle({ body } as never, res as never) };
+    return { audits, res, run: () => controller.handle({ body, principal } as never, res as never) };
   }
 
   it("records an auto_response decision without triggering any playbook", async () => {
     const fetchSpy = jest.spyOn(global, "fetch");
-    const { audits, res, run } = call({ incidentId: "inc-1", decision: "auto_response", riskScore: 95, severity: "critical" }); // a legacy riskScore is ignored
+    const { audits, res, run } = call({ incidentId: "inc-1", executionId: "exec-1", decision: "auto_response", riskScore: 95, severity: "critical" }); // a legacy riskScore is ignored
     await run();
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ acknowledged: true, playbookTriggered: false });
@@ -356,7 +359,7 @@ describe("OrchestratorCallbackController (AI decision is advisory)", () => {
   });
 
   it("rejects a callback without incidentId / decision", async () => {
-    const { res, audits, run } = call({ decision: "dismiss" });
+    const { res, audits, run } = call({ executionId: "exec-1", decision: "dismiss" });
     await run();
     expect(res.statusCode).toBe(400);
     expect(audits).toEqual([]);

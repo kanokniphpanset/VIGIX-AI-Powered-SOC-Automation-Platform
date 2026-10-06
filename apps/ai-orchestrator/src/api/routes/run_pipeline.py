@@ -158,6 +158,7 @@ async def run_pipeline(request: RunPipelineRequest) -> RunPipelineResponse:
             # Real model identity for the backend's audit trail: only the LLM (there is no ML severity model).
             llm_model=settings.llm_model if final_state.get("llm_summary") else None,
             service_token=settings.backend_service_token or None,
+            execution_id=execution_id,
         )
 
     # Notification layer: NotificationPolicy decides which channels (Jira,

@@ -1,3 +1,4 @@
+import { asyncHandler } from "../middlewares/async-handler.middleware";
 
 import { Router } from "express";
 import { VerificationController } from "../controllers/VerificationController";
@@ -37,14 +38,14 @@ export function buildIncidentVerificationRoutes(
     "/",
     authenticate,
     requireOperationalRole("IR_TEAM"),
-    controller.create
+    asyncHandler(controller.create)
   );
 
   router.post(
     "/rehunt",
     authenticate,
     requireOperationalRole("IR_TEAM"),
-    controller.rehunt
+    asyncHandler(controller.rehunt)
   );
 
   router.get(

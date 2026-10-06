@@ -36,6 +36,7 @@ export class UpdateIncidentStatusUseCase {
     if (!existing) {
       return Result.fail("NOT_FOUND");
     }
+    if (existing.status === input.status) return Result.ok(existing);
 
     const updated = await this.incidentRepository.updateStatus(
       input.id,
@@ -51,8 +52,7 @@ export class UpdateIncidentStatusUseCase {
           entity: "Incident",
           entityId: input.id,
           metadata: { from: existing.status, to: updated.status, manual: true },
-        })
-        .catch((err) => console.error("Failed to audit incident status change", input.id, err instanceof Error ? err.message : err));
+        });
     }
     return Result.ok(updated);
   }
