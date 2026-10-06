@@ -25,6 +25,7 @@ model Tenant {
   policies               Policy[]
   recommendations        Recommendation[]
   responsePlans          ResponsePlan[]
+  responseTicketDrafts   ResponseTicketDraft[]
   runbooks               Runbook[]
   users                  User[]
   verifications          Verification[]
@@ -481,6 +482,7 @@ model ResponsePlan {
   tenant               Tenant              @relation(fields: [tenantId], references: [id])
   stepExecutions       StepExecution[]
   verification         Verification?
+  draft                ResponseTicketDraft?
 
   @@index([incidentId])
   @@index([recommendationStepId])
@@ -760,6 +762,22 @@ model NotificationRecipient {
   @@map("notification_recipients")
 }
 
+model ResponseTicketDraft {
+  id         String       @id @default(uuid())
+  tenantId   String       @map("tenant_id")
+  responseId String       @unique @map("response_id")
+  /// Instruction orders (RecommendationStep instructions[].order) that are ticked.
+  checked    Int[]        @default([])
+  notes      String       @default("")
+  updatedBy  String?      @map("updated_by")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  response   ResponsePlan @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@map("response_ticket_drafts")
+}
+
 model StepExecution {
   id                   String             @id @default(uuid())
   planId               String             @map("plan_id")
@@ -807,7 +825,7 @@ model PlaybookSnapshot {
   tenant              Tenant           @relation(fields: [tenantId], references: [id])
   recommendations     Recommendation[]
 
-  @@unique([incidentId, investigationNumber])
+  @@index([incidentId, investigationNumber])
   @@map("playbook_snapshots")
 }
 

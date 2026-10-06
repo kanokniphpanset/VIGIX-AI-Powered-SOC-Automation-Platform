@@ -16,7 +16,7 @@ export interface CreateRecommendationStepData {
   verificationCriteria: string | null;
 }
 
-/** Frozen record of what a Recommendation cycle was grounded in (playbook_snapshots, one per investigation cycle). */
+/** Frozen grounding for one Recommendation generation; each generation gets a new snapshot. */
 export interface RecommendationSnapshotData {
   playbookCode: string;
   playbookVersion: string;

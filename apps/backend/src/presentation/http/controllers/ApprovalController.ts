@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { RequestApprovalUseCase } from "../../../application/approval/use-cases/RequestApproval.usecase";
 import { DecideApprovalUseCase } from "../../../application/approval/use-cases/DecideApproval.usecase";
@@ -6,7 +7,6 @@ import { ListApprovalsByRecommendationUseCase } from "../../../application/appro
 import { requestApprovalSchema, decideApprovalSchema } from "../../../application/approval/dto/ApprovalDto";
 import { validateBody } from "../validators/validateBody";
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 export class ApprovalController {
   constructor(
@@ -17,13 +17,13 @@ export class ApprovalController {
   ) {}
 
   listByRecommendation = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const approvals = await this.listApprovalsByRecommendation.execute({ recommendationId: req.params.id, tenantId });
     res.json({ items: approvals.map((a) => a.toJSON()) });
   };
 
   request = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(requestApprovalSchema, req, res);
     if (!body) return;
 
@@ -37,7 +37,7 @@ export class ApprovalController {
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getApproval.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "APPROVAL_NOT_FOUND" });
@@ -48,7 +48,7 @@ export class ApprovalController {
 
   private decide = (status: "approved" | "rejected") =>
     async (req: Request, res: Response): Promise<void> => {
-      const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+      const tenantId = authenticatedTenant(req);
       const body = validateBody(decideApprovalSchema, req, res);
       if (!body) return;
       if (!req.user) {

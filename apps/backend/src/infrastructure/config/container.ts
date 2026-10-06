@@ -10,7 +10,8 @@ import { DashboardController } from "../../presentation/http/controllers/Dashboa
 import { ListAlertInboxUseCase, GetAlertViewUseCase } from "../../application/alert/use-cases/AlertInbox.usecases";
 import { MergeAlertsIntoIncidentUseCase } from "../../application/incident/use-cases/MergeAlertsIntoIncident.usecase";
 import { GetIncidentAiAnalysisUseCase } from "../../application/incident/use-cases/GetIncidentAiAnalysis.usecase";
-import { prisma } from "../database/postgres/client";
+import { prisma as basePrisma } from "../database/postgres/client";
+import { AtomicWorkflow } from "../database/postgres/AtomicWorkflow";
 
 // Repositories (infrastructure implements domain ports)
 import { PrismaAlertRepository } from "../database/postgres/repositories/AlertRepository.prisma";
@@ -205,6 +206,8 @@ import { PrismaAlertInboxQuery } from "../database/postgres/repositories/AlertIn
  */
 
 // Repositories
+const atomicWorkflow = new AtomicWorkflow(basePrisma);
+const prisma = atomicWorkflow.prisma;
 const alertRepository = new PrismaAlertRepository(prisma);
 const incidentRepository = new PrismaIncidentRepository(prisma);
 const investigationRepository = new PrismaInvestigationRepository(prisma);
@@ -302,8 +305,8 @@ const deliveryDispatcher: INotificationDispatcherPort =
 
 // Header bell: every workflow event is also recorded as a persistent, role-aware in-app notification.
 const inAppNotificationRepository = new PrismaInAppNotificationRepository(prisma);
-const inAppNotifier = new InAppNotifier(inAppNotificationRepository);
-const notificationDispatcher: INotificationDispatcherPort = new InAppRecordingDispatcher(deliveryDispatcher, inAppNotifier);
+const inAppNotifier = atomicWorkflow.defer(new InAppNotifier(inAppNotificationRepository), ["notify", "recordEvent"]);
+const notificationDispatcher: INotificationDispatcherPort = atomicWorkflow.defer(new InAppRecordingDispatcher(deliveryDispatcher, inAppNotifier), ["emit"]);
 
 const vigixBaseUrl =
   process.env.VIGIX_BASE_URL ?? "http://localhost:5173";
@@ -365,7 +368,7 @@ const recommendationAgentVersion =
 // CreateResponsePlan, RequestApproval and the Recommendation context
 // (per-Action Policy result, Task 10.3).
 const approvalService =
-  new ApprovalService(
+  atomicWorkflow.wrap(new ApprovalService(
     recommendationContextRepository,
     actionRepository,
     policyEvaluator,
@@ -374,7 +377,7 @@ const approvalService =
     notificationDispatcher,
     vigixBaseUrl,
     new ResourceAssetCriticalityProvider()
-  );
+  ), "recommendation", "open");
 
 // Policy assignment (responsibleRole) recorded after each completed AI analysis — read-only (INCIDENT_ASSIGNED).
 const incidentAssignmentService = new IncidentAssignmentService(approvalService, auditLogger);
@@ -412,7 +415,7 @@ const envInt = (name: string, fallback: number) => {
   const v = Number(process.env[name]);
   return Number.isFinite(v) && v > 0 ? v : fallback;
 };
-export const aiAnalysisJobService = new AiAnalysisJobService(
+export const aiAnalysisJobService = atomicWorkflow.wrap(new AiAnalysisJobService(
   new PrismaAiAnalysisJobRepository(prisma),
   aiOrchestrator,
   investigationRepository,
@@ -425,14 +428,14 @@ export const aiAnalysisJobService = new AiAnalysisJobService(
   },
   undefined,
   (job) => incidentAssignmentService.assign({ tenantId: job.tenantId, incidentId: job.incidentId, actor: "policy-engine", trigger: `AI_JOB_${job.trigger ?? "UNKNOWN"}` })
-);
+), "incident", "enqueue");
 export const aiAnalysisWorker = new AiAnalysisWorker(aiAnalysisJobService, {
   pollMs: envInt("AI_WORKER_POLL_MS", 3000),
   recoveryMs: envInt("AI_WORKER_RECOVERY_MS", 60_000),
 });
 
 const ingestAlertFromSiemUseCase =
-  new IngestAlertFromSiemUseCase(
+  atomicWorkflow.wrap(new IngestAlertFromSiemUseCase(
     alertRepository,
     incidentRepository,
     aiAnalysisJobService,
@@ -440,7 +443,7 @@ const ingestAlertFromSiemUseCase =
     new PolicyIncidentIntake(policyEvaluator),
     // HIGH / CRITICAL open their incident at ingestion (same use case the SOC uses; declared below, called at runtime).
     { execute: (input) => createIncidentUseCase.execute(input) }
-  );
+  ), "intake");
 
 const listIncidentsUseCase =
   new ListIncidentsUseCase(incidentRepository);
@@ -452,7 +455,7 @@ const getIncidentTimelineUseCase =
   new GetIncidentTimelineUseCase(incidentRepository);
 
 const updateIncidentStatusUseCase =
-  new UpdateIncidentStatusUseCase(incidentRepository, auditLogger);
+  atomicWorkflow.wrap(new UpdateIncidentStatusUseCase(incidentRepository, auditLogger), "incident");
 
 const listIocsByIncidentUseCase =
   new ListIocsByIncidentUseCase(
@@ -486,7 +489,7 @@ const enablePolicyUseCase =
   );
 
 // SOC response setup before a Recommendation: incident type (-> playbook) + case / group (RESPONSE_GUIDANCE) guidance.
-const incidentResponseSetupService = new IncidentResponseSetupService(
+const incidentResponseSetupService = atomicWorkflow.wrap(atomicWorkflow.wrap(new IncidentResponseSetupService(
   new PrismaIncidentResponseSetupStore(prisma),
   recommendationContextRepository,
   incidentRepository,
@@ -495,7 +498,7 @@ const incidentResponseSetupService = new IncidentResponseSetupService(
   policyEvaluator,
   auditLogger,
   { repository: policyRepository, create: createPolicyUseCase, update: updatePolicyUseCase, enable: enablePolicyUseCase }
-);
+), "incident", "setIncidentType"), "incident", "setCaseGuidance");
 
 const disablePolicyUseCase =
   new DisablePolicyUseCase(
@@ -543,10 +546,10 @@ const listRunbooksUseCase =
   new ListRunbooksUseCase(runbookRepository);
 
 const createPlaybookUseCase =
-  new CreatePlaybookUseCase(playbookRepository, auditLogger);
+  atomicWorkflow.wrap(new CreatePlaybookUseCase(playbookRepository, auditLogger), "playbook");
 
 const updatePlaybookUseCase =
-  new UpdatePlaybookUseCase(playbookRepository, auditLogger);
+  atomicWorkflow.wrap(new UpdatePlaybookUseCase(playbookRepository, auditLogger), "playbook");
 
 const getPlaybookUseCase =
   new GetPlaybookUseCase(playbookRepository);
@@ -561,7 +564,8 @@ const generateRecommendationUseCase =
     recommendationAgentVersion,
     recommendationValidator,
     recommendationRepository,
-    auditLogger
+    auditLogger,
+    atomicWorkflow
   );
 
 const getRecommendationUseCase =
@@ -571,28 +575,28 @@ const listRecommendationsUseCase =
   new ListRecommendationsUseCase(recommendationRepository);
 
 const validateRecommendationUseCase =
-  new ValidateRecommendationUseCase(
+  atomicWorkflow.wrap(new ValidateRecommendationUseCase(
     recommendationRepository,
     actionRepository,
     runbookRepository,
     auditLogger
-  );
+  ), "recommendation");
 
 const loginUseCase =
   new LoginUseCase(authRepository);
 
 const requestApprovalUseCase =
-  new RequestApprovalUseCase(
+  atomicWorkflow.wrap(new RequestApprovalUseCase(
     recommendationRepository,
     responsePlanRepository,
     approvalRepository,
     actionRepository,
     runbookRepository,
     approvalService
-  );
+  ), "response");
 
 const decideApprovalUseCase =
-  new DecideApprovalUseCase(
+  atomicWorkflow.wrap(new DecideApprovalUseCase(
     approvalRepository,
     auditLogger,
     recommendationRepository,
@@ -600,7 +604,7 @@ const decideApprovalUseCase =
     responsePlanRepository,
     notificationDispatcher,
     vigixBaseUrl
-  );
+  ), "approval");
 
 const getApprovalUseCase =
   new GetApprovalUseCase(approvalRepository);
@@ -611,7 +615,7 @@ const listApprovalsByRecommendationUseCase =
   );
 
 const createResponsePlanUseCase =
-  new CreateResponsePlanUseCase(
+  atomicWorkflow.wrap(new CreateResponsePlanUseCase(
     recommendationRepository,
     actionRepository,
     runbookRepository,
@@ -620,18 +624,18 @@ const createResponsePlanUseCase =
     auditLogger,
     notificationDispatcher,
     vigixBaseUrl
-  );
+  ), "recommendation");
 
 const startResponseUseCase =
-  new StartResponseUseCase(
+  atomicWorkflow.wrap(new StartResponseUseCase(
     responsePlanRepository,
     approvalRepository,
     auditLogger,
     inAppNotifier
-  );
+  ), "response");
 
 const completeResponseUseCase =
-  new CompleteResponseUseCase(
+  atomicWorkflow.wrap(new CompleteResponseUseCase(
     responsePlanRepository,
     auditLogger,
     incidentRepository,
@@ -639,13 +643,13 @@ const completeResponseUseCase =
     recommendationContextRepository,
     notificationDispatcher,
     vigixBaseUrl
-  );
+  ), "response");
 
 const failResponseUseCase =
-  new FailResponseUseCase(
+  atomicWorkflow.wrap(new FailResponseUseCase(
     responsePlanRepository,
     auditLogger
-  );
+  ), "response");
 
 const getResponseUseCase =
   new GetResponseUseCase(responsePlanRepository);
@@ -654,10 +658,10 @@ const listResponsePlansUseCase =
   new ListResponsePlansUseCase(responsePlanRepository);
 
 const sendRecommendationToIrUseCase =
-  new SendRecommendationToIrUseCase(recommendationRepository, responsePlanRepository, createResponsePlanUseCase, auditLogger);
+  atomicWorkflow.wrap(new SendRecommendationToIrUseCase(recommendationRepository, responsePlanRepository, createResponsePlanUseCase, auditLogger), "recommendation");
 
 const createVerificationUseCase =
-  new CreateVerificationUseCase(
+  atomicWorkflow.wrap(new CreateVerificationUseCase(
     verificationRepository,
     responsePlanRepository,
     incidentRepository,
@@ -668,8 +672,9 @@ const createVerificationUseCase =
     vigixBaseUrl,
     generateRecommendationUseCase,
     inAppNotifier,
-    sendRecommendationToIrUseCase
-  );
+    sendRecommendationToIrUseCase,
+    (effect) => atomicWorkflow.afterCommit(effect)
+  ), "incident");
 
 const getVerificationUseCase =
   new GetVerificationUseCase(verificationRepository);
@@ -695,13 +700,13 @@ export const alertController =
   );
 
 const createIncidentUseCase =
-  new CreateIncidentUseCase(
+  atomicWorkflow.wrap(new CreateIncidentUseCase(
     incidentRepository,
     alertRepository,
     auditLogger,
     aiAnalysisJobService,
     inAppNotifier
-  );
+  ), "incident");
 
 const listAlertsByIncidentUseCase =
   new ListAlertsByIncidentUseCase(
@@ -722,7 +727,7 @@ export const incidentController =
     listMitreMappingsByIncidentUseCase,
     createIncidentUseCase,
     listAlertsByIncidentUseCase,
-    new MergeAlertsIntoIncidentUseCase(incidentRepository, alertRepository, investigationRepository, auditLogger),
+    atomicWorkflow.wrap(new MergeAlertsIntoIncidentUseCase(incidentRepository, alertRepository, investigationRepository, auditLogger), "incident"),
     new GetIncidentAiAnalysisUseCase(recommendationContextRepository),
     incidentSlaService,
     new GetIncidentAlertFactsUseCase(listAlertsByIncidentUseCase, listMitreMappingsByIncidentUseCase, playbookRepository, incidentResponseSetupService),
@@ -769,7 +774,7 @@ export const playbookController =
     updatePlaybookUseCase,
     getPlaybookUseCase,
     listPlaybooksUseCase,
-    new DeletePlaybookUseCase(playbookRepository, auditLogger)
+    atomicWorkflow.wrap(new DeletePlaybookUseCase(playbookRepository, auditLogger), "playbook")
   );
 
 export const recommendationController =
@@ -779,7 +784,7 @@ export const recommendationController =
     listRecommendationsUseCase,
     validateRecommendationUseCase,
     sendRecommendationToIrUseCase,
-    new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger)
+    atomicWorkflow.wrap(new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger), "recommendation")
   );
 
 export const authController =
@@ -870,7 +875,7 @@ export const responseController =
     failResponseUseCase,
     getResponseUseCase,
     listResponsePlansUseCase,
-    new ManualDecisionUseCase(approvalRepository, responsePlanRepository, auditLogger)
+    atomicWorkflow.wrap(new ManualDecisionUseCase(approvalRepository, responsePlanRepository, auditLogger), "response")
   );
 
 export const siemWebhookController =
@@ -881,7 +886,11 @@ export const siemWebhookController =
 
 export const orchestratorCallbackController =
   // Records/acknowledges the AI decision only — never triggers n8n (AI decisions are advisory).
-  new OrchestratorCallbackController(auditLogger);
+  new OrchestratorCallbackController(auditLogger, {
+    findOwnedJob: async ({ executionId, incidentId, tenantId }) => !!(await prisma.agentExecution.findFirst({
+      where: { id: executionId, incidentId, incident: { tenantId } }, select: { id: true },
+    })),
+  });
 
 export const notificationTestController =
   new NotificationTestController(
@@ -923,9 +932,9 @@ export const socTriageController = new SocTriageController(
   // Alert review: no claim, no email (notification belongs to the incident / ticket workflow).
   transactionalAlertWorkflow.triage,
   new DecideIncidentNotificationUseCase(recommendationContextRepository, notificationDecisionService),
-  new ValidateIncidentSeverityUseCase(recommendationContextRepository, new PrismaIncidentSeverityWriter(prisma), auditLogger, (i) =>
+  atomicWorkflow.wrap(new ValidateIncidentSeverityUseCase(recommendationContextRepository, new PrismaIncidentSeverityWriter(prisma), auditLogger, (i) =>
     incidentAssignmentService.assign({ ...i, trigger: "SEVERITY_VALIDATED" })
-  ),
+  ), "incident"),
   new GetIncidentSeverityUseCase(new PrismaIncidentSeverityReader(prisma))
 );
 

@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { CreatePlaybookUseCase } from "../../../application/playbook/use-cases/CreatePlaybook.usecase";
 import { UpdatePlaybookUseCase } from "../../../application/playbook/use-cases/UpdatePlaybook.usecase";
@@ -10,7 +11,6 @@ import { z } from "zod";
 
 const deletePlaybookSchema = z.object({ reason: z.string().trim().max(2000).optional() }).strict();
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 export class PlaybookController {
   constructor(
@@ -27,7 +27,7 @@ export class PlaybookController {
       res.status(501).json({ error: "NOT_IMPLEMENTED" });
       return;
     }
-    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(deletePlaybookSchema, req, res);
     if (!body) return;
     const result = await this.deletePlaybook.execute({ id: req.params.id, tenantId, actor: req.user?.id, reason: body.reason || null });
@@ -40,13 +40,13 @@ export class PlaybookController {
   };
 
   list = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const playbooks = await this.listPlaybooks.execute({ tenantId });
     res.json({ items: playbooks.map((p) => p.toJSON()) });
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getPlaybook.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "PLAYBOOK_NOT_FOUND" });
@@ -57,7 +57,7 @@ export class PlaybookController {
 
   // Mutations: tenant and actor come from the verified JWT (never from the query string), for the audit record.
   create = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(createPlaybookSchema, req, res);
     if (!body) return;
     const result = await this.createPlaybook.execute({
@@ -75,7 +75,7 @@ export class PlaybookController {
   };
 
   update = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(updatePlaybookSchema, req, res);
     if (!body) return;
     const result = await this.updatePlaybook.execute({ ...body, id: req.params.id, tenantId, actor: req.user?.id });

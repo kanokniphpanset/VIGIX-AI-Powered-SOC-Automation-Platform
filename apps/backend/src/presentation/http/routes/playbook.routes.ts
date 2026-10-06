@@ -1,3 +1,4 @@
+import { asyncHandler } from "../middlewares/async-handler.middleware";
 import { Router } from "express";
 import { PlaybookController } from "../controllers/PlaybookController";
 import { authenticate, requireRole } from "../middlewares/auth.middleware";
@@ -9,10 +10,10 @@ import { authenticate, requireRole } from "../middlewares/auth.middleware";
  */
 export function buildPlaybookRoutes(controller: PlaybookController): Router {
   const router = Router();
-  router.get("/", controller.list);
-  router.get("/:id", controller.getById);
-  router.post("/", authenticate, requireRole("SOC", "IR_TEAM"), controller.create);
-  router.put("/:id", authenticate, requireRole("SOC", "IR_TEAM"), controller.update);
-  router.delete("/:id", authenticate, requireRole("SOC", "IR_TEAM"), controller.remove);
+  router.get("/", authenticate, controller.list);
+  router.get("/:id", authenticate, controller.getById);
+  router.post("/", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.create));
+  router.put("/:id", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.update));
+  router.delete("/:id", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.remove));
   return router;
 }

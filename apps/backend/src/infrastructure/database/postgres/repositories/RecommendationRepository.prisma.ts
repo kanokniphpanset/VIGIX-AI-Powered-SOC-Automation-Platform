@@ -43,72 +43,79 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
   }
 
   async create(data: CreateRecommendationData): Promise<Recommendation> {
-    // Link to the Investigation row of the cycle this recommendation was generated from (Alert -> ... -> Recommendation).
-    const investigation = await this.prisma.investigation.findUnique({
-      where: { incidentId_investigationNumber: { incidentId: data.incidentId, investigationNumber: data.investigationNumber } },
-      select: { id: true },
-    });
-    // One PlaybookSnapshot per investigation cycle: what this cycle's recommendation was grounded in
-    // (selected playbook, action runbooks, policy results). Regenerating within the same cycle refreshes it.
-    let snapshotId: string | null = null;
-    if (data.snapshot && investigation) {
-      const snap = data.snapshot;
-      const content = {
-        playbookCode: snap.playbookCode,
-        playbookVersion: snap.playbookVersion,
-        procedureCode: snap.procedureCode,
-        procedureVersion: snap.procedureVersion,
-        procedureContent: snap.procedureContent as Prisma.InputJsonValue,
-        policyResult: snap.policyResult as Prisma.InputJsonValue,
-      };
-      const snapshot = await this.prisma.playbookSnapshot.upsert({
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize numbering for this incident only. Snapshot and recommendation commit together,
+      // so a failed recommendation insert cannot leave an unreferenced snapshot behind.
+      await tx.$queryRaw`SELECT id FROM incidents WHERE id = ${data.incidentId} AND tenant_id = ${data.tenantId} FOR UPDATE`;
+      const latest = await tx.recommendation.findFirst({
+        where: { incidentId: data.incidentId, tenantId: data.tenantId },
+        orderBy: { recommendationNumber: "desc" }, select: { recommendationNumber: true },
+      });
+      const recommendationNumber = Math.max(data.recommendationNumber, (latest?.recommendationNumber ?? 0) + 1);
+      // Link to the Investigation row of the cycle this recommendation was generated from (Alert -> ... -> Recommendation).
+      const investigation = await tx.investigation.findUnique({
         where: { incidentId_investigationNumber: { incidentId: data.incidentId, investigationNumber: data.investigationNumber } },
-        update: content,
-        create: {
-          ...content,
+        select: { id: true },
+      });
+      // One immutable grounding artifact per successful generation, even when content is identical.
+      let snapshotId: string | null = null;
+      if (data.snapshot && investigation) {
+        const snap = data.snapshot;
+        const content = {
+          playbookCode: snap.playbookCode,
+          playbookVersion: snap.playbookVersion,
+          procedureCode: snap.procedureCode,
+          procedureVersion: snap.procedureVersion,
+          procedureContent: snap.procedureContent as Prisma.InputJsonValue,
+          policyResult: snap.policyResult as Prisma.InputJsonValue,
+        };
+        const snapshot = await tx.playbookSnapshot.create({
+          data: {
+            ...content,
+            tenantId: data.tenantId,
+            incidentId: data.incidentId,
+            investigationId: investigation.id,
+            investigationNumber: data.investigationNumber,
+            code: `SNAP-${data.incidentId}-${data.investigationNumber}-${recommendationNumber}`,
+          },
+        });
+        snapshotId = snapshot.id;
+      }
+
+      const raw = await tx.recommendation.create({
+        data: {
+          investigationId: investigation?.id ?? null,
+          snapshotId,
           tenantId: data.tenantId,
           incidentId: data.incidentId,
-          investigationId: investigation.id,
           investigationNumber: data.investigationNumber,
-          code: `SNAP-${data.incidentId}-${data.investigationNumber}`,
+          recommendationNumber,
+          status: data.status,
+          summary: data.summary,
+          createdBy: data.createdBy,
+          steps: {
+            create: data.steps.map((s) => ({
+              stepOrder: s.stepOrder,
+              title: s.title,
+              objective: s.objective,
+              actionId: s.actionId,
+              target: s.target,
+              reason: s.reason,
+              evidence: s.evidence as Prisma.InputJsonValue,
+              sourceRunbookId: s.sourceRunbookId,
+              precondition: s.precondition,
+              expectedResult: s.expectedResult,
+              requiresApproval: s.requiresApproval,
+              phase: "ACTION",
+              instructions: s.instructions as unknown as Prisma.InputJsonValue,
+              verificationCriteria: s.verificationCriteria,
+            })),
+          },
         },
+        include: includeSteps,
       });
-      snapshotId = snapshot.id;
-    }
-
-    const raw = await this.prisma.recommendation.create({
-      data: {
-        investigationId: investigation?.id ?? null,
-        snapshotId,
-        tenantId: data.tenantId,
-        incidentId: data.incidentId,
-        investigationNumber: data.investigationNumber,
-        recommendationNumber: data.recommendationNumber,
-        status: data.status,
-        summary: data.summary,
-        createdBy: data.createdBy,
-        steps: {
-          create: data.steps.map((s) => ({
-            stepOrder: s.stepOrder,
-            title: s.title,
-            objective: s.objective,
-            actionId: s.actionId,
-            target: s.target,
-            reason: s.reason,
-            evidence: s.evidence as Prisma.InputJsonValue,
-            sourceRunbookId: s.sourceRunbookId,
-            precondition: s.precondition,
-            expectedResult: s.expectedResult,
-            requiresApproval: s.requiresApproval,
-            phase: "ACTION",
-            instructions: s.instructions as unknown as Prisma.InputJsonValue,
-            verificationCriteria: s.verificationCriteria,
-          })),
-        },
-      },
-      include: includeSteps,
+      return RecommendationMapper.toDomain(raw);
     });
-    return RecommendationMapper.toDomain(raw);
   }
 
   async updateStatus(id: string, tenantId: string, status: RecommendationStatus): Promise<Recommendation> {
@@ -118,8 +125,11 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
   }
 
   async supersedePrevious(incidentId: string, tenantId: string, keepRecommendationId: string): Promise<void> {
+    const keep = await this.prisma.recommendation.findFirstOrThrow({
+      where: { id: keepRecommendationId, incidentId, tenantId }, select: { recommendationNumber: true },
+    });
     await this.prisma.recommendation.updateMany({
-      where: { incidentId, tenantId, id: { not: keepRecommendationId }, status: { in: ["GENERATED", "VALIDATED"] } },
+      where: { incidentId, tenantId, recommendationNumber: { lt: keep.recommendationNumber }, status: { in: ["GENERATED", "VALIDATED"] } },
       data: { status: "SUPERSEDED" },
     });
   }

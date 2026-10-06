@@ -60,7 +60,8 @@ export class GenerateRecommendationUseCase {
     private readonly agentVersion: string,
     private readonly validator: RecommendationValidator,
     private readonly recommendationRepository: IRecommendationRepository,
-    private readonly auditLogger: AuditLogger
+    private readonly auditLogger: AuditLogger,
+    private readonly atomic?: { run<T>(scope: "recommendation", input: { tenantId: string; incidentId: string }, work: () => Promise<T>): Promise<T> }
   ) {}
 
   async execute(input: { incidentId: string; tenantId: string }): Promise<Result<Recommendation, GenerateRecommendationError>> {
@@ -128,47 +129,51 @@ export class GenerateRecommendationUseCase {
       return Result.fail(reason);
     }
 
-    const recommendationNumber = await this.recommendationRepository.getNextRecommendationNumber(input.incidentId, input.tenantId);
+    const persist = async (): Promise<Result<Recommendation, GenerateRecommendationError>> => {
+      const recommendationNumber = await this.recommendationRepository.getNextRecommendationNumber(input.incidentId, input.tenantId);
 
-    const recommendation = await this.recommendationRepository.create({
-      tenantId: input.tenantId,
-      incidentId: input.incidentId,
-      investigationNumber: context.investigationNumber,
-      recommendationNumber,
-      status: outcome.status,
-      summary: outcome.summary,
-      createdBy: this.agentVersion,
-      steps: outcome.steps,
-      snapshot: outcome.snapshot,
-    });
-
-    if (recommendationNumber > 1) {
-      await this.recommendationRepository.supersedePrevious(input.incidentId, input.tenantId, recommendation.id);
-    }
-
-    await this.auditLogger.record({
-      tenantId: input.tenantId,
-      actor: this.agentVersion,
-      action: "RECOMMENDATION_GENERATED",
-      entity: "Recommendation",
-      entityId: recommendation.id,
-      metadata: {
+      const recommendation = await this.recommendationRepository.create({
+        tenantId: input.tenantId,
         incidentId: input.incidentId,
-        recommendationNumber,
         investigationNumber: context.investigationNumber,
+        recommendationNumber,
         status: outcome.status,
-        violations: outcome.violations,
-        stepCount: outcome.steps.length,
-        playbook: context.playbook?.code ?? null,
-        snapshotId: recommendation.snapshotId,
-        steps: recommendation.steps.map((s) => ({ stepId: s.id, actionId: s.actionId, target: s.target, requiresApproval: s.requiresApproval })),
-        // Validated on the first answer (attempts 1) or after the single targeted correction (attempts 2).
-        attempts,
-        ...(attempts > 1 ? { correctedViolations: firstAttemptViolations, correction } : {}),
-      },
-    });
+        summary: outcome.summary,
+        createdBy: this.agentVersion,
+        steps: outcome.steps,
+        snapshot: outcome.snapshot,
+      });
 
-    return Result.ok(recommendation);
+      if (recommendation.recommendationNumber > 1) {
+        await this.recommendationRepository.supersedePrevious(input.incidentId, input.tenantId, recommendation.id);
+      }
+
+      await this.auditLogger.record({
+        tenantId: input.tenantId,
+        actor: this.agentVersion,
+        action: "RECOMMENDATION_GENERATED",
+        entity: "Recommendation",
+        entityId: recommendation.id,
+        metadata: {
+          incidentId: input.incidentId,
+          recommendationNumber: recommendation.recommendationNumber,
+          investigationNumber: context.investigationNumber,
+          status: outcome.status,
+          violations: outcome.violations,
+          stepCount: outcome.steps.length,
+          playbook: context.playbook?.code ?? null,
+          snapshotId: recommendation.snapshotId,
+          steps: recommendation.steps.map((s) => ({ stepId: s.id, actionId: s.actionId, target: s.target, requiresApproval: s.requiresApproval })),
+          // Validated on the first answer (attempts 1) or after the single targeted correction (attempts 2).
+          attempts,
+          ...(attempts > 1 ? { correctedViolations: firstAttemptViolations, correction } : {}),
+        },
+      });
+
+      return Result.ok(recommendation);
+    };
+    // Inference and deterministic validation stay outside the DB transaction.
+    return this.atomic ? this.atomic.run("recommendation", input, persist) : persist();
   }
 
   private async auditFailure(

@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { CreateResponsePlanUseCase } from "../../../application/response/use-cases/CreateResponsePlan.usecase";
 import { StartResponseUseCase } from "../../../application/response/use-cases/StartResponse.usecase";
@@ -12,7 +13,6 @@ import { z } from "zod";
 
 const manualDecisionSchema = z.object({ note: z.string().trim().max(4000) }).strict();
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ERROR_STATUS: Record<string, number> = {
   RECOMMENDATION_NOT_FOUND: 404,
@@ -41,7 +41,7 @@ export class ResponseController {
 
   /** IR "Manual Decision" after rejecting the recommended response: IR approves its own manual response (note). */
   decideManually = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(manualDecisionSchema, req, res);
     if (!body) return;
     if (!req.user) {
@@ -61,7 +61,7 @@ export class ResponseController {
   };
 
   list = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const limit = req.query.limit ? Number(req.query.limit) : 25;
     const offset = req.query.offset ? Number(req.query.offset) : 0;
 
@@ -77,7 +77,7 @@ export class ResponseController {
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(createResponsePlanSchema, req, res);
     if (!body) return;
 
@@ -90,7 +90,7 @@ export class ResponseController {
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getResponse.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "RESPONSE_NOT_FOUND" });
@@ -100,7 +100,7 @@ export class ResponseController {
   };
 
   start = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     if (!req.user) {
       res.status(401).json({ error: "UNAUTHENTICATED" });
       return;
@@ -114,7 +114,7 @@ export class ResponseController {
   };
 
   complete = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(completeResponseSchema, req, res);
     if (!body) return;
     if (!req.user) {
@@ -135,7 +135,7 @@ export class ResponseController {
   };
 
   fail = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(failResponseSchema, req, res);
     if (!body) return;
     if (!req.user) {
