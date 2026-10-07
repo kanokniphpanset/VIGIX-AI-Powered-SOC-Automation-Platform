@@ -485,9 +485,13 @@ describe("Role & severity policy matrix (real rules, real catalog)", () => {
     expect(d.policy.approvalReason).toEqual(expect.arrayContaining(["CRITICAL_ASSET", "HIGH_IMPACT_ACTION"]));
   });
 
-  it("high-impact action on a non-critical asset at MEDIUM: no reason tag", async () => {
+  it("high-impact action on a non-critical asset at MEDIUM: IR_TEAM for the impact alone (POL-A01), no asset tag", async () => {
     const d = await evaluate({ incidentId: "e5", severity: "medium", riskScore: 30, hosts: ["WKS-DEV-12"] }, "act-isolate");
-    expect(d.policy.approvalRequired).toBe(false);
+    expect(d.policy).toMatchObject({ approvalRequired: true, approvalRole: "IR_TEAM", approvalChain: ["IR_TEAM"] });
+    expect(d.policy.matchedPolicies).toContain("POL-A01");
+    expect(d.policy.matchedPolicies).not.toContain("RULE-P04");
+    expect(d.policy.approvalReason).toContain("HIGH_IMPACT_ACTION");
+    expect(d.policy.approvalReason).not.toContain("CRITICAL_ASSET");
   });
 
   it("CRITICAL-impact action anywhere: IR_TEAM (RULE-P05)", async () => {
