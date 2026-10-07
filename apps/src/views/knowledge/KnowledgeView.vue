@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, Crosshair, FileCheck2, Loader2, ScrollText, Search, ShieldQuestion } from 'lucide-vue-next'
+import { BookOpen, Crosshair, FileCheck2, History, Loader2, ScrollText, Search, ShieldQuestion } from 'lucide-vue-next'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import KnowledgeControls from '@/components/knowledge/KnowledgeControls.vue'
@@ -12,7 +12,13 @@ import PlaybookFormModal from '@/components/knowledge/PlaybookFormModal.vue'
 import KnowledgeDeleteButton from '@/components/knowledge/KnowledgeDeleteButton.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
 import { useUiStore } from '@/stores/ui'
-import { knowledgeApi, type MitreTechnique, type Playbook, type Policy, type Runbook } from '@/api/vigix'
+import { knowledgeApi, playbookVersionsApi, type MitreTechnique, type Playbook, type Policy, type Runbook } from '@/api/vigix'
+import { ApiError } from '@/api/http'
+import { workApi, type IocLibraryItem } from '@/api/work'
+import ThreatIntelLibrary from '@/components/knowledge/ThreatIntelLibrary.vue'
+import { incidentLabel, statusLabel } from '@/utils/vigix'
+import { formatDateTime } from '@/utils/formatters'
+import { playbookLifecycle, type PlaybookLifecycle } from '@/utils/playbookLifecycle'
 import { useSessionStore } from '@/stores/session'
 import { useI18n, type MsgKey } from '@/i18n'
 import { hasMsg } from '@/i18n/messages'
@@ -20,15 +26,15 @@ import { hasMsg } from '@/i18n/messages'
 /**
  * Knowledge (read-only). Lists the libraries VIGIX already uses to build recommendations and evaluate Policy, straight
  * from the backend's existing list endpoints. No CRUD yet and nothing invented: a library without an endpoint (threat
- * intelligence) shows an empty state.
+ * intelligence comes from the IOCs recorded on incidents).
  */
-type Key = 'playbooks' | 'policies' | 'runbooks' | 'actions' | 'threat-intel' | 'mitre'
-interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string }
+type Key = 'playbooks' | 'policies' | 'runbooks' | 'actions' | 'threat-intel' | 'mitre' | 'history'
+interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string; version?: string }
 
 const { t } = useI18n()
 /** Library tabs; label and blurb are getters so they follow the UI language. */
 const LIBRARIES: { key: Key; label: string; icon: typeof BookOpen; blurb: string }[] = ([
-  ['actions', FileCheck2], ['playbooks', BookOpen], ['policies', FileCheck2], ['runbooks', ScrollText], ['threat-intel', ShieldQuestion], ['mitre', Crosshair],
+  ['actions', FileCheck2], ['playbooks', BookOpen], ['policies', FileCheck2], ['runbooks', ScrollText], ['threat-intel', ShieldQuestion], ['mitre', Crosshair], ['history', History],
 ] as [Key, typeof BookOpen][]).map(([key, icon]) => ({
   key,
   icon,
@@ -44,9 +50,10 @@ const active = ref<Key>(LIBRARIES.some((l) => l.key === route.query.section) ? (
 watch(active, (k) => router.replace({ query: { ...route.query, section: k } }))
 
 const loading = ref(true)
-// null = not loaded / no endpoint (shown as "—", never as a fake 0). Threat intelligence has no library endpoint yet.
-const rows = ref<Record<Key, Row[] | null>>({ actions: null, playbooks: null, policies: null, runbooks: null, 'threat-intel': null, mitre: null })
-const NO_ENDPOINT: Key[] = ['threat-intel']
+// null = not loaded (shown as "—", never as a fake 0).
+const rows = ref<Record<Key, Row[] | null>>({ actions: null, playbooks: null, policies: null, runbooks: null, 'threat-intel': null, mitre: null, history: null })
+const NO_ENDPOINT: Key[] = []
+const iocs = ref<IocLibraryItem[]>([])
 const failed = ref<Set<Key>>(new Set())
 const search = ref('')
 
@@ -64,7 +71,7 @@ async function load() {
   await Promise.all([
     take('actions', knowledgeApi.actions(), r => r.items.map(a => ({ id:a.id,code:a.code,name:a.name,description:a.description,meta:a.category,status:a.enabled?'active':'disabled' }))),
     take('playbooks', knowledgeApi.playbooks(), (r) =>
-      r.items.map((p: Playbook) => ({ id: p.id, code: p.code, name: p.name, get meta() { return [t('kb.steps', { v: p.version, n: p.steps?.length ?? 0 }), typeof p.triggerConditions?.incidentType === 'string' ? p.triggerConditions.incidentType : null].filter(Boolean).join(' · ') }, description: p.description, status: p.status }))),
+      r.items.map((p: Playbook) => ({ id: p.id, code: p.code, name: p.name, get meta() { return [t('kb.steps', { v: p.version, n: p.steps?.length ?? 0 }), typeof p.triggerConditions?.incidentType === 'string' ? p.triggerConditions.incidentType : null].filter(Boolean).join(' · ') }, description: p.description, status: p.status, version: p.version }))),
     take('policies', knowledgeApi.policies(), (r) =>
       [...r.items].sort((a, b) => a.precedence - b.precedence).map((p: Policy) => ({
         id: p.id, code: p.code, name: p.name, get meta() { return t('kb.policyMeta', { type: p.type, p: p.precedence, n: p.rules?.length ?? 0, v: p.version }) },
@@ -74,11 +81,42 @@ async function load() {
       r.items.map((b: Runbook) => ({ id: b.id, code: b.code, name: b.name, meta: `v${b.version}`, description: b.objective ?? b.description, status: b.status }))),
     take('mitre', knowledgeApi.techniques(), (r) =>
       r.techniques.map((t: MitreTechnique) => ({ id: t.techniqueId, code: t.techniqueId, name: t.name, meta: t.tactics.join(' · '), description: null }))),
+    // Threat intelligence: indicators recorded on any incident, grouped by type + value (most-sighted first).
+    take('threat-intel', workApi.iocs(), (r) => {
+      iocs.value = r.items
+      return r.items.map((i) => ({ id: `${i.iocType}:${i.iocValue}`, code: i.iocType, name: i.iocValue, meta: i.sources.join(' '), description: null }))
+    }),
+    // History cases: closed incidents (resolved / merged-dismissed), newest first; a row opens the incident itself.
+    take('history', workApi.incidents({ status: 'resolved,dismissed', limit: 200 }), (r) =>
+      r.items.map((i) => ({
+        id: i.id, code: incidentLabel(i.id), name: i.title, status: i.status, description: null,
+        get meta() { return [i.priority, i.responsibleRole, t('kb.historyClosed', { at: formatDateTime(i.closedAt ?? i.updatedAt) })].filter(Boolean).join(' · ') },
+      }))),
   ])
   failed.value = next
+  await loadLifecycles()
   loading.value = false
 }
 onMounted(load)
+
+// Playbook versions (Draft → Publish, no approval step): status and buttons per row from its version history.
+const lifecycles = ref<Record<string, PlaybookLifecycle>>({})
+async function loadLifecycles() {
+  const list = rows.value.playbooks ?? []
+  const entries = await Promise.all(list.map(async (r) => {
+    try { return [r.id, playbookLifecycle((await playbookVersionsApi.list(r.id)).items, session.role, r.version)] as const } catch { return null }
+  }))
+  lifecycles.value = Object.fromEntries(entries.filter((e): e is NonNullable<typeof e> => !!e))
+}
+const lifecycleOf = (r: Row) => lifecycles.value[r.id]
+const can = (r: Row, action: PlaybookLifecycle['actions'][number]) => !!lifecycleOf(r)?.actions.includes(action)
+/** A plain 403 on a playbook action reads "you are not allowed to manage this playbook". */
+const playbookAction = (fn: () => Promise<unknown>) => async () => {
+  try { return await fn() } catch (e) {
+    if (e instanceof ApiError && e.status === 403 && e.code === 'FORBIDDEN') throw Object.assign(new Error('forbidden'), { code: 'PLAYBOOK_FORBIDDEN' })
+    throw e
+  }
+}
 
 
 const count = (k: Key) => rows.value[k]?.length ?? null
@@ -92,26 +130,39 @@ async function reloadLibrary() { await load(); if (failed.value.has(active.value
 // Playbook management (Knowledge → Playbooks): SOC, IR_TEAM and admin, as the backend enforces. Human-controlled, audited.
 const ui = useUiStore()
 const canManagePlaybooks = computed(() => ['SOC', 'IR_TEAM', 'admin'].includes(session.role ?? ''))
-const playbookForm = ref<{ open: boolean; id: string | null }>({ open: false, id: null })
+const playbookForm = ref<{ open: boolean; id: string | null; revisionId: string | null }>({ open: false, id: null, revisionId: null })
 const playbookCodes = computed(() => (rows.value.playbooks ?? []).map((r) => r.code))
 async function playbookSaved(code: string, created: boolean) {
-  playbookForm.value = { open: false, id: null }
-  ui.success(t(created ? 'pbf.created' : 'pbf.updated', { code }))
+  playbookForm.value = { open: false, id: null, revisionId: null }
+  ui.success(t(created ? 'pbf.created' : 'pbl.draftSaved', { code }))
   await load() // refresh the list in place (no page reload)
 }
 // Clicking a row opens its details (libraries with a detail endpoint); buttons inside the row stop the click.
 type DetailLibrary = 'playbooks' | 'runbooks' | 'policies' | 'actions'
-const DETAIL_LIBRARIES: Key[] = ['playbooks', 'runbooks', 'policies', 'actions']
+const DETAIL_LIBRARIES: Key[] = ['playbooks', 'runbooks', 'policies', 'actions', 'history']
 const hasDetail = computed(() => DETAIL_LIBRARIES.includes(active.value))
 const detailRow = ref<{ library: DetailLibrary; id: string } | null>(null)
-const openDetail = (r: Row) => { if (hasDetail.value) detailRow.value = { library: active.value as DetailLibrary, id: r.id } }
+const openDetail = (r: Row) => {
+  if (active.value === 'history') void router.push({ name: 'incident-detail', params: { id: r.id } })
+  else if (hasDetail.value) detailRow.value = { library: active.value as DetailLibrary, id: r.id }
+}
 // Delete (×) for policies and playbooks: SOC / IR_TEAM / admin (backend-enforced; reason required, audited).
 const canDeletePolicies = computed(() => ['SOC', 'IR_TEAM', 'admin'].includes(session.role ?? ''))
 async function knowledgeDeleted(message: 'pol.deleted' | 'pbd.deleted', code: string) {
   ui.success(t(message, { code }))
   await load()
 }
-const setPlaybookStatus = (r: Row) => knowledgeApi.update('playbooks', r.id, { status: r.status === 'ACTIVE' ? 'DEPRECATED' : 'ACTIVE' })
+// Runbooks / Policies / Actions are configuration: the admin role creates them (backend requireAdmin()), via the same
+// "+ Add" button in the library header as Playbooks.
+const isAdminManaged = computed(() => (['runbooks', 'policies', 'actions'] as Key[]).includes(active.value))
+const canManageCatalog = computed(() => session.role === 'admin')
+const subtitle = computed(() => {
+  if (active.value === 'history') return t('kb.historyHint')
+  if (active.value === 'threat-intel') return t('ti.hint')
+  if (active.value === 'playbooks') return t(canManagePlaybooks.value ? 'pbl.managed' : 'pb.readOnlyRole')
+  if (isAdminManaged.value) return canManageCatalog.value ? t('kbc.managed') : t('kbc.readOnlyRole', { lib: current.value.label })
+  return t('kb.readOnly')
+})
 const evaluation = ref<Record<string, unknown> | null>(null)
 const evaluationFields = computed<FormField[]>(() => [
   {key:'severity',label:t('kb.f.severity'),type:'select',options:['LOW','MEDIUM','HIGH','CRITICAL']},
@@ -125,9 +176,8 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
 <template>
   <div>
     <PageHeader :title="t('kb.title')" :description="t('kb.description')" />
-    <div class="mb-4 flex flex-wrap gap-2">
-      <KnowledgeControls v-if="active === 'playbooks' || active === 'runbooks' || active === 'policies' || active === 'actions'" :key="active" :library="active" :reload="reloadLibrary" />
-      <BackendForm v-if="active === 'policies'" :label="t('kb.evaluate')" :fields="evaluationFields" :action="evaluate" :reload="async () => {}" :description="t('kb.evaluateHint')" />
+    <div v-if="active === 'policies'" class="mb-4 flex flex-wrap gap-2">
+      <BackendForm :label="t('kb.evaluate')" :fields="evaluationFields" :action="evaluate" :reload="async () => {}" :description="t('kb.evaluateHint')" />
     </div>
     <section v-if="active === 'policies' && evaluation" class="card mb-4 p-4 text-sm"><h2 class="font-semibold">{{ t('kb.evalResult') }}</h2><KnowledgeValue :value="evaluation" /></section>
 
@@ -159,9 +209,10 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-semibold text-slate-900">{{ current.label }}</h2>
-          <p class="text-xs text-slate-500">{{ active === 'playbooks' ? t(canManagePlaybooks ? 'pb.managed' : 'pb.readOnlyRole') : t('kb.readOnly') }}</p>
+          <p class="text-xs text-slate-500">{{ subtitle }}</p>
         </div>
-        <button v-if="active === 'playbooks' && canManagePlaybooks" type="button" class="btn-primary ml-auto sm:order-last" @click="playbookForm = { open: true, id: null }">{{ t('pb.add') }}</button>
+        <button v-if="active === 'playbooks' && canManagePlaybooks" type="button" class="btn-primary ml-auto sm:order-last" @click="playbookForm = { open: true, id: null, revisionId: null }">{{ t('pb.add') }}</button>
+        <div v-else-if="isAdminManaged && canManageCatalog" class="ml-auto sm:order-last"><KnowledgeControls :key="active" :library="active as 'runbooks' | 'policies' | 'actions'" :reload="reloadLibrary" /></div>
         <label v-if="(rows[active]?.length ?? 0) > 0" class="relative w-full sm:w-64">
           <Search class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input v-model="search" type="search" :placeholder="t('kb.searchIn', { lib: current.label })" :aria-label="t('kb.searchAria', { lib: current.label })" class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-sm focus:border-accent-500 focus:outline-none" />
@@ -178,6 +229,7 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
         :title="search ? t('kb.noMatch') : t('kb.empty')"
         :description="NO_ENDPOINT.includes(active) && !search ? t('kb.noTi') : undefined"
       />
+      <ThreatIntelLibrary v-else-if="active === 'threat-intel'" :items="iocs" :search="search" />
       <ul v-else class="divide-y divide-slate-100">
         <li
           v-for="r in visible"
@@ -195,26 +247,50 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
             <p class="text-sm font-semibold text-slate-900">{{ r.name }}</p>
             <p v-if="r.description" class="mt-0.5 text-xs text-slate-500">{{ r.description }}</p>
             <p class="mt-0.5 text-[11px] text-slate-400">{{ r.meta }}</p>
+            <p v-if="active === 'playbooks' && lifecycleOf(r)?.state === 'PUBLISHED' && lifecycleOf(r)?.draft" class="mt-1 text-[11px] font-medium text-amber-700">{{ t('pbl.draftOf', { v: lifecycleOf(r)!.draft!.version }) }}</p>
           </div>
+          <span v-if="active === 'playbooks' && lifecycleOf(r)" class="flex flex-col items-end gap-0.5 text-right" data-testid="playbook-state">
+            <span
+              class="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
+              :class="lifecycleOf(r)!.state === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-800 ring-amber-200'"
+            >{{ lifecycleOf(r)!.state === 'PUBLISHED' ? t('pbl.published') : t('pbl.draft') }} · {{ t('pbl.version', { v: lifecycleOf(r)!.version }) }}</span>
+            <span class="text-[11px] text-slate-500">{{ lifecycleOf(r)!.state === 'DRAFT' ? t('pbl.draftHint') : r.status === 'DEPRECATED' ? t('pbl.publishedOff') : t('pbl.publishedHint') }}</span>
+          </span>
           <span
-            v-if="r.status"
+            v-else-if="r.status"
             class="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
-            :class="r.status.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
-          >{{ statusText(r.status) }}</span>
-          <template v-if="active === 'playbooks' && canManagePlaybooks">
-            <button type="button" class="btn-secondary" :aria-label="t('pb.editAria', { name: r.name })" @click.stop="playbookForm = { open: true, id: r.id }">{{ t('pb.edit') }}</button>
-            <span class="contents" @click.stop><WorkflowAction
-              :key="`${r.id}-${r.status}`"
-              :label="r.status === 'ACTIVE' ? t('pb.deactivate') : t('pb.activate')"
-              :success-label="r.status === 'ACTIVE' ? t('pb.deactivated') : t('pb.activated')"
-              :action="() => setPlaybookStatus(r)"
+            :class="['active', 'resolved'].includes(r.status.toLowerCase()) ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-500 ring-slate-200'"
+          >{{ active === 'history' ? statusLabel(r.status) : statusText(r.status) }}</span>
+          <span v-if="active === 'playbooks' && lifecycleOf(r)" class="contents" @click.stop>
+            <button v-if="lifecycleOf(r)!.state === 'PUBLISHED'" type="button" class="btn-secondary" @click="openDetail(r)">{{ t('pbl.view') }}</button>
+            <button v-if="can(r, 'edit')" type="button" class="btn-secondary" :aria-label="t('pbl.editAria', { name: r.name })" @click="playbookForm = { open: true, id: r.id, revisionId: lifecycleOf(r)!.draft!.id }">{{ t('pbl.edit') }}</button>
+            <WorkflowAction
+              v-if="can(r, 'publish')"
+              :key="`publish-${lifecycleOf(r)!.draft!.id}`"
+              :label="t('pbl.publish')"
+              :success-label="t('pbl.publishOk', { code: r.code, v: lifecycleOf(r)!.draft!.version })"
+              :action="playbookAction(() => playbookVersionsApi.publish(r.id, lifecycleOf(r)!.draft!.id))"
               :reload="reloadLibrary"
-            >
-              <p class="text-sm text-slate-600">{{ r.status === 'ACTIVE' ? t('pb.deactivateHint') : t('pb.activateHint') }}</p>
-            </WorkflowAction></span>
-          </template>
+            ><p class="text-sm text-slate-600">{{ t('pbl.publishHint', { v: lifecycleOf(r)!.draft!.version }) }}</p></WorkflowAction>
+            <WorkflowAction
+              v-if="can(r, 'createVersion')"
+              :key="`version-${r.id}-${lifecycleOf(r)!.version}`"
+              :label="t('pbl.createVersion')"
+              :success-label="t('pbl.createVersionOk', { code: r.code })"
+              :action="playbookAction(() => playbookVersionsApi.createVersion(r.id))"
+              :reload="reloadLibrary"
+            ><p class="text-sm text-slate-600">{{ t('pbl.createVersionHint') }}</p></WorkflowAction>
+            <WorkflowAction
+              v-if="can(r, 'rollback')"
+              :key="`rollback-${r.id}-${lifecycleOf(r)!.version}`"
+              :label="t('pbl.rollback')"
+              :success-label="t('pbl.rollbackOk', { code: r.code, v: lifecycleOf(r)!.rollbackTo!.version })"
+              :action="playbookAction(() => playbookVersionsApi.rollback(r.id, lifecycleOf(r)!.rollbackTo!.id))"
+              :reload="reloadLibrary"
+            ><p class="text-sm text-slate-600">{{ t('pbl.rollbackHint', { v: lifecycleOf(r)!.rollbackTo!.version, cur: lifecycleOf(r)!.version }) }}</p></WorkflowAction>
+          </span>
           <KnowledgeDeleteButton v-if="active === 'policies' && canDeletePolicies" library="policies" :id="r.id" :code="r.code" :name="r.name" :enabled="r.status === 'active'" @deleted="(code) => knowledgeDeleted('pol.deleted', code)" />
-          <KnowledgeDeleteButton v-if="active === 'playbooks' && canManagePlaybooks" library="playbooks" :id="r.id" :code="r.code" :name="r.name" :enabled="r.status === 'ACTIVE'" @deleted="(code) => knowledgeDeleted('pbd.deleted', code)" />
+          <KnowledgeDeleteButton v-if="active === 'playbooks' && can(r, 'delete')" library="playbooks" :id="r.id" :code="r.code" :name="r.name" :enabled="false" @deleted="(code) => knowledgeDeleted('pbd.deleted', code)" />
         </li>
       </ul>
     </section>
@@ -223,8 +299,9 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
     <PlaybookFormModal
       :open="playbookForm.open"
       :playbook-id="playbookForm.id"
+      :revision-id="playbookForm.revisionId"
       :existing-codes="playbookCodes"
-      @close="playbookForm = { open: false, id: null }"
+      @close="playbookForm = { open: false, id: null, revisionId: null }"
       @saved="playbookSaved"
     />
   </div>

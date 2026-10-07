@@ -14,8 +14,11 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
     return this.prisma.$queryRawUnsafe<Row[]>(sql, ...params);
   }
 
-  async counts(tenantId: string, days: number): Promise<DashboardCounts> {
+  async counts(tenantId: string, days: number, since?: Date | null): Promise<DashboardCounts> {
     const t = tenantId;
+    // Report window: `p` binds $2 = window start, `win(col)` adds the filter. Columns are UTC `timestamp` (no zone).
+    const p: unknown[] = since ? [t, since.toISOString()] : [t];
+    const win = (col: string) => (since ? ` and ${col} >= ($2::timestamptz at time zone 'utc')` : "");
     const [
       alertTotals,
       alertSev,
@@ -44,10 +47,10 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
                 count(*) filter (where received_at > now() - interval '24 hours') last24h,
                 count(*) filter (where not exists (select 1 from incident_alerts ia where ia.alert_id = a.id)
                                    and not exists (select 1 from incidents i where i.alert_id = a.id)) unlinked
-           from alerts a where tenant_id = $1`,
-        t
+           from alerts a where tenant_id = $1${win("a.received_at")}`,
+        ...p
       ),
-      this.q(`select lower(severity) k, count(*) n from alerts where tenant_id = $1 group by 1`, t),
+      this.q(`select lower(severity) k, count(*) n from alerts where tenant_id = $1${win("received_at")} group by 1`, ...p),
       this.q(
         `select to_char(d.day, 'YYYY-MM-DD') date,
                 count(a.id) filter (where lower(a.severity) = 'critical') critical,
@@ -60,38 +63,38 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
         t,
         days
       ),
-      this.q(`select status k, count(*) n from incidents where tenant_id = $1 group by 1`, t),
+      this.q(`select status k, count(*) n from incidents where tenant_id = $1${win("opened_at")} group by 1`, ...p),
       this.q(`select priority k, count(*) n from incidents where tenant_id = $1 and status in ('open','investigating','escalated') group by 1`, t),
       this.q(
         `select avg(extract(epoch from (closed_at - opened_at)) / 60) filter (where status = 'resolved' and closed_at is not null) mttr,
                 count(*) filter (where status = 'resolved' and closed_at > now() - interval '7 days') resolved7,
                 count(*) filter (where opened_at > now() - interval '7 days') opened7,
                 count(*) total
-           from incidents where tenant_id = $1`,
-        t
+           from incidents where tenant_id = $1${win("opened_at")}`,
+        ...p
       ),
-      this.q(`select status k, count(*) n from response_plans where tenant_id = $1 group by 1`, t),
+      this.q(`select status k, count(*) n from response_plans where tenant_id = $1${win("created_at")} group by 1`, ...p),
       this.q(
         `select a.approval_role k, count(*) n
            from approvals a join recommendations r on r.id = a.recommendation_id
           where r.tenant_id = $1 and a.status = 'pending' group by 1`,
         t
       ),
-      this.q(`select result k, count(*) n from verifications where tenant_id = $1 group by 1`, t),
+      this.q(`select result k, count(*) n from verifications where tenant_id = $1${win("verified_at")} group by 1`, ...p),
       this.q(
         `select m.technique_id, min(m.tactic) tactic, count(distinct m.incident_id) n
            from mitre_mappings m join incidents i on i.id = m.incident_id
-          where i.tenant_id = $1 and i.status <> 'dismissed'
+          where i.tenant_id = $1 and i.status <> 'dismissed'${win("i.opened_at")}
           group by 1 order by n desc, 1 limit 6`,
-        t
+        ...p
       ),
       this.q(
         `select t.ioc_value v, count(distinct t.incident_id) n
            from threat_intel_iocs t join incidents i on i.id = t.incident_id
            join evidence_iocs ei on ei.ioc_id = t.id
-          where i.tenant_id = $1 and i.status <> 'dismissed' and t.ioc_type in ('IPV4','IPV6')
+          where i.tenant_id = $1 and i.status <> 'dismissed' and t.ioc_type in ('IPV4','IPV6')${win("i.opened_at")}
           group by 1 order by n desc, 1 limit 6`,
-        t
+        ...p
       ),
       this.q(
         `select tl.occurred_at, tl.incident_id, i.title, tl.event_type, tl.description, tl.actor
@@ -101,8 +104,8 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
       ),
       this.q(
         `select upper(e.status) k, count(*) n from agent_executions e join incidents i on i.id = e.incident_id
-          where i.tenant_id = $1 group by 1`,
-        t
+          where i.tenant_id = $1${win("e.queued_at")} group by 1`,
+        ...p
       ),
       this.q(
         `select count(*) filter (where a.triage_disposition is null and a.status not in ('closed','escalated','monitoring')) pending,
@@ -123,27 +126,27 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
            left join response_plans p on p.id = ap.response_id
            left join recommendations r on r.id = coalesce(p.recommendation_id, ap.recommendation_id)
            join incidents i on i.id = coalesce(p.incident_id, r.incident_id)
-          where i.tenant_id = $1 group by 1, 2`,
-        t
+          where i.tenant_id = $1${win("ap.created_at")} group by 1, 2`,
+        ...p
       ),
       this.q(
-        `select (select count(*) from verifications v where v.tenant_id = $1 and v.spread_detected) spread,
+        `select (select count(*) from verifications v where v.tenant_id = $1 and v.spread_detected${win("v.verified_at")}) spread,
                 (select count(*) from response_plans p where p.tenant_id = $1 and p.status = 'COMPLETED'
                     and not exists (select 1 from verifications v where v.response_id = p.id)) awaiting_rehunt,
-                (select count(*) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')) escalation_events,
-                (select count(distinct al.entity_id) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')) escalated_incidents`,
-        t
+                (select count(*) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')${win("al.created_at")}) escalation_events,
+                (select count(distinct al.entity_id) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')${win("al.created_at")}) escalated_incidents`,
+        ...p
       ),
       this.q(
-        `select upper(i.priority) k, count(*) n from incidents i where i.tenant_id = $1 and i.status <> 'dismissed' group by 1`,
-        t
+        `select upper(i.priority) k, count(*) n from incidents i where i.tenant_id = $1 and i.status <> 'dismissed'${win("i.opened_at")} group by 1`,
+        ...p
       ),
       this.q(
         `select avg(extract(epoch from (fr.first_at - i.opened_at)) / 60) avg_min, count(*) n
            from incidents i
            join lateral (select min(r.created_at) first_at from recommendations r where r.incident_id = i.id) fr on fr.first_at is not null
-          where i.tenant_id = $1 and fr.first_at >= i.opened_at`,
-        t
+          where i.tenant_id = $1 and fr.first_at >= i.opened_at${win("i.opened_at")}`,
+        ...p
       ),
       this.q(
         `select avg(extract(epoch from (c.decided - c.requested)) / 60) avg_min, count(*) n from (
@@ -152,8 +155,8 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
             where p.tenant_id = $1
             group by ap.response_id
            having bool_and(ap.status in ('approved','rejected','more_evidence_requested','cancelled'))
-              and max(ap.decided_at) is not null) c`,
-        t
+              and max(ap.decided_at) is not null${win("min(ap.created_at)")}) c`,
+        ...p
       ),
       this.q(
         `select coalesce(u.email, p.assigned_to) assignee, u.role, p.assigned_role, count(*) n

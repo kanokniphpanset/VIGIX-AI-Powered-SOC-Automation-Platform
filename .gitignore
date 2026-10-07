@@ -4,13 +4,23 @@ __pycache__/
 dist/
 build/
 .env
+# Local copies of environment files (contain secrets)
+.env.txt
+.env.*.txt
 *.log
 .DS_Store
 apps/backend/prisma/migrations/**/migration.sql
+!apps/backend/prisma/migrations/20261005111935_immutable_recommendation_snapshots/migration.sql
+!apps/backend/prisma/migrations/20261006030000_playbook_revisions/migration.sql
+!apps/backend/prisma/migrations/20261006090000_exact_playbook_revision_provenance/migration.sql
 
 # Never publish: database dumps (real data), scratch output, the vendored wazuh-docker checkout (own .git + .env)
 *.dump
 backups/*.dump
+backups/db/
 .tmp/
 wazuh-docker/
 .claude/settings.local.json
+
+# Additional evaluation: local venv for figures (never commit)
+results/additional-evaluation/.venv/

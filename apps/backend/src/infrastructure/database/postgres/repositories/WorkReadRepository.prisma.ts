@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { AiJobRow, AuditEntry, IncidentWorkFilters, IncidentWorkRow, IWorkReadRepository } from "../../../../application/work/ports/IWorkReadRepository";
+import { AiJobRow, AuditEntry, IncidentWorkFilters, IncidentWorkRow, IocLibraryRow, IWorkReadRepository } from "../../../../application/work/ports/IWorkReadRepository";
 import { ApprovalQueueRow, ApprovalStepRow, TicketRow } from "../../../../application/work/WorkQueues";
 import { stripAiSeverity } from "../../../../domain/ai/aiGrounding";
 
@@ -286,5 +286,44 @@ export class PrismaWorkReadRepository implements IWorkReadRepository {
       errorCode: str(r.error_code),
       errorMessage: str(r.error_message),
     }));
+  }
+
+  async iocLibrary(tenantId: string, limit: number): Promise<{ items: IocLibraryRow[]; total: number }> {
+    // Grouped case-insensitively (a domain or hash recorded in two cases is one indicator); only ACTIVE rows.
+    const base = `from threat_intel_iocs t join incidents i on i.id = t.incident_id
+                   where i.tenant_id = $1 and t.status = 'ACTIVE'`;
+    const [countRow] = await this.q(`select count(distinct (t.ioc_type, lower(t.ioc_value))) n ${base}`, tenantId);
+    const rows = await this.q(
+      `select t.ioc_type, min(t.ioc_value) ioc_value,
+              array_agg(distinct t.source) sources,
+              max(t.reputation_score) reputation_score, max(t.confidence) confidence,
+              min(coalesce(t.first_seen, t.created_at)) first_seen,
+              max(coalesce(t.last_seen, t.created_at)) last_seen,
+              count(distinct t.incident_id) case_count,
+              jsonb_agg(distinct jsonb_build_object('id', i.id, 'title', i.title, 'status', i.status, 'openedAt', i.opened_at)) cases
+         ${base}
+        group by t.ioc_type, lower(t.ioc_value)
+        order by case_count desc, last_seen desc
+        limit $2`,
+      tenantId,
+      limit
+    );
+    const items = rows.map((r) => {
+      const cases = ((typeof r.cases === "string" ? JSON.parse(r.cases) : r.cases) ?? []) as Row[];
+      return {
+        iocType: String(r.ioc_type),
+        iocValue: String(r.ioc_value),
+        sources: ((r.sources as unknown[]) ?? []).map(String),
+        reputationScore: num(r.reputation_score),
+        confidence: num(r.confidence),
+        firstSeen: iso(r.first_seen),
+        lastSeen: iso(r.last_seen),
+        caseCount: Number(r.case_count),
+        cases: cases
+          .map((c) => ({ id: String(c.id), title: String(c.title), status: String(c.status), openedAt: iso(c.openedAt) }))
+          .sort((a, b) => (b.openedAt ?? "").localeCompare(a.openedAt ?? "")),
+      };
+    });
+    return { items, total: Number(countRow?.n ?? 0) };
   }
 }

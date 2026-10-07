@@ -1,0 +1,332 @@
+{
+  "kpi": "Verification Result",
+  "real_wazuh": {
+    "definition": "re-hunt of the live Wazuh Indexer after the (manually simulated) response; RESOLVED = the verification procedure did not detect the specified recurrence condition within the tested window (not proof of eradication)",
+    "cases_with_completed_response": 9,
+    "verified_real_wazuh": 7,
+    "verified_percent_of_executed": 77.78,
+    "outcomeDistribution": {
+      "RESOLVED": 7,
+      "ERROR": 2
+    },
+    "resolved": {
+      "numerator": 7,
+      "denominator": 9,
+      "pct": 77.78
+    },
+    "escalatedObserved": false,
+    "escalatedNote": "ESCALATED (3 re-hunt rounds reached) did not occur and was not induced in this evaluation",
+    "perCase": [
+      {
+        "tc": "TC-01",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.7"
+            }
+          ],
+          "window": [
+            "2026-10-02T09:50:22.765Z",
+            "2026-10-02T09:50:37.799Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-02",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "ERROR",
+        "final_state": "open",
+        "evidence": {
+          "error": {
+            "code": "INSUFFICIENT_CRITERIA",
+            "message": "No supported IOC is available to query."
+          }
+        }
+      },
+      {
+        "tc": "TC-03",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-phish.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "203.0.113.45"
+            }
+          ],
+          "window": [
+            "2026-10-02T09:58:55.624Z",
+            "2026-10-02T09:59:10.649Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-04",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.7"
+            }
+          ],
+          "window": [
+            "2026-10-02T10:01:16.161Z",
+            "2026-10-02T10:01:31.196Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-06",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "/app/search.php?id=1%20union%20select%20username,password%20from%20users"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.7"
+            }
+          ],
+          "window": [
+            "2026-10-02T10:02:32.989Z",
+            "2026-10-02T10:02:48.014Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-07",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-c2.net"
+            },
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-c2.net:8080/gate.php"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5"
+            }
+          ],
+          "window": [
+            "2026-10-02T10:05:02.276Z",
+            "2026-10-02T10:05:17.304Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-08",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-c2.net"
+            },
+            {
+              "type": "SHA256",
+              "value": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+            },
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-c2.net:8080/x"
+            }
+          ],
+          "window": [
+            "2026-10-02T10:07:39.693Z",
+            "2026-10-02T10:07:54.720Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-09",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "RESOLVED",
+        "final_state": "resolved",
+        "evidence": {
+          "index": "wazuh-alerts-4.x-*",
+          "matchingEvents": 0,
+          "iocRecurrence": false,
+          "spreadDetected": false,
+          "threatContained": true,
+          "searchedIocs": [
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-exfil.net"
+            },
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-exfil.net:8080/upload"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5"
+            }
+          ],
+          "window": [
+            "2026-10-02T10:10:17.945Z",
+            "2026-10-02T10:10:32.983Z"
+          ]
+        }
+      },
+      {
+        "tc": "TC-10",
+        "type": "REAL_WAZUH",
+        "expected": "RESOLVED (no recurrence of the contained indicators after the simulated response)",
+        "actual": "ERROR",
+        "final_state": "open",
+        "evidence": {
+          "error": {
+            "code": "INSUFFICIENT_CRITERIA",
+            "message": "No supported IOC is available to query."
+          }
+        }
+      }
+    ]
+  },
+  "mock": {
+    "source": "archived MOCK baseline run (frozen, NOT re-run): CleanRehuntAdapter — NO_MATCH is simulated",
+    "cases": 10,
+    "verificationCompleted": 10,
+    "resolved": 10,
+    "note": "completion of a mock verification shows the workflow can reach verification; it is NOT evidence that any threat was removed. TC-01 of that archive is a hybrid (real alert + mock verification).",
+    "perCase": [
+      {
+        "tc": "TC-01",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-02",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-03",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-04",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-05",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-06",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-07",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-08",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-09",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      },
+      {
+        "tc": "TC-10",
+        "type": "MOCK",
+        "expected": "RESOLVED (simulated)",
+        "actual": "RESOLVED",
+        "final_state": "resolved"
+      }
+    ]
+  },
+  "notMixed": "MOCK and REAL_WAZUH are reported in separate objects and never combined."
+}

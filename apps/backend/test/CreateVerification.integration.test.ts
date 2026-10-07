@@ -480,3 +480,48 @@ describe("CreateVerificationUseCase", () => {
 });
 
 
+
+describe("CreateVerificationUseCase — New Round -> AI Recommendation -> IR Decision", () => {
+  const input = {
+    incidentId: "incident-1",
+    tenantId: "tenant-1",
+    verifiedBy: "ir-1",
+    responseId: "response-1",
+    query: "event.code:*",
+    matchingEvents: 3,
+    threatContained: false,
+  };
+  const build = (recommendationStatus: string) => {
+    const deps = createDependencies({
+      policyResult: createPolicyResult({ requireNewInvestigation: true }),
+      recommendationResult: Result.ok({ id: "recommendation-2", status: recommendationStatus }),
+    });
+    const sendToIr = { execute: jest.fn().mockResolvedValue(Result.ok({ tickets: [] })) };
+    const useCase = new CreateVerificationUseCase(
+      deps.verificationRepository as any,
+      deps.responsePlanRepository as any,
+      deps.incidentRepository as any,
+      deps.policyEvaluator as any,
+      deps.auditLogger as any,
+      deps.contextRepository as any,
+      deps.notificationDispatcher as any,
+      "http://localhost:4000",
+      deps.generateRecommendationUseCase as any,
+      undefined,
+      sendToIr
+    );
+    return { useCase, sendToIr };
+  };
+
+  it("routes the new round's VALIDATED recommendation straight to the IR decision (no second SOC validation)", async () => {
+    const { useCase, sendToIr } = build("VALIDATED");
+    expect((await useCase.execute(input)).value.result).toBe("NOT_RESOLVED");
+    expect(sendToIr.execute).toHaveBeenCalledWith(expect.objectContaining({ tenantId: "tenant-1", recommendationId: "recommendation-2", actor: "system" }));
+  });
+
+  it("does not route a recommendation that failed validation", async () => {
+    const { useCase, sendToIr } = build("INVALID");
+    await useCase.execute(input);
+    expect(sendToIr.execute).not.toHaveBeenCalled();
+  });
+});

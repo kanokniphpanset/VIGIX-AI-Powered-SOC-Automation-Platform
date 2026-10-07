@@ -1,0 +1,712 @@
+{
+  "mock-original": {
+    "evaluationType": "MOCK",
+    "verificationModeStatement": "Verification Mode = MOCK. NO_MATCH is simulated (CleanRehuntAdapter). This proves the workflow can reach Verification and close an incident on a mock re-hunt — it does NOT prove any threat was eliminated.",
+    "summary": {
+      "casesVerified": 10,
+      "resolved": 10,
+      "notResolved": 0,
+      "modes": {
+        "MOCK": 10,
+        "REAL_WAZUH": 0,
+        "NONE": 0
+      }
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-02",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-03",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-04",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-05",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-06",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-07",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-08",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-09",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      },
+      {
+        "caseId": "TC-10",
+        "mode": "MOCK",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "index": "clean-rehunt/no-match#round-1",
+          "note": "NO_MATCH is SIMULATED by CleanRehuntAdapter — this is NOT real threat detection"
+        }
+      }
+    ]
+  },
+  "real-clean": {
+    "evaluationType": "REAL_WAZUH",
+    "verificationModeStatement": "Verification Mode = REAL_WAZUH: re-hunt queries the live Wazuh Indexer after the (manually simulated) response.",
+    "summary": {
+      "casesVerified": 5,
+      "resolved": 5,
+      "notResolved": 0,
+      "modes": {
+        "MOCK": 0,
+        "REAL_WAZUH": 5,
+        "NONE": 4
+      }
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T11:35:46.826Z",
+            "end": "2026-09-30T11:36:01.862Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-02",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": {
+          "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA"
+        }
+      },
+      {
+        "caseId": "TC-03",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": null
+      },
+      {
+        "caseId": "TC-04",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T11:44:47.849Z",
+            "end": "2026-09-30T11:45:02.876Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-05",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": null,
+        "detail": null
+      },
+      {
+        "caseId": "TC-06",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "/app/search.php?id=1%20union%20select%20username,password%20from%20users"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T11:45:44.768Z",
+            "end": "2026-09-30T11:45:59.787Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-07",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-c2.net:8080/gate.php"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-c2.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.8"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5",
+              "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+            }
+          ],
+          "window": {
+            "start": "2026-09-30T11:47:54.490Z",
+            "end": "2026-09-30T11:48:09.515Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-08",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": null
+      },
+      {
+        "caseId": "TC-09",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-exfil.net:8080/upload"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-exfil.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.8"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5",
+              "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+            }
+          ],
+          "window": {
+            "start": "2026-09-30T11:52:36.678Z",
+            "end": "2026-09-30T11:52:51.702Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-10",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": {
+          "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA"
+        }
+      }
+    ]
+  },
+  "real-intervention": {
+    "evaluationType": "REAL_WAZUH",
+    "verificationModeStatement": "Verification Mode = REAL_WAZUH: re-hunt queries the live Wazuh Indexer after the (manually simulated) response.",
+    "summary": {
+      "casesVerified": 7,
+      "resolved": 7,
+      "notResolved": 0,
+      "modes": {
+        "MOCK": 0,
+        "REAL_WAZUH": 7,
+        "NONE": 2
+      }
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T11:55:03.145Z",
+            "end": "2026-09-30T11:55:18.169Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-02",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": {
+          "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA"
+        }
+      },
+      {
+        "caseId": "TC-03",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-phish.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "203.0.113.45"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T12:01:26.911Z",
+            "end": "2026-09-30T12:01:41.942Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-04",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T12:02:57.447Z",
+            "end": "2026-09-30T12:03:12.476Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-05",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": null,
+        "detail": null
+      },
+      {
+        "caseId": "TC-06",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "/app/search.php?id=1%20union%20select%20username,password%20from%20users"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T12:03:50.102Z",
+            "end": "2026-09-30T12:04:05.137Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-07",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-c2.net:8080/gate.php"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-c2.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.8"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5",
+              "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+            }
+          ],
+          "window": {
+            "start": "2026-09-30T12:05:09.530Z",
+            "end": "2026-09-30T12:05:24.561Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-08",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-c2.net:8080/x"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-c2.net"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T12:07:46.349Z",
+            "end": "2026-09-30T12:08:01.387Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-09",
+        "mode": "REAL_WAZUH",
+        "result": "RESOLVED",
+        "finalIncidentStatus": "resolved",
+        "detail": {
+          "result": "RESOLVED",
+          "matchingEvents": 0,
+          "spreadDetected": false,
+          "iocRecurrence": false,
+          "threatContained": true,
+          "affectedHosts": [],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "URL",
+              "value": "http://vigix-eval-exfil.net:8080/upload"
+            },
+            {
+              "type": "DOMAIN",
+              "value": "vigix-eval-exfil.net"
+            },
+            {
+              "type": "IPV4",
+              "value": "172.19.0.8"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.5",
+              "reason": "Endpoint identity of the alerting agent (agent.name / agent.ip)"
+            }
+          ],
+          "window": {
+            "start": "2026-09-30T12:09:09.274Z",
+            "end": "2026-09-30T12:09:24.299Z"
+          }
+        }
+      },
+      {
+        "caseId": "TC-10",
+        "mode": "NONE",
+        "result": null,
+        "finalIncidentStatus": "open",
+        "detail": {
+          "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA"
+        }
+      }
+    ]
+  },
+  "real-recurrence-control": {
+    "evaluationType": "REAL_WAZUH",
+    "verificationModeStatement": "Verification Mode = REAL_WAZUH: re-hunt queries the live Wazuh Indexer after the (manually simulated) response.",
+    "summary": {
+      "casesVerified": 1,
+      "resolved": 0,
+      "notResolved": 1,
+      "modes": {
+        "MOCK": 0,
+        "REAL_WAZUH": 1,
+        "NONE": 0
+      }
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "mode": "REAL_WAZUH",
+        "result": "NOT_RESOLVED",
+        "finalIncidentStatus": "investigating",
+        "detail": {
+          "result": "NOT_RESOLVED",
+          "matchingEvents": 29,
+          "spreadDetected": false,
+          "iocRecurrence": true,
+          "threatContained": false,
+          "affectedHosts": [
+            "attack-endpoint"
+          ],
+          "index": "wazuh-alerts-4.x-*",
+          "evidenceSource": "WAZUH_INDEXER",
+          "searchedIocs": [
+            {
+              "type": "IPV4",
+              "value": "172.19.0.6"
+            }
+          ],
+          "skippedIocs": [],
+          "excludedIocs": [],
+          "window": {
+            "start": "2026-09-30T12:12:17.791Z",
+            "end": "2026-09-30T12:13:00.431Z"
+          }
+        }
+      }
+    ]
+  }
+}

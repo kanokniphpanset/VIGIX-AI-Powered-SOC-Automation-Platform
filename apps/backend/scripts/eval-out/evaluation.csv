@@ -1,0 +1,11 @@
+TC,Attack,Severity,Risk,RecommendationCompliance,InvestigationTimeSec,DecisionTimeSec,Playbook,PolicyEvaluated,Decision,ResponseCompleted,Verification,VerificationMode,RehuntRound,FinalStatus,Intervention,Finding
+TC-01,Brute Force,medium,,COMPLIANT,22.35,0.06,PB-SSH-BRUTEFORCE,true,decided,true,RESOLVED,MOCK,1,resolved,,
+TC-02,Malware,high,,COMPLIANT,2052.1,3426.44,PB-MALWARE,true,decided,true,RESOLVED,MOCK,1,resolved,,
+TC-03,Phishing,medium,,COMPLIANT,1539.62,0.06,PB-PHISHING,true,decided,true,RESOLVED,MOCK,1,resolved,RECOMMENDATION_RETRY;ANALYST_ADDED_IOC,"Analyst manually promoted the EMAIL IOC to actionable so ACT-QUARANTINE-EMAIL had a targetable, evidence-backed target (INVENTED_TARGET / EMAIL_MESSAGE otherwise)."
+TC-04,Account Compromise,high,,COMPLIANT,2073.71,3417.65,PB-ACCOUNT-COMPROMISE,true,decided,true,RESOLVED,MOCK,1,resolved,,
+TC-05,PowerShell,high,,COMPLIANT,2104.73,3385.57,PB-POWERSHELL,true,decided,true,RESOLVED,MOCK,1,resolved,,
+TC-06,SQL Injection,medium,,COMPLIANT,41.53,0.05,PB-SQL-INJECTION,true,decided,true,RESOLVED,MOCK,1,resolved,,
+TC-07,Command & Control,high,,COMPLIANT,3797.68,1690.4,PB-C2,true,decided,true,RESOLVED,MOCK,1,resolved,RECOMMENDATION_RETRY;SYSTEM_KB_UPDATED,System KB gap fixed during the run: PB-C2 was seeded and T1071.001 was added to the MITRE catalog (mitre.seed.ts) so the C2 technique validated and the playbook could be selected.
+TC-08,Suspicious Process,medium,,COMPLIANT,868.1,0.05,PB-SUSPICIOUS-PROCESS,true,decided,true,RESOLVED,MOCK,1,resolved,RECOMMENDATION_RETRY;ANALYST_ADDED_IOC,Analyst manually added a COMMAND IOC so ACT-KILL-PROCESS met its COMMAND_LINE evidence requirement (INSUFFICIENT_EVIDENCE otherwise).
+TC-09,Data Exfiltration,high,,COMPLIANT,3825.01,1660.88,PB-DATA-EXFIL,true,decided,true,RESOLVED,MOCK,1,resolved,RECOMMENDATION_RETRY;SYSTEM_KB_UPDATED,System KB gap fixed during the run: PB-DATA-EXFIL was seeded and T1048 added to the MITRE catalog so the exfiltration technique validated and the playbook could be selected.
+TC-10,Privilege Escalation,critical,,COMPLIANT,5195.02,289.8,PB-ACCOUNT-COMPROMISE,true,decided,true,RESOLVED,MOCK,1,resolved,,Technique T1098 mapped to PB-ACCOUNT-COMPROMISE (not PB-PRIV-ESC): 'member added to Domain Admins' is account manipulation. Expected playbook set to PB-ACCOUNT-COMPROMISE accordingly.

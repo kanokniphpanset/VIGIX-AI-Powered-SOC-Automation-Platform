@@ -1,0 +1,99 @@
+{
+  "RUN_LABEL": "targetrole-v2-tc07-tc09-20261002",
+  "pre": {
+    "checks": [
+      {
+        "name": "evaluation database",
+        "ok": true,
+        "detail": "connected to 'soar_v2_eval' (must end with _eval; soar_platform is never touched)"
+      },
+      {
+        "name": "REHUNT_PROVIDER",
+        "ok": true,
+        "detail": "REHUNT_PROVIDER=wazuh — mock would make verification MOCK"
+      },
+      {
+        "name": "recommendation agent",
+        "ok": true,
+        "detail": "RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)"
+      },
+      {
+        "name": "AI orchestrator (eval instance)",
+        "ok": true,
+        "detail": "http://localhost:8001 -> {\"status\":\"ok\",\"service\":\"soar-ai-orchestrator\"}"
+      },
+      {
+        "name": "Wazuh Indexer + re-hunt provider",
+        "ok": true,
+        "detail": "WazuhRehuntAdapter health: reachable=true cluster=green indices=4 pattern=wazuh-alerts-4.x-*"
+      },
+      {
+        "name": "Wazuh manager API",
+        "ok": false,
+        "detail": "DOWN: Wazuh API unreachable: "
+      },
+      {
+        "name": "Wazuh agent attack-endpoint",
+        "ok": true,
+        "detail": "ID: 009, Name: attack-endpoint, IP: any, Active"
+      },
+      {
+        "name": "custom rule 100310 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100320 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100330 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100340 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100350 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "Knowledge Base complete for ground truth",
+        "ok": true,
+        "detail": "11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present"
+      }
+    ],
+    "kbGaps": [],
+    "env": {
+      "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+      "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+      "wazuhManagerApi": {
+        "status": "DOWN",
+        "detail": "Wazuh API unreachable: ",
+        "latencyMs": null
+      },
+      "indexer": {
+        "configured": true,
+        "reachable": true,
+        "indexPattern": "wazuh-alerts-4.x-*",
+        "clusterStatus": "green",
+        "alertIndices": 4
+      },
+      "aiOrchestrator": "http://localhost:8001",
+      "llm": {
+        "provider": "openrouter",
+        "model": "google/gemma-4-26b-a4b-it",
+        "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+      },
+      "database": "soar_v2_eval",
+      "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+      "recommendationAgent": "llm",
+      "node": "v24.19.0"
+    }
+  }
+}

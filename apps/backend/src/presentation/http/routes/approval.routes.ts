@@ -1,3 +1,4 @@
+import { asyncHandler } from "../middlewares/async-handler.middleware";
 import { Router } from "express";
 import { ApprovalController } from "../controllers/ApprovalController";
 import { authenticate, requireRole } from "../middlewares/auth.middleware";
@@ -9,10 +10,10 @@ import { authenticate, requireRole } from "../middlewares/auth.middleware";
  */
 export function buildApprovalRoutes(controller: ApprovalController): Router {
   const router = Router();
-  router.post("/request", authenticate, requireRole("SOC", "IR_TEAM"), controller.request);
+  router.post("/request", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.request));
   router.get("/:id", authenticate, controller.getById);
-  router.post("/:id/approve", authenticate, requireRole("IR_TEAM"), controller.approve);
-  router.post("/:id/reject", authenticate, requireRole("IR_TEAM"), controller.reject);
+  router.post("/:id/approve", authenticate, requireRole("IR_TEAM"), asyncHandler(controller.approve));
+  router.post("/:id/reject", authenticate, requireRole("IR_TEAM"), asyncHandler(controller.reject));
   return router;
 }
 

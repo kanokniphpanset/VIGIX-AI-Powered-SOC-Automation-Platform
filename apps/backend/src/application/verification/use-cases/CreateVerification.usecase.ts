@@ -3,6 +3,7 @@ import { IResponsePlanRepository } from "../../../domain/response/repositories/I
 import { IIncidentRepository } from "../../../domain/incident/repositories/IIncidentRepository";
 import { IRecommendationContextRepository } from "../../recommendation/ports/IRecommendationContextRepository";
 import { GenerateRecommendationUseCase } from "../../recommendation/use-cases/GenerateRecommendation.usecase";
+import { SendRecommendationToIrUseCase } from "../../response/use-cases/SendRecommendationToIr.usecase";
 import { PolicyEvaluator } from "../../../infrastructure/policy-engine/PolicyEvaluator";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 import { Verification, VerificationResult } from "../../../domain/verification/entities/Verification.entity";
@@ -72,8 +73,12 @@ export const MAX_INVESTIGATION_ROUNDS = 3;
  * When a new investigation is opened, a fresh recommendation is automatically
  * generated from the new investigation context. GenerateRecommendationUseCase
  * is responsible for obtaining the next recommendationNumber and superseding
- * the previous recommendation. Nothing here starts or executes a response —
- * the new recommendation still goes through Policy/Approval and a human.
+ * the previous recommendation. Main flow: Round < 3 -> New Round -> AI
+ * Recommendation -> IR Decision — the new round's VALIDATED recommendation is
+ * routed straight to the IR decision (Response Tickets PENDING_IR_DECISION via
+ * Send to IR, actor "system"); the SOC validation gate belongs to the first
+ * round only. Nothing here starts or executes a response — IR still has to
+ * APPROVE (or REJECT -> Manual Decision) every ticket.
  *
  * Round limit: when the incident is already on its MAX_INVESTIGATION_ROUNDS-th
  * cycle, no further cycle is opened and no recommendation is generated; the
@@ -97,7 +102,9 @@ export class CreateVerificationUseCase {
     private readonly notificationDispatcher: INotificationDispatcherPort,
     private readonly vigixBaseUrl: string,
     private readonly generateRecommendationUseCase: GenerateRecommendationUseCase,
-    private readonly inApp?: InAppNotifier
+    private readonly inApp?: InAppNotifier,
+    private readonly sendToIr?: Pick<SendRecommendationToIrUseCase, "execute">,
+    private readonly afterCommit?: (effect: () => Promise<void>) => Promise<void>
   ) {}
 
   async execute(
@@ -205,47 +212,65 @@ export class CreateVerificationUseCase {
 
       newInvestigationNumber = updatedIncident.investigationNumber;
 
-      if (input.onInvestigationReopened) {
-        try {
-          await input.onInvestigationReopened(newInvestigationNumber);
-        } catch (err) {
-          console.error("Failed to record new-cycle evidence before recommendation", verification.id, err);
+      const followUp = async () => {
+        if (input.onInvestigationReopened) {
+          try {
+            await input.onInvestigationReopened(updatedIncident.investigationNumber);
+          } catch (err) {
+            console.error("Failed to record new-cycle evidence before recommendation", verification.id, err);
+          }
         }
-      }
 
-      /*
-       * Investigation has now moved to the next cycle.
-       *
-       * GenerateRecommendationUseCase reads the current investigationNumber
-       * through RecommendationContextBuilder, so this generates a fresh
-       * recommendation for Investigation #2 rather than copying
-       * Recommendation #1.
-       *
-       * Generation failure must not invalidate the already-persisted
-       * verification or investigation reopen. The failure is logged and the
-       * workflow can still be recovered/retried separately.
-       */
-      try {
-        const recommendationResult =
-          await this.generateRecommendationUseCase.execute({
-            incidentId: input.incidentId,
-            tenantId: input.tenantId,
-          });
+        /*
+         * Investigation has now moved to the next cycle.
+         *
+         * GenerateRecommendationUseCase reads the current investigationNumber
+         * through RecommendationContextBuilder, so this generates a fresh
+         * recommendation for Investigation #2 rather than copying
+         * Recommendation #1.
+         *
+         * Generation failure must not invalidate the already-persisted
+         * verification or investigation reopen. The failure is logged and the
+         * workflow can still be recovered/retried separately.
+         */
+        try {
+          const recommendationResult =
+            await this.generateRecommendationUseCase.execute({
+              incidentId: input.incidentId,
+              tenantId: input.tenantId,
+            });
 
-        if (recommendationResult.isFailure) {
+          if (recommendationResult.isFailure) {
+            console.error(
+              "Failed to auto-generate recommendation after investigation reopened",
+              verification.id,
+              recommendationResult.error
+            );
+          } else if (this.sendToIr && recommendationResult.value.status === "VALIDATED") {
+            // New Round -> AI Recommendation -> IR Decision (no second SOC validation).
+            const sent = await this.sendToIr.execute({
+              tenantId: input.tenantId,
+              recommendationId: recommendationResult.value.id,
+              actor: "system",
+              note: `Round ${newInvestigationNumber}: re-hunt NOT_RESOLVED — new recommendation routed to the IR decision automatically.`,
+            });
+            if (sent.isFailure) {
+              console.error("Failed to route the new-round recommendation to IR", verification.id, sent.error);
+            }
+          }
+        } catch (err) {
           console.error(
             "Failed to auto-generate recommendation after investigation reopened",
             verification.id,
-            recommendationResult.error
+            err
           );
         }
-      } catch (err) {
-        console.error(
-          "Failed to auto-generate recommendation after investigation reopened",
-          verification.id,
-          err
-        );
-      }
+
+      };
+      // Keep best-effort evidence/AI follow-up outside the critical verification transaction.
+      // Its original order (evidence before recommendation, then Send to IR) is preserved.
+      if (this.afterCommit) await this.afterCommit(followUp);
+      else await followUp();
 
       await this.auditLogger.record({
         tenantId: input.tenantId,

@@ -1,0 +1,650 @@
+{
+  "kpi": "Recommendation Consistency",
+  "formula": "consistent validated primary recommendations / total repeated runs",
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "database": "soar_final_eval",
+  "source_run": "final-main-real-wazuh-20261001",
+  "repetitions": 5,
+  "cases": [
+    "TC-01",
+    "TC-02",
+    "TC-04",
+    "TC-06",
+    "TC-07",
+    "TC-09"
+  ],
+  "overall": {
+    "numerator": 29,
+    "denominator": 30,
+    "pct": 96.67,
+    "perCaseMeanPct": 96.67,
+    "perCaseSdPct": 8.16
+  },
+  "mainActionConsistency": [
+    {
+      "tc": "TC-01",
+      "consistent": 5,
+      "runs": 5,
+      "pct": 100,
+      "distribution": {
+        "PB-SSH-BRUTEFORCE|ACT-BLOCK-SOURCE-IP|ip|172.19.0.6": 5
+      }
+    },
+    {
+      "tc": "TC-02",
+      "consistent": 5,
+      "runs": 5,
+      "pct": 100,
+      "distribution": {
+        "PB-MALWARE|ACT-ISOLATE-ENDPOINT|host|attack-endpoint": 5
+      }
+    },
+    {
+      "tc": "TC-04",
+      "consistent": 5,
+      "runs": 5,
+      "pct": 100,
+      "distribution": {
+        "PB-ACCOUNT-COMPROMISE|ACT-DISABLE-ACCOUNT|account|victim": 5
+      }
+    },
+    {
+      "tc": "TC-06",
+      "consistent": 5,
+      "runs": 5,
+      "pct": 100,
+      "distribution": {
+        "PB-SQL-INJECTION|ACT-BLOCK-SOURCE-IP|ip|172.19.0.6": 5
+      }
+    },
+    {
+      "tc": "TC-07",
+      "consistent": 4,
+      "runs": 5,
+      "pct": 80,
+      "distribution": {
+        "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5": 4,
+        "PB-C2|ACT-ISOLATE-ENDPOINT|host|attack-endpoint": 1
+      }
+    },
+    {
+      "tc": "TC-09",
+      "consistent": 5,
+      "runs": 5,
+      "pct": 100,
+      "distribution": {
+        "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5": 5
+      }
+    }
+  ],
+  "stepSetConsistency": {
+    "numerator": 28,
+    "denominator": 30,
+    "pct": 93.33,
+    "perCase": [
+      {
+        "tc": "TC-01",
+        "runs": 5,
+        "of": 5,
+        "pct": 100
+      },
+      {
+        "tc": "TC-02",
+        "runs": 5,
+        "of": 5,
+        "pct": 100
+      },
+      {
+        "tc": "TC-04",
+        "runs": 3,
+        "of": 5,
+        "pct": 60
+      },
+      {
+        "tc": "TC-06",
+        "runs": 5,
+        "of": 5,
+        "pct": 100
+      },
+      {
+        "tc": "TC-07",
+        "runs": 5,
+        "of": 5,
+        "pct": 100
+      },
+      {
+        "tc": "TC-09",
+        "runs": 5,
+        "of": 5,
+        "pct": 100
+      }
+    ]
+  },
+  "infrastructureFailures": {
+    "count": 0,
+    "listed": [],
+    "note": "excluded from the denominator; the repetition was repeated after the LLM endpoint recovered and is labelled rerun_after_infrastructure_failure"
+  },
+  "reruns": [],
+  "previousResultForComparisonOnly": "29/30 = 96.67% (additional evaluation, 2026-09-30) — not used for the final value",
+  "records": [
+    {
+      "case_id": "TC-01",
+      "repetition": 1,
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1110",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 2,
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1110",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 3,
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1110",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 4,
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1110",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 5,
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1110",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 1,
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1204.002",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 2,
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1204.002",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 3,
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1204.002",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 4,
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1204.002",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 5,
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1204.002",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 1,
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "mitre": "T1078",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-DISABLE-ACCOUNT>victim",
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6",
+        "ACT-RESET-CREDENTIAL>victim"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 2,
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "mitre": "T1078",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-DISABLE-ACCOUNT>victim",
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6",
+        "ACT-RESET-CREDENTIAL>victim",
+        "ACT-REVOKE-SESSION>victim"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 3,
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "mitre": "T1078",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-DISABLE-ACCOUNT>victim",
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 4,
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "mitre": "T1078",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-DISABLE-ACCOUNT>victim",
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 5,
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "mitre": "T1078",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-DISABLE-ACCOUNT>victim",
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 1,
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1190",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 2,
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1190",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 3,
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1190",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 4,
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1190",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 5,
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.6",
+      "mitre": "T1190",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        "ACT-BLOCK-SOURCE-IP>172.19.0.6"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 1,
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1071.001",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-c2.net",
+        "ACT-BLOCK-URL>http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 2,
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1071.001",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-c2.net",
+        "ACT-BLOCK-URL>http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 3,
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1071.001",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-c2.net",
+        "ACT-BLOCK-URL>http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 4,
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "mitre": "T1071.001",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint",
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-c2.net",
+        "ACT-BLOCK-URL>http://vigix-eval-c2.net:8080/gate.php"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 5,
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1071.001",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-c2.net",
+        "ACT-BLOCK-URL>http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1048",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-exfil.net",
+        "ACT-BLOCK-URL>http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 2,
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1048",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-exfil.net",
+        "ACT-BLOCK-URL>http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1048",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-exfil.net",
+        "ACT-BLOCK-URL>http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 4,
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1048",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-exfil.net",
+        "ACT-BLOCK-URL>http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "mitre": "T1048",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        "ACT-BLOCK-DESTINATION-IP>172.19.0.5",
+        "ACT-BLOCK-DOMAIN>vigix-eval-exfil.net",
+        "ACT-BLOCK-URL>http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT>attack-endpoint"
+      ],
+      "rerun_after_infrastructure_failure": false
+    }
+  ]
+}

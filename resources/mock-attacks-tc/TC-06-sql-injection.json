@@ -1,0 +1,23 @@
+{
+  "id": "1727678280.20006",
+  "timestamp": "2026-09-30T06:38:00.000+0000",
+  "rule": {
+    "id": "31103",
+    "level": 10,
+    "description": "SQL injection attempts against the web application (multiple from one source in 120s)",
+    "groups": ["web", "attack", "sql_injection", "vigix_custom"],
+    "firedtimes": 12,
+    "mitre": { "id": ["T1190"], "tactic": ["Initial Access"], "technique": ["Exploit Public-Facing Application"] }
+  },
+  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "web-accesslog" },
+  "location": "/var/log/nginx/access.log",
+  "data": {
+    "srcip": "194.87.29.10",
+    "url": "/app/search.php?id=1%20union%20select%20username,password%20from%20users",
+    "id": "404",
+    "protocol": "GET"
+  },
+  "full_log": "194.87.29.10 - - [30/Sep/2026:06:38:00 +0000] \"GET /app/search.php?id=1 union select username,password from users HTTP/1.1\" 404 512 \"-\" \"sqlmap/1.7\" (12 SQLi requests in 90s)"
+}

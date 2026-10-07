@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { canonicalRevisionContent, hashRevisionContent, pinRevision, PlaybookProvenanceError } from "../../../../domain/playbook/PlaybookRevisionProvenance";
 import {
   IRecommendationRepository,
   CreateRecommendationData,
@@ -43,72 +44,102 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
   }
 
   async create(data: CreateRecommendationData): Promise<Recommendation> {
-    // Link to the Investigation row of the cycle this recommendation was generated from (Alert -> ... -> Recommendation).
-    const investigation = await this.prisma.investigation.findUnique({
-      where: { incidentId_investigationNumber: { incidentId: data.incidentId, investigationNumber: data.investigationNumber } },
-      select: { id: true },
-    });
-    // One PlaybookSnapshot per investigation cycle: what this cycle's recommendation was grounded in
-    // (selected playbook, action runbooks, policy results). Regenerating within the same cycle refreshes it.
-    let snapshotId: string | null = null;
-    if (data.snapshot && investigation) {
-      const snap = data.snapshot;
-      const content = {
-        playbookCode: snap.playbookCode,
-        playbookVersion: snap.playbookVersion,
-        procedureCode: snap.procedureCode,
-        procedureVersion: snap.procedureVersion,
-        procedureContent: snap.procedureContent as Prisma.InputJsonValue,
-        policyResult: snap.policyResult as Prisma.InputJsonValue,
-      };
-      const snapshot = await this.prisma.playbookSnapshot.upsert({
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize numbering for this incident only. Snapshot and recommendation commit together,
+      // so a failed recommendation insert cannot leave an unreferenced snapshot behind.
+      const owned = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM incidents WHERE id = ${data.incidentId} AND tenant_id = ${data.tenantId} FOR UPDATE`;
+      if (!owned.length) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_NOT_FOUND");
+      const latest = await tx.recommendation.findFirst({
+        where: { incidentId: data.incidentId, tenantId: data.tenantId },
+        orderBy: { recommendationNumber: "desc" }, select: { recommendationNumber: true },
+      });
+      const recommendationNumber = Math.max(data.recommendationNumber, (latest?.recommendationNumber ?? 0) + 1);
+      // Link to the Investigation row of the cycle this recommendation was generated from (Alert -> ... -> Recommendation).
+      const investigation = await tx.investigation.findUnique({
         where: { incidentId_investigationNumber: { incidentId: data.incidentId, investigationNumber: data.investigationNumber } },
-        update: content,
-        create: {
-          ...content,
+        select: { id: true },
+      });
+      if (!investigation) throw new PlaybookProvenanceError("RECOMMENDATION_INVESTIGATION_REQUIRED");
+      if (!data.snapshot || !data.provenance) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_INVALID");
+      if (data.provenance.tenantId !== data.tenantId) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_TENANT_MISMATCH");
+      // Copy once before awaiting: persistence never follows the current published pointer.
+      const pinned = pinRevision(data.provenance);
+      if (pinned.contentHash !== data.provenance.contentHash) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_MISMATCH");
+      const revision = await tx.playbookRevision.findFirst({
+        where: { id: pinned.revisionId, tenantId: data.tenantId, playbook: { tenantId: data.tenantId } },
+      });
+      // Wrong-tenant IDs are indistinguishable from missing IDs; no cross-tenant lookup.
+      if (!revision) throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_NOT_FOUND");
+      if (revision.playbookId !== pinned.playbookId || revision.version !== pinned.version ||
+          !["PUBLISHED", "SUPERSEDED"].includes(revision.status) || !revision.publishedAt ||
+          data.snapshot.playbookVersion !== pinned.version ||
+          (revision.content as Record<string, unknown> | null)?.code !== data.snapshot.playbookCode ||
+          hashRevisionContent(revision.content) !== pinned.contentHash ||
+          canonicalRevisionContent(revision.content) !== canonicalRevisionContent(pinned.content))
+        throw new PlaybookProvenanceError("PLAYBOOK_PROVENANCE_MISMATCH");
+      // One immutable grounding artifact per successful generation, even when content is identical.
+      let snapshotId: string | null = null;
+      if (data.snapshot && investigation) {
+        const snap = data.snapshot;
+        const content = {
+          playbookId: pinned.playbookId,
+          playbookRevisionId: pinned.revisionId,
+          contentHash: pinned.contentHash,
+          frozenRevisionContent: pinned.content as Prisma.InputJsonValue,
+          playbookCode: snap.playbookCode,
+          playbookVersion: snap.playbookVersion,
+          procedureCode: snap.procedureCode,
+          procedureVersion: snap.procedureVersion,
+          procedureContent: snap.procedureContent as Prisma.InputJsonValue,
+          policyResult: snap.policyResult as Prisma.InputJsonValue,
+        };
+        const snapshot = await tx.playbookSnapshot.create({
+          data: {
+            ...content,
+            tenantId: data.tenantId,
+            incidentId: data.incidentId,
+            investigationId: investigation.id,
+            investigationNumber: data.investigationNumber,
+            code: `SNAP-${data.incidentId}-${data.investigationNumber}-${recommendationNumber}`,
+          },
+        });
+        snapshotId = snapshot.id;
+      }
+
+      const raw = await tx.recommendation.create({
+        data: {
+          investigationId: investigation?.id ?? null,
+          snapshotId,
           tenantId: data.tenantId,
           incidentId: data.incidentId,
-          investigationId: investigation.id,
           investigationNumber: data.investigationNumber,
-          code: `SNAP-${data.incidentId}-${data.investigationNumber}`,
+          recommendationNumber,
+          status: data.status,
+          summary: data.summary,
+          createdBy: data.createdBy,
+          steps: {
+            create: data.steps.map((s) => ({
+              stepOrder: s.stepOrder,
+              title: s.title,
+              objective: s.objective,
+              actionId: s.actionId,
+              target: s.target,
+              reason: s.reason,
+              evidence: s.evidence as Prisma.InputJsonValue,
+              sourceRunbookId: s.sourceRunbookId,
+              precondition: s.precondition,
+              expectedResult: s.expectedResult,
+              requiresApproval: s.requiresApproval,
+              phase: "ACTION",
+              instructions: s.instructions as unknown as Prisma.InputJsonValue,
+              verificationCriteria: s.verificationCriteria,
+            })),
+          },
         },
+        include: includeSteps,
       });
-      snapshotId = snapshot.id;
-    }
-
-    const raw = await this.prisma.recommendation.create({
-      data: {
-        investigationId: investigation?.id ?? null,
-        snapshotId,
-        tenantId: data.tenantId,
-        incidentId: data.incidentId,
-        investigationNumber: data.investigationNumber,
-        recommendationNumber: data.recommendationNumber,
-        status: data.status,
-        summary: data.summary,
-        createdBy: data.createdBy,
-        steps: {
-          create: data.steps.map((s) => ({
-            stepOrder: s.stepOrder,
-            title: s.title,
-            objective: s.objective,
-            actionId: s.actionId,
-            target: s.target,
-            reason: s.reason,
-            evidence: s.evidence as Prisma.InputJsonValue,
-            sourceRunbookId: s.sourceRunbookId,
-            precondition: s.precondition,
-            expectedResult: s.expectedResult,
-            requiresApproval: s.requiresApproval,
-            phase: "ACTION",
-            instructions: s.instructions as unknown as Prisma.InputJsonValue,
-            verificationCriteria: s.verificationCriteria,
-          })),
-        },
-      },
-      include: includeSteps,
+      return RecommendationMapper.toDomain(raw);
     });
-    return RecommendationMapper.toDomain(raw);
   }
 
   async updateStatus(id: string, tenantId: string, status: RecommendationStatus): Promise<Recommendation> {
@@ -118,8 +149,11 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
   }
 
   async supersedePrevious(incidentId: string, tenantId: string, keepRecommendationId: string): Promise<void> {
+    const keep = await this.prisma.recommendation.findFirstOrThrow({
+      where: { id: keepRecommendationId, incidentId, tenantId }, select: { recommendationNumber: true },
+    });
     await this.prisma.recommendation.updateMany({
-      where: { incidentId, tenantId, id: { not: keepRecommendationId }, status: { in: ["GENERATED", "VALIDATED"] } },
+      where: { incidentId, tenantId, recommendationNumber: { lt: keep.recommendationNumber }, status: { in: ["GENERATED", "VALIDATED"] } },
       data: { status: "SUPERSEDED" },
     });
   }

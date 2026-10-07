@@ -1,0 +1,248 @@
+{
+  "kpi": "Human / Policy Validation",
+  "formula": "passed checks / total checks × 100",
+  "sources": [
+    "data/negative.json#governance_gates (real use cases on the final DB)",
+    "results/runs/final-ir-reject-real-wazuh-20261001/run.json (IR reject → manual decision → manual response → real re-hunt)"
+  ],
+  "result": {
+    "passed": 29,
+    "total": 29,
+    "pct": 100
+  },
+  "governanceGates": {
+    "passed": 17,
+    "total": 17
+  },
+  "irRejectFlow": {
+    "passed": 12,
+    "total": 12,
+    "case": {
+      "tc": "TC-06",
+      "incident_id": "01bb8c52-220a-429b-aae5-16e40a06d175",
+      "finalIncidentStatus": "resolved",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "responsePlan": "COMPLETED",
+      "approvals": [
+        {
+          "status": "rejected",
+          "role": "IR_TEAM",
+          "decidedBy": "eval-ir",
+          "decidedAt": "2026-10-01T02:02:48.514Z"
+        },
+        {
+          "status": "approved",
+          "role": "IR_TEAM",
+          "decidedBy": "eval-ir",
+          "decidedAt": "2026-10-01T02:02:53.567Z"
+        }
+      ]
+    }
+  },
+  "failures": [],
+  "checks": [
+    {
+      "id": "G0",
+      "scenario": "SOC sends step 2 of a validated recommendation to IR",
+      "expected": "ticket PENDING_IR_DECISION (needs IR decision)",
+      "actual": "OK(PENDING_IR_DECISION)",
+      "pass": true
+    },
+    {
+      "id": "G1",
+      "scenario": "start the response before any IR decision",
+      "expected": "blocked (APPROVAL_PENDING)",
+      "actual": "APPROVAL_PENDING",
+      "pass": true
+    },
+    {
+      "id": "G2",
+      "scenario": "re-hunt/verification requested before the response is completed",
+      "expected": "blocked (RESPONSE_NOT_COMPLETED)",
+      "actual": "RESPONSE_NOT_COMPLETED",
+      "pass": true
+    },
+    {
+      "id": "G3",
+      "scenario": "approval attempted by role \"SOC\" (approval belongs to IR_TEAM)",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "G4",
+      "scenario": "approval attempted by role \"AI_AGENT\" (approval belongs to IR_TEAM)",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "G5",
+      "scenario": "approval attempted by role \"admin\" (approval belongs to IR_TEAM)",
+      "expected": "denied (ADMIN_NOT_APPROVER)",
+      "actual": "ADMIN_NOT_APPROVER",
+      "pass": true
+    },
+    {
+      "id": "G6",
+      "scenario": "IR_TEAM decision without a note",
+      "expected": "denied (NOTE_REQUIRED)",
+      "actual": "NOTE_REQUIRED",
+      "pass": true
+    },
+    {
+      "id": "G7",
+      "scenario": "denied attempts left the ticket untouched",
+      "expected": "PENDING_IR_DECISION, approval pending",
+      "actual": "PENDING_IR_DECISION, approval pending",
+      "pass": true
+    },
+    {
+      "id": "G8",
+      "scenario": "IR REJECTS the AI recommendation",
+      "expected": "ticket → PENDING_MANUAL_DECISION (not executed, not closed)",
+      "actual": "OK(rejected); ticket PENDING_MANUAL_DECISION",
+      "pass": true
+    },
+    {
+      "id": "G9",
+      "scenario": "a reject does not close or resolve the incident",
+      "expected": "incident status unchanged (open)",
+      "actual": "open",
+      "pass": true
+    },
+    {
+      "id": "G10",
+      "scenario": "start the response after the reject",
+      "expected": "blocked (APPROVAL_PENDING)",
+      "actual": "APPROVAL_PENDING",
+      "pass": true
+    },
+    {
+      "id": "G11",
+      "scenario": "the rejected recommendation was never executed",
+      "expected": "0 step executions",
+      "actual": "0 step executions",
+      "pass": true
+    },
+    {
+      "id": "G12",
+      "scenario": "decide the same approval twice",
+      "expected": "denied (ALREADY_DECIDED)",
+      "actual": "ALREADY_DECIDED",
+      "pass": true
+    },
+    {
+      "id": "G13",
+      "scenario": "manual decision after reject by a non-IR role",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "G14",
+      "scenario": "manual decision by IR without a note",
+      "expected": "denied (NOTE_REQUIRED)",
+      "actual": "NOTE_REQUIRED",
+      "pass": true
+    },
+    {
+      "id": "G15",
+      "scenario": "IR records the manual decision after the reject",
+      "expected": "ticket → READY_FOR_EXECUTION with a stored IR note; nothing executed automatically",
+      "actual": "OK(READY_FOR_EXECUTION); READY_FOR_EXECUTION; step executions 0",
+      "pass": true
+    },
+    {
+      "id": "G16",
+      "scenario": "manually mark the incident RESOLVED (bypassing verification)",
+      "expected": "blocked (RESOLVE_REQUIRES_VERIFICATION); status unchanged",
+      "actual": "RESOLVE_REQUIRES_VERIFICATION; status open",
+      "pass": true
+    },
+    {
+      "id": "IRR-01",
+      "scenario": "approval attempted by \"SOC\" instead of IR_TEAM",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-02",
+      "scenario": "approval attempted by \"AI_AGENT\" instead of IR_TEAM",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-03",
+      "scenario": "approval attempted by \"admin\" instead of IR_TEAM",
+      "expected": "denied (ADMIN_NOT_APPROVER)",
+      "actual": "ADMIN_NOT_APPROVER",
+      "pass": true
+    },
+    {
+      "id": "IRR-04",
+      "scenario": "IR rejects the recommendation",
+      "expected": "ticket PENDING_MANUAL_DECISION",
+      "actual": "OK; PENDING_MANUAL_DECISION",
+      "pass": true
+    },
+    {
+      "id": "IRR-05",
+      "scenario": "start the response after the reject",
+      "expected": "blocked",
+      "actual": "APPROVAL_PENDING",
+      "pass": true
+    },
+    {
+      "id": "IRR-06",
+      "scenario": "rejected recommendation not executed",
+      "expected": "0 step executions",
+      "actual": "0",
+      "pass": true
+    },
+    {
+      "id": "IRR-07",
+      "scenario": "incident not closed/resolved by the reject",
+      "expected": "status unchanged (open)",
+      "actual": "open",
+      "pass": true
+    },
+    {
+      "id": "IRR-08",
+      "scenario": "no automatic AI regeneration after the reject",
+      "expected": "0 new recommendations / generation attempts",
+      "actual": "1 recommendations (was 1); 0 generation audit records after the reject",
+      "pass": true
+    },
+    {
+      "id": "IRR-09",
+      "scenario": "re-hunt/verification requested before any response completed",
+      "expected": "blocked",
+      "actual": "RESPONSE_NOT_COMPLETED",
+      "pass": true
+    },
+    {
+      "id": "IRR-10",
+      "scenario": "manual decision by SOC",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-11",
+      "scenario": "manual decision by IR without a note",
+      "expected": "denied (NOTE_REQUIRED)",
+      "actual": "NOTE_REQUIRED",
+      "pass": true
+    },
+    {
+      "id": "IRR-12",
+      "scenario": "IR records the Manual Decision",
+      "expected": "ticket READY_FOR_EXECUTION (not executed)",
+      "actual": "OK; READY_FOR_EXECUTION",
+      "pass": true
+    }
+  ]
+}

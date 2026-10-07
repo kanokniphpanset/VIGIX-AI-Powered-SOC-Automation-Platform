@@ -1,0 +1,309 @@
+{
+  "evaluation": "B_recommendation_consistency",
+  "startedAt": "2026-09-30T13:06:01.379Z",
+  "finishedAt": "2026-09-30T13:09:53.877Z",
+  "database": "soar_addl_eval",
+  "orchestrator": "http://localhost:8001",
+  "source_run": "clean-v2-real-wazuh-20260930",
+  "repetitions": 5,
+  "cases": [
+    "TC-09"
+  ],
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "firstRoundContext": "the incident's earlier recommendations are hidden from the context (previousSteps=[]) — the condition of the original first-round generation; otherwise the NO_NEW_STEP validator rule would reject any repeat by design",
+  "nothingPersisted": true,
+  "evidenceSnapshots": {
+    "TC-09": {
+      "incidentId": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidenceSnapshotHashes": [
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea"
+      ],
+      "iocCount": 5,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-DATA-EXFIL",
+      "matchedTechniques": [
+        "T1048"
+      ],
+      "mitreMappings": [
+        "T1048",
+        "T1071.001"
+      ],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    }
+  },
+  "overall": {
+    "runs": 5,
+    "consistent_runs": 5,
+    "consistency_pct": 100,
+    "per_case_mean_pct": 100,
+    "per_case_sd_pct": 0,
+    "validated_runs": 5,
+    "all_evidence_snapshots_identical": true
+  },
+  "perCase": [
+    {
+      "case_id": "TC-09",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.8",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.8": 5
+      },
+      "step_set_agreement_runs": 4,
+      "step_set_agreement_pct": 80,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 46.42,
+        "median": 41,
+        "min": 27.47,
+        "max": 70.34,
+        "sd": 18.68
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 61.38,
+      "attempts": 2,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.8",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.8",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 2,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 41,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.8",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.8",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 5,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 27.47,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.8",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.8",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 4,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 31.9,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.8",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.8",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 70.34,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.8",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.8",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": []
+    }
+  ]
+}

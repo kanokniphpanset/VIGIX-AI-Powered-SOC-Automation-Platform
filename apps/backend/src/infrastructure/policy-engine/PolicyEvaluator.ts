@@ -64,6 +64,48 @@ export class PolicyEvaluator {
     return out;
   }
 
+  /**
+   * Response guidance for an incident group (incidentType + severity), from the enabled RESPONSE_GUIDANCE policies.
+   * allowedActions: intersection across matching rules that set it (the stricter list wins), null when none sets it;
+   * notes: every matching guidanceNote. Kept apart from evaluate(): it never changes an approval / assignment result.
+   */
+  async responseGuidance(tenantId: string, group: { incidentType: string; severity: PolicyEvaluationInput["severity"] }): Promise<{ allowedActions: string[] | null; notes: string[]; policies: string[] }> {
+    const policies = (await this.policyRepository.findAllEnabled(tenantId)).filter((p: Policy) => p.type === "RESPONSE_GUIDANCE");
+    let allowed: string[] | null = null;
+    const notes: string[] = [];
+    const matched: string[] = [];
+    for (const policy of policies) {
+      for (const rule of policy.activeRules()) {
+        if (!matchesCondition(rule.condition, group)) continue;
+        if (!matched.includes(policy.code)) matched.push(policy.code);
+        const list = rule.result.allowedActions;
+        if (Array.isArray(list)) allowed = allowed === null ? [...list] : allowed.filter((a) => list.includes(a));
+        if (rule.result.guidanceNote?.trim()) notes.push(rule.result.guidanceNote.trim());
+      }
+    }
+    return { allowedActions: allowed, notes, policies: matched };
+  }
+
+  /**
+   * Evidence an Action requires before a Recommendation may use it, from the enabled ACTION_COMPLIANCE policies
+   * (e.g. POL-A02 network blocking needs a validated IOC + related event + supporting evidence). requiredEvidence is
+   * the union across matching rules; `rules` keeps which policy asked for what (for the validator's findings).
+   * Kept apart from evaluate(): it never changes an approval / assignment result.
+   */
+  async actionCompliance(tenantId: string, input: { actionCode: string }): Promise<{ policies: string[]; requiredEvidence: string[]; rules: { policy: string; requiredEvidence: string[] }[] }> {
+    const policies = (await this.policyRepository.findAllEnabled(tenantId)).filter((p: Policy) => p.type === "ACTION_COMPLIANCE");
+    const matched: string[] = [];
+    const rules: { policy: string; requiredEvidence: string[] }[] = [];
+    for (const policy of policies) {
+      for (const rule of policy.activeRules()) {
+        if (!matchesCondition(rule.condition, input)) continue;
+        if (!matched.includes(policy.code)) matched.push(policy.code);
+        rules.push({ policy: policy.code, requiredEvidence: rule.result.requiredEvidence ?? [] });
+      }
+    }
+    return { policies: matched, requiredEvidence: [...new Set(rules.flatMap((r) => r.requiredEvidence))], rules };
+  }
+
   async evaluate(
     tenantId: string,
     input: PolicyEvaluationInput
@@ -110,7 +152,9 @@ export class PolicyEvaluator {
         p.type !== "ASSIGNMENT" &&
         p.type !== "APPROVAL" &&
         // Triage SLA targets are read separately (Alert Inbox); they never take part in this evaluation.
-        p.type !== "TRIAGE_SLA"
+        p.type !== "TRIAGE_SLA" &&
+        // Action evidence requirements are read separately (actionCompliance) by the Recommendation pipeline.
+        p.type !== "ACTION_COMPLIANCE"
     );
 
     for (const policy of remainingPolicies) {

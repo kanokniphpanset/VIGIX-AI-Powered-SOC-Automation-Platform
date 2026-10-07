@@ -1,0 +1,81 @@
+{
+  "kpi": "Investigation Time",
+  "formula": "T_Recommendation − T_InvestigationStart",
+  "unit": "seconds",
+  "source": "investigations.started_at (investigation #1) and recommendations.created_at (recommendation #1 of investigation #1)",
+  "stats": {
+    "n": 9,
+    "mean": 126.106,
+    "median": 84.674,
+    "sd": 108.013,
+    "min": 47.002,
+    "max": 390.723
+  },
+  "missingRecords": [],
+  "perCase": [
+    {
+      "tc": "TC-01",
+      "incident_id": "15b2c1da-1ce6-4455-b457-597ee299748f",
+      "investigationStart": "2026-10-01T01:37:27.284Z",
+      "recommendationAt": "2026-10-01T01:38:51.958Z",
+      "seconds": 84.674
+    },
+    {
+      "tc": "TC-02",
+      "incident_id": "ec583e51-0417-466e-a203-14af57062ea8",
+      "investigationStart": "2026-10-01T01:39:22.953Z",
+      "recommendationAt": "2026-10-01T01:40:36.845Z",
+      "seconds": 73.892
+    },
+    {
+      "tc": "TC-03",
+      "incident_id": "c777dab0-bc6c-4455-b764-edd7f7477a7e",
+      "investigationStart": "2026-10-01T01:41:07.333Z",
+      "recommendationAt": "2026-10-01T01:47:38.056Z",
+      "seconds": 390.723
+    },
+    {
+      "tc": "TC-04",
+      "incident_id": "d62e3aad-d245-4423-9df0-cb4e1e6f75c1",
+      "investigationStart": "2026-10-01T01:48:30.305Z",
+      "recommendationAt": "2026-10-01T01:49:46.952Z",
+      "seconds": 76.647
+    },
+    {
+      "tc": "TC-06",
+      "incident_id": "3906763b-a921-4eda-8027-358de998b679",
+      "investigationStart": "2026-10-01T01:50:17.541Z",
+      "recommendationAt": "2026-10-01T01:51:04.543Z",
+      "seconds": 47.002
+    },
+    {
+      "tc": "TC-07",
+      "incident_id": "f6515570-12f1-4cae-87d6-163d6c539134",
+      "investigationStart": "2026-10-01T01:51:32.097Z",
+      "recommendationAt": "2026-10-01T01:53:05.268Z",
+      "seconds": 93.171
+    },
+    {
+      "tc": "TC-08",
+      "incident_id": "c9f0c50d-c234-4b80-b197-ddff813525b6",
+      "investigationStart": "2026-10-01T01:53:33.153Z",
+      "recommendationAt": "2026-10-01T01:56:52.166Z",
+      "seconds": 199.013
+    },
+    {
+      "tc": "TC-09",
+      "incident_id": "d7fedce8-81de-414b-9faf-ecdf581eda7f",
+      "investigationStart": "2026-10-01T01:57:28.487Z",
+      "recommendationAt": "2026-10-01T01:59:07.052Z",
+      "seconds": 98.565
+    },
+    {
+      "tc": "TC-10",
+      "incident_id": "3ae46b12-410f-4afd-b521-0805cbb1a96b",
+      "investigationStart": "2026-10-01T01:59:36.729Z",
+      "recommendationAt": "2026-10-01T02:00:47.998Z",
+      "seconds": 71.269
+    }
+  ],
+  "timingMode": "uninterrupted scripted pass (no manual gap); includes the third-party/self-hosted LLM latency and any model retries"
+}

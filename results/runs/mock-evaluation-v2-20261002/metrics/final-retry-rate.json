@@ -1,0 +1,239 @@
+{
+  "kpi": "Recommendation Retry Rate",
+  "formula": "cases requiring at least one recommendation retry / evaluated cases × 100",
+  "definition": "a retry = a failed recommendation-generation call (RECOMMENDATION_GENERATION_FAILED) after which another call was needed. Infrastructure failures are separated: they are NOT counted in the rate and NOT treated as model inconsistency",
+  "source": "audit_logs (action = RECOMMENDATION_GENERATION_FAILED, metadata.reason / violations)",
+  "result": {
+    "numerator": 3,
+    "denominator": 9,
+    "pct": 33.33,
+    "totalRetryCount": 8,
+    "averageRetriesPerCase": 0.89,
+    "note": "total retry count is a COUNT, not a percentage"
+  },
+  "allFailedGenerationCallsIncludingInfrastructure": 8,
+  "infrastructure": {
+    "casesWithInfrastructureFailure": [],
+    "failedCalls": 0,
+    "harnessInfrastructureEvents": [],
+    "note": "infrastructure failures (LLM endpoint timeout / connection error) are reported here and excluded from the retry rate"
+  },
+  "perCase": [
+    {
+      "tc": "TC-01",
+      "incident_id": "fbab1f48-9e41-496a-b9a3-c85272e59460",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-SSH-BRUTEFORCE",
+        "steps": [
+          "ACT-BLOCK-SOURCE-IP → 172.19.0.7"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-02",
+      "incident_id": "7e9f7c96-0a28-4652-bd29-294332bc7031",
+      "failedGenerationCalls": 1,
+      "byClass": {
+        "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 1
+      },
+      "retryCausedByModelOutput": true,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": {
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+          "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH",
+          "INVENTED_IOC: step 2 (ACT-QUARANTINE-FILE): hash \"44d88612fea8a8f36de82e1278abb02f\" is not present in the incident evidence"
+        ],
+        "firstAttemptViolations": [
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-BLOCK-HASH): target \"attack-endpoint\" is a host, but ACT-BLOCK-HASH operates on a hash",
+          "INVENTED_IOC: step 2 (ACT-BLOCK-HASH): hash \"275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f\" is not present in the incident evidence"
+        ]
+      },
+      "retryReasons": [
+        "INVALID_AI_OUTPUT"
+      ],
+      "finalRecommendation": {
+        "playbook": "PB-MALWARE",
+        "steps": [
+          "ACT-ISOLATE-ENDPOINT → attack-endpoint"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-03",
+      "incident_id": "fb7ce9ac-66b8-4f4d-b001-24d48ae22b41",
+      "failedGenerationCalls": 2,
+      "byClass": {
+        "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 2
+      },
+      "retryCausedByModelOutput": true,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": {
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "INVENTED_TARGET: step 1 (ACT-QUARANTINE-EMAIL): target \"it-support@vigix-eval-phish.net\" is not an evidence-linked/analyst-added IOC or an affected host"
+        ],
+        "firstAttemptViolations": [
+          "INVENTED_TARGET: step 1 (ACT-QUARANTINE-EMAIL): target \"hr.clerk@corp.local\" is not an evidence-linked/analyst-added IOC or an affected host"
+        ]
+      },
+      "retryReasons": [
+        "INVALID_AI_OUTPUT"
+      ],
+      "finalRecommendation": {
+        "playbook": "PB-PHISHING",
+        "steps": [
+          "ACT-QUARANTINE-EMAIL → it-support@vigix-eval-phish.net",
+          "ACT-BLOCK-URL → http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "ACT-BLOCK-DOMAIN → vigix-eval-phish.net",
+          "ACT-ISOLATE-ENDPOINT → attack-endpoint"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-04",
+      "incident_id": "775d3811-36d0-4306-8ae7-c4071ee1004b",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-ACCOUNT-COMPROMISE",
+        "steps": [
+          "ACT-DISABLE-ACCOUNT → victim",
+          "ACT-BLOCK-SOURCE-IP → 172.19.0.7",
+          "ACT-RESET-CREDENTIAL → victim",
+          "ACT-REVOKE-SESSION → victim"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-06",
+      "incident_id": "f7e587bf-4505-48b5-b35b-3058fffb734a",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-SQL-INJECTION",
+        "steps": [
+          "ACT-BLOCK-SOURCE-IP → 172.19.0.7"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-07",
+      "incident_id": "330af1c5-10ef-49cb-9b30-15f6f8b918a8",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-C2",
+        "steps": [
+          "ACT-BLOCK-DESTINATION-IP → 172.19.0.5",
+          "ACT-BLOCK-DOMAIN → vigix-eval-c2.net",
+          "ACT-BLOCK-URL → http://vigix-eval-c2.net:8080/gate.php",
+          "ACT-ISOLATE-ENDPOINT → attack-endpoint"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-08",
+      "incident_id": "a7e1d195-e4ff-4281-985a-8546298f5466",
+      "failedGenerationCalls": 5,
+      "byClass": {
+        "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 5
+      },
+      "retryCausedByModelOutput": true,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": {
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+          "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+          "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+        ],
+        "firstAttemptViolations": [
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+          "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+          "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+          "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+        ]
+      },
+      "retryReasons": [
+        "INVALID_AI_OUTPUT"
+      ],
+      "finalRecommendation": null,
+      "finalOutcome": "NO_VALID_RECOMMENDATION after 5 model attempts"
+    },
+    {
+      "tc": "TC-09",
+      "incident_id": "32de49ff-87df-4d7e-ad4f-204a9bdd01fc",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-DATA-EXFIL",
+        "steps": [
+          "ACT-BLOCK-DESTINATION-IP → 172.19.0.5",
+          "ACT-BLOCK-DOMAIN → vigix-eval-exfil.net",
+          "ACT-BLOCK-URL → http://vigix-eval-exfil.net:8080/upload",
+          "ACT-ISOLATE-ENDPOINT → attack-endpoint"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    },
+    {
+      "tc": "TC-10",
+      "incident_id": "bbb99218-6fe3-4bdf-af28-f262c4552158",
+      "failedGenerationCalls": 0,
+      "byClass": {},
+      "retryCausedByModelOutput": false,
+      "retryCausedByEvidenceGate": false,
+      "retryCausedByInfrastructure": false,
+      "initialRecommendationRejected": null,
+      "retryReasons": [],
+      "finalRecommendation": {
+        "playbook": "PB-ACCOUNT-COMPROMISE",
+        "steps": [
+          "ACT-DISABLE-ACCOUNT → evaluser",
+          "ACT-RESET-CREDENTIAL → evaluser",
+          "ACT-REVOKE-SESSION → evaluser"
+        ]
+      },
+      "finalOutcome": "VALIDATED (COMPLIANT)"
+    }
+  ]
+}

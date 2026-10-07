@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { CreateActionUseCase } from "../../../application/action/use-cases/CreateAction.usecase";
 import { UpdateActionUseCase } from "../../../application/action/use-cases/UpdateAction.usecase";
@@ -8,7 +9,6 @@ import { ListActionsUseCase } from "../../../application/action/use-cases/ListAc
 import { createActionSchema, updateActionSchema } from "../../../application/action/dto/ActionDto";
 import { validateBody } from "../validators/validateBody";
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 export class ActionController {
   constructor(
@@ -21,13 +21,13 @@ export class ActionController {
   ) {}
 
   list = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const actions = await this.listActions.execute({ tenantId });
     res.json({ items: actions.map((a) => a.toJSON()) });
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getAction.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "ACTION_NOT_FOUND" });
@@ -37,7 +37,7 @@ export class ActionController {
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(createActionSchema, req, res);
     if (!body) return;
     const result = await this.createAction.execute({
@@ -53,7 +53,7 @@ export class ActionController {
   };
 
   update = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(updateActionSchema, req, res);
     if (!body) return;
     const result = await this.updateAction.execute({ ...body, id: req.params.id, tenantId });
@@ -65,7 +65,7 @@ export class ActionController {
   };
 
   enable = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.enableAction.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "ACTION_NOT_FOUND" });
@@ -75,7 +75,7 @@ export class ActionController {
   };
 
   disable = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.disableAction.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "ACTION_NOT_FOUND" });

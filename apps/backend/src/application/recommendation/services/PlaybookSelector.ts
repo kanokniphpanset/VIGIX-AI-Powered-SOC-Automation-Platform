@@ -30,34 +30,64 @@ function techniqueMatches(incidentTechnique: string, playbookTechnique: string):
  * the most distinct techniques wins; ties go to the most specific playbook
  * (fewest listed techniques), then to code order, so the result never depends
  * on row order. No match -> null (no incident-level playbook applies).
+ *
+ * `primaryTechniqueIds` are the techniques the SIEM itself asserted in the alert(s). When two playbooks match the
+ * same NUMBER of techniques, the one matching more SIEM-asserted techniques wins BEFORE the specificity / code-order
+ * tie-breaks: a technique the AI analysis inferred on top of the SIEM's own must not be able to flip the playbook by
+ * alphabetical accident (found in the Real-Wazuh evaluation: Wazuh T1048 + AI-inferred T1071.001 tied PB-DATA-EXFIL
+ * with PB-C2 and code order picked PB-C2). Scores that differ are unaffected.
  */
 export class PlaybookSelector {
-  select(playbooks: Playbook[], techniqueIds: string[]): SelectedPlaybook | null {
+  select(playbooks: Playbook[], techniqueIds: string[], primaryTechniqueIds: string[] = []): SelectedPlaybook | null {
     const ranked = playbooks
       .filter((p) => p.status === "ACTIVE" && p.code && p.triggerConditions.scope === "INCIDENT")
       .map((p) => {
         const listed = asStrings(p.triggerConditions.mitreTechniques);
         const matched = [...new Set(techniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l))))];
-        return { p, listed, matched };
+        const primaryMatched = new Set(primaryTechniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l)))).size;
+        return { p, listed, matched, primaryMatched };
       })
       .filter((r) => r.matched.length > 0)
       .sort(
         (a, b) =>
           b.matched.length - a.matched.length ||
+          b.primaryMatched - a.primaryMatched ||
           a.listed.length - b.listed.length ||
           String(a.p.code).localeCompare(String(b.p.code))
       );
 
     const best = ranked[0];
     if (!best) return null;
+    return this.toSelected(best.p, best.matched.sort());
+  }
+
+  /** The incident-level playbooks a SOC analyst can choose a type from (ACTIVE, scope INCIDENT, with a type). */
+  incidentPlaybooks(playbooks: Playbook[]): Playbook[] {
+    return playbooks
+      .filter((p) => p.status === "ACTIVE" && p.code && p.triggerConditions.scope === "INCIDENT" && typeof p.triggerConditions.incidentType === "string")
+      .sort((a, b) => String(a.code).localeCompare(String(b.code)));
+  }
+
+  /**
+   * The playbook for an incident type the SOC confirmed (instead of the MITRE match). Techniques already recorded
+   * that the playbook lists are kept as matchedTechniques. Unknown / inactive type -> null.
+   */
+  selectByType(playbooks: Playbook[], incidentType: string, techniqueIds: string[] = []): SelectedPlaybook | null {
+    const p = this.incidentPlaybooks(playbooks).find((x) => x.triggerConditions.incidentType === incidentType);
+    if (!p) return null;
+    const listed = asStrings(p.triggerConditions.mitreTechniques);
+    return this.toSelected(p, [...new Set(techniqueIds.filter((t) => listed.some((l) => techniqueMatches(t, l))))].sort());
+  }
+
+  private toSelected(p: Playbook, matchedTechniques: string[]): SelectedPlaybook {
     return {
-      code: best.p.code as string,
-      name: best.p.name,
-      version: best.p.version ?? "1.0",
-      incidentType: typeof best.p.triggerConditions.incidentType === "string" ? best.p.triggerConditions.incidentType : "UNKNOWN",
-      allowedActions: asStrings(best.p.triggerConditions.allowedActions),
-      matchedTechniques: best.matched.sort(),
-      strategy: best.p.steps.map((s) => ({ stepOrder: s.stepOrder, title: s.title, description: s.description })),
+      code: p.code as string,
+      name: p.name,
+      version: p.version ?? "1.0",
+      incidentType: typeof p.triggerConditions.incidentType === "string" ? p.triggerConditions.incidentType : "UNKNOWN",
+      allowedActions: asStrings(p.triggerConditions.allowedActions),
+      matchedTechniques,
+      strategy: p.steps.map((s) => ({ stepOrder: s.stepOrder, title: s.title, description: s.description })),
     };
   }
 }

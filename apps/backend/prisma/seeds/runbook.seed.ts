@@ -27,6 +27,12 @@ export interface SeedRunbook {
   expectedResult: string;
   escalation: string;
   verificationCriteria: string[];
+  /** Knowledge Expansion runbooks: the Action(s) this runbook operates (the Action row links back via runbook_id). */
+  relatedActions?: string[];
+  /** Evidence IR needs before executing — stored as "Required evidence: ..." preconditions. */
+  requiredEvidence?: string[];
+  /** When the Action did not work — stored as a "Failure condition: ..." decision point (IR re-assesses; never an automatic retry). */
+  failureCondition?: string;
 }
 
 export const RUNBOOKS: SeedRunbook[] = [
@@ -112,10 +118,10 @@ export const RUNBOOKS: SeedRunbook[] = [
     preconditions: ["Phishing email sample or message-id available."],
     procedure: [
       "Retrieve the phishing email sample and extract indicators (sender, links, attachments, headers).",
-      "Block the malicious sender domain and any embedded malicious URLs/domains (ACT-BLOCK-DOMAIN).",
+      "Block the malicious sender domain and any embedded malicious URLs/domains (ACT-BLOCK-DOMAIN / ACT-BLOCK-URL).",
       "Search mail logs for all recipients of the same campaign.",
-      "Purge the email from all recipient mailboxes where it has not been opened/actioned.",
-      "For recipients who clicked a link or opened an attachment, force a password reset (manual — no automated action defined yet).",
+      "Purge the email from all recipient mailboxes where it has not been opened/actioned (ACT-QUARANTINE-EMAIL).",
+      "For recipients who clicked a link or submitted credentials, reset their credentials and revoke their active sessions (ACT-RESET-CREDENTIAL, ACT-REVOKE-SESSION).",
       "Review authentication logs for the affected recipients for signs of successful account compromise.",
     ],
     decisionPoints: ["If any recipient's credentials were submitted to a phishing page, escalate to Account Compromise / Brute Force handling for that account."],
@@ -133,7 +139,7 @@ export const RUNBOOKS: SeedRunbook[] = [
     procedure: [
       "Confirm the anomalous traffic pattern in network telemetry (destination, volume, frequency, protocol).",
       "Cross-check the destination IP/domain against threat intelligence for a malicious verdict.",
-      "Block the malicious destination IP and/or domain (ACT-BLOCK-SOURCE-IP, ACT-BLOCK-DOMAIN).",
+      "Block the malicious destination IP and/or domain (ACT-BLOCK-DESTINATION-IP, ACT-BLOCK-DOMAIN).",
       "Isolate the source host if the traffic pattern indicates active C2 or exfiltration (ACT-ISOLATE-ENDPOINT).",
       "Collect a memory dump from the source host to identify the responsible process (ACT-007).",
       "Re-hunt the source host and network segment in Wazuh to confirm the anomalous traffic has stopped (ACT-008).",
@@ -248,7 +254,178 @@ export const RUNBOOKS: SeedRunbook[] = [
     escalation: "Escalate to IR_TEAM if other accounts show related suspicious activity.",
     verificationCriteria: ["Authentication attempts with the disabled account fail."],
   },
+
+  // ---------------------------------------------------------------------------------------------
+  // Knowledge Expansion for Evaluation (Step 5): action-level runbooks for the new Actions. Same rules as above —
+  // tool-agnostic, derived from each Action's knowledge (domain/knowledge/actionKnowledge.ts), no vendor commands.
+  // RB-BLOCK-HASH and RB-QUARANTINE-EMAIL are not in the spec list but are required: RecommendationValidator only
+  // expands an Action that has an ACTIVE action-level runbook, so without them ACT-BLOCK-HASH / ACT-QUARANTINE-EMAIL
+  // could never be recommended. RB-C2-CONTAINMENT is the action-level runbook of ACT-BLOCK-DESTINATION-IP.
+  // ---------------------------------------------------------------------------------------------
+  {
+    code: "RB-QUARANTINE-FILE",
+    name: "Quarantine File",
+    description: "Action-level procedure for ACT-QUARANTINE-FILE: quarantine a malicious file on the affected endpoint.",
+    trigger: "A file recorded in the incident evidence (path and hash) is confirmed malicious on the affected endpoint.",
+    objective: "Prevent execution or further use of the identified malicious file.",
+    preconditions: ["The affected endpoint is identified in the incident evidence.", "The file path and file hash are recorded in the incident evidence / IOC record."],
+    procedure: [
+      "Confirm the file path and file hash against the incident evidence and IOC record for the affected endpoint.",
+      "Confirm no process started from the file is still running (terminate it first with ACT-KILL-PROCESS).",
+      "Quarantine the file at the recorded path through the endpoint protection control on the affected endpoint.",
+      "Confirm the file is no longer present at the recorded path and is held in quarantine.",
+      "Record the control, the quarantine identifier and the time applied in the execution result.",
+    ],
+    decisionPoints: ["If the file is a legitimate system or business file, do not quarantine it; escalate to IR_TEAM for a remediation decision."],
+    expectedResult: "The file is quarantined and can no longer be executed from the endpoint.",
+    escalation: "Escalate to IR_TEAM if the same hash appears on other endpoints or the file reappears.",
+    verificationCriteria: ["Re-hunt of the file hash returns no new detection on the endpoint.", "No process starts from the quarantined file path."],
+    relatedActions: ["ACT-QUARANTINE-FILE"],
+    requiredEvidence: ["Affected endpoint", "File path", "File hash", "Supporting malicious evidence (detection or threat-intelligence verdict)"],
+    failureCondition: "The file cannot be quarantined, reappears at the recorded path, or the same hash is detected again on the endpoint.",
+  },
+  {
+    code: "RB-KILL-MALICIOUS-PROCESS",
+    name: "Terminate Malicious Process",
+    description: "Action-level procedure for ACT-KILL-PROCESS: terminate a malicious process on the affected endpoint.",
+    trigger: "A process recorded in the incident evidence (name and command line) is confirmed malicious on the affected endpoint.",
+    objective: "Terminate the identified malicious process on the affected endpoint.",
+    preconditions: ["The affected endpoint is identified in the incident evidence.", "The process and its command line are recorded in the incident evidence / IOC record."],
+    procedure: [
+      "Confirm the process name and command line against the incident evidence for the affected endpoint.",
+      "Identify the current PID of the matching process on the endpoint and confirm its command line matches the recorded one.",
+      "Terminate the process and its child processes through the endpoint protection control.",
+      "Confirm no process with the recorded command line is running on the endpoint.",
+      "Record the PID, the control used and the time applied in the execution result.",
+    ],
+    decisionPoints: ["If the process is a critical system process, do not terminate it; escalate to IR_TEAM (endpoint isolation may be the safer containment)."],
+    expectedResult: "The malicious process is no longer running on the endpoint.",
+    escalation: "Escalate to IR_TEAM if the process restarts (persistence) or appears on other endpoints.",
+    verificationCriteria: ["The process no longer exists on the endpoint.", "Re-hunt of the process and command line shows no recurrence."],
+    relatedActions: ["ACT-KILL-PROCESS"],
+    requiredEvidence: ["Affected endpoint", "Process name", "PID (confirmed on the endpoint at execution time)", "Command line", "Supporting malicious evidence"],
+    failureCondition: "The process restarts, a new process with the same command line appears, or the process cannot be terminated.",
+  },
+  {
+    code: "RB-RESET-CREDENTIAL",
+    name: "Reset User Credentials",
+    description: "Action-level procedure for ACT-RESET-CREDENTIAL: invalidate the compromised credentials of an account.",
+    trigger: "Evidence shows the credentials of the recorded account are compromised (suspicious successful authentication, credentials submitted to a phishing page).",
+    objective: "Invalidate the compromised credentials and require new credentials for the account.",
+    preconditions: ["The account identifier is present in the incident evidence.", "Suspicious authentication evidence for the account is recorded."],
+    procedure: [
+      "Confirm the account identifier and the authentication evidence recorded for it.",
+      "Reset the account password in the identity provider / directory that authenticates it.",
+      "Require new credentials at the next sign-in and remove MFA factors the attacker may have registered.",
+      "Confirm authentication with the previous credentials now fails.",
+      "Record the reset time and method in the execution result.",
+    ],
+    decisionPoints: ["If the account is a service or shared account, coordinate the credential change with its owner so dependent services are updated."],
+    expectedResult: "The compromised credentials no longer authenticate.",
+    escalation: "Escalate to IR_TEAM if suspicious activity continues after the reset (disabling the account, ACT-DISABLE-ACCOUNT, may be needed).",
+    verificationCriteria: ["Authentication events show no successful use of the previous credentials.", "No new suspicious logon for the account after the reset."],
+    relatedActions: ["ACT-RESET-CREDENTIAL"],
+    requiredEvidence: ["Account identifier", "Suspicious authentication evidence", "Evidence of credential compromise"],
+    failureCondition: "The previous credentials still authenticate, or suspicious logons for the account continue after the reset.",
+  },
+  {
+    code: "RB-REVOKE-SESSION",
+    name: "Revoke Active Sessions",
+    description: "Action-level procedure for ACT-REVOKE-SESSION: terminate the active sessions of an affected account.",
+    trigger: "An active or suspicious session of the account recorded in the evidence is linked to the malicious activity.",
+    objective: "Terminate the active sessions associated with the affected account.",
+    preconditions: ["The account identifier is present in the incident evidence.", "An active or suspicious session of the account is recorded."],
+    procedure: [
+      "Confirm the account identifier and the session evidence recorded for it.",
+      "Revoke the active sessions and refresh tokens of the account in the identity provider.",
+      "Terminate the interactive and remote sessions of the account on the hosts named in the evidence.",
+      "Confirm no active session of the account remains.",
+      "Record the revoked sessions and the time applied in the execution result.",
+    ],
+    decisionPoints: ["If the credentials are also compromised, pair this action with a credential reset (ACT-RESET-CREDENTIAL) so the sessions cannot be re-established."],
+    expectedResult: "The account has no active session.",
+    escalation: "Escalate to IR_TEAM if a session is re-established or other accounts show related activity.",
+    verificationCriteria: ["No active session of the account remains.", "Authentication events show no new session from the suspicious source."],
+    relatedActions: ["ACT-REVOKE-SESSION"],
+    requiredEvidence: ["Account identifier", "Active / suspicious session evidence"],
+    failureCondition: "A session of the account is still active or is re-established with the same credentials.",
+  },
+  {
+    code: "RB-BLOCK-HASH",
+    name: "Block File Hash",
+    description: "Action-level procedure for ACT-BLOCK-HASH: prevent execution of files with a malicious hash.",
+    trigger: "A file hash recorded in the incident evidence is confirmed malicious (related event and supporting evidence).",
+    objective: "Prevent execution of files with the identified malicious hash.",
+    preconditions: ["The file hash is present in the incident evidence / IOC record."],
+    procedure: [
+      "Confirm the file hash against the incident evidence and IOC record, including the event that links it to the affected endpoint.",
+      "Add the hash to the block list of the endpoint protection control.",
+      "Confirm the block entry is active on that control.",
+      "Confirm an attempt to run a file with the hash is blocked.",
+      "Record the control, the block entry and the time applied in the execution result.",
+    ],
+    decisionPoints: ["If the hash belongs to a legitimate signed binary, do not block it; escalate to IR_TEAM."],
+    expectedResult: "Files with the blocked hash can no longer execute.",
+    escalation: "Escalate to IR_TEAM if the hash is found on other endpoints.",
+    verificationCriteria: ["Re-hunt of the hash returns no new execution.", "No recurrence of the hash on any endpoint."],
+    relatedActions: ["ACT-BLOCK-HASH"],
+    requiredEvidence: ["File hash", "Related event", "Supporting malicious evidence"],
+    failureCondition: "Files with the hash still execute, or the hash is detected again after the block.",
+  },
+  {
+    code: "RB-C2-CONTAINMENT",
+    name: "C2 Containment — Block Destination IP",
+    description: "Action-level procedure for ACT-BLOCK-DESTINATION-IP: deny outbound traffic to a malicious destination (C2 or exfiltration endpoint).",
+    trigger: "An outbound destination IP recorded in the incident evidence is linked to C2 or exfiltration activity (related network event and supporting IOC/CTI evidence).",
+    objective: "Prevent communication from the environment to the identified destination IP.",
+    preconditions: ["The destination IP is present in the incident evidence / IOC record.", "The affected endpoint that contacted it is identified in the evidence."],
+    procedure: [
+      "Confirm the destination IP against the incident evidence and IOC record, including the network event that links it to the affected endpoint.",
+      "Confirm the supporting IOC / threat-intelligence evidence that the destination is malicious.",
+      "Apply an outbound deny rule for the destination IP on the perimeter firewall / egress control.",
+      "Confirm the deny rule is active on that control.",
+      "Confirm new outbound connections from the affected endpoint to the destination IP are rejected.",
+      "Record the rule identifier, scope and time applied in the execution result.",
+    ],
+    decisionPoints: ["If the destination is a shared hosting / CDN address, narrow the rule or block the domain instead (ACT-BLOCK-DOMAIN)."],
+    expectedResult: "Outbound traffic to the destination IP is blocked.",
+    escalation: "Escalate to IR_TEAM if other endpoints contact the destination or the beaconing moves to a new destination.",
+    verificationCriteria: ["Re-hunt of the destination IP shows no new outbound connection.", "Network events show no recurrence of the beaconing / transfer pattern."],
+    relatedActions: ["ACT-BLOCK-DESTINATION-IP"],
+    requiredEvidence: ["Destination IP", "Related network event", "Supporting IOC / CTI evidence"],
+    failureCondition: "Outbound connections to the destination continue, or the endpoint switches to a new destination (fallback C2).",
+  },
+  {
+    code: "RB-QUARANTINE-EMAIL",
+    name: "Quarantine Email",
+    description: "Action-level procedure for ACT-QUARANTINE-EMAIL: remove a malicious message from user mailboxes.",
+    trigger: "A message recorded in the incident evidence (sender / recipients) is confirmed malicious.",
+    objective: "Remove the malicious message from user mailboxes so users cannot interact with it.",
+    preconditions: ["The message sender or identifier is present in the incident evidence / IOC record."],
+    procedure: [
+      "Confirm the message (sender, subject, recipients) against the incident evidence and IOC record.",
+      "Search the mail system for every delivered copy of the same message.",
+      "Move every copy of the message into quarantine through the mail security control.",
+      "Confirm the message is no longer present in recipient mailboxes.",
+      "Record the control, the number of copies quarantined and the time applied in the execution result.",
+    ],
+    decisionPoints: ["If recipients already clicked the link or opened the attachment, escalate to IR_TEAM for account / endpoint containment."],
+    expectedResult: "No recipient mailbox holds the malicious message.",
+    escalation: "Escalate to IR_TEAM if the same campaign is delivered again.",
+    verificationCriteria: ["No copy of the message remains in recipient mailboxes.", "The mail gateway shows no new delivery of the same campaign."],
+    relatedActions: ["ACT-QUARANTINE-EMAIL"],
+    requiredEvidence: ["Message identifier / sender", "Recipient", "Malicious indicator"],
+    failureCondition: "Copies of the message remain in mailboxes or the same campaign is delivered again.",
+  },
 ];
+
+/** Structured knowledge fields folded into the existing Runbook columns (no schema change). */
+export function persistedPreconditions(rb: SeedRunbook): string[] {
+  return [...rb.preconditions, ...(rb.requiredEvidence ?? []).map((e) => `Required evidence: ${e}`)];
+}
+export function persistedDecisionPoints(rb: SeedRunbook): string[] {
+  return [...rb.decisionPoints, ...(rb.failureCondition ? [`Failure condition: ${rb.failureCondition}`] : [])];
+}
 
 export async function seedRunbooks(prisma: PrismaClient, tenantId: string): Promise<void> {
   for (const rb of RUNBOOKS) {
@@ -259,9 +436,9 @@ export async function seedRunbooks(prisma: PrismaClient, tenantId: string): Prom
         description: rb.description,
         trigger: rb.trigger,
         objective: rb.objective,
-        preconditions: rb.preconditions as Prisma.InputJsonValue,
+        preconditions: persistedPreconditions(rb) as Prisma.InputJsonValue,
         procedure: rb.procedure as Prisma.InputJsonValue,
-        decisionPoints: rb.decisionPoints as Prisma.InputJsonValue,
+        decisionPoints: persistedDecisionPoints(rb) as Prisma.InputJsonValue,
         expectedResult: rb.expectedResult,
         escalation: rb.escalation,
         verificationCriteria: rb.verificationCriteria as Prisma.InputJsonValue,
@@ -273,9 +450,9 @@ export async function seedRunbooks(prisma: PrismaClient, tenantId: string): Prom
         description: rb.description,
         trigger: rb.trigger,
         objective: rb.objective,
-        preconditions: rb.preconditions as Prisma.InputJsonValue,
+        preconditions: persistedPreconditions(rb) as Prisma.InputJsonValue,
         procedure: rb.procedure as Prisma.InputJsonValue,
-        decisionPoints: rb.decisionPoints as Prisma.InputJsonValue,
+        decisionPoints: persistedDecisionPoints(rb) as Prisma.InputJsonValue,
         expectedResult: rb.expectedResult,
         escalation: rb.escalation,
         verificationCriteria: rb.verificationCriteria as Prisma.InputJsonValue,

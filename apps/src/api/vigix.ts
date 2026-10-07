@@ -4,6 +4,7 @@ import type { AlertWorkflowState, AlertDisplayState } from '../../backend/src/do
 import { api } from './http.ts'
 import type { IrEmailOutcome } from '@/utils/irEmail'
 import type { RunAiAnalysisResult } from '@/utils/aiAnalysis'
+import type { PlaybookRevisionItem } from '@/utils/playbookLifecycle'
 
 export interface AlertSummary {
   ruleId: string | null
@@ -122,6 +123,39 @@ export interface TimelineEntry {
   description: string
   actor: string
   occurredAt: string
+}
+
+export type AlertFactKey = 'user' | 'sourcePort' | 'attempts' | 'program' | 'logonType' | 'workstation' | 'filePath' | 'sha256' | 'process' | 'parentProcess' | 'commandLine' | 'scriptBlock' | 'url' | 'httpStatus' | 'log'
+export interface IncidentAlertFactRow {
+  alertId: string
+  externalAlertId: string
+  severity: string
+  ruleLevel: number | null
+  ruleDescription: string | null
+  sourceIp: string | null
+  destinationIp: string | null
+  mitreTechniques: string[]
+  incidentType: string | null
+  facts: { key: AlertFactKey; value: string }[]
+}
+export interface IncidentAlertFacts {
+  incidentType: string | null
+  playbook: { code: string; name: string } | null
+  matchedTechniques: string[]
+  rows: IncidentAlertFactRow[]
+}
+
+export type GuidanceSource = 'CASE' | 'GROUP' | 'PLAYBOOK'
+export interface ResponseSetup {
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  detectedType: string | null
+  incidentType: string | null
+  typeSource: 'SOC' | 'MITRE' | null
+  types: { incidentType: string; playbookCode: string; playbookName: string }[]
+  playbook: { code: string; name: string; version: string; matchedTechniques: string[]; actions: { code: string; name: string; impactLevel: string }[] } | null
+  group: { incidentType: string; severity: string; policies: string[]; allowedActions: string[] | null; notes: string[] } | null
+  caseGuidance: { allowedActions: string[]; instructions: string | null; setBy: string; setAt: string } | null
+  effective: { allowedActions: string[]; instructions: string | null; source: GuidanceSource }
 }
 
 export interface RawAlert {
@@ -328,6 +362,14 @@ export const incidentsApi = {
   get: (id: string) => api<Incident>(`/api/v1/incidents/${id}`),
   timeline: (id: string) => api<TimelineEntry[]>(`/api/v1/incidents/${id}/timeline`),
   alerts: (id: string) => api<{ items: RawAlert[] }>(`/api/v1/incidents/${id}/alerts`),
+  /** Investigation table: each alert's key facts for the incident type (type from the matched playbook). */
+  alertFacts: (id: string) => api<IncidentAlertFacts>(`/api/v1/incidents/${id}/alert-facts`),
+  /** SOC response setup before a Recommendation: incident type, group / case guidance, what applies now. */
+  responseSetup: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-setup`),
+  setIncidentType: (id: string, incidentType: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/incident-type`, { method: 'PUT', body: { incidentType } }),
+  setCaseGuidance: (id: string, allowedActions: string[], instructions: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'PUT', body: { allowedActions, instructions } }),
+  clearCaseGuidance: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'DELETE' }),
+  saveGroupGuidance: (id: string, allowedActions: string[], note: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance/group`, { method: 'PUT', body: { allowedActions, note } }),
   iocs: (id: string) => api<{ items: Ioc[] } | Ioc[]>(`/api/v1/incidents/${id}/iocs`),
   relatedAlertEvidence: (id: string) => api<{ items: RelatedAlertEvidence[]; criteria: Record<string, unknown> }>(`/api/v1/incidents/${id}/related-alert-evidence`),
   mitre: (id: string) => api<{ items: MitreMapping[] } | MitreMapping[]>(`/api/v1/incidents/${id}/mitre-mappings`),
@@ -401,6 +443,10 @@ export const workflowApi = {
   /** IR decision — the note is mandatory for both APPROVE and REJECT. */
   approve: (approvalId: string, note: string) => api<Approval>(`/api/approvals/${approvalId}/approve`, { method: 'POST', body: { comment: note } }),
   reject: (approvalId: string, note: string) => api<Approval>(`/api/approvals/${approvalId}/reject`, { method: 'POST', body: { comment: note } }),
+  /** IR Manual Decision after a REJECT: IR approves its own manual response (note = the manual plan). */
+  manualDecision: (responseId: string, note: string) => api<ResponsePlan>(`/api/responses/${responseId}/manual-decision`, { method: 'POST', body: { note } }),
+  /** SOC Validation REJECT: rejects the recommendation and closes the incident (note mandatory). */
+  rejectRecommendation: (recommendationId: string, note: string) => api<Recommendation>(`/api/recommendations/${recommendationId}/reject`, { method: 'POST', body: { note } }),
   /** IR starts executing an APPROVED ticket. */
   start: (responseId: string) => api<ResponsePlan>(`/api/responses/${responseId}/start`, { method: 'POST', body: {} }),
   complete: (responseId: string, executionResult: Record<string, unknown>) => api<ResponsePlan>(`/api/responses/${responseId}/complete`, { method: 'POST', body: { executionResult } }),
@@ -417,6 +463,8 @@ export const workflowApi = {
 export type SlaStatus = 'NOT_STARTED' | 'ON_TRACK' | 'AT_RISK' | 'BREACHED' | 'MET' | 'PAUSED' | 'CANCELLED'
 export interface SlaClock {
   targetMinutes: number
+  /** The target as the Policy states it (e.g. 3 business days); null when a policy override sets other minutes. */
+  target: { value: number; unit: 'minute' | 'hour' | 'business_day' } | null
   dueAt: string
   at: string | null
   status: SlaStatus
@@ -437,8 +485,11 @@ export interface RehuntHealth {
   error?: string
   provider?: 'wazuh-indexer' | 'mock'
 }
+export type ReportWindowKey = 'daily' | 'weekly' | '1m' | '3m'
 export interface DashboardSummary {
   generatedAt: string
+  /** The report window the backend resolved and filtered event counts by (null = all time). */
+  window?: { period: ReportWindowKey | null; since: string | null }
   alerts: { total: number; last24h: number; unlinked: number; bySeverity: Record<string, number>; daily: { date: string; critical: number; high: number; medium: number; low: number }[] }
   incidents: { total: number; byStatus: Record<string, number>; openByPriority: Record<string, number>; mttrMinutes: number | null; resolvedLast7d: number; openedLast7d: number }
   responses: { byStatus: Record<string, number>; pendingApprovalsByRole: Record<string, number> }
@@ -526,6 +577,21 @@ export const knowledgeApi = {
   policies: () => api<{ items: Policy[] }>('/api/policies'),
   techniques: () => api<{ techniques: MitreTechnique[] }>('/api/v1/mitre/techniques'),
 }
+/**
+ * Playbook versions (Phase 1D): SOC / IR_TEAM (and admin) create and edit drafts; SOC / IR_TEAM publish and roll back
+ * directly — there is no review or approval step.
+ */
+export const playbookVersionsApi = {
+  list: (id: string) => api<{ publishedRevisionId: string | null; items: PlaybookRevisionItem[] }>(`/api/playbooks/${id}/revisions`),
+  /** "Create New Version": a draft copy of the published version. */
+  createVersion: (id: string) => api<PlaybookRevisionItem>(`/api/playbooks/${id}/revisions`, { method: 'POST', body: {} }),
+  updateDraft: (id: string, revisionId: string, body: Record<string, unknown>) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}`, { method: 'PUT', body }),
+  publish: (id: string, revisionId: string) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}/publish`, { method: 'POST', body: {} }),
+  rollback: (id: string, revisionId: string) =>
+    api<{ revisionId: string; version: string }>(`/api/playbooks/${id}/revisions/${revisionId}/rollback`, { method: 'POST', body: {} }),
+}
 export interface NotificationRecipient {
   role: 'SOC' | 'IR_TEAM' | 'ADMIN'
   /** Full for admin, masked for everyone else. */
@@ -606,7 +672,10 @@ export const systemApi = {
 }
 
 export const dashboardApi = {
-  summary: (days = 14) => api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days } }),
+  /** `period` (daily/weekly/1m/3m) — the BACKEND computes the window start and limits event counts to it; backlog
+   *  figures stay "as of now". `since` (ISO instant) is still accepted as an override for callers that need one. */
+  summary: (days = 14, period?: ReportWindowKey, since?: Date) =>
+    api<DashboardSummary>('/api/v1/dashboard/summary', { query: { days, period, since: since?.toISOString() } }),
 }
 // ---------------------------------------------------------------- In-app notifications (header bell)
 export interface InAppNotification {

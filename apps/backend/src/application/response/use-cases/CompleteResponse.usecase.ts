@@ -38,10 +38,12 @@ export class CompleteResponseUseCase {
     if (!response) return Result.fail("NOT_FOUND");
     if (response.status !== "IN_PROGRESS") return Result.fail("INVALID_STATE");
 
+    // A manual-decision plan (IR rejected the AI step and approved its own) stays on the ticket next to the result.
+    const manualDecision = response.executionResult?.manualDecision;
     const updated = await this.responsePlanRepository.updateStatus(response.id, input.tenantId, {
       status: "COMPLETED",
       completedAt: new Date(),
-      executionResult: input.executionResult,
+      executionResult: manualDecision ? { manualDecision, ...input.executionResult } : input.executionResult,
     });
 
     await this.responsePlanRepository.recordStepExecution?.(response.id, input.tenantId, { status: "COMPLETED", executedBy: input.completedBy, at: updated.completedAt ?? new Date(), actualResult: JSON.stringify(input.executionResult) });

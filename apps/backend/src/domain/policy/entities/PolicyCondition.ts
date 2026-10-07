@@ -25,6 +25,7 @@ export type ConditionOperator = "eq" | "neq" | "gte" | "lte" | "gt" | "lt";
 
 export type ConditionFieldName =
   | "severity"
+  | "incidentType"
   | "assetCriticality"
   | "actionImpactLevel"
   | "verificationResult"

@@ -1,0 +1,25 @@
+{
+  "id": "1727689080.20009",
+  "timestamp": "2026-09-30T09:38:00.000+0000",
+  "rule": {
+    "id": "100340",
+    "level": 13,
+    "description": "Large outbound data transfer to an external host (possible data exfiltration)",
+    "groups": ["ids", "exfiltration", "dlp", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1048"], "tactic": ["Exfiltration"], "technique": ["Exfiltration Over Alternative Protocol"] }
+  },
+  "agent": { "id": "002", "name": "FILESRV-01", "ip": "10.0.2.50" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "suricata" },
+  "location": "/var/log/suricata/eve.json",
+  "data": {
+    "srcip": "10.0.2.50",
+    "dstip": "45.61.136.77",
+    "dstport": "443",
+    "url": "https://vigix-mock-exfil.net/upload",
+    "dns": { "question": { "name": "vigix-mock-exfil.net" } },
+    "bytes_out": "2483920128"
+  },
+  "full_log": "Outbound 2.48 GB in 8 minutes from 10.0.2.50 -> 45.61.136.77:443 (vigix-mock-exfil.net/upload); archived /srv/share/hr/*.xlsx and /srv/share/finance/*.pdf into data.7z before transfer; volume 60x this host's daily baseline"
+}

@@ -63,6 +63,8 @@ const confirmOpen = ref(false)
 /** The IR decision note — mandatory for both APPROVE and REJECT. */
 const decisionNote = ref('')
 const recommendationSummary = ref<string | null>(null)
+/** Round of the ticket's recommendation: rounds after the first go straight to the IR decision (no SOC review). */
+const recommendationRound = ref(1)
 
 const settle = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback)
 
@@ -86,6 +88,7 @@ async function load() {
     incident.value = inc
     step.value = rec?.steps.find((x) => x.id === p.recommendationStepId) ?? null
     recommendationSummary.value = rec?.summary ?? null
+    recommendationRound.value = rec?.investigationNumber ?? 1
     chain.value = approvalChainFor(apps, p.id)
     approval.value = currentApproval(chain.value)
     verification.value = vers.find((v) => v.responseId === p.id) ?? null
@@ -128,6 +131,29 @@ async function decide(kind: 'approve' | 'reject') {
     busy.value = null
   }
 }
+/** IR Manual Decision (after REJECT): IR approves its own manual response plan -> READY_FOR_EXECUTION. */
+const manualNote = ref('')
+async function decideManually() {
+  const note = manualNote.value.trim()
+  if (!plan.value || busy.value || !note) return
+  busy.value = 'action'
+  actionError.value = ''
+  try {
+    await workflowApi.manualDecision(plan.value.id, note)
+    manualNote.value = ''
+    ui.notify(feedback('approved', locale.value))
+    await load()
+  } catch (e) {
+    actionError.value = describeWorkflowError(e)
+    ui.error(t('tk.manualFailed'), actionError.value)
+  } finally {
+    busy.value = null
+  }
+}
+const manualPlan = computed(() => {
+  const m = plan.value?.executionResult?.manualDecision as { note?: string; decidedAt?: string } | undefined
+  return m?.note ? m : null
+})
 const instructions = computed(() => step.value?.instructions ?? [])
 const severity = computed(() => toSeverity(incident.value?.priority))
 const rehuntLabel = computed(() => (rehuntSource.value?.provider === 'mock' || rehuntSource.value?.clusterStatus === 'mock' ? t('tk.mockFixtures') : t('tk.wazuhIndexer')))
@@ -250,12 +276,12 @@ type StepState = 'done' | 'current' | 'todo' | 'bad'
 const lifecycle = computed(() => {
   const s = stage.value
   const order = ['READY_FOR_EXECUTION', 'IN_PROGRESS', 'AWAITING_REHUNT', 'VERDICT'] as const
-  const reached = s === 'AWAITING_IR_DECISION' || s === 'REJECTED' || s === 'CLOSED' ? -1 : s === 'READY_FOR_EXECUTION' ? 0 : s === 'IN_PROGRESS' ? 1 : s === 'AWAITING_REHUNT' ? 2 : 3
+  const reached = s === 'AWAITING_IR_DECISION' || s === 'AWAITING_MANUAL_DECISION' || s === 'REJECTED' || s === 'CLOSED' ? -1 : s === 'READY_FOR_EXECUTION' ? 0 : s === 'IN_PROGRESS' ? 1 : s === 'AWAITING_REHUNT' ? 2 : 3
   const state = (i: number): StepState => (i < reached ? 'done' : i === reached ? (i === 3 ? (s === 'COMPLETED' ? 'done' : 'bad') : 'current') : 'todo')
   const verdict = t(s === 'COMPLETED' ? 'tk.lc.resolved' : s === 'ESCALATED' ? 'tk.lc.escalated' : s === 'NOT_RESOLVED' ? 'tk.lc.newCycle' : 'tk.lc.verdict')
   const out: { key: string; label: string; state: StepState }[] = []
   if (plan.value) {
-    out.push({ key: 'APPROVAL', label: t('tk.lc.approval'), state: s === 'AWAITING_IR_DECISION' ? 'current' : plan.value.status === 'REJECTED' || plan.value.approvalStatus === 'REJECTED' ? 'bad' : 'done' })
+    out.push({ key: 'APPROVAL', label: t('tk.lc.approval'), state: s === 'AWAITING_IR_DECISION' || s === 'AWAITING_MANUAL_DECISION' ? 'current' : plan.value.status === 'REJECTED' || plan.value.approvalStatus === 'REJECTED' ? 'bad' : 'done' })
   }
   const labels = [t('tk.lc.ready'), t('tk.lc.inProgress'), t('tk.lc.awaitingRehunt'), verdict]
   order.forEach((k, i) => out.push({ key: k, label: labels[i], state: state(i) }))
@@ -356,7 +382,7 @@ const matched = computed(() => (verification.value?.matchingEvents ?? 0) > 0)
             <MarkdownText v-if="ai?.summary" :text="ai.summary" class="mt-2" />
             <p v-else class="mt-2 text-sm text-slate-800">{{ t('tk.noAi') }}</p>
             <ul v-if="ai?.keyFindings.length" class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700"><li v-for="f in ai.keyFindings" :key="f">{{ f }}</li></ul>
-            <h3 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('tk.recReviewed') }}</h3>
+            <h3 class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ recommendationRound > 1 ? t('tk.recNewRound', { n: recommendationRound }) : t('tk.recReviewed') }}</h3>
             <p class="mt-1 text-sm text-slate-800">{{ recommendationSummary ?? t('c.notAvailable') }}</p>
             <p v-if="step" class="mt-2 text-xs text-slate-500">{{ t('tk.whyAction', { text: step.reason }) }}</p>
             <p v-if="step?.evidence.length" class="mt-1 text-[11px] text-slate-400">{{ t('inc.evidence', { text: step.evidence.join(' · ') }) }}</p>
@@ -401,6 +427,24 @@ const matched = computed(() => (verification.value?.matchingEvents ?? 0) > 0)
             <h2 id="notes-h" class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('tk.notes') }}</h2>
             <textarea v-model="notes" rows="4" :disabled="!canExecute" :placeholder="t('tk.notesPlaceholder')" :aria-label="t('tk.notesAria')" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent-500 focus:outline-none disabled:bg-slate-50" />
             <p class="mt-1 text-[11px] text-slate-400">{{ t('tk.notesHint') }}</p>
+          </section>
+
+          <!-- IR Decision REJECT -> Manual Decision -> APPROVE -> IR Execution -->
+          <section v-if="stage === 'AWAITING_MANUAL_DECISION'" class="rounded-xl border border-orange-200 bg-white p-5 space-y-3">
+            <p class="text-sm font-semibold text-slate-800">{{ t('tk.manualDecision') }} <span class="font-normal text-slate-500">{{ t('tk.manualDecisionHint') }}</span></p>
+            <template v-if="canExecute">
+              <label class="block text-xs font-semibold text-slate-600">
+                {{ t('tk.manualPlan') }}
+                <textarea v-model="manualNote" rows="4" maxlength="4000" :placeholder="t('tk.manualPlaceholder')" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal" />
+              </label>
+              <p v-if="actionError" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{{ actionError }}</p>
+              <button type="button" class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50" :disabled="!!busy || !manualNote.trim()" @click="decideManually"><CheckCircle2 class="size-4" /> {{ t('tk.manualApprove') }}</button>
+            </template>
+            <p v-else class="text-sm text-orange-800">{{ t('tk.waitingManual') }}</p>
+          </section>
+          <section v-if="manualPlan" class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+            <p class="text-xs font-semibold uppercase tracking-wide">{{ t('tk.manualPlanLabel') }}</p>
+            <p class="mt-1 whitespace-pre-line">{{ manualPlan.note }}</p>
           </section>
 
           <!-- Actions -->

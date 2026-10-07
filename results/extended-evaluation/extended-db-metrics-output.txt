@@ -1,0 +1,55 @@
+=== A. alerts by severity and handling (benign LOW / FP scenarios; rule ids from the ground truth) ===
+  rule  | level | severity | workflow_state | triage_disposition | incident_links |                audits                
+--------+-------+----------+----------------+--------------------+----------------+--------------------------------------
+ 5715   |     3 | low      | NEW            |                    |              0 | ALERT_OUTSIDE_SOC_WORKFLOW
+ 5760   |     5 | low      | NEW            |                    |              0 | ALERT_OUTSIDE_SOC_WORKFLOW
+ 31101  |     5 | low      | NEW            |                    |              0 | ALERT_OUTSIDE_SOC_WORKFLOW
+ 31105  |     6 | low      | NEW            |                    |              0 | ALERT_OUTSIDE_SOC_WORKFLOW
+ 31103  |     7 | medium   | TRIAGED        | FALSE_POSITIVE     |              0 | ALERT_ROUTED_TO_TRIAGE,ALERT_TRIAGED
+ 31151  |    10 | medium   | TRIAGED        | FALSE_POSITIVE     |              0 | ALERT_ROUTED_TO_TRIAGE,ALERT_TRIAGED
+ 100350 |    14 | critical | TRIAGED        |                    |              1 | ALERT_ESCALATED_TO_INCIDENT
+(7 rows)
+
+=== A. FP-03: incident, tickets, executions, approvals ===
+  status   | priority | tickets |      ticket_status      | step_executions |    approvals     
+-----------+----------+---------+-------------------------+-----------------+------------------
+ dismissed | critical |       1 | PENDING_MANUAL_DECISION |               0 | rejected/IR_TEAM
+(1 row)
+
+=== C. ESCALATED incident ===
+    result    | matching_events |    source     
+--------------+-----------------+---------------
+ NOT_RESOLVED |               3 | WAZUH_INDEXER
+ NOT_RESOLVED |               3 | WAZUH_INDEXER
+ NOT_RESOLVED |               3 | WAZUH_INDEXER
+(3 rows)
+
+  status   | investigation_number 
+-----------+----------------------
+ escalated |                    3
+(1 row)
+
+         action          | count 
+-------------------------+-------
+ INCIDENT_ESCALATED      |     1
+ INVESTIGATION_ESCALATED |     1
+ INVESTIGATION_REOPENED  |     2
+(3 rows)
+
+=== C. first ESC attempt (infrastructure failure, kept as a record) ===
+ verifications_of_failed_attempt 
+---------------------------------
+                               0
+(1 row)
+
+=== B. RAG arms (incident ids taken from the two run.json files) ===
+      arm       | incidents | with_validated_recommendation | resolved | rag_results_with_documents | rag_not_found 
+----------------+-----------+-------------------------------+----------+----------------------------+---------------
+ A_empty_corpus |         9 |                             6 |        5 |                          0 |             9
+(1 row)
+
+       arm        | incidents | with_validated_recommendation | resolved | rag_results_with_documents | rag_not_found 
+------------------+-----------+-------------------------------+----------+----------------------------+---------------
+ B_runbook_corpus |         9 |                             7 |        5 |                          9 |             0
+(1 row)
+

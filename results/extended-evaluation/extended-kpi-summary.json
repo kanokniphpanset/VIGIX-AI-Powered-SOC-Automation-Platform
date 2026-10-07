@@ -1,0 +1,293 @@
+{
+  "generatedAt": "2026-10-01T07:14:53.703Z",
+  "database": "soar_ext_eval",
+  "groundTruthPins": {
+    "lowFp": "19e2f2236dbe70583075664efa5c4a1d96fc68da777736273dca0ba122423e15",
+    "pinnedAt": "2026-10-01T05:21:07.698Z",
+    "escalation": "bd8aeaf821b6cec2ee36b7048792c3ab497ace6bdb3a7b36ec1ef7af0ae67d79",
+    "escalationPinnedAt": "2026-10-01T05:25:48.456Z",
+    "rag": "b20824a25040ff352301ddaff25923d21674eed4bbaf5880f814b5b0b94b0b77",
+    "ragPinnedAt": "2026-10-01T05:40:24.791Z"
+  },
+  "parts": {
+    "lowFp": {
+      "lowKeptOutOfWorkflow": {
+        "n": 4,
+        "of": 4
+      },
+      "lowSeverityMatchesWazuhLevel": {
+        "n": 4,
+        "of": 4,
+        "levels": [
+          "LOW-01: level 3 → low",
+          "LOW-02: level 5 → low",
+          "LOW-03: level 5 → low",
+          "LOW-04: level 6 → low"
+        ]
+      },
+      "mediumFalsePositivesClosedWithoutIncidentOrAi": {
+        "n": 2,
+        "of": 2
+      },
+      "highCriticalAutoIncident": {
+        "n": 1,
+        "of": 1
+      },
+      "highCriticalNotClosableFromInbox": {
+        "n": 1,
+        "of": 1
+      },
+      "benignRecommendationsProducedForHighCritical": {
+        "n": 1,
+        "of": 1,
+        "note": "cost of a false positive; the AI has no false-positive verdict and is not graded on one"
+      },
+      "irRejectedBenignRecommendation": {
+        "n": 1,
+        "of": 1
+      },
+      "benignAlertsLeadingToExecutedResponse": {
+        "n": 0,
+        "of": 7
+      },
+      "harnessChecks": {
+        "passed": 65,
+        "of": 65
+      },
+      "overallFalsePositiveRate": "NOT CALCULABLE — a rule-level false-positive rate needs a labelled benign event stream (denominator = all benign events); only 3 benign scenarios were tested, so only handling of known-benign alerts is measured",
+      "aiFalsePositiveDetection": "NOT CALCULABLE — VIGIX emits no false-positive verdict (AI never triages); nothing to score",
+      "aiMentionsBenignContext": [
+        {
+          "case": "FP-03",
+          "keywordObservation": true
+        }
+      ]
+    },
+    "escalation": {
+      "outcome": "ESCALATED (third round reached)",
+      "rounds": 3,
+      "auditCounts": {
+        "INVESTIGATION_REOPENED": 2,
+        "INVESTIGATION_ESCALATED": 1,
+        "INCIDENT_ESCALATED": 1
+      },
+      "incidentFinal": {
+        "status": "escalated",
+        "investigationNumber": 3
+      },
+      "harnessChecks": {
+        "passed": 15,
+        "of": 15,
+        "list": [
+          {
+            "id": "R1a",
+            "check": "round 1: the REAL_WAZUH re-hunt sees the recurrence",
+            "expected": "NOT_RESOLVED, matching events > 0",
+            "actual": "NOT_RESOLVED, 3",
+            "pass": true
+          },
+          {
+            "id": "R1b",
+            "check": "round 1: investigation reopened, incident not closed",
+            "expected": "investigation #2, status not resolved/escalated",
+            "actual": "#2, investigating",
+            "pass": true
+          },
+          {
+            "id": "R2a",
+            "check": "round 2: the REAL_WAZUH re-hunt sees the recurrence",
+            "expected": "NOT_RESOLVED, matching events > 0",
+            "actual": "NOT_RESOLVED, 3",
+            "pass": true
+          },
+          {
+            "id": "R2b",
+            "check": "round 2: investigation reopened, incident not closed",
+            "expected": "investigation #3, status not resolved/escalated",
+            "actual": "#3, investigating",
+            "pass": true
+          },
+          {
+            "id": "R3a",
+            "check": "round 3: the REAL_WAZUH re-hunt sees the recurrence",
+            "expected": "NOT_RESOLVED, matching events > 0",
+            "actual": "NOT_RESOLVED, 3",
+            "pass": true
+          },
+          {
+            "id": "E1",
+            "check": "three REAL_WAZUH verifications, all NOT_RESOLVED",
+            "expected": "3 × NOT_RESOLVED",
+            "actual": "NOT_RESOLVED, NOT_RESOLVED, NOT_RESOLVED",
+            "pass": true
+          },
+          {
+            "id": "E2",
+            "check": "the third NOT_RESOLVED escalates the incident (not resolved, not closed)",
+            "expected": "status escalated, investigation #3",
+            "actual": "escalated, #3",
+            "pass": true
+          },
+          {
+            "id": "E3",
+            "check": "INVESTIGATION_ESCALATED audited with MAX_INVESTIGATION_ROUNDS_REACHED",
+            "expected": "present",
+            "actual": "[[\"MAX_INVESTIGATION_ROUNDS_REACHED\"]]",
+            "pass": true
+          },
+          {
+            "id": "E4",
+            "check": "INCIDENT_ESCALATED audited, INVESTIGATION_REOPENED exactly twice",
+            "expected": "INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2",
+            "actual": "INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2",
+            "pass": true
+          },
+          {
+            "id": "E5",
+            "check": "no new recommendation / investigation after the escalation",
+            "expected": "0 recommendations after the 3rd verification; investigation stays #3",
+            "actual": "0 new recommendations; #3",
+            "pass": true
+          },
+          {
+            "id": "E6",
+            "check": "no response was created or executed automatically after the escalation",
+            "expected": "0 new tickets",
+            "actual": "0 new tickets",
+            "pass": true
+          },
+          {
+            "id": "E7",
+            "check": "an escalated incident cannot be resolved by hand",
+            "expected": "refused RESOLVE_REQUIRES_VERIFICATION",
+            "actual": "RESOLVE_REQUIRES_VERIFICATION",
+            "pass": true
+          },
+          {
+            "id": "E8",
+            "check": "a ticket cannot be verified twice (no silent fourth round)",
+            "expected": "refused",
+            "actual": "ALREADY_VERIFIED",
+            "pass": true
+          },
+          {
+            "id": "E9",
+            "check": "the escalated incident is still not closed after all attempts",
+            "expected": "status escalated",
+            "actual": "escalated",
+            "pass": true
+          },
+          {
+            "id": "E10",
+            "check": "no AI/system actor changed the incident status",
+            "expected": "0",
+            "actual": "0",
+            "pass": true
+          }
+        ]
+      }
+    },
+    "rag": {
+      "A": {
+        "compliance": {
+          "compliant": 6,
+          "evaluated": 6,
+          "attempted": 9
+        },
+        "retries": {
+          "cases": 4,
+          "total": 17,
+          "of": 9
+        },
+        "workflow": {
+          "n": 5,
+          "of": 9
+        },
+        "ipRole": {
+          "allIpSteps": {
+            "correct": 3,
+            "of": 5
+          },
+          "destinationIpSteps": {
+            "correct": 0,
+            "of": 2
+          }
+        },
+        "ragStatuses": {
+          "not_found": 9
+        }
+      },
+      "B": {
+        "compliance": {
+          "compliant": 7,
+          "evaluated": 7,
+          "attempted": 9
+        },
+        "retries": {
+          "cases": 2,
+          "total": 10,
+          "of": 9
+        },
+        "workflow": {
+          "n": 5,
+          "of": 9
+        },
+        "ipRole": {
+          "allIpSteps": {
+            "correct": 5,
+            "of": 5
+          },
+          "destinationIpSteps": {
+            "correct": 2,
+            "of": 2
+          }
+        },
+        "retrieval": {
+          "casesWithRetrieval": 9,
+          "primaryHitAt1": {
+            "n": 6,
+            "of": 9
+          },
+          "primaryHitAt3": {
+            "n": 6,
+            "of": 9
+          },
+          "relevantHitAt3": {
+            "n": 8,
+            "of": 9
+          },
+          "precisionAt3": {
+            "n": 9,
+            "mean": 0.52,
+            "median": 0.33,
+            "sd": 0.34,
+            "min": 0,
+            "max": 1
+          },
+          "recallAt3": {
+            "n": 9,
+            "mean": 0.38,
+            "median": 0.33,
+            "sd": 0.19,
+            "min": 0,
+            "max": 0.6
+          },
+          "mrr": {
+            "n": 9,
+            "mean": 0.76,
+            "median": 1,
+            "sd": 0.38,
+            "min": 0,
+            "max": 1
+          }
+        },
+        "ragStatuses": {
+          "found (no status field; chunks present)": 9
+        }
+      }
+    },
+    "windows": {
+      "result": "ENVIRONMENT_UNAVAILABLE"
+    }
+  }
+}

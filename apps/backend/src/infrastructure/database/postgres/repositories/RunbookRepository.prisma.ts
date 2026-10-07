@@ -48,9 +48,9 @@ export class PrismaRunbookRepository implements IRunbookRepository {
     return RunbookMapper.toDomain(raw);
   }
 
-  async update(id: string, _tenantId: string, input: UpdateRunbookInput): Promise<Runbook> {
+  async update(id: string, tenantId: string, input: UpdateRunbookInput): Promise<Runbook> {
     const raw = await this.prisma.runbook.update({
-      where: { id },
+      where: { id, tenantId },
       data: {
         name: input.name,
         version: input.version,

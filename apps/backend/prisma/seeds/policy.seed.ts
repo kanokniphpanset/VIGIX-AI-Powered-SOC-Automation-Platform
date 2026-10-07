@@ -26,7 +26,7 @@ export interface SeedPolicy {
   code: string;
   name: string;
   description: string;
-  type: "PRIORITY" | "ASSIGNMENT" | "APPROVAL" | "VERIFICATION" | "ESCALATION" | "INTAKE" | "TRIAGE_SLA";
+  type: "PRIORITY" | "ASSIGNMENT" | "APPROVAL" | "VERIFICATION" | "ESCALATION" | "INTAKE" | "TRIAGE_SLA" | "ACTION_COMPLIANCE";
   precedence: number;
   rules: SeedRule[];
 }
@@ -71,6 +71,10 @@ export const RISK_SCORE_RETIRED_CODES = ["RULE-R01", "RULE-R02", "RULE-R03", "RU
  *   RULE-P11 / RULE-P12 were the "IR before Manager" duplicates of RULE-P04 / RULE-P05.
  */
 export const TWO_ROLE_RETIRED_CODES = ["RULE-P01", "RULE-P11", "RULE-P12"];
+
+/** Actions covered by POL-A02 (network blocking) and POL-A03 (endpoint containment). */
+export const NETWORK_BLOCK_ACTIONS = ["ACT-BLOCK-SOURCE-IP", "ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL"];
+export const ENDPOINT_CONTAINMENT_ACTIONS = ["ACT-ISOLATE-ENDPOINT", "ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"];
 
 export const POLICIES: SeedPolicy[] = [
   // ============================================================
@@ -295,6 +299,57 @@ export const POLICIES: SeedPolicy[] = [
       },
     ],
   },
+  // ============================================================
+  // ACTION COMPLIANCE (Knowledge Expansion for Evaluation, Step 6). POL-A01 is an APPROVAL reason like RULE-P04/P05
+  // (no existing rule tags a HIGH-impact action on its own — P04 needs a critical asset, P05 a CRITICAL action).
+  // POL-A02 / POL-A03 are ACTION_COMPLIANCE policies: the evidence an Action needs before a Recommendation may use
+  // it, enforced deterministically by RecommendationValidator (domain/knowledge EVIDENCE_REQUIREMENTS ids). They
+  // never approve, execute or skip anything; IR still decides every Response Ticket.
+  // ============================================================
+  {
+    code: "POL-A01",
+    name: "High Impact Action Requires IR Approval",
+    description: "High-impact containment actions (Isolate Endpoint, Disable User Account, Reset User Credentials) require IR_TEAM approval before execution (reason HIGH_IMPACT_ACTION).",
+    type: "APPROVAL",
+    precedence: 67,
+    rules: [
+      {
+        condition: { field: "actionImpactLevel", operator: "eq", value: "HIGH" },
+        result: { approvalRequired: true, approvalRole: "IR_TEAM", approvalChain: ["IR_TEAM"], approvalReason: ["HIGH_IMPACT_ACTION"] },
+      },
+    ],
+  },
+  {
+    code: "POL-A02",
+    name: "Network Blocking Requires Validated IOC",
+    description: "Block Source IP / Destination IP / Domain / URL need a validated IOC of the right kind, a related event naming it and supporting evidence.",
+    type: "ACTION_COMPLIANCE",
+    precedence: 75,
+    rules: [
+      {
+        condition: {
+          any: NETWORK_BLOCK_ACTIONS.map((code) => ({ field: "actionCode", operator: "eq", value: code })),
+        },
+        result: { requiredEvidence: ["VALIDATED_IOC_TARGET", "RELATED_EVENT", "SUPPORTING_EVIDENCE"] },
+      },
+    ],
+  },
+  {
+    code: "POL-A03",
+    name: "Endpoint Containment Requires Endpoint Evidence",
+    description: "Isolate Endpoint / Terminate Malicious Process / Quarantine File need the affected endpoint and evidence of the activity on it.",
+    type: "ACTION_COMPLIANCE",
+    precedence: 76,
+    rules: [
+      {
+        condition: {
+          any: ENDPOINT_CONTAINMENT_ACTIONS.map((code) => ({ field: "actionCode", operator: "eq", value: code })),
+        },
+        result: { requiredEvidence: ["AFFECTED_ENDPOINT", "SUSPICIOUS_ACTIVITY_EVIDENCE"] },
+      },
+    ],
+  },
+
   // ============================================================
   // INTAKE — Alert -> Incident (deterministic, from the Wazuh rule severity):
   //   LOW       stored only; never enters the SOC workflow, never opens an incident

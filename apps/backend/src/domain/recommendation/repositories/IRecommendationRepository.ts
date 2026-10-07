@@ -1,3 +1,4 @@
+import { PlaybookRevisionProvenance } from "../../playbook/PlaybookRevisionProvenance";
 import { Recommendation, RecommendationInstruction, RecommendationStatus, RecommendationStepProps } from "../entities/Recommendation.entity";
 
 export interface CreateRecommendationStepData {
@@ -16,7 +17,7 @@ export interface CreateRecommendationStepData {
   verificationCriteria: string | null;
 }
 
-/** Frozen record of what a Recommendation cycle was grounded in (playbook_snapshots, one per investigation cycle). */
+/** Frozen grounding for one Recommendation generation; each generation gets a new snapshot. */
 export interface RecommendationSnapshotData {
   playbookCode: string;
   playbookVersion: string;
@@ -27,6 +28,8 @@ export interface RecommendationSnapshotData {
 }
 
 export interface CreateRecommendationData {
+  /** Required at runtime for all new persisted recommendations; legacy reads remain unchanged. */
+  provenance?: PlaybookRevisionProvenance | null;
   tenantId: string;
   incidentId: string;
   investigationNumber: number;

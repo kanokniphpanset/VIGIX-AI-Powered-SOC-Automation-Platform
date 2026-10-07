@@ -25,6 +25,8 @@ export interface IocContextRow {
   sourceAlertId?: string | null;
   sourceExternalAlertId?: string | null;
   addedReason?: string | null;
+  /** Role of an IP IOC in the alert that raised the incident (data.srcip -> source, data.dstip -> destination). */
+  networkRole?: "source" | "destination";
 }
 
 export interface MitreMappingContextRow {
@@ -83,4 +85,13 @@ export interface IRecommendationContextRepository {
   /** The latest analysis actually produced by the LLM; fallback / failed / unverified legacy rows are skipped. */
   getLatestAiAnalysis(incidentId: string): Promise<AiAnalysisContextRow | null>;
   getLatestAnalysisRun?(incidentId: string): Promise<AnalysisRunRow | null>;
+  /** Action + target of every step of the incident's earlier Recommendations (all rounds, any status). */
+  getPreviousRecommendationSteps?(incidentId: string, tenantId: string): Promise<PreviousRecommendationStepRow[]>;
+}
+
+export interface PreviousRecommendationStepRow {
+  recommendationNumber: number;
+  investigationNumber: number;
+  actionCode: string;
+  target: string;
 }

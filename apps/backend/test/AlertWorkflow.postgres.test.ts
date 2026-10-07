@@ -93,15 +93,20 @@ test('a failed audit rolls the decision back so a retry can succeed', async () =
   expect((await workflow.triage.execute({ ...input(a.id), decision: 'FALSE_POSITIVE', reason: 'scanner' })).isSuccess).toBe(true);
 });
 
-test.each(['FALSE_POSITIVE', 'INFORMATIONAL'] as const)('%s (MEDIUM) requires a reason and atomically closes with audit, preserving the raw payload, no email', async decision => {
+test.each(['FALSE_POSITIVE', 'INFORMATIONAL'] as const)('%s (MEDIUM) atomically closes with audit, preserving the raw payload, no email', async decision => {
   const a = await alert();
-  expect((await workflow.triage.execute({ ...input(a.id), decision, reason: null })).isFailure).toBe(true);
   expect((await workflow.triage.execute({ ...input(a.id), decision, reason: 'Verified source evidence' })).isSuccess).toBe(true);
   const stored = await db.alert.findUniqueOrThrow({ where: { id: a.id } });
   expect(stored).toMatchObject({ workflowState: 'TRIAGED', status: 'closed', triageDisposition: decision, rawPayload: a.rawPayload });
   expect(stored.closedAt).not.toBeNull();
   expect(await db.auditLog.count({ where: { entityId: a.id, action: 'ALERT_TRIAGED' } })).toBe(1);
   expect(await db.notificationDelivery.count({ where: { tenantId } })).toBe(0);
+});
+
+test('closing a MEDIUM alert without a reason is allowed (the reason is optional)', async () => {
+  const a = await alert();
+  expect((await workflow.triage.execute({ ...input(a.id), decision: 'FALSE_POSITIVE', reason: null })).isSuccess).toBe(true);
+  expect(await db.alert.findUniqueOrThrow({ where: { id: a.id } })).toMatchObject({ workflowState: 'TRIAGED', triageDisposition: 'FALSE_POSITIVE', triageNote: null });
 });
 
 test('HIGH / CRITICAL cannot be closed from the inbox; LOW cannot be decided at all', async () => {
@@ -156,6 +161,13 @@ test('ingestion: a HIGH Wazuh alert opens its incident automatically on the real
   const again = await ingest.execute({ tenantId, siemSource: 'wazuh', externalAlertId: r.value.alert.externalAlertId, rawPayload: raw, severity: 'high', receivedAt: now });
   expect(again.value).toMatchObject({ duplicate: true, incidentId: incident.id });
   expect(await db.incident.count({ where: { tenantId, alertId: r.value.alert.id } })).toBe(1);
+  // Alert Inbox: linked only as the incident's originating alert (no incident_alerts row yet — it is added when the
+  // investigation starts), the alert is already "in incident": no review button and no stale review-SLA status.
+  await db.incidentAlert.deleteMany({ where: { incidentId: incident.id } });
+  const row = (await queue.execute({ tenantId, filters: { search: r.value.alert.externalAlertId } })).value.items[0];
+  expect(row).toMatchObject({ id: r.value.alert.id, displayState: 'IN_INCIDENT', actionable: false, slaStatus: null, incident: { id: incident.id } });
+  expect((await queue.execute({ tenantId, filters: { status: 'in-incident', search: r.value.alert.externalAlertId } })).value.total).toBe(1);
+  expect((await queue.execute({ tenantId, filters: { status: 'needs-review', search: r.value.alert.externalAlertId } })).value.total).toBe(0);
   // The incident severity is the Wazuh one, read back with its rule level — there is no AI severity anywhere.
   const severity = (await new GetIncidentSeverityUseCase(new PrismaIncidentSeverityReader(db)).execute({ tenantId, incidentId: incident.id })).value;
   expect(severity).toEqual({ source: 'WAZUH_RULE_LEVEL', wazuhSeverity: 'HIGH', wazuhRuleLevel: 12, wazuhRuleId: '5712', severity: 'HIGH', overridden: false, override: null });

@@ -13,6 +13,7 @@ async def notify_backend_of_decision(
     decision: str,
     llm_model: str | None = None,
     service_token: str | None = None,
+    execution_id: str | None = None,
 ) -> None:
     """
     Calls the backend's POST /api/v1/webhooks/orchestrator/callback after a
@@ -45,6 +46,7 @@ async def notify_backend_of_decision(
                 f"{backend_url.rstrip('/')}/api/v1/webhooks/orchestrator/callback",
                 json={
                     "incidentId": incident_id,
+                    "executionId": execution_id,
                     "title": title,
                     "severity": severity,
                     "summary": summary,

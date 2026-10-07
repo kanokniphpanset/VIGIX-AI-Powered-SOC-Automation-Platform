@@ -1,0 +1,1092 @@
+{
+  "kpi": "Baseline Comparison",
+  "label": "Controlled procedural baseline (static playbook lookup, no AI, no human)",
+  "humanStudy": false,
+  "mockUsed": false,
+  "interpretationRule": "The baseline skips the human decision and the evidence gating of VIGIX; it is a PROCEDURAL REFERENCE only and must not be read as an equivalent, faster or better SOC workflow.",
+  "cases": {
+    "numerator": 9,
+    "denominator": 9
+  },
+  "responsePlans": 9,
+  "averageActionsPerPlan": 2.78,
+  "procedureTimeSeconds": {
+    "n": 9,
+    "mean": 0.018,
+    "median": 0.012,
+    "sd": 0.018,
+    "min": 0.009,
+    "max": 0.065
+  },
+  "decisionLatency": null,
+  "decisionLatencyReason": "NULL by design: the baseline has no human decision stage and no approval instance",
+  "summary": {
+    "population": "9 evaluable cases (TC-05 unavailable, not fabricated)",
+    "plan_created": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "baseline_valid_4_criteria": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "playbook_alignment": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "attack_alignment": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "evidence_support": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "required_evidence_satisfied": {
+      "numerator": 9,
+      "denominator": 9
+    },
+    "preferred_action_hit": {
+      "numerator": 7,
+      "denominator": 9
+    },
+    "plan_steps_total": 25,
+    "plan_steps_blocked_by_required_evidence": 0,
+    "investigation_time_seconds": {
+      "n": 9,
+      "mean": 0.02,
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.07,
+      "sd": 0.02
+    },
+    "evidence_count": {
+      "n": 9,
+      "mean": 3.11,
+      "median": 3,
+      "min": 1,
+      "max": 6,
+      "sd": 1.69
+    },
+    "response_action_count": {
+      "n": 9,
+      "mean": 2.78,
+      "median": 3,
+      "min": 1,
+      "max": 5,
+      "sd": 1.56
+    },
+    "vigix_clean_same_cases": {
+      "recommendations_evaluated": {
+        "numerator": 9,
+        "denominator": 9
+      },
+      "playbook_alignment_among_evaluated": {
+        "numerator": 9,
+        "denominator": 9
+      },
+      "attack_alignment_among_evaluated": {
+        "numerator": 9,
+        "denominator": 9
+      },
+      "evidence_support_among_evaluated": {
+        "numerator": 9,
+        "denominator": 9
+      },
+      "investigation_time_seconds": {
+        "n": 9,
+        "mean": 126.11,
+        "median": 84.67,
+        "min": 47,
+        "max": 390.72,
+        "sd": 108.01
+      },
+      "indicator_count_in_incident": {
+        "n": 9,
+        "mean": 2.89,
+        "median": 3,
+        "min": 0,
+        "max": 5,
+        "sd": 1.76
+      },
+      "response_action_count": {
+        "n": 9,
+        "mean": 2.22,
+        "median": 2,
+        "min": 1,
+        "max": 4,
+        "sd": 1.2
+      }
+    }
+  },
+  "previousBaselineForComparisonOnly": {
+    "cases": "9/9",
+    "avgActions": 2.78,
+    "procedureTime": {
+      "mean": 0.013,
+      "median": 0.01,
+      "sd": 0.009,
+      "min": 0.008,
+      "max": 0.036
+    }
+  },
+  "perCase": [
+    {
+      "case_id": "TC-01",
+      "attack": "Brute Force",
+      "alert_timestamp": "2026-10-01T01:37:06.130Z",
+      "wazuh_alert_doc": "u6Qb9aABGgCGM5y0sD_b",
+      "investigation_start": "2026-10-01T02:03:31.317Z",
+      "investigation_end": "2026-10-01T02:03:31.382Z",
+      "investigation_time_seconds": 0.07,
+      "response_plan_created_at": "2026-10-01T02:03:31.382Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 3,
+      "indicator_count": 2,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 2,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-SSH-BRUTEFORCE",
+      "expected_playbook": "PB-SSH-BRUTEFORCE",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip"
+        },
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "git",
+          "targetKind": "account"
+        }
+      ],
+      "skipped_actions": [],
+      "step_checks": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "git",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 84.67,
+        "actions": [
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-DISABLE-ACCOUNT"
+        ],
+        "targets": [
+          "172.19.0.6",
+          "git"
+        ],
+        "playbook": "PB-SSH-BRUTEFORCE",
+        "indicator_count_in_incident": 2,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 84.67,
+        "actions": [
+          "ACT-BLOCK-SOURCE-IP",
+          "ACT-DISABLE-ACCOUNT"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-02",
+      "attack": "Malware",
+      "alert_timestamp": "2026-10-01T01:39:10.341Z",
+      "wazuh_alert_doc": "zqQd9aABGgCGM5y0rD-4",
+      "investigation_start": "2026-10-01T02:03:31.402Z",
+      "investigation_end": "2026-10-01T02:03:31.414Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.414Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 1,
+      "indicator_count": 0,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 1,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-MALWARE",
+      "expected_playbook": "PB-MALWARE",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        }
+      ],
+      "skipped_actions": [
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "reason": "no collected indicator of kind 'domain'"
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "reason": "no collected indicator of kind 'url'"
+        },
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "reason": "no collected indicator of kind 'ip'"
+        },
+        {
+          "action": "ACT-KILL-PROCESS",
+          "reason": "no collected indicator of kind 'process'"
+        },
+        {
+          "action": "ACT-QUARANTINE-FILE",
+          "reason": "no collected indicator of kind 'file'"
+        },
+        {
+          "action": "ACT-BLOCK-HASH",
+          "reason": "no collected indicator of kind 'hash'"
+        },
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "reason": "no collected indicator of kind 'ip'"
+        }
+      ],
+      "step_checks": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": false,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 73.89,
+        "actions": [
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "targets": [
+          "attack-endpoint"
+        ],
+        "playbook": "PB-MALWARE",
+        "indicator_count_in_incident": 0,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 73.89,
+        "actions": [
+          "ACT-ISOLATE-ENDPOINT"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-03",
+      "attack": "Phishing",
+      "alert_timestamp": "2026-10-01T01:40:56.334Z",
+      "wazuh_alert_doc": "0qQf9aABGgCGM5y0Oz8b",
+      "investigation_start": "2026-10-01T02:03:31.419Z",
+      "investigation_end": "2026-10-01T02:03:31.431Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.431Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 4,
+      "indicator_count": 3,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 3,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-PHISHING",
+      "expected_playbook": "PB-PHISHING",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "targetKind": "url"
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "targetKind": "domain"
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        }
+      ],
+      "skipped_actions": [
+        {
+          "action": "ACT-QUARANTINE-EMAIL",
+          "reason": "no collected indicator of kind 'email'"
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "reason": "no collected indicator of kind 'account'"
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "reason": "no collected indicator of kind 'account'"
+        },
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "reason": "no collected indicator of kind 'account'"
+        }
+      ],
+      "step_checks": [
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "targetKind": "url",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "targetKind": "domain",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 390.72,
+        "actions": [
+          "ACT-QUARANTINE-EMAIL",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-DOMAIN"
+        ],
+        "targets": [
+          "it-support@vigix-eval-phish.net",
+          "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "vigix-eval-phish.net"
+        ],
+        "playbook": "PB-PHISHING",
+        "indicator_count_in_incident": 5,
+        "evidence_rows": 1,
+        "retries": 3,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 390.72,
+        "actions": [
+          "ACT-QUARANTINE-EMAIL",
+          "ACT-BLOCK-URL",
+          "ACT-BLOCK-DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-04",
+      "attack": "Account Compromise",
+      "alert_timestamp": "2026-10-01T01:48:26.775Z",
+      "wazuh_alert_doc": "66Qm9aABGgCGM5y0FD_2",
+      "investigation_start": "2026-10-01T02:03:31.442Z",
+      "investigation_end": "2026-10-01T02:03:31.458Z",
+      "investigation_time_seconds": 0.02,
+      "response_plan_created_at": "2026-10-01T02:03:31.458Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 3,
+      "indicator_count": 2,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 5,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-ACCOUNT-COMPROMISE",
+      "expected_playbook": "PB-ACCOUNT-COMPROMISE",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "targetKind": "account"
+        },
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip"
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "victim",
+          "targetKind": "account"
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "victim",
+          "targetKind": "account"
+        }
+      ],
+      "skipped_actions": [],
+      "step_checks": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "victim",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "victim",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 76.65,
+        "actions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "targets": [
+          "victim",
+          "172.19.0.6"
+        ],
+        "playbook": "PB-ACCOUNT-COMPROMISE",
+        "indicator_count_in_incident": 2,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 76.65,
+        "actions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-BLOCK-SOURCE-IP"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-05",
+      "completion_status": "NOT_EVALUATED — ENVIRONMENT_UNAVAILABLE (TC-05: no Windows endpoint); nothing fabricated"
+    },
+    {
+      "case_id": "TC-06",
+      "attack": "SQL Injection",
+      "alert_timestamp": "2026-10-01T01:50:06.868Z",
+      "wazuh_alert_doc": "8KQn9aABGgCGM5y0rz8k",
+      "investigation_start": "2026-10-01T02:03:31.474Z",
+      "investigation_end": "2026-10-01T02:03:31.484Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.484Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 3,
+      "indicator_count": 2,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 1,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-SQL-INJECTION",
+      "expected_playbook": "PB-SQL-INJECTION",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip"
+        }
+      ],
+      "skipped_actions": [],
+      "step_checks": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.6",
+          "targetKind": "ip",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 47,
+        "actions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ],
+        "targets": [
+          "172.19.0.6"
+        ],
+        "playbook": "PB-SQL-INJECTION",
+        "indicator_count_in_incident": 3,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 47,
+        "actions": [
+          "ACT-BLOCK-SOURCE-IP"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-07",
+      "attack": "Command & Control",
+      "alert_timestamp": "2026-10-01T01:51:24.942Z",
+      "wazuh_alert_doc": "_KQo9aABGgCGM5y01D8a",
+      "investigation_start": "2026-10-01T02:03:31.491Z",
+      "investigation_end": "2026-10-01T02:03:31.500Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.500Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 5,
+      "indicator_count": 4,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 4,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-C2",
+      "expected_playbook": "PB-C2",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "targetKind": "ip"
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "targetKind": "domain"
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "targetKind": "url"
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        }
+      ],
+      "skipped_actions": [],
+      "step_checks": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "targetKind": "ip",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "targetKind": "domain",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "targetKind": "url",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 93.17,
+        "actions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "targets": [
+          "172.19.0.5",
+          "vigix-eval-c2.net",
+          "http://vigix-eval-c2.net:8080/gate.php",
+          "attack-endpoint"
+        ],
+        "playbook": "PB-C2",
+        "indicator_count_in_incident": 4,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 93.17,
+        "actions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-08",
+      "attack": "Suspicious Process",
+      "alert_timestamp": "2026-10-01T01:53:25.082Z",
+      "wazuh_alert_doc": "AaQq9aABGgCGM5y0oUAM",
+      "investigation_start": "2026-10-01T02:03:31.514Z",
+      "investigation_end": "2026-10-01T02:03:31.526Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.526Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 1,
+      "indicator_count": 0,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 1,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-SUSPICIOUS-PROCESS",
+      "expected_playbook": "PB-SUSPICIOUS-PROCESS",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        }
+      ],
+      "skipped_actions": [
+        {
+          "action": "ACT-KILL-PROCESS",
+          "reason": "no collected indicator of kind 'process'"
+        },
+        {
+          "action": "ACT-QUARANTINE-FILE",
+          "reason": "no collected indicator of kind 'file'"
+        },
+        {
+          "action": "ACT-BLOCK-HASH",
+          "reason": "no collected indicator of kind 'hash'"
+        }
+      ],
+      "step_checks": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": false,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 199.01,
+        "actions": [
+          "ACT-KILL-PROCESS"
+        ],
+        "targets": [
+          "/tmp/.cache/kworkerd"
+        ],
+        "playbook": "PB-SUSPICIOUS-PROCESS",
+        "indicator_count_in_incident": 4,
+        "evidence_rows": 1,
+        "retries": 2,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 199.01,
+        "actions": [
+          "ACT-KILL-PROCESS"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-09",
+      "attack": "Data Exfiltration",
+      "alert_timestamp": "2026-10-01T01:57:13.283Z",
+      "wazuh_alert_doc": "BqQu9aABGgCGM5y0N0AH",
+      "investigation_start": "2026-10-01T02:03:31.530Z",
+      "investigation_end": "2026-10-01T02:03:31.543Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.543Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 6,
+      "indicator_count": 5,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 4,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-DATA-EXFIL",
+      "expected_playbook": "PB-DATA-EXFIL",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "targetKind": "ip"
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "targetKind": "domain"
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "targetKind": "url"
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        }
+      ],
+      "skipped_actions": [],
+      "step_checks": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "targetKind": "ip",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "targetKind": "domain",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "targetKind": "url",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 98.57,
+        "actions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "targets": [
+          "172.19.0.5",
+          "vigix-eval-exfil.net",
+          "http://vigix-eval-exfil.net:8080/upload",
+          "attack-endpoint"
+        ],
+        "playbook": "PB-DATA-EXFIL",
+        "indicator_count_in_incident": 5,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 98.57,
+        "actions": [
+          "ACT-BLOCK-DESTINATION-IP",
+          "ACT-BLOCK-DOMAIN",
+          "ACT-BLOCK-URL",
+          "ACT-ISOLATE-ENDPOINT"
+        ]
+      }
+    },
+    {
+      "case_id": "TC-10",
+      "attack": "Privilege Escalation",
+      "alert_timestamp": "2026-10-01T01:59:27.415Z",
+      "wazuh_alert_doc": "HaQw9aABGgCGM5y0K0AE",
+      "investigation_start": "2026-10-01T02:03:31.555Z",
+      "investigation_end": "2026-10-01T02:03:31.566Z",
+      "investigation_time_seconds": 0.01,
+      "response_plan_created_at": "2026-10-01T02:03:31.566Z",
+      "decision_timestamp": null,
+      "decision_latency_seconds": null,
+      "decision_null_reason": "The baseline has no approval workflow instance and no human participant; a decision time would have to be invented. NULL on purpose.",
+      "evidence_count": 2,
+      "indicator_count": 1,
+      "evidence_definition": "alert record (1) + indicators extracted by the deterministic extractor",
+      "response_action_count": 4,
+      "completion_status": "PLAN_CREATED",
+      "selected_playbook": "PB-ACCOUNT-COMPROMISE",
+      "expected_playbook": "PB-ACCOUNT-COMPROMISE",
+      "playbook_alignment": true,
+      "plan": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "targetKind": "account"
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host"
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "targetKind": "account"
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "targetKind": "account"
+        }
+      ],
+      "skipped_actions": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "reason": "no collected indicator of kind 'ip'"
+        }
+      ],
+      "step_checks": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "targetKind": "host",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "targetKind": "account",
+          "requiredEvidenceMissing": [],
+          "requiredEvidenceSatisfied": true,
+          "targetInCollectedEvidence": true
+        }
+      ],
+      "attack_alignment": true,
+      "evidence_support": true,
+      "required_evidence_satisfied": true,
+      "steps_blocked_by_required_evidence": 0,
+      "preferred_action_hit": true,
+      "baseline_plan_valid_4_criteria": true,
+      "vigix_clean": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 71.27,
+        "actions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-RESET-CREDENTIAL"
+        ],
+        "targets": [
+          "evaluser",
+          "evaluser"
+        ],
+        "playbook": "PB-ACCOUNT-COMPROMISE",
+        "indicator_count_in_incident": 1,
+        "evidence_rows": 1,
+        "retries": 0,
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "playbookAlignment": true
+        }
+      },
+      "vigix_intervention": {
+        "compliance": "COMPLIANT",
+        "investigation_seconds": 71.27,
+        "actions": [
+          "ACT-DISABLE-ACCOUNT",
+          "ACT-RESET-CREDENTIAL"
+        ]
+      }
+    }
+  ]
+}

@@ -31,19 +31,88 @@ export interface AuthenticatedUser {
   id: string;
   tenantId: string;
   role: string;
+  principalType?: "HUMAN";
 }
+
+export interface ServicePrincipal {
+  id: string;
+  tenantId: string;
+  principalType: "SERVICE";
+  scopes: string[];
+  jobIds: string[];
+}
+
+export type RequestPrincipal = (AuthenticatedUser & { principalType: "HUMAN" }) | ServicePrincipal;
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
+      principal?: RequestPrincipal;
     }
   }
 }
 
 export function signToken(user: AuthenticatedUser): string {
-  return jwt.sign(user, JWT_SECRET, { expiresIn: "8h" });
+  return jwt.sign({ id: user.id, tenantId: user.tenantId, role: user.role, principalType: "HUMAN" }, JWT_SECRET, { algorithm: "HS256", expiresIn: "8h" });
+}
+
+/** Server-side provisioning only. Job grants are explicit; a service gets no human role. */
+export function signServiceToken(service: Omit<ServicePrincipal, "principalType">): string {
+  if (!service.id.startsWith("service:") || !service.tenantId) throw new Error("Invalid service identity");
+  return jwt.sign({ ...service, principalType: "SERVICE" }, JWT_SECRET, { algorithm: "HS256", audience: "vigix-service", issuer: "vigix", expiresIn: "1h" });
+}
+
+function readPrincipal(req: Request): RequestPrincipal {
+  const header = req.header("authorization") ?? "";
+  if (!header.startsWith("Bearer ")) throw new Error("Missing bearer token");
+  const payload = jwt.verify(header.slice(7), JWT_SECRET, { algorithms: ["HS256"] });
+  if (typeof payload === "string" || typeof payload.id !== "string" || !payload.id ||
+      typeof payload.tenantId !== "string" || !payload.tenantId || typeof payload.exp !== "number") throw new Error("Invalid identity claims");
+  if (payload.principalType === "SERVICE") {
+    if (payload.aud !== "vigix-service" || payload.iss !== "vigix" || !payload.id.startsWith("service:") || payload.role !== undefined ||
+        !Array.isArray(payload.scopes) || !payload.scopes.every((s: unknown) => typeof s === "string") ||
+        !Array.isArray(payload.jobIds) || !payload.jobIds.every((s: unknown) => typeof s === "string")) throw new Error("Invalid service claims");
+    return { id: payload.id, tenantId: payload.tenantId, principalType: "SERVICE", scopes: payload.scopes, jobIds: payload.jobIds };
+  }
+  // Existing login JWTs without principalType remain human until their normal expiry.
+  if ((payload.principalType !== undefined && payload.principalType !== "HUMAN") || payload.aud !== undefined ||
+      payload.id.startsWith("service:") || typeof payload.role !== "string" || !payload.role) throw new Error("Invalid human claims");
+  return { id: payload.id, tenantId: payload.tenantId, role: payload.role, principalType: "HUMAN" };
+}
+
+export function authenticatedTenant(req: Request): string {
+  if (!req.principal) throw new Error("Authenticated request context required");
+  return req.principal.tenantId;
+}
+
+/** Explicit read-only service surface; never populates the human req.user for services. */
+export function authenticateScopedRead(scope: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      const principal = readPrincipal(req);
+      if (principal.principalType === "SERVICE" && !principal.scopes.includes(scope)) {
+        res.status(403).json({ error: "SERVICE_SCOPE_REQUIRED" }); return;
+      }
+      req.principal = principal;
+      if (principal.principalType === "HUMAN") req.user = principal;
+      next();
+    } catch { res.status(401).json({ error: "UNAUTHENTICATED" }); }
+  };
+}
+
+export function authenticateService(scope: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      const principal = readPrincipal(req);
+      if (principal.principalType !== "SERVICE" || !principal.scopes.includes(scope)) {
+        res.status(403).json({ error: "SERVICE_SCOPE_REQUIRED" }); return;
+      }
+      req.principal = principal;
+      next();
+    } catch { res.status(401).json({ error: "UNAUTHENTICATED" }); }
+  };
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
@@ -54,8 +123,12 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 
   try {
-    const payload = jwt.verify(header.slice("Bearer ".length), JWT_SECRET) as AuthenticatedUser;
-    req.user = payload;
+    const principal = readPrincipal(req);
+    if (principal.principalType !== "HUMAN") {
+      res.status(403).json({ error: "HUMAN_PRINCIPAL_REQUIRED" }); return;
+    }
+    req.principal = principal;
+    req.user = principal;
     next();
   } catch {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "Invalid or expired token" });

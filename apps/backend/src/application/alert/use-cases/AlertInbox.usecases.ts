@@ -122,7 +122,8 @@ export function toInboxItem(
     monitorReason: a.monitorReason,
     closedAt: iso(a.closedAt),
     slaDueAt: iso(due),
-    slaStatus: slaStatus({ workflowState: a.workflowState, closedAt: a.closedAt, severity: a.severity }, due, ctx.slaMinutes, ctx.now),
+    // In an incident the review is done (the incident has its own SLA): no triage SLA status, never a stale BREACHED.
+    slaStatus: ctx.incident ? null : slaStatus({ workflowState: a.workflowState, closedAt: a.closedAt, severity: a.severity }, due, ctx.slaMinutes, ctx.now),
     ageMinutes: Math.max(0, Math.floor((ctx.now.getTime() - a.receivedAt.getTime()) / 60_000)),
     incident: ctx.incident,
     scenario: ctx.scenario,

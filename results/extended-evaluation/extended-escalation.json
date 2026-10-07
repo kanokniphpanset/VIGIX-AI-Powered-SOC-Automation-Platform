@@ -1,0 +1,307 @@
+{
+  "part": "C",
+  "title": "ESCALATED path (3 re-hunt rounds)",
+  "run": "ext-esc-20261001-r2",
+  "failedFirstAttempt": {
+    "run": "ext-esc-20261001",
+    "result": "INCOMPLETE",
+    "fatal": "round 1: no recommendation available",
+    "classification": "INFRASTRUCTURE — the LLM endpoint failed DNS resolution (ConnectError / getaddrinfo) during analysis/recommendation; recorded, not counted; the case was repeated after the endpoint recovered"
+  },
+  "incidentId": "654d8df6-52ea-4a10-8aab-1f512ae3c939",
+  "verificationMode": "REAL_WAZUH",
+  "verifications": [
+    {
+      "round": 1,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "iocRecurrence": true,
+      "threatContained": false,
+      "evidenceSource": "WAZUH_INDEXER"
+    },
+    {
+      "round": 2,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "iocRecurrence": true,
+      "threatContained": false,
+      "evidenceSource": "WAZUH_INDEXER"
+    },
+    {
+      "round": 3,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "iocRecurrence": true,
+      "threatContained": false,
+      "evidenceSource": "WAZUH_INDEXER"
+    }
+  ],
+  "incidentFinal": {
+    "status": "escalated",
+    "investigationNumber": 3
+  },
+  "auditCounts": {
+    "INVESTIGATION_REOPENED": 2,
+    "INVESTIGATION_ESCALATED": 1,
+    "INCIDENT_ESCALATED": 1
+  },
+  "escalationReasons": [
+    [
+      "MAX_INVESTIGATION_ROUNDS_REACHED"
+    ]
+  ],
+  "recommendations": [
+    {
+      "number": 1,
+      "investigation": 1,
+      "status": "SUPERSEDED"
+    },
+    {
+      "number": 2,
+      "investigation": 2,
+      "status": "VALIDATED"
+    }
+  ],
+  "responseTickets": [
+    {
+      "status": "COMPLETED",
+      "action": "ACT-BLOCK-DESTINATION-IP",
+      "target": "172.19.0.5"
+    },
+    {
+      "status": "COMPLETED",
+      "action": "ACT-BLOCK-DESTINATION-IP",
+      "target": "172.19.0.7"
+    },
+    {
+      "status": "COMPLETED",
+      "action": "ACT-BLOCK-DOMAIN",
+      "target": "vigix-eval-c2.net"
+    }
+  ],
+  "harnessRounds": [
+    {
+      "round": 1,
+      "investigation": 1,
+      "recommendation": {
+        "number": 1,
+        "investigationNumber": 1,
+        "steps": [
+          "ACT-BLOCK-DESTINATION-IP→172.19.0.5",
+          "ACT-BLOCK-DOMAIN→vigix-eval-c2.net",
+          "ACT-BLOCK-URL→http://vigix-eval-c2.net:8080/gate.php",
+          "ACT-ISOLATE-ENDPOINT→attack-endpoint"
+        ],
+        "chosenStep": "ACT-BLOCK-DESTINATION-IP→172.19.0.5"
+      },
+      "fallbackToEarlierRecommendation": false,
+      "generation": {
+        "attempts": 1,
+        "infra": 0,
+        "ok": true
+      },
+      "recurrenceAlertSeen": true,
+      "verification": {
+        "result": "NOT_RESOLVED",
+        "matchingEvents": 3,
+        "iocRecurrence": true,
+        "mode": "WAZUH_INDEXER",
+        "verificationId": "a5b47635-9064-4513-9bac-261e78f05e7f"
+      },
+      "incidentAfter": {
+        "status": "investigating",
+        "investigationNumber": 2
+      }
+    },
+    {
+      "round": 2,
+      "investigation": 2,
+      "recommendation": {
+        "number": 2,
+        "investigationNumber": 2,
+        "steps": [
+          "ACT-BLOCK-DESTINATION-IP→172.19.0.7",
+          "ACT-BLOCK-DOMAIN→vigix-eval-c2.net",
+          "ACT-BLOCK-URL→http://vigix-eval-c2.net:8080/gate.php",
+          "ACT-ISOLATE-ENDPOINT→attack-endpoint"
+        ],
+        "chosenStep": "ACT-BLOCK-DESTINATION-IP→172.19.0.7"
+      },
+      "fallbackToEarlierRecommendation": false,
+      "generation": {
+        "attempts": 1,
+        "infra": 0,
+        "ok": true
+      },
+      "recurrenceAlertSeen": true,
+      "verification": {
+        "result": "NOT_RESOLVED",
+        "matchingEvents": 3,
+        "iocRecurrence": true,
+        "mode": "WAZUH_INDEXER",
+        "verificationId": "4893ea07-78a8-4536-b59d-76b917211063"
+      },
+      "incidentAfter": {
+        "status": "investigating",
+        "investigationNumber": 3
+      }
+    },
+    {
+      "round": 3,
+      "investigation": 3,
+      "recommendation": {
+        "number": 2,
+        "investigationNumber": 2,
+        "steps": [
+          "ACT-BLOCK-DESTINATION-IP→172.19.0.7",
+          "ACT-BLOCK-DOMAIN→vigix-eval-c2.net",
+          "ACT-BLOCK-URL→http://vigix-eval-c2.net:8080/gate.php",
+          "ACT-ISOLATE-ENDPOINT→attack-endpoint"
+        ],
+        "chosenStep": "ACT-BLOCK-DOMAIN→vigix-eval-c2.net"
+      },
+      "fallbackToEarlierRecommendation": true,
+      "generation": {
+        "attempts": 5,
+        "infra": 0,
+        "ok": false
+      },
+      "recurrenceAlertSeen": true,
+      "verification": {
+        "result": "NOT_RESOLVED",
+        "matchingEvents": 3,
+        "iocRecurrence": true,
+        "mode": "WAZUH_INDEXER",
+        "verificationId": "87d30cdb-4179-48e8-a2c0-d2dc9d63c10c"
+      },
+      "incidentAfter": {
+        "status": "escalated",
+        "investigationNumber": 3
+      }
+    }
+  ],
+  "actorsOfEscalationAudits": [
+    "system",
+    "system",
+    "system",
+    "system"
+  ],
+  "harnessChecks": {
+    "passed": 15,
+    "of": 15,
+    "list": [
+      {
+        "id": "R1a",
+        "check": "round 1: the REAL_WAZUH re-hunt sees the recurrence",
+        "expected": "NOT_RESOLVED, matching events > 0",
+        "actual": "NOT_RESOLVED, 3",
+        "pass": true
+      },
+      {
+        "id": "R1b",
+        "check": "round 1: investigation reopened, incident not closed",
+        "expected": "investigation #2, status not resolved/escalated",
+        "actual": "#2, investigating",
+        "pass": true
+      },
+      {
+        "id": "R2a",
+        "check": "round 2: the REAL_WAZUH re-hunt sees the recurrence",
+        "expected": "NOT_RESOLVED, matching events > 0",
+        "actual": "NOT_RESOLVED, 3",
+        "pass": true
+      },
+      {
+        "id": "R2b",
+        "check": "round 2: investigation reopened, incident not closed",
+        "expected": "investigation #3, status not resolved/escalated",
+        "actual": "#3, investigating",
+        "pass": true
+      },
+      {
+        "id": "R3a",
+        "check": "round 3: the REAL_WAZUH re-hunt sees the recurrence",
+        "expected": "NOT_RESOLVED, matching events > 0",
+        "actual": "NOT_RESOLVED, 3",
+        "pass": true
+      },
+      {
+        "id": "E1",
+        "check": "three REAL_WAZUH verifications, all NOT_RESOLVED",
+        "expected": "3 × NOT_RESOLVED",
+        "actual": "NOT_RESOLVED, NOT_RESOLVED, NOT_RESOLVED",
+        "pass": true
+      },
+      {
+        "id": "E2",
+        "check": "the third NOT_RESOLVED escalates the incident (not resolved, not closed)",
+        "expected": "status escalated, investigation #3",
+        "actual": "escalated, #3",
+        "pass": true
+      },
+      {
+        "id": "E3",
+        "check": "INVESTIGATION_ESCALATED audited with MAX_INVESTIGATION_ROUNDS_REACHED",
+        "expected": "present",
+        "actual": "[[\"MAX_INVESTIGATION_ROUNDS_REACHED\"]]",
+        "pass": true
+      },
+      {
+        "id": "E4",
+        "check": "INCIDENT_ESCALATED audited, INVESTIGATION_REOPENED exactly twice",
+        "expected": "INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2",
+        "actual": "INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2",
+        "pass": true
+      },
+      {
+        "id": "E5",
+        "check": "no new recommendation / investigation after the escalation",
+        "expected": "0 recommendations after the 3rd verification; investigation stays #3",
+        "actual": "0 new recommendations; #3",
+        "pass": true
+      },
+      {
+        "id": "E6",
+        "check": "no response was created or executed automatically after the escalation",
+        "expected": "0 new tickets",
+        "actual": "0 new tickets",
+        "pass": true
+      },
+      {
+        "id": "E7",
+        "check": "an escalated incident cannot be resolved by hand",
+        "expected": "refused RESOLVE_REQUIRES_VERIFICATION",
+        "actual": "RESOLVE_REQUIRES_VERIFICATION",
+        "pass": true
+      },
+      {
+        "id": "E8",
+        "check": "a ticket cannot be verified twice (no silent fourth round)",
+        "expected": "refused",
+        "actual": "ALREADY_VERIFIED",
+        "pass": true
+      },
+      {
+        "id": "E9",
+        "check": "the escalated incident is still not closed after all attempts",
+        "expected": "status escalated",
+        "actual": "escalated",
+        "pass": true
+      },
+      {
+        "id": "E10",
+        "check": "no AI/system actor changed the incident status",
+        "expected": "0",
+        "actual": "0",
+        "pass": true
+      }
+    ]
+  },
+  "escalatedObserved": true,
+  "outcome": "ESCALATED (third round reached)",
+  "observations": [
+    "ROUND 3: no VALIDATED recommendation for investigation #3 after 5 model attempts — the SOC hands an unexecuted step of the earlier recommendation to IR (harness fallback, recorded)",
+    "round 3 used an earlier recommendation"
+  ],
+  "limitation": "The recurrence is produced by the harness repeating the beacon after each response; the NOT_RESOLVED / reopen / ESCALATED decisions are made by the product code from REAL_WAZUH re-hunt evidence. Only one scenario (TC-07 telemetry, controlled custom-rule events)."
+}

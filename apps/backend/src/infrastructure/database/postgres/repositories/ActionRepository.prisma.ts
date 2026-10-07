@@ -28,6 +28,7 @@ export class PrismaActionRepository implements IActionRepository {
   }
 
   async create(input: NewActionInput): Promise<Action> {
+    if (input.runbookId) await this.prisma.runbook.findFirstOrThrow({ where: { id: input.runbookId, tenantId: input.tenantId } });
     const raw = await this.prisma.action.create({
       data: {
         tenantId: input.tenantId,
@@ -43,9 +44,9 @@ export class PrismaActionRepository implements IActionRepository {
     return ActionMapper.toDomain(raw);
   }
 
-  async update(id: string, _tenantId: string, input: UpdateActionInput): Promise<Action> {
+  async update(id: string, tenantId: string, input: UpdateActionInput): Promise<Action> {
     const raw = await this.prisma.action.update({
-      where: { id },
+      where: { id, tenantId },
       data: {
         name: input.name,
         description: input.description,
@@ -57,8 +58,8 @@ export class PrismaActionRepository implements IActionRepository {
     return ActionMapper.toDomain(raw);
   }
 
-  async setEnabled(id: string, _tenantId: string, enabled: boolean): Promise<Action> {
-    const raw = await this.prisma.action.update({ where: { id }, data: { enabled } });
+  async setEnabled(id: string, tenantId: string, enabled: boolean): Promise<Action> {
+    const raw = await this.prisma.action.update({ where: { id, tenantId }, data: { enabled } });
     return ActionMapper.toDomain(raw);
   }
 }

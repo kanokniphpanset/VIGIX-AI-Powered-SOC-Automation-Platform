@@ -1,0 +1,170 @@
+{
+  "at": "2026-10-01T07:13:33.804Z",
+  "note": "diagnostic: only the order of IP candidates in the context differs between variants",
+  "results": [
+    {
+      "incidentId": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "srcip": "172.19.0.5",
+      "dstip": "172.19.0.7",
+      "variant": "as_built",
+      "targetsListInContext": "\"\\\"targets\\\":[\\\"172.19.0.7\\\",\\\"172.19.0.5\\\"]\"",
+      "picks": [
+        {
+          "rep": 1,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 2,
+          "validated": "INVALID",
+          "destinationIpTarget": null,
+          "role": "no destination-IP step"
+        },
+        {
+          "rep": 3,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 4,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 5,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        }
+      ],
+      "correct": 4,
+      "of": 5
+    },
+    {
+      "incidentId": "d08e240d-a553-46bb-a76c-d479313989b4",
+      "srcip": "172.19.0.5",
+      "dstip": "172.19.0.7",
+      "variant": "ips_reversed",
+      "targetsListInContext": "\"\\\"targets\\\":[\\\"172.19.0.5\\\",\\\"172.19.0.7\\\"]\"",
+      "picks": [
+        {
+          "rep": 1,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 2,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 3,
+          "validated": "INVALID",
+          "destinationIpTarget": null,
+          "role": "no destination-IP step"
+        },
+        {
+          "rep": 4,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 5,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        }
+      ],
+      "correct": 0,
+      "of": 5
+    },
+    {
+      "incidentId": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "srcip": "172.19.0.5",
+      "dstip": "172.19.0.7",
+      "variant": "as_built",
+      "targetsListInContext": "\"\\\"targets\\\":[\\\"172.19.0.7\\\",\\\"172.19.0.5\\\"]\"",
+      "picks": [
+        {
+          "rep": 1,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 2,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 3,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 4,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        },
+        {
+          "rep": 5,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.7",
+          "role": "destination (correct)"
+        }
+      ],
+      "correct": 5,
+      "of": 5
+    },
+    {
+      "incidentId": "db575272-b491-40aa-9ac5-b639e3cd4c3b",
+      "srcip": "172.19.0.5",
+      "dstip": "172.19.0.7",
+      "variant": "ips_reversed",
+      "targetsListInContext": "\"\\\"targets\\\":[\\\"172.19.0.5\\\",\\\"172.19.0.7\\\"]\"",
+      "picks": [
+        {
+          "rep": 1,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 2,
+          "validated": "INVALID",
+          "destinationIpTarget": null,
+          "role": "no destination-IP step"
+        },
+        {
+          "rep": 3,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 4,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        },
+        {
+          "rep": 5,
+          "validated": "VALIDATED",
+          "destinationIpTarget": "172.19.0.5",
+          "role": "source (wrong)"
+        }
+      ],
+      "correct": 0,
+      "of": 5
+    }
+  ]
+}

@@ -1,0 +1,854 @@
+{
+  "part": "A",
+  "title": "LOW severity and False Positive handling",
+  "run": "ext-low-fp-20261001",
+  "startedAt": "2026-10-01T05:21:09.045Z",
+  "finishedAt": "2026-10-01T05:24:06.231Z",
+  "groundTruthSha256": "19e2f2236dbe70583075664efa5c4a1d96fc68da777736273dca0ba122423e15",
+  "verificationMode": "n/a (no response executed)",
+  "cases": [
+    {
+      "case": "LOW-01",
+      "kind": "LOW",
+      "title": "Successful SSH login by a valid user",
+      "benignReason": "valid account, correct password, normal administrative login",
+      "rule": "5715",
+      "level": 3,
+      "severityDb": "low",
+      "expectedSeverity": "low",
+      "alertWorkflowState": "NEW",
+      "disposition": null,
+      "closed": false,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_OUTSIDE_SOC_WORKFLOW"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "8/8",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "LOW-02",
+      "kind": "LOW",
+      "title": "Single failed SSH login (typo)",
+      "benignReason": "one mistyped password by a legitimate user",
+      "rule": "5760",
+      "level": 5,
+      "severityDb": "low",
+      "expectedSeverity": "low",
+      "alertWorkflowState": "NEW",
+      "disposition": null,
+      "closed": false,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_OUTSIDE_SOC_WORKFLOW"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "8/8",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "LOW-03",
+      "kind": "LOW",
+      "title": "Web request for a missing page (404)",
+      "benignReason": "ordinary broken link / bookmark",
+      "rule": "31101",
+      "level": 5,
+      "severityDb": "low",
+      "expectedSeverity": "low",
+      "alertWorkflowState": "NEW",
+      "disposition": null,
+      "closed": false,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_OUTSIDE_SOC_WORKFLOW"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "8/8",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "LOW-04",
+      "kind": "LOW",
+      "title": "Boundary: level 6 (just below MEDIUM)",
+      "benignReason": "single XSS-looking string from an authorised web-application test",
+      "rule": "31105",
+      "level": 6,
+      "severityDb": "low",
+      "expectedSeverity": "low",
+      "alertWorkflowState": "NEW",
+      "disposition": null,
+      "closed": false,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_OUTSIDE_SOC_WORKFLOW"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "8/8",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "FP-01",
+      "kind": "FP_MEDIUM",
+      "title": "Authorised vulnerability scan — one SQL-injection-looking request (MEDIUM, boundary level 7)",
+      "benignReason": "authorised Nessus-style scan of the lab web server (change ticket CHG-EVAL-0101)",
+      "rule": "31103",
+      "level": 7,
+      "severityDb": "medium",
+      "expectedSeverity": "medium",
+      "alertWorkflowState": "TRIAGED",
+      "disposition": "FALSE_POSITIVE",
+      "closed": true,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_ROUTED_TO_TRIAGE",
+        "ALERT_TRIAGED"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "10/10",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "FP-02",
+      "kind": "FP_MEDIUM",
+      "title": "Authorised site crawler — burst of 4xx responses (MEDIUM, level 10)",
+      "benignReason": "approved site-crawler / link checker run by the web team",
+      "rule": "31151",
+      "level": 10,
+      "severityDb": "medium",
+      "expectedSeverity": "medium",
+      "alertWorkflowState": "TRIAGED",
+      "disposition": "FALSE_POSITIVE",
+      "closed": true,
+      "incidentLinked": false,
+      "incidentStatus": null,
+      "auditActions": [
+        "ALERT_ROUTED_TO_TRIAGE",
+        "ALERT_TRIAGED"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "10/10",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 0,
+        "investigations": 0,
+        "agent_executions": 0,
+        "recommendations": 0,
+        "response_plans": 0,
+        "approvals": 0,
+        "step_executions": 0
+      },
+      "aiSeconds": null,
+      "modelAttempts": null,
+      "recommendation": null,
+      "aiMentionsBenignContext": null,
+      "failedChecks": [],
+      "observations": []
+    },
+    {
+      "case": "FP-03",
+      "kind": "FP_HIGH",
+      "title": "Approved change — a new operations engineer is added to the sudo group (CRITICAL, level 14)",
+      "benignReason": "approved change CHG-EVAL-0103: account opsadmin created and added to sudo by the platform team",
+      "rule": "100350",
+      "level": 14,
+      "severityDb": "critical",
+      "expectedSeverity": "critical",
+      "alertWorkflowState": "TRIAGED",
+      "disposition": null,
+      "closed": true,
+      "incidentLinked": true,
+      "incidentStatus": "dismissed",
+      "auditActions": [
+        "ALERT_ESCALATED_TO_INCIDENT"
+      ],
+      "stepExecutions": 0,
+      "harnessChecks": "13/13",
+      "result": "PASS",
+      "dbDelta": {
+        "incidents": 1,
+        "investigations": 1,
+        "agent_executions": 1,
+        "recommendations": 1,
+        "response_plans": 1,
+        "approvals": 1,
+        "step_executions": 0
+      },
+      "aiSeconds": 69.44,
+      "modelAttempts": 1,
+      "recommendation": {
+        "playbook": "PB-ACCOUNT-COMPROMISE",
+        "steps": [
+          {
+            "action": "ACT-DISABLE-ACCOUNT",
+            "target": "opsadmin"
+          },
+          {
+            "action": "ACT-ISOLATE-ENDPOINT",
+            "target": "attack-endpoint"
+          }
+        ]
+      },
+      "aiMentionsBenignContext": true,
+      "failedChecks": [],
+      "observations": [
+        "After the IR reject the ticket stays PENDING_MANUAL_DECISION: the use cases expose no explicit cancel/close for it (observation)."
+      ]
+    }
+  ],
+  "metrics": {
+    "lowKeptOutOfWorkflow": {
+      "n": 4,
+      "of": 4
+    },
+    "lowSeverityMatchesWazuhLevel": {
+      "n": 4,
+      "of": 4,
+      "levels": [
+        "LOW-01: level 3 → low",
+        "LOW-02: level 5 → low",
+        "LOW-03: level 5 → low",
+        "LOW-04: level 6 → low"
+      ]
+    },
+    "mediumFalsePositivesClosedWithoutIncidentOrAi": {
+      "n": 2,
+      "of": 2
+    },
+    "highCriticalAutoIncident": {
+      "n": 1,
+      "of": 1
+    },
+    "highCriticalNotClosableFromInbox": {
+      "n": 1,
+      "of": 1
+    },
+    "benignRecommendationsProducedForHighCritical": {
+      "n": 1,
+      "of": 1,
+      "note": "cost of a false positive; the AI has no false-positive verdict and is not graded on one"
+    },
+    "irRejectedBenignRecommendation": {
+      "n": 1,
+      "of": 1
+    },
+    "benignAlertsLeadingToExecutedResponse": {
+      "n": 0,
+      "of": 7
+    },
+    "harnessChecks": {
+      "passed": 65,
+      "of": 65
+    },
+    "overallFalsePositiveRate": "NOT CALCULABLE — a rule-level false-positive rate needs a labelled benign event stream (denominator = all benign events); only 3 benign scenarios were tested, so only handling of known-benign alerts is measured",
+    "aiFalsePositiveDetection": "NOT CALCULABLE — VIGIX emits no false-positive verdict (AI never triages); nothing to score",
+    "aiMentionsBenignContext": [
+      {
+        "case": "FP-03",
+        "keywordObservation": true
+      }
+    ]
+  },
+  "allChecks": [
+    {
+      "case": "LOW-01",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 5715 level 3",
+      "actual": "rule 5715 level 3",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "low",
+      "actual": "low",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L1",
+      "check": "audit ALERT_OUTSIDE_SOC_WORKFLOW recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L2",
+      "check": "no incident opened",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L3",
+      "check": "no triage required (not in the SOC workflow)",
+      "expected": "triageRequired=false",
+      "actual": "triageRequired=false",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L4",
+      "check": "SOC cannot escalate a LOW alert",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L5",
+      "check": "a LOW alert is not part of triage at all",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-01",
+      "id": "L6",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 5760 level 5",
+      "actual": "rule 5760 level 5",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "low",
+      "actual": "low",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L1",
+      "check": "audit ALERT_OUTSIDE_SOC_WORKFLOW recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L2",
+      "check": "no incident opened",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L3",
+      "check": "no triage required (not in the SOC workflow)",
+      "expected": "triageRequired=false",
+      "actual": "triageRequired=false",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L4",
+      "check": "SOC cannot escalate a LOW alert",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L5",
+      "check": "a LOW alert is not part of triage at all",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-02",
+      "id": "L6",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 31101 level 5",
+      "actual": "rule 31101 level 5",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "low",
+      "actual": "low",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L1",
+      "check": "audit ALERT_OUTSIDE_SOC_WORKFLOW recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L2",
+      "check": "no incident opened",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L3",
+      "check": "no triage required (not in the SOC workflow)",
+      "expected": "triageRequired=false",
+      "actual": "triageRequired=false",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L4",
+      "check": "SOC cannot escalate a LOW alert",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L5",
+      "check": "a LOW alert is not part of triage at all",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-03",
+      "id": "L6",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 31105 level 6",
+      "actual": "rule 31105 level 6",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "low",
+      "actual": "low",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L1",
+      "check": "audit ALERT_OUTSIDE_SOC_WORKFLOW recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L2",
+      "check": "no incident opened",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L3",
+      "check": "no triage required (not in the SOC workflow)",
+      "expected": "triageRequired=false",
+      "actual": "triageRequired=false",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L4",
+      "check": "SOC cannot escalate a LOW alert",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L5",
+      "check": "a LOW alert is not part of triage at all",
+      "expected": "refused NOT_IN_SOC_WORKFLOW",
+      "actual": "NOT_IN_SOC_WORKFLOW",
+      "pass": true
+    },
+    {
+      "case": "LOW-04",
+      "id": "L6",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 31103 level 7",
+      "actual": "rule 31103 level 7",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "medium",
+      "actual": "medium",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M1",
+      "check": "audit ALERT_ROUTED_TO_TRIAGE recorded (medium waits for SOC)",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M2",
+      "check": "NO automatic incident for a MEDIUM alert",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M3",
+      "check": "triage is required",
+      "expected": "triageRequired=true",
+      "actual": "triageRequired=true",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M4",
+      "check": "SOC closes the alert as FALSE_POSITIVE",
+      "expected": "accepted, no incident",
+      "actual": "accepted, incident=null",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M5",
+      "check": "alert stored as TRIAGED / FALSE_POSITIVE with closed_at, actor and reason",
+      "expected": "TRIAGED, FALSE_POSITIVE, closed_at set",
+      "actual": "TRIAGED, FALSE_POSITIVE, closed_at=set, by eval-soc",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M6",
+      "check": "audit ALERT_TRIAGED recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M7",
+      "check": "a closed alert cannot be decided twice",
+      "expected": "refused ALERT_ALREADY_DECIDED",
+      "actual": "ALERT_ALREADY_DECIDED",
+      "pass": true
+    },
+    {
+      "case": "FP-01",
+      "id": "M8",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 31151 level 10",
+      "actual": "rule 31151 level 10",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "medium",
+      "actual": "medium",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M1",
+      "check": "audit ALERT_ROUTED_TO_TRIAGE recorded (medium waits for SOC)",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M2",
+      "check": "NO automatic incident for a MEDIUM alert",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M3",
+      "check": "triage is required",
+      "expected": "triageRequired=true",
+      "actual": "triageRequired=true",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M4",
+      "check": "SOC closes the alert as FALSE_POSITIVE",
+      "expected": "accepted, no incident",
+      "actual": "accepted, incident=null",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M5",
+      "check": "alert stored as TRIAGED / FALSE_POSITIVE with closed_at, actor and reason",
+      "expected": "TRIAGED, FALSE_POSITIVE, closed_at set",
+      "actual": "TRIAGED, FALSE_POSITIVE, closed_at=set, by eval-soc",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M6",
+      "check": "audit ALERT_TRIAGED recorded",
+      "expected": "present",
+      "actual": "present",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M7",
+      "check": "a closed alert cannot be decided twice",
+      "expected": "refused ALERT_ALREADY_DECIDED",
+      "actual": "ALERT_ALREADY_DECIDED",
+      "pass": true
+    },
+    {
+      "case": "FP-02",
+      "id": "M8",
+      "check": "no incident / investigation / AI execution / recommendation / ticket / approval was created",
+      "expected": "all deltas 0",
+      "actual": "{\"incidents\":0,\"investigations\":0,\"agent_executions\":0,\"recommendations\":0,\"response_plans\":0,\"approvals\":0,\"step_executions\":0}",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "A1",
+      "check": "the REAL Wazuh alert has the calibrated rule and level",
+      "expected": "rule 100350 level 14",
+      "actual": "rule 100350 level 14",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "A2",
+      "check": "severity is the deterministic Wazuh-level mapping (never AI)",
+      "expected": "critical",
+      "actual": "critical",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H1",
+      "check": "CRITICAL alert opens an incident AUTOMATICALLY",
+      "expected": "incident opened (trigger AUTOMATIC)",
+      "actual": "incident=9f660d93-87ce-4c88-bd85-b8a8043583ba",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H2",
+      "check": "a HIGH/CRITICAL alert cannot be closed as false positive from the inbox",
+      "expected": "refused (ALERT_IN_INCIDENT / CLOSE_NOT_ALLOWED)",
+      "actual": "ALERT_IN_INCIDENT",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H3",
+      "check": "the system produced a recommendation for the benign event (cost of the false positive — recorded, not graded)",
+      "expected": "recorded",
+      "actual": "PB-ACCOUNT-COMPROMISE: ACT-DISABLE-ACCOUNT→opsadmin, ACT-ISOLATE-ENDPOINT→attack-endpoint",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H4",
+      "check": "IR_TEAM rejects the recommendation for the benign event",
+      "expected": "ticket PENDING_MANUAL_DECISION",
+      "actual": "OK; PENDING_MANUAL_DECISION",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H5",
+      "check": "the rejected response cannot be started",
+      "expected": "blocked",
+      "actual": "APPROVAL_PENDING",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H6",
+      "check": "nothing executed",
+      "expected": "0 step executions",
+      "actual": "0",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H7",
+      "check": "no automatic regeneration after the reject",
+      "expected": "0 new recommendations / attempts",
+      "actual": "1 recs (was 1); 0 generation audit records",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H8",
+      "check": "the reject does not close the incident",
+      "expected": "status unchanged (open)",
+      "actual": "open",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H9",
+      "check": "an incident cannot be set to resolved by hand (verification only)",
+      "expected": "refused RESOLVE_REQUIRES_VERIFICATION",
+      "actual": "RESOLVE_REQUIRES_VERIFICATION",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H10",
+      "check": "a human dismisses the benign incident (IR_TEAM, audited)",
+      "expected": "status dismissed, audit INCIDENT_STATUS_CHANGED by the human",
+      "actual": "dismissed",
+      "pass": true
+    },
+    {
+      "case": "FP-03",
+      "id": "H11",
+      "check": "no response was executed for the benign incident",
+      "expected": "0 step executions",
+      "actual": "0",
+      "pass": true
+    }
+  ]
+}

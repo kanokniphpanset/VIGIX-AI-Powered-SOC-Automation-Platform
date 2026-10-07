@@ -1,0 +1,1416 @@
+{
+  "evaluation": "B_recommendation_consistency",
+  "startedAt": "2026-10-02T10:12:27.659Z",
+  "finishedAt": "2026-10-02T10:32:44.431Z",
+  "database": "soar_mockv2f_eval",
+  "orchestrator": "http://localhost:8001",
+  "source_run": "mock-evaluation-v2-rerun-20261002",
+  "repetitions": 5,
+  "cases": [
+    "TC-01",
+    "TC-02",
+    "TC-04",
+    "TC-06",
+    "TC-07",
+    "TC-09"
+  ],
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "firstRoundContext": "the incident's earlier recommendations are hidden from the context (previousSteps=[]) — the condition of the original first-round generation; otherwise the NO_NEW_STEP validator rule would reject any repeat by design",
+  "nothingPersisted": true,
+  "infrastructure_failures": [],
+  "infrastructure_failure_count": 0,
+  "evidenceSnapshots": {
+    "TC-01": {
+      "incidentId": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidenceSnapshotHashes": [
+        "e6e4a66d64ae94bd33be45cb1cdb7e9908aa1af0e3eeb39bdae05ce86b4bc3cf",
+        "e6e4a66d64ae94bd33be45cb1cdb7e9908aa1af0e3eeb39bdae05ce86b4bc3cf",
+        "e6e4a66d64ae94bd33be45cb1cdb7e9908aa1af0e3eeb39bdae05ce86b4bc3cf",
+        "e6e4a66d64ae94bd33be45cb1cdb7e9908aa1af0e3eeb39bdae05ce86b4bc3cf",
+        "e6e4a66d64ae94bd33be45cb1cdb7e9908aa1af0e3eeb39bdae05ce86b4bc3cf"
+      ],
+      "iocCount": 2,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-SSH-BRUTEFORCE",
+      "matchedTechniques": [
+        "T1110"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-SOURCE-IP",
+        "ACT-DISABLE-ACCOUNT"
+      ]
+    },
+    "TC-02": {
+      "incidentId": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidenceSnapshotHashes": [
+        "fc46fdddc0717233d62c39b8f6c4df8209eb0af60afa1be0c32195cbdcdcb7e1",
+        "fc46fdddc0717233d62c39b8f6c4df8209eb0af60afa1be0c32195cbdcdcb7e1",
+        "fc46fdddc0717233d62c39b8f6c4df8209eb0af60afa1be0c32195cbdcdcb7e1",
+        "fc46fdddc0717233d62c39b8f6c4df8209eb0af60afa1be0c32195cbdcdcb7e1",
+        "fc46fdddc0717233d62c39b8f6c4df8209eb0af60afa1be0c32195cbdcdcb7e1"
+      ],
+      "iocCount": 0,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-MALWARE",
+      "matchedTechniques": [
+        "T1204.002"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    },
+    "TC-04": {
+      "incidentId": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidenceSnapshotHashes": [
+        "ae61d449466e56fb9c25c255e92682572bfbcb55862093fe2847c4863ee9f911",
+        "ae61d449466e56fb9c25c255e92682572bfbcb55862093fe2847c4863ee9f911",
+        "ae61d449466e56fb9c25c255e92682572bfbcb55862093fe2847c4863ee9f911",
+        "ae61d449466e56fb9c25c255e92682572bfbcb55862093fe2847c4863ee9f911",
+        "ae61d449466e56fb9c25c255e92682572bfbcb55862093fe2847c4863ee9f911"
+      ],
+      "iocCount": 2,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-ACCOUNT-COMPROMISE",
+      "matchedTechniques": [
+        "T1078"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-DISABLE-ACCOUNT",
+        "ACT-BLOCK-SOURCE-IP",
+        "ACT-ISOLATE-ENDPOINT",
+        "ACT-RESET-CREDENTIAL",
+        "ACT-REVOKE-SESSION"
+      ]
+    },
+    "TC-06": {
+      "incidentId": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidenceSnapshotHashes": [
+        "f9be87b2babae35228f4d0fe311e83094fd05a7396ccdc3c46d9ea802f967e18",
+        "f9be87b2babae35228f4d0fe311e83094fd05a7396ccdc3c46d9ea802f967e18",
+        "f9be87b2babae35228f4d0fe311e83094fd05a7396ccdc3c46d9ea802f967e18",
+        "f9be87b2babae35228f4d0fe311e83094fd05a7396ccdc3c46d9ea802f967e18",
+        "f9be87b2babae35228f4d0fe311e83094fd05a7396ccdc3c46d9ea802f967e18"
+      ],
+      "iocCount": 3,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-SQL-INJECTION",
+      "matchedTechniques": [
+        "T1190"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-SOURCE-IP"
+      ]
+    },
+    "TC-07": {
+      "incidentId": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidenceSnapshotHashes": [
+        "7b07f79948d44a83f4f717b9c213024bba66fb5403ae6f38ddce91ed264c02c0",
+        "7b07f79948d44a83f4f717b9c213024bba66fb5403ae6f38ddce91ed264c02c0",
+        "7b07f79948d44a83f4f717b9c213024bba66fb5403ae6f38ddce91ed264c02c0",
+        "7b07f79948d44a83f4f717b9c213024bba66fb5403ae6f38ddce91ed264c02c0",
+        "7b07f79948d44a83f4f717b9c213024bba66fb5403ae6f38ddce91ed264c02c0"
+      ],
+      "iocCount": 4,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-C2",
+      "matchedTechniques": [
+        "T1071.001"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    },
+    "TC-09": {
+      "incidentId": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidenceSnapshotHashes": [
+        "c54d9463a7086e638f7e8f56d61dee48bd00dcceada3c159650ba57fe8133a2c",
+        "c54d9463a7086e638f7e8f56d61dee48bd00dcceada3c159650ba57fe8133a2c",
+        "c54d9463a7086e638f7e8f56d61dee48bd00dcceada3c159650ba57fe8133a2c",
+        "c54d9463a7086e638f7e8f56d61dee48bd00dcceada3c159650ba57fe8133a2c",
+        "c54d9463a7086e638f7e8f56d61dee48bd00dcceada3c159650ba57fe8133a2c"
+      ],
+      "iocCount": 5,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-DATA-EXFIL",
+      "matchedTechniques": [
+        "T1048"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    }
+  },
+  "overall": {
+    "runs": 30,
+    "consistent_runs": 30,
+    "consistency_pct": 100,
+    "per_case_mean_pct": 100,
+    "per_case_sd_pct": 0,
+    "validated_runs": 30,
+    "all_evidence_snapshots_identical": true
+  },
+  "perCase": [
+    {
+      "case_id": "TC-01",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-SSH-BRUTEFORCE|ACT-BLOCK-SOURCE-IP|ip|172.19.0.7",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-SSH-BRUTEFORCE|ACT-BLOCK-SOURCE-IP|ip|172.19.0.7": 5
+      },
+      "step_set_agreement_runs": 5,
+      "step_set_agreement_pct": 100,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 19.57,
+        "median": 19.44,
+        "min": 18.39,
+        "max": 21.9,
+        "sd": 1.42
+      }
+    },
+    {
+      "case_id": "TC-02",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-MALWARE|ACT-ISOLATE-ENDPOINT|host|attack-endpoint",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-MALWARE|ACT-ISOLATE-ENDPOINT|host|attack-endpoint": 5
+      },
+      "step_set_agreement_runs": 5,
+      "step_set_agreement_pct": 100,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 47.32,
+        "median": 48.25,
+        "min": 40.54,
+        "max": 51.46,
+        "sd": 4.06
+      }
+    },
+    {
+      "case_id": "TC-04",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-ACCOUNT-COMPROMISE|ACT-DISABLE-ACCOUNT|account|victim",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-ACCOUNT-COMPROMISE|ACT-DISABLE-ACCOUNT|account|victim": 5
+      },
+      "step_set_agreement_runs": 3,
+      "step_set_agreement_pct": 60,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 39.85,
+        "median": 34.58,
+        "min": 29.68,
+        "max": 67.56,
+        "sd": 15.63
+      }
+    },
+    {
+      "case_id": "TC-06",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-SQL-INJECTION|ACT-BLOCK-SOURCE-IP|ip|172.19.0.7",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-SQL-INJECTION|ACT-BLOCK-SOURCE-IP|ip|172.19.0.7": 5
+      },
+      "step_set_agreement_runs": 5,
+      "step_set_agreement_pct": 100,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 20.04,
+        "median": 19.75,
+        "min": 18.36,
+        "max": 21.82,
+        "sd": 1.32
+      }
+    },
+    {
+      "case_id": "TC-07",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-C2|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5": 5
+      },
+      "step_set_agreement_runs": 5,
+      "step_set_agreement_pct": 100,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 56.59,
+        "median": 42.88,
+        "min": 38.78,
+        "max": 82.02,
+        "sd": 20.89
+      }
+    },
+    {
+      "case_id": "TC-09",
+      "runs": 5,
+      "validated_runs": 5,
+      "consistent_runs": 5,
+      "consistency_pct": 100,
+      "modal_primary": "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-DATA-EXFIL|ACT-BLOCK-DESTINATION-IP|ip|172.19.0.5": 5
+      },
+      "step_set_agreement_runs": 5,
+      "step_set_agreement_pct": 100,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 59.53,
+        "median": 42.52,
+        "min": 37.08,
+        "max": 93.41,
+        "sd": 26.27
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "TC-01",
+      "repetition": 1,
+      "incident_id": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidence_snapshot_hash": "e6e4a66d64ae94bd",
+      "generation_seconds": 21.9,
+      "attempts": 1,
+      "mitre_technique": "T1110",
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 2,
+      "incident_id": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidence_snapshot_hash": "e6e4a66d64ae94bd",
+      "generation_seconds": 19.44,
+      "attempts": 1,
+      "mitre_technique": "T1110",
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 3,
+      "incident_id": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidence_snapshot_hash": "e6e4a66d64ae94bd",
+      "generation_seconds": 18.39,
+      "attempts": 1,
+      "mitre_technique": "T1110",
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 4,
+      "incident_id": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidence_snapshot_hash": "e6e4a66d64ae94bd",
+      "generation_seconds": 19.65,
+      "attempts": 1,
+      "mitre_technique": "T1110",
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-01",
+      "repetition": 5,
+      "incident_id": "99dc15bb-24f3-41d0-993f-f5ee4c475b5f",
+      "evidence_snapshot_hash": "e6e4a66d64ae94bd",
+      "generation_seconds": 18.45,
+      "attempts": 1,
+      "mitre_technique": "T1110",
+      "playbook_id": "PB-SSH-BRUTEFORCE",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 1,
+      "incident_id": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidence_snapshot_hash": "fc46fdddc0717233",
+      "generation_seconds": 48.63,
+      "attempts": 2,
+      "mitre_technique": "T1204.002",
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 2,
+      "incident_id": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidence_snapshot_hash": "fc46fdddc0717233",
+      "generation_seconds": 47.71,
+      "attempts": 2,
+      "mitre_technique": "T1204.002",
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 3,
+      "incident_id": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidence_snapshot_hash": "fc46fdddc0717233",
+      "generation_seconds": 51.46,
+      "attempts": 2,
+      "mitre_technique": "T1204.002",
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 4,
+      "incident_id": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidence_snapshot_hash": "fc46fdddc0717233",
+      "generation_seconds": 40.54,
+      "attempts": 2,
+      "mitre_technique": "T1204.002",
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-02",
+      "repetition": 5,
+      "incident_id": "6b6ee41b-594b-4cc4-8c9e-9cff07988aea",
+      "evidence_snapshot_hash": "fc46fdddc0717233",
+      "generation_seconds": 48.25,
+      "attempts": 2,
+      "mitre_technique": "T1204.002",
+      "playbook_id": "PB-MALWARE",
+      "primary_action": "ACT-ISOLATE-ENDPOINT",
+      "target_type": "host",
+      "target_value": "attack-endpoint",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 1,
+      "incident_id": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidence_snapshot_hash": "ae61d449466e56fb",
+      "generation_seconds": 67.56,
+      "attempts": 1,
+      "mitre_technique": "T1078",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 2,
+      "incident_id": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidence_snapshot_hash": "ae61d449466e56fb",
+      "generation_seconds": 29.68,
+      "attempts": 1,
+      "mitre_technique": "T1078",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 3,
+      "incident_id": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidence_snapshot_hash": "ae61d449466e56fb",
+      "generation_seconds": 32.53,
+      "attempts": 1,
+      "mitre_technique": "T1078",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "victim",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 4,
+      "incident_id": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidence_snapshot_hash": "ae61d449466e56fb",
+      "generation_seconds": 34.58,
+      "attempts": 1,
+      "mitre_technique": "T1078",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-04",
+      "repetition": 5,
+      "incident_id": "0359f036-0879-46a0-bc1e-20dd25845ebe",
+      "evidence_snapshot_hash": "ae61d449466e56fb",
+      "generation_seconds": 34.92,
+      "attempts": 1,
+      "mitre_technique": "T1078",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "victim",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+POL-A01+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "victim",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "victim",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 1,
+      "incident_id": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidence_snapshot_hash": "f9be87b2babae352",
+      "generation_seconds": 19.75,
+      "attempts": 1,
+      "mitre_technique": "T1190",
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 2,
+      "incident_id": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidence_snapshot_hash": "f9be87b2babae352",
+      "generation_seconds": 19.48,
+      "attempts": 1,
+      "mitre_technique": "T1190",
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 3,
+      "incident_id": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidence_snapshot_hash": "f9be87b2babae352",
+      "generation_seconds": 18.36,
+      "attempts": 1,
+      "mitre_technique": "T1190",
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 4,
+      "incident_id": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidence_snapshot_hash": "f9be87b2babae352",
+      "generation_seconds": 21.82,
+      "attempts": 1,
+      "mitre_technique": "T1190",
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-06",
+      "repetition": 5,
+      "incident_id": "dc94a7ba-4ebc-4b0f-8fef-1f65af189806",
+      "evidence_snapshot_hash": "f9be87b2babae352",
+      "generation_seconds": 20.78,
+      "attempts": 1,
+      "mitre_technique": "T1190",
+      "playbook_id": "PB-SQL-INJECTION",
+      "primary_action": "ACT-BLOCK-SOURCE-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.7",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 1,
+      "incident_id": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidence_snapshot_hash": "7b07f79948d44a83",
+      "generation_seconds": 38.78,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 2,
+      "incident_id": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidence_snapshot_hash": "7b07f79948d44a83",
+      "generation_seconds": 76.59,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 3,
+      "incident_id": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidence_snapshot_hash": "7b07f79948d44a83",
+      "generation_seconds": 82.02,
+      "attempts": 2,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 4,
+      "incident_id": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidence_snapshot_hash": "7b07f79948d44a83",
+      "generation_seconds": 42.7,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-07",
+      "repetition": 5,
+      "incident_id": "6d150b0f-a32d-4059-8ee9-65cefd96542a",
+      "evidence_snapshot_hash": "7b07f79948d44a83",
+      "generation_seconds": 42.88,
+      "attempts": 1,
+      "mitre_technique": "T1071.001",
+      "playbook_id": "PB-C2",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "incident_id": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidence_snapshot_hash": "c54d9463a7086e63",
+      "generation_seconds": 37.08,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 2,
+      "incident_id": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidence_snapshot_hash": "c54d9463a7086e63",
+      "generation_seconds": 93.41,
+      "attempts": 2,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "incident_id": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidence_snapshot_hash": "c54d9463a7086e63",
+      "generation_seconds": 42.29,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 4,
+      "incident_id": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidence_snapshot_hash": "c54d9463a7086e63",
+      "generation_seconds": 82.37,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "incident_id": "ff84ec6e-5925-4603-813b-14e33eaef014",
+      "evidence_snapshot_hash": "c54d9463a7086e63",
+      "generation_seconds": 42.52,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": "ACT-BLOCK-DESTINATION-IP",
+      "target_type": "ip",
+      "target_value": "172.19.0.5",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A03+RULE-P02+RULE-P07+RULE-I03+POL-003",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "requiresApproval": true
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": []
+    }
+  ]
+}

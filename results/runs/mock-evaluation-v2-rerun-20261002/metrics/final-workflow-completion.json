@@ -1,0 +1,197 @@
+{
+  "kpi": "Workflow Completion Rate",
+  "formula": "cases reaching a valid final workflow state / evaluated cases × 100",
+  "definition": "all 12 stages present in the database and the final state supported by workflow evidence: RESOLVED only with a RESOLVED verification and an INCIDENT_RESOLVED audit record (never because an incident was merely closed); a non-RESOLVED verification must leave the incident unresolved",
+  "source": "alerts, audit_logs, incidents, investigations, agent_results, recommendations, playbook_snapshots, response_plans, approvals, verifications",
+  "result": {
+    "numerator": 7,
+    "denominator": 9,
+    "pct": 77.78,
+    "pctOfAllTen": 70
+  },
+  "incomplete": [
+    {
+      "tc": "TC-02",
+      "stoppedAtStage": "11_verification_rehunt",
+      "reason": "re-hunt INSUFFICIENT_CRITERIA: No supported IOC is available to query."
+    },
+    {
+      "tc": "TC-10",
+      "stoppedAtStage": "11_verification_rehunt",
+      "reason": "re-hunt INSUFFICIENT_CRITERIA: No supported IOC is available to query."
+    }
+  ],
+  "perCase": [
+    {
+      "tc": "TC-01",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-02",
+      "complete": false,
+      "stoppedAt": "11_verification_rehunt",
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": false,
+        "12_final_state_supported": false
+      }
+    },
+    {
+      "tc": "TC-03",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-04",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-06",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-07",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-08",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-09",
+      "complete": true,
+      "stoppedAt": null,
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": true,
+        "12_final_state_supported": true
+      }
+    },
+    {
+      "tc": "TC-10",
+      "complete": false,
+      "stoppedAt": "11_verification_rehunt",
+      "stages": {
+        "1_alert_ingested": true,
+        "2_triage": true,
+        "3_incident": true,
+        "4_investigation_started": true,
+        "5_ai_analysis": true,
+        "6_recommendation_validated": true,
+        "7_policy_evaluated": true,
+        "8_response_ticket_created_by_soc": true,
+        "9_ir_decision": true,
+        "10_response_or_manual_response_completed": true,
+        "11_verification_rehunt": false,
+        "12_final_state_supported": false
+      }
+    }
+  ]
+}

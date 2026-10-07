@@ -7,7 +7,10 @@ import { IPlaybookAuditRecorder } from "../ports/IPlaybookAuditRecorder";
 /**
  * Edits a Playbook in place. It only affects FUTURE recommendations: each recommendation already recorded its own
  * playbook snapshot and steps, which are never rewritten here. A status change is audited as ACTIVATE/DEACTIVATE,
- * any other change as UPDATE_PLAYBOOK.
+ * any other change as UPDATE_PLAYBOOK. A published playbook (Phase 1D) is the projection of its published revision:
+ * it is never edited here (PUBLISHED_IMMUTABLE, nothing written or audited); changes go through a new revision.
+ * A not-yet-published playbook with revisions (created as a DRAFT) is governed by its revision too
+ * (REVISION_MANAGED): editing the row here could activate it or make it drift from the revision under review.
  */
 export class UpdatePlaybookUseCase {
   constructor(
@@ -15,9 +18,12 @@ export class UpdatePlaybookUseCase {
     private readonly audit?: IPlaybookAuditRecorder
   ) {}
 
-  async execute(input: UpdatePlaybookDto & { id: string; tenantId: string; actor?: string }): Promise<Result<Playbook, "NOT_FOUND">> {
+  async execute(input: UpdatePlaybookDto & { id: string; tenantId: string; actor?: string }): Promise<Result<Playbook, "NOT_FOUND" | "PUBLISHED_IMMUTABLE" | "REVISION_MANAGED">> {
     const existing = await this.playbookRepository.findById(input.id, input.tenantId);
     if (!existing) return Result.fail("NOT_FOUND");
+    const revisions = await this.playbookRepository.revisionState(input.id, input.tenantId);
+    if (revisions?.publishedRevisionId) return Result.fail("PUBLISHED_IMMUTABLE");
+    if (revisions && revisions.revisionCount > 0) return Result.fail("REVISION_MANAGED");
     const { id, tenantId, actor, ...data } = input;
     const playbook = await this.playbookRepository.update(id, tenantId, {
       ...data,

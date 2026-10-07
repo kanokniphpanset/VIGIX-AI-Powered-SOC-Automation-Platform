@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { CreateRunbookUseCase } from "../../../application/runbook/use-cases/CreateRunbook.usecase";
 import { UpdateRunbookUseCase } from "../../../application/runbook/use-cases/UpdateRunbook.usecase";
@@ -6,7 +7,6 @@ import { ListRunbooksUseCase } from "../../../application/runbook/use-cases/List
 import { createRunbookSchema, updateRunbookSchema } from "../../../application/runbook/dto/RunbookDto";
 import { validateBody } from "../validators/validateBody";
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 export class RunbookController {
   constructor(
@@ -17,13 +17,13 @@ export class RunbookController {
   ) {}
 
   list = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const runbooks = await this.listRunbooks.execute({ tenantId });
     res.json({ items: runbooks.map((r) => r.toJSON()) });
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getRunbook.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "INVALID_RUNBOOK" });
@@ -33,7 +33,7 @@ export class RunbookController {
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(createRunbookSchema, req, res);
     if (!body) return;
     const result = await this.createRunbook.execute({
@@ -52,7 +52,7 @@ export class RunbookController {
   };
 
   update = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(updateRunbookSchema, req, res);
     if (!body) return;
     const result = await this.updateRunbook.execute({ ...body, id: req.params.id, tenantId });

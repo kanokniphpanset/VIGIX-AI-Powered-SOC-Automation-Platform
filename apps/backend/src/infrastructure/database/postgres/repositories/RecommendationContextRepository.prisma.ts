@@ -7,6 +7,7 @@ import {
   IocContextRow,
   AnalysisRunRow,
   MitreMappingContextRow,
+  PreviousRecommendationStepRow,
 } from "../../../../application/recommendation/ports/IRecommendationContextRepository";
 import { checkGrounding, stringLeaves, stripAiSeverity } from "../../../../domain/ai/aiGrounding";
 import { classifyAnalysisSource, isTrustedAnalysisSource } from "../../../../domain/ai/analysisSource";
@@ -41,11 +42,18 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
             },
       include: { sourceAlert: { select: { externalAlertId: true } } },
     });
+    // IP role comes from the triggering alert's own fields; an IP that is both (or neither) gets no role.
+    const alert = (await this.prisma.incident.findUnique({ where: { id: incidentId }, select: { alert: { select: { rawPayload: true } } } }))?.alert;
+    const data = ((alert?.rawPayload as any)?.data ?? {}) as Record<string, unknown>;
+    const src = typeof data.srcip === "string" ? data.srcip : null;
+    const dst = typeof data.dstip === "string" ? data.dstip : null;
+    const roleOf = (v: string): "source" | "destination" | undefined => (src !== dst ? (v === src ? "source" : v === dst ? "destination" : undefined) : undefined);
     return rows.map((r) => ({
       iocType: r.iocType,
       iocValue: r.iocValue,
       source: r.source,
       reputationScore: r.reputationScore,
+      ...(r.iocType === "IPV4" || r.iocType === "IPV6" ? { networkRole: roleOf(r.iocValue) } : {}),
       manual: !!r.createdBy && r.createdBy !== "system",
       id: r.id,
       createdBy: r.createdBy,
@@ -84,6 +92,22 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
         iocValues: r.iocLinks.map((l) => l.ioc.iocValue),
       };
     });
+  }
+
+  async getPreviousRecommendationSteps(incidentId: string, tenantId: string): Promise<PreviousRecommendationStepRow[]> {
+    const rows = await this.prisma.recommendationStep.findMany({
+      where: { recommendation: { incidentId, tenantId }, actionId: { not: null }, target: { not: null } },
+      select: { target: true, action: { select: { code: true } }, recommendation: { select: { recommendationNumber: true, investigationNumber: true } } },
+      orderBy: [{ recommendation: { recommendationNumber: "asc" } }, { stepOrder: "asc" }],
+    });
+    return rows
+      .filter((r) => r.action && r.target)
+      .map((r) => ({
+        recommendationNumber: r.recommendation.recommendationNumber,
+        investigationNumber: r.recommendation.investigationNumber,
+        actionCode: r.action!.code,
+        target: r.target!,
+      }));
   }
 
   /** Most recent llm_analyst outputs with their classified source (historical rows are never modified). */

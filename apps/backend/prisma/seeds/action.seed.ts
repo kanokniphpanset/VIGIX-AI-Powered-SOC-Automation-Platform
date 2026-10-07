@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ACTION_KNOWLEDGE } from "../../src/domain/knowledge/actionKnowledge";
 
 /**
  * action.seed.ts — the Action Catalog. This is the ONLY source of valid,
@@ -131,6 +132,85 @@ export const ACTIONS: SeedAction[] = [
     impactLevel: "LOW",
     defaultApprovalRequired: false,
   },
+
+  // Knowledge Expansion for Evaluation (Step 3). New codes — the retired ACT-005 / ACT-006 are NOT reused. Structured
+  // knowledge (applicability, required evidence, verification) lives in src/domain/knowledge/actionKnowledge.ts.
+  {
+    code: "ACT-QUARANTINE-FILE",
+    name: "Quarantine File",
+    description:
+      "Endpoint Containment. Quarantine an identified malicious file on the affected endpoint. Target: file path. " +
+      "Applicable: Malware, PowerShell Attack, Suspicious Process Execution. Required evidence: affected endpoint, " +
+      "file path, file hash, supporting malicious evidence. Expected effect: prevent execution or further use of the " +
+      "identified malicious file. Verification: re-hunt file hash, check file/process recurrence, check endpoint " +
+      "activity. Risk: quarantining a legitimate file if it is misidentified.",
+    category: "CONTAINMENT",
+    impactLevel: "MEDIUM",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-KILL-PROCESS",
+    name: "Terminate Malicious Process",
+    description:
+      "Endpoint Containment. Terminate an identified malicious process on the affected endpoint. Target: process. " +
+      "Applicable: Malware, PowerShell Attack, Suspicious Process Execution, Privilege Escalation. Required evidence: " +
+      "endpoint, process name, PID, command line, supporting malicious evidence. Expected effect: terminate the " +
+      "identified malicious process. Verification: confirm the process no longer exists, re-hunt process/hash, check " +
+      "recurrence. Risk: terminating a legitimate or critical process if it is misidentified.",
+    category: "CONTAINMENT",
+    impactLevel: "MEDIUM",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-RESET-CREDENTIAL",
+    name: "Reset User Credentials",
+    description:
+      "Account Containment. Invalidate compromised credentials and require new credentials. Target: user account. " +
+      "Applicable: Account Compromise, Phishing. Required evidence: account identifier, suspicious authentication " +
+      "evidence, evidence of credential compromise. Expected effect: invalidate compromised credentials and require " +
+      "new credentials. Verification: check authentication events, check old credential usage, check suspicious " +
+      "account activity. Risk: interrupting the user and dependent services.",
+    category: "CONTAINMENT",
+    impactLevel: "HIGH",
+    defaultApprovalRequired: true,
+  },
+  {
+    code: "ACT-REVOKE-SESSION",
+    name: "Revoke Active Sessions",
+    description:
+      "Account Containment. Terminate active sessions associated with the affected account. Target: user account. " +
+      "Applicable: Account Compromise, Phishing. Required evidence: account identifier, active/suspicious session " +
+      "evidence. Expected effect: terminate active sessions associated with the affected account. Verification: " +
+      "check session activity, check authentication events, check recurrence. Risk: signing out the legitimate user.",
+    category: "CONTAINMENT",
+    impactLevel: "MEDIUM",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-BLOCK-HASH",
+    name: "Block File Hash",
+    description:
+      "Endpoint Containment. Block execution of an identified malicious file hash. Target: file hash. Applicable: " +
+      "Malware, PowerShell Attack, Suspicious Process Execution. Required evidence: file hash, related event, " +
+      "supporting malicious evidence. Expected effect: prevent execution or detection of the identified malicious " +
+      "file hash. Verification: re-hunt hash, check recurrence. Risk: blocking a legitimate binary if misidentified.",
+    category: "CONTAINMENT",
+    impactLevel: "MEDIUM",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-BLOCK-DESTINATION-IP",
+    name: "Block Destination IP",
+    description:
+      "Network Containment. Prevent communication to an identified malicious destination IP (C2 / exfiltration). " +
+      "Target: destination IP, network security control. Applicable: Command & Control, Data Exfiltration, Malware. " +
+      "Required evidence: destination IP, related network event, supporting IOC/CTI evidence. Expected effect: " +
+      "prevent communication to the identified destination IP. Verification: re-hunt destination IP, check network " +
+      "events, check recurrence. Risk: blocking a shared or legitimate destination if misidentified.",
+    category: "CONTAINMENT",
+    impactLevel: "MEDIUM",
+    defaultApprovalRequired: false,
+  },
 ];
 
 /** Codes from the previous revision with no equivalent in the new spec —
@@ -139,17 +219,14 @@ export const RETIRED_CODES = ["ACT-001", "ACT-002", "ACT-003", "ACT-004", "ACT-0
 
 /**
  * Task 10.3 — Action → action-level Runbook link (actions.runbook_id). Each
- * containment Action has exactly one operational runbook (runbook.seed.ts,
- * RB-<ACTION>). ACT-QUARANTINE-EMAIL, ACT-007 and ACT-008 have no action-level
- * runbook yet, so they stay unlinked (null). Runbooks must be seeded first.
+ * containment Action has exactly one operational runbook (runbook.seed.ts).
+ * Derived from the Action knowledge (actionKnowledge.ts `runbook`) so the link
+ * has one source. ACT-007 and ACT-008 (Core Flow phases, never expanded) stay
+ * unlinked (null). Runbooks must be seeded first.
  */
-export const ACTION_RUNBOOK_CODES: Record<string, string> = {
-  "ACT-BLOCK-SOURCE-IP": "RB-BLOCK-SOURCE-IP",
-  "ACT-BLOCK-DOMAIN": "RB-BLOCK-DOMAIN",
-  "ACT-BLOCK-URL": "RB-BLOCK-URL",
-  "ACT-ISOLATE-ENDPOINT": "RB-ISOLATE-ENDPOINT",
-  "ACT-DISABLE-ACCOUNT": "RB-DISABLE-ACCOUNT",
-};
+export const ACTION_RUNBOOK_CODES: Record<string, string> = Object.fromEntries(
+  ACTION_KNOWLEDGE.filter((a) => a.runbook).map((a) => [a.code, a.runbook as string])
+);
 
 export async function seedActions(prisma: PrismaClient, tenantId: string): Promise<void> {
   await prisma.action.deleteMany({ where: { code: { in: RETIRED_CODES } } });

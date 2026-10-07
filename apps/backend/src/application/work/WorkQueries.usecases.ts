@@ -69,4 +69,8 @@ export class WorkQueries {
   incidentAiJobs(input: { tenantId: string; incidentId: string }) {
     return this.repo.incidentAiJobs(input.tenantId, input.incidentId);
   }
+
+  iocLibrary(input: { tenantId: string; limit: number }) {
+    return this.repo.iocLibrary(input.tenantId, input.limit);
+  }
 }

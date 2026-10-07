@@ -1,0 +1,488 @@
+{
+  "mock-original": {
+    "evaluationType": "MOCK",
+    "summary": {
+      "evaluated": 10,
+      "compliant": 10,
+      "ratePercent": 100,
+      "formula": "compliant / evaluated recommendations × 100",
+      "perCriterionPassed": {
+        "attackAlignment": 10,
+        "evidenceSupport": 10,
+        "knowledgeValidity": 10,
+        "policyCompliance": 10,
+        "playbookAlignment": 10,
+        "approvalCorrectness": 10
+      },
+      "automaticCompliant": 6
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SSH-BRUTEFORCE"
+      },
+      {
+        "caseId": "TC-02",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-MALWARE"
+      },
+      {
+        "caseId": "TC-03",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-PHISHING"
+      },
+      {
+        "caseId": "TC-04",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      {
+        "caseId": "TC-05",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-POWERSHELL"
+      },
+      {
+        "caseId": "TC-06",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SQL-INJECTION"
+      },
+      {
+        "caseId": "TC-07",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-C2"
+      },
+      {
+        "caseId": "TC-08",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SUSPICIOUS-PROCESS"
+      },
+      {
+        "caseId": "TC-09",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-DATA-EXFIL"
+      },
+      {
+        "caseId": "TC-10",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      }
+    ]
+  },
+  "real-clean": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "evaluated": 7,
+      "compliant": 7,
+      "ratePercent": 100,
+      "formula": "compliant / evaluated recommendations × 100",
+      "perCriterionPassed": {
+        "attackAlignment": 7,
+        "evidenceSupport": 7,
+        "knowledgeValidity": 7,
+        "policyCompliance": 7,
+        "playbookAlignment": 7,
+        "approvalCorrectness": 7
+      },
+      "automaticCompliant": 7
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SSH-BRUTEFORCE"
+      },
+      {
+        "caseId": "TC-02",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-MALWARE"
+      },
+      {
+        "caseId": "TC-03",
+        "compliance": "NOT_EVALUATED",
+        "checks": null,
+        "failedChecks": [],
+        "playbook": null
+      },
+      {
+        "caseId": "TC-04",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      {
+        "caseId": "TC-05",
+        "compliance": "NOT_EVALUATED",
+        "checks": null,
+        "failedChecks": [],
+        "playbook": null
+      },
+      {
+        "caseId": "TC-06",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SQL-INJECTION"
+      },
+      {
+        "caseId": "TC-07",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-C2"
+      },
+      {
+        "caseId": "TC-08",
+        "compliance": "NOT_EVALUATED",
+        "checks": null,
+        "failedChecks": [],
+        "playbook": null
+      },
+      {
+        "caseId": "TC-09",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-DATA-EXFIL"
+      },
+      {
+        "caseId": "TC-10",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      }
+    ]
+  },
+  "real-intervention": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "evaluated": 9,
+      "compliant": 9,
+      "ratePercent": 100,
+      "formula": "compliant / evaluated recommendations × 100",
+      "perCriterionPassed": {
+        "attackAlignment": 9,
+        "evidenceSupport": 9,
+        "knowledgeValidity": 9,
+        "policyCompliance": 9,
+        "playbookAlignment": 9,
+        "approvalCorrectness": 9
+      },
+      "automaticCompliant": 7
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SSH-BRUTEFORCE"
+      },
+      {
+        "caseId": "TC-02",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-MALWARE"
+      },
+      {
+        "caseId": "TC-03",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-PHISHING"
+      },
+      {
+        "caseId": "TC-04",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      },
+      {
+        "caseId": "TC-05",
+        "compliance": "NOT_EVALUATED",
+        "checks": null,
+        "failedChecks": [],
+        "playbook": null
+      },
+      {
+        "caseId": "TC-06",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SQL-INJECTION"
+      },
+      {
+        "caseId": "TC-07",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-C2"
+      },
+      {
+        "caseId": "TC-08",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SUSPICIOUS-PROCESS"
+      },
+      {
+        "caseId": "TC-09",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-DATA-EXFIL"
+      },
+      {
+        "caseId": "TC-10",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-ACCOUNT-COMPROMISE"
+      }
+    ]
+  },
+  "real-recurrence-control": {
+    "evaluationType": "REAL_WAZUH",
+    "summary": {
+      "evaluated": 1,
+      "compliant": 1,
+      "ratePercent": 100,
+      "formula": "compliant / evaluated recommendations × 100",
+      "perCriterionPassed": {
+        "attackAlignment": 1,
+        "evidenceSupport": 1,
+        "knowledgeValidity": 1,
+        "policyCompliance": 1,
+        "playbookAlignment": 1,
+        "approvalCorrectness": 1
+      },
+      "automaticCompliant": 1
+    },
+    "cases": [
+      {
+        "caseId": "TC-01",
+        "compliance": "COMPLIANT",
+        "checks": {
+          "attackAlignment": true,
+          "evidenceSupport": true,
+          "knowledgeValidity": true,
+          "policyCompliance": true,
+          "playbookAlignment": true,
+          "approvalCorrectness": true
+        },
+        "failedChecks": [],
+        "playbook": "PB-SSH-BRUTEFORCE"
+      }
+    ]
+  }
+}

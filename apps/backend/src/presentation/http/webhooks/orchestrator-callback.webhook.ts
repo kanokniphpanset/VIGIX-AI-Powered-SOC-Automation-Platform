@@ -1,10 +1,13 @@
 import { Request, Response } from "express";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+export interface CallbackOwnershipReader {
+  findOwnedJob(input: { executionId: string; incidentId: string; tenantId: string }): Promise<boolean>;
+}
 
 interface OrchestratorCallbackBody {
   incidentId: string;
+  executionId: string;
   title: string;
   severity: string;
   summary: string;
@@ -20,24 +23,33 @@ interface OrchestratorCallbackBody {
  * an explicit human action through the Policy / Approval / Response workflow.
  */
 export class OrchestratorCallbackController {
-  constructor(private readonly auditLogger: AuditLogger) {}
+  constructor(private readonly auditLogger: AuditLogger, private readonly ownership: CallbackOwnershipReader) {}
 
   handle = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as OrchestratorCallbackBody;
 
-    if (!body.incidentId || !body.decision) {
-      res.status(400).json({ error: "Missing incidentId or decision" });
+    const principal = req.principal;
+    if (!principal || principal.principalType !== "SERVICE") {
+      res.status(403).json({ error: "SERVICE_PRINCIPAL_REQUIRED" }); return;
+    }
+    if (typeof body.incidentId !== "string" || typeof body.executionId !== "string" ||
+        !["auto_response", "human_approval", "dismiss"].includes(body.decision)) {
+      res.status(400).json({ error: "Invalid incidentId, executionId or decision" });
       return;
+    }
+    if (!principal.jobIds.includes(body.executionId) ||
+        !(await this.ownership.findOwnedJob({ executionId: body.executionId, incidentId: body.incidentId, tenantId: principal.tenantId }))) {
+      res.status(403).json({ error: "CALLBACK_OWNERSHIP_DENIED" }); return;
     }
 
     await this.auditLogger
       .record({
-        tenantId: DEFAULT_TENANT_ID,
-        actor: "ai-orchestrator",
+        tenantId: principal.tenantId,
+        actor: principal.id,
         action: "AI_DECISION_RECORDED",
         entity: "Incident",
         entityId: body.incidentId,
-        metadata: { decision: body.decision, severity: body.severity ?? null, advisoryOnly: true, playbookTriggered: false },
+        metadata: { decision: body.decision, severity: body.severity ?? null, executionId: body.executionId, principalType: "SERVICE", advisoryOnly: true, playbookTriggered: false },
       })
       .catch((err) => console.error("Failed to record the AI decision for incident", body.incidentId, err instanceof Error ? err.message : err));
 

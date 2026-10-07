@@ -1,0 +1,113 @@
+{
+  "label": "ext-esc-20261001",
+  "startedAt": "2026-10-01T05:25:50.280Z",
+  "finishedAt": "2026-10-01T05:30:54.191Z",
+  "database": "soar_ext_eval",
+  "groundTruthSha256": "bd8aeaf821b6cec2ee36b7048792c3ab497ace6bdb3a7b36ec1ef7af0ae67d79",
+  "groundTruth": {
+    "id": "ESC-01",
+    "basedOn": "TC-07 Command & Control (rule 100320, level 13, high)",
+    "rounds": 3,
+    "expected": [
+      "after each completed response the same C2 beacon repeats, so the REAL_WAZUH re-hunt finds the IOCs again -> NOT_RESOLVED",
+      "round 1 and 2 NOT_RESOLVED: the investigation is reopened (investigation_number +1) and the AI generates a new recommendation for the next round (an IR decision is still required; nothing executes automatically)",
+      "round 3 NOT_RESOLVED: no new investigation, no new recommendation, incident status 'escalated' (never resolved/closed), audit INVESTIGATION_ESCALATED and INCIDENT_ESCALATED with reason MAX_INVESTIGATION_ROUNDS_REACHED",
+      "nothing executes after the escalation; 'resolved' is refused for the escalated incident; a human decision (manual) is the only way forward"
+    ],
+    "maxInvestigationRounds": 3
+  },
+  "incidentId": "09d9d41d-e924-46b1-b225-dc04a453b531",
+  "escalatedObserved": false,
+  "verificationMode": "REAL_WAZUH",
+  "roundsReached": 0,
+  "rounds": [
+    {
+      "round": 1,
+      "investigationNumber": 1,
+      "recommendationGeneration": {
+        "attempts": 5,
+        "infra": 0,
+        "ok": false
+      },
+      "fallbackToEarlierRecommendation": false
+    }
+  ],
+  "checks": [
+    {
+      "id": "E1",
+      "check": "three REAL_WAZUH verifications, all NOT_RESOLVED",
+      "expected": "3 × NOT_RESOLVED",
+      "actual": "",
+      "pass": false
+    },
+    {
+      "id": "E2",
+      "check": "the third NOT_RESOLVED escalates the incident (not resolved, not closed)",
+      "expected": "status escalated, investigation #3",
+      "actual": "open, #1",
+      "pass": false
+    },
+    {
+      "id": "E3",
+      "check": "INVESTIGATION_ESCALATED audited with MAX_INVESTIGATION_ROUNDS_REACHED",
+      "expected": "present",
+      "actual": "[]",
+      "pass": false
+    },
+    {
+      "id": "E4",
+      "check": "INCIDENT_ESCALATED audited, INVESTIGATION_REOPENED exactly twice",
+      "expected": "INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2",
+      "actual": "INCIDENT_ESCALATED=0, INVESTIGATION_REOPENED=0",
+      "pass": false
+    },
+    {
+      "id": "E5",
+      "check": "no new recommendation / investigation after the escalation",
+      "expected": "0 recommendations after the 3rd verification; investigation stays #3",
+      "actual": "0 new recommendations; #1",
+      "pass": false
+    },
+    {
+      "id": "E6",
+      "check": "no response was created or executed automatically after the escalation",
+      "expected": "0 new tickets",
+      "actual": "0 new tickets",
+      "pass": true
+    },
+    {
+      "id": "E7",
+      "check": "an escalated incident cannot be resolved by hand",
+      "expected": "refused RESOLVE_REQUIRES_VERIFICATION",
+      "actual": "RESOLVE_REQUIRES_VERIFICATION",
+      "pass": true
+    },
+    {
+      "id": "E8",
+      "check": "a ticket cannot be verified twice (no silent fourth round)",
+      "expected": "refused",
+      "actual": "RESPONSE_NOT_FOUND",
+      "pass": true
+    },
+    {
+      "id": "E9",
+      "check": "the escalated incident is still not closed after all attempts",
+      "expected": "status escalated",
+      "actual": "open",
+      "pass": false
+    },
+    {
+      "id": "E10",
+      "check": "no AI/system actor changed the incident status",
+      "expected": "0",
+      "actual": "0",
+      "pass": true
+    }
+  ],
+  "observations": [
+    "AI_ANALYSIS_FAILED \"AI_ANALYSIS_FAILED\""
+  ],
+  "fatal": "round 1: no recommendation available",
+  "result": "INCOMPLETE",
+  "note": "ESCALATED is recorded only because the third round was reached."
+}

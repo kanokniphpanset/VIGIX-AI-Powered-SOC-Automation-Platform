@@ -25,6 +25,8 @@ model Tenant {
   policies               Policy[]
   recommendations        Recommendation[]
   responsePlans          ResponsePlan[]
+  responseTicketDrafts   ResponseTicketDraft[]
+  playbookRevisions      PlaybookRevision[]
   runbooks               Runbook[]
   users                  User[]
   verifications          Verification[]
@@ -99,6 +101,11 @@ model Incident {
   mttdSeconds         Int?                @map("mttd_seconds")
   mttrSeconds         Int?                @map("mttr_seconds")
   investigationNumber Int                 @default(1) @map("investigation_number")
+  /// SOC-confirmed incident type (a playbook incidentType, e.g. POWERSHELL). Null = detected from MITRE techniques.
+  incidentType        String?             @map("incident_type")
+  /// SOC guidance for this case before a Recommendation: { allowedActions, instructions, setBy, setAt }. Null = the
+  /// group's RESPONSE_GUIDANCE policy (or the playbook default) applies.
+  responseGuidance    Json?               @map("response_guidance")
   agentExecutions     AgentExecution[]
   feedback            AnalystFeedback[]
   decisions           Decision[]
@@ -311,11 +318,66 @@ model Playbook {
   code              String?             @unique
   status            String?             @default("ACTIVE")
   version           String?             @default("1.0")
+  /// The revision currently PUBLISHED (Phase 1D). This row stays the read model of that revision for existing readers
+  /// (PlaybookSelector, RecommendationValidator, EvaluationService). The DB keeps it consistent: it must point to this
+  /// playbook's single PUBLISHED revision (deferred constraint trigger, see migration 20261006030000_playbook_revisions).
+  publishedRevisionId String?           @unique @map("published_revision_id")
   executions        PlaybookExecution[]
   steps             PlaybookStep[]
   tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  snapshots         PlaybookSnapshot[]
+  revisions         PlaybookRevision[]  @relation("PlaybookRevisions")
+  publishedRevision PlaybookRevision?   @relation("PlaybookPublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@map("playbooks")
+}
+
+/// Playbook revision lifecycle (Phase 1D): DRAFT -> IN_REVIEW -> APPROVED -> PUBLISHED -> SUPERSEDED, or IN_REVIEW -> REJECTED.
+/// Transitions are enforced by the application; the DB enforces immutability of APPROVED / PUBLISHED / SUPERSEDED content.
+enum PlaybookRevisionStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  SUPERSEDED
+  REJECTED
+
+  @@map("playbook_revision_status")
+}
+
+/// One immutable-once-approved version of a playbook's content. Rollback re-points playbooks.published_revision_id to an
+/// earlier revision; it never copies or edits revision content. DB triggers (migration 20261006030000_playbook_revisions):
+/// content / version / identity frozen from APPROVED on, no step back to DRAFT / IN_REVIEW / REJECTED from APPROVED+,
+/// APPROVED / PUBLISHED / SUPERSEDED never deleted, tenant must equal the playbook's tenant.
+model PlaybookRevision {
+  id             String                 @id @default(uuid())
+  tenantId       String                 @map("tenant_id")
+  playbookId     String                 @map("playbook_id")
+  revisionNumber Int                    @map("revision_number")
+  version        String
+  status         PlaybookRevisionStatus @default(DRAFT)
+  /// Full playbook content to reconstruct it: { code, name, description, triggerConditions, n8nWorkflowId,
+  /// playbookStatus, version, steps: [{ stepOrder, title, description }] } (steps ordered by stepOrder).
+  content        Json
+  proposalReason String?                @map("proposal_reason")
+  createdBy      String                 @map("created_by")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  reviewedBy     String?                @map("reviewed_by")
+  reviewedAt     DateTime?              @map("reviewed_at")
+  approvedBy     String?                @map("approved_by")
+  approvedAt     DateTime?              @map("approved_at")
+  publishedBy    String?                @map("published_by")
+  publishedAt    DateTime?              @map("published_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  playbook       Playbook               @relation("PlaybookRevisions", fields: [playbookId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id])
+  publishedFor   Playbook?              @relation("PlaybookPublishedRevision")
+  snapshots      PlaybookSnapshot[]
+
+  @@unique([playbookId, revisionNumber])
+  @@unique([playbookId, version])
+  @@index([tenantId])
+  @@map("playbook_revisions")
 }
 
 model PlaybookStep {
@@ -476,6 +538,7 @@ model ResponsePlan {
   tenant               Tenant              @relation(fields: [tenantId], references: [id])
   stepExecutions       StepExecution[]
   verification         Verification?
+  draft                ResponseTicketDraft?
 
   @@index([incidentId])
   @@index([recommendationStepId])
@@ -755,6 +818,22 @@ model NotificationRecipient {
   @@map("notification_recipients")
 }
 
+model ResponseTicketDraft {
+  id         String       @id @default(uuid())
+  tenantId   String       @map("tenant_id")
+  responseId String       @unique @map("response_id")
+  /// Instruction orders (RecommendationStep instructions[].order) that are ticked.
+  checked    Int[]        @default([])
+  notes      String       @default("")
+  updatedBy  String?      @map("updated_by")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  response   ResponsePlan @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@map("response_ticket_drafts")
+}
+
 model StepExecution {
   id                   String             @id @default(uuid())
   planId               String             @map("plan_id")
@@ -784,6 +863,13 @@ model StepExecution {
 }
 
 model PlaybookSnapshot {
+  /// HC-1: NULL for legacy snapshots; new generation requires the complete exact tuple.
+  playbookId           String?          @map("playbook_id")
+  playbookRevisionId   String?          @map("playbook_revision_id")
+  contentHash          String?          @map("content_hash")
+  frozenRevisionContent Json?           @map("frozen_revision_content")
+  playbook             Playbook?        @relation(fields: [playbookId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  playbookRevision     PlaybookRevision? @relation(fields: [playbookRevisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   id                  String           @id @default(uuid())
   tenantId            String           @map("tenant_id")
   incidentId          String           @map("incident_id")
@@ -802,7 +888,9 @@ model PlaybookSnapshot {
   tenant              Tenant           @relation(fields: [tenantId], references: [id])
   recommendations     Recommendation[]
 
-  @@unique([incidentId, investigationNumber])
+  @@index([incidentId, investigationNumber])
+  @@index([tenantId, playbookRevisionId])
+  @@index([playbookId])
   @@map("playbook_snapshots")
 }
 

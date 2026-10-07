@@ -1,0 +1,27 @@
+{
+  "id": "1727667120.20003",
+  "timestamp": "2026-09-30T03:05:00.000+0000",
+  "rule": {
+    "id": "100310",
+    "level": 10,
+    "description": "Phishing email with a credential-harvesting link delivered to a user mailbox",
+    "groups": ["email", "phishing", "vigix_custom"],
+    "firedtimes": 1,
+    "mitre": { "id": ["T1566.002"], "tactic": ["Initial Access"], "technique": ["Spearphishing Link"] }
+  },
+  "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
+  "manager": { "name": "wazuh-manager" },
+  "decoder": { "name": "mail" },
+  "location": "/var/log/mail/secure-gw.log",
+  "data": {
+    "srcip": "45.155.205.233",
+    "url": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+    "dns": { "question": { "name": "vigix-mock-phish.net" } },
+    "email": {
+      "from": "it-support@vigix-mock-phish.net",
+      "to": "hr.clerk@corp.local",
+      "subject": "[Action Required] Your mailbox will be deactivated in 24 hours"
+    }
+  },
+  "full_log": "Phishing link http://vigix-mock-phish.net/o365/verify?id=hr.clerk from it-support@vigix-mock-phish.net (sending MTA 45.155.205.233) delivered to hr.clerk@corp.local subject 'Your mailbox will be deactivated in 24 hours'; SPF=fail DKIM=none"
+}

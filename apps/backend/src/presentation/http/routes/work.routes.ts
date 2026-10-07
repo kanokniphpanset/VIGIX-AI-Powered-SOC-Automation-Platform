@@ -24,6 +24,7 @@ const int = (v: unknown, fallback: number, max: number) => {
  *   GET /tickets?queue=my-work|awaiting-decision|ready|in-progress|awaiting-rehunt|completed|rejected|failed|escalated|all
  *   GET /approvals?scope=mine|all&status=pending|waiting|decided|all
  *   GET /incidents?status=a,b&priority=critical&search=
+ *   GET /iocs                — threat-intelligence library: indicators across all incidents, most-sighted first
  */
 export function buildWorkRoutes(queries: WorkQueries): Router {
   const router = Router();
@@ -80,6 +81,10 @@ export function buildWorkRoutes(queries: WorkQueries): Router {
         },
       })
     );
+  }));
+
+  router.get("/iocs", authenticate, safe(async (req: Request, res: Response) => {
+    res.json(await queries.iocLibrary({ tenantId: req.user!.tenantId ?? DEFAULT_TENANT_ID, limit: int(req.query.limit, 500, 1000) }));
   }));
 
   return router;

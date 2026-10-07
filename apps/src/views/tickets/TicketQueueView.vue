@@ -178,6 +178,10 @@ async function reloadAfterAction() {
             <RouterLink v-if="canDecide(ticket)" :to="`/tickets/${ticket.id}`" class="inline-flex items-center gap-1 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700">{{ t('tqv.reviewDecide') }}</RouterLink>
             <span v-else class="text-xs text-amber-700">{{ t('tqv.waitingDecision') }}</span>
           </template>
+          <template v-if="ticket.stage === 'AWAITING_MANUAL_DECISION'">
+            <RouterLink v-if="isIr" :to="`/tickets/${ticket.id}`" class="inline-flex items-center gap-1 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700">{{ t('tk.manualDecision') }}</RouterLink>
+            <span v-else class="text-xs text-orange-700">{{ t('tk.waitingManual') }}</span>
+          </template>
 
           <button v-if="ticket.stage === 'READY_FOR_EXECUTION' && isIr" type="button" class="inline-flex items-center gap-1 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:opacity-50" :disabled="!!busyId" :aria-busy="busyId === ticket.id" @click="start(ticket)"><Play class="size-3.5" /> {{ busyId === ticket.id ? t('tqv.starting') : t('tqv.start') }}</button>
 

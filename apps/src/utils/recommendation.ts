@@ -21,6 +21,9 @@ export function generateErrorMessage(err: unknown): string {
   const code = typeof err === 'object' && err !== null && 'code' in err ? String((err as { code: unknown }).code) : 'UNKNOWN'
   if (code === 'AI_UNAVAILABLE') return tr('err.rec.AI_UNAVAILABLE')
   if (code === 'INVALID_AI_OUTPUT') return tr('err.INVALID_AI_OUTPUT')
+  if (code === 'INSUFFICIENT_EVIDENCE') return tr('err.rec.INSUFFICIENT_EVIDENCE')
+  if (code === 'NO_NEW_RECOMMENDATION') return tr('err.rec.NO_NEW_RECOMMENDATION')
+  if (code === 'DUPLICATE_RECOMMENDATION') return tr('err.rec.DUPLICATE_RECOMMENDATION')
   if (code === 'INCIDENT_NOT_FOUND') return tr('err.INCIDENT_NOT_FOUND')
   if (code === 'FORBIDDEN' || code === 'HTTP_403') return tr('err.rec.forbidden')
   return tr('err.rec.withCode', { code })

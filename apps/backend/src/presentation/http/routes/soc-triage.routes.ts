@@ -1,3 +1,4 @@
+import { asyncHandler } from "../middlewares/async-handler.middleware";
 import { Router } from "express";
 import { SocTriageController } from "../controllers/SocTriageController";
 import { authenticate, requireOperationalRole, requireRole } from "../middlewares/auth.middleware";
@@ -9,10 +10,10 @@ import { authenticate, requireOperationalRole, requireRole } from "../middleware
 export function buildSocTriageRoutes(controller: SocTriageController): Router {
   const router = Router();
   // Alert review is SOC work (admin is a system role and does not triage). No claim: any SOC analyst decides an open alert.
-  router.post("/alerts/:id/triage", authenticate, requireOperationalRole("SOC"), controller.triage);
+  router.post("/alerts/:id/triage", authenticate, requireOperationalRole("SOC"), asyncHandler(controller.triage));
   router.post("/incidents/:id/notification-decision", authenticate, requireRole("SOC"), controller.notificationDecision);
   // SOC severity validation (confirm the Wazuh-rule severity, or correct it with a reason). AI never sets it.
-  router.post("/incidents/:id/severity-validation", authenticate, requireRole("SOC"), controller.severityValidation);
+  router.post("/incidents/:id/severity-validation", authenticate, requireRole("SOC"), asyncHandler(controller.severityValidation));
   router.get("/incidents/:id/severity", authenticate, controller.severity);
   return router;
 }

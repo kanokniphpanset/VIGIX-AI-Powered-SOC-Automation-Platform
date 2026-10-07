@@ -1,0 +1,38 @@
+{
+  "verifiedAt": "2026-09-30T13:13:32.189263+00:00",
+  "files_checked": 31,
+  "files_changed": [],
+  "soar_eval_rows_identical_to_manifest": true,
+  "soar_eval_now": {
+    "alerts": 19,
+    "incidents": 19,
+    "recommendations": 17,
+    "response_plans": 17,
+    "approvals": 17,
+    "verifications": 13,
+    "audit_logs": 429,
+    "threat_intel_iocs": 53,
+    "evidence": 39
+  },
+  "soar_platform_now": {
+    "alerts": 260,
+    "incidents": 39
+  },
+  "soar_platform_expected": {
+    "alerts": 260,
+    "incidents": 39
+  },
+  "soar_addl_eval_now(clone, written by the additional evaluation)": {
+    "alerts": 19,
+    "incidents": 19,
+    "recommendations": 17,
+    "response_plans": 18,
+    "approvals": 19,
+    "verifications": 13
+  },
+  "policies_playbooks_mitre_unchanged": {
+    "policies": true,
+    "playbooks": true,
+    "mitre": true
+  }
+}

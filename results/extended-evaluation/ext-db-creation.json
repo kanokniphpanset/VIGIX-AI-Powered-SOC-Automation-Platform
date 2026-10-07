@@ -1,0 +1,30 @@
+{
+  "createdAt": "2026-10-01T05:12:43.020367+00:00",
+  "database": "soar_ext_eval",
+  "restoredFrom": "backups/db/soar_eval-frozen-before-additional-20260930.sql",
+  "restoreErrors": 0,
+  "rowCountsAfterRestoreEqualFrozenManifest": true,
+  "rowCountsAfterRestore": {
+    "alerts": 19,
+    "incidents": 19,
+    "recommendations": 17,
+    "response_plans": 17,
+    "approvals": 17,
+    "verifications": 13,
+    "audit_logs": 429,
+    "threat_intel_iocs": 53,
+    "evidence": 39
+  },
+  "rowCountsAfterReset": {
+    "alerts": 0,
+    "incidents": 0,
+    "recommendations": 0,
+    "verifications": 0,
+    "audit_logs": 0,
+    "actions": 14,
+    "playbooks": 11,
+    "policies": 29,
+    "mitre_techniques": 26,
+    "runbooks": 17
+  }
+}

@@ -19,7 +19,7 @@ import {
 import { COMPANY, REPORT_COLORS as C, severityFill, type Align, type ReportBlock, type SocReport, type TableBlock } from './socReport'
 
 /**
- * Word export of the Monthly SOC Operations Report, laid out like the company template:
+ * Word export of the SOC Operations Report, laid out like the company template:
  * US Letter, template margins, T-NET logo + address header, #24557F table headers, B7B7B7 grid, footer with page number.
  * Font is the template's Normal font (Angsana New); sizes are in half-points and apply to Thai (complex script) too.
  */

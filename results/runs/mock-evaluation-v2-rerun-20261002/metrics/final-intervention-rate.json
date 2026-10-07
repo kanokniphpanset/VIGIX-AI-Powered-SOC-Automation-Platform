@@ -1,0 +1,71 @@
+{
+  "kpi": "Intervention Rate",
+  "formula": "cases requiring analyst intervention / evaluated cases × 100",
+  "definition": "an analyst correction was applied because the AI recommendation could not safely proceed (the system had its first 2 attempts; corrections are only IOC confirmations/additions that the alert itself evidences; nothing is corrected silently)",
+  "source": "threat_intel_iocs.created_by <> 'system' (database) cross-checked with the interventions recorded by the harness",
+  "result": {
+    "numerator": 1,
+    "denominator": 9,
+    "pct": 11.11
+  },
+  "dbVsHarnessAgree": true,
+  "cases": [
+    {
+      "tc": "TC-03",
+      "incident_id": "dfeaa977-7dde-42fe-8d3a-c473a7dea664",
+      "reason": "Missing IOC / target not evidence-linked (e-mail)",
+      "evidenceCondition": {
+        "expectedIocsMissingBeforeCorrection": [],
+        "validatorRejections": [
+          "INVENTED_TARGET: step 1 (ACT-QUARANTINE-EMAIL): target \"it-support@vigix-eval-phish.net\" is not an evidence-linked/analyst-added IOC or an affected host",
+          "TARGET_TYPE_MISMATCH: step 1 (ACT-QUARANTINE-EMAIL): target \"http://vigix-eval-phish.net/o365/verify?id=hr.clerk\" is a url, but ACT-QUARANTINE-EMAIL operates on a email",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): instruction 1 targets \"http://vigix-eval-ph.net/o365/verify?id=hr.clerk\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): instruction 2 targets \"http://vigix-eval-ph.net/o365/verify?id=hr.clerk\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): instruction 3 targets \"http://vigix-eval-ph.net/o365/verify?id=hr.clerk\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 2 (ACT-BLOCK-URL): instruction 4 targets \"http://vigix-eval-ph.net/o365/verify?id=hr.clerk\", which is not an evidence-linked/analyst-added IOC or an affected host"
+        ]
+      },
+      "analystActions": [
+        {
+          "type": "URL",
+          "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-phish.net",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "IPV4",
+          "value": "203.0.113.45",
+          "by": "eval-soc",
+          "source": "aggregated"
+        },
+        {
+          "type": "EMAIL",
+          "value": "it-support@vigix-eval-phish.net",
+          "by": "eval-soc",
+          "source": "aggregated"
+        }
+      ],
+      "result_after_intervention": {
+        "recommendation": "COMPLIANT",
+        "workflowComplete": true,
+        "verification": "RESOLVED (REAL_WAZUH)"
+      }
+    }
+  ],
+  "casesWithoutIntervention": [
+    "TC-01",
+    "TC-02",
+    "TC-04",
+    "TC-06",
+    "TC-07",
+    "TC-08",
+    "TC-09",
+    "TC-10"
+  ]
+}

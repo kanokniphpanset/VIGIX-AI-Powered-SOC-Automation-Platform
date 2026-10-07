@@ -1,0 +1,55 @@
+{
+  "kpi": "Correct Recommendation Rate",
+  "formula": "N_correct / N_evaluated x 100",
+  "definition": "strict set of (action,target); playbook must match; every expected pair present; any unexpected pair => INCORRECT; no optional pairs; allowedActions not used; case-insensitive, trimmed, order-independent",
+  "groundTruth": {
+    "version": "correctness-gt-v3.3",
+    "source": "apps/backend/src/evaluation/groundTruthCorrectness.ts",
+    "rule": "strict set of (action,target); playbook must match; every expected pair present; any unexpected pair => INCORRECT; no optional pairs; allowedActions not used; case-insensitive, trimmed, order-independent",
+    "rationale": [
+      "v3.0: each expectedActions entry of groundTruthReal.ts is paired with the expectedTargets value whose TargetKind equals the Action Catalog targetKind of that action.",
+      "v3.1: TC-04 adds ACT-BLOCK-SOURCE-IP -> @ATTACKER_IP (PB-ACCOUNT-COMPROMISE step 2) and TC-08 adds ACT-BLOCK-HASH -> @KWORKERD_SHA256 (PB-SUSPICIOUS-PROCESS step 2); both are unconditional playbook standard steps whose target is already an expectedTargets value. Verified against playbook.seed.ts before any v3 run; not derived from AI output or from v2/v3 results.",
+      "v3.2: TC-02 adds ACT-ISOLATE-ENDPOINT -> attack-endpoint (PB-MALWARE step 1): unconditional playbook standard step, Action Catalog targetKind host, and attack-endpoint (the monitored endpoint / Wazuh agent of the TC-02 simulation) was already an expectedTargets value frozen on 2026-09-30, before any AI output. Same criterion as v3.1; not derived from AI output or from v2/v3 results.",
+      "v3.3: TC-05 adds ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test (PB-POWERSHELL step 2). TC-05 uses a controlled REAL_WAZUH PowerShell/DNS scenario. The scenario produced Wazuh rule 100300 (level 12, MITRE T1059.001) from Sysmon Event ID 22 with queryName = vigix-eval-ps-stager.test. The domain was extracted deterministically from data.win.eventdata.queryName, validated as a DOMAIN IOC, re-hunted successfully through WazuhRehuntAdapter, and observed in two independent scenario runs. BLOCK-DOMAIN is therefore the expected action-target pair. ISOLATE-ENDPOINT is excluded because the scenario demonstrates PowerShell/DNS activity but does not provide sufficient evidence that the endpoint was compromised. Approval: IR_TEAM (RULE-P07, severity HIGH). Not derived from AI output, from v2/v3 results or from the mock TC-05 file.",
+      "Conditional playbook steps (ISOLATE-ENDPOINT in TC-04, TC-08) are not expected: no scenario evidence that the condition holds."
+    ],
+    "sha256": "d2f1dae6d576d8e0534bc8a26cae4a7afc5f6a529e06da2f675a5b44855951a8"
+  },
+  "sourceRun": "tc05-e2e-real-wazuh-20261003",
+  "result": {
+    "numerator": 0,
+    "denominator": 1,
+    "pct": 0
+  },
+  "correctCases": [],
+  "incorrectCases": [
+    "TC-05"
+  ],
+  "notEvaluable": [],
+  "perCase": [
+    {
+      "caseId": "TC-05",
+      "groundTruth": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "aiRecommendation": [
+        "ACT-ISOLATE-ENDPOINT -> vigix-win10-ps",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "playbookMatch": true,
+      "actionTargetMatches": false,
+      "correct": false,
+      "reason": "unexpected: ACT-ISOLATE-ENDPOINT -> vigix-win10-ps",
+      "missingRecommendations": [],
+      "unexpectedRecommendations": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "vigix-win10-ps"
+        }
+      ],
+      "mismatchedTargets": [],
+      "recommendationCompliance": "COMPLIANT"
+    }
+  ],
+  "note": "Compliance (system/policy validity) and Core Consistency (repeatability) are separate metrics; neither is evidence of correctness."
+}

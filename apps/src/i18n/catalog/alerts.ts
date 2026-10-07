@@ -1,6 +1,7 @@
 // Alert Inbox, Alert detail and the SOC review dialog: [Thai, English].
 export const alerts = {
   'al.tabsAria': ['สถานะ Alert', 'Alert status'],
+  'al.subtitle': ['Alert จาก Wazuh ที่ SOC ต้องดู (Medium / High / Critical) · High และ Critical เปิด Incident ให้อัตโนมัติ · Medium รอ SOC ตรวจ: สร้าง Incident หรือปิด', 'Wazuh alerts for the SOC (Medium / High / Critical) · High and Critical open an incident automatically · Medium waits for SOC review: create an incident or close it'],
   'al.search': ['ค้นหา', 'Search'],
   'al.searchPlaceholder': ['Alert ID, rule, host หรือหลักฐาน', 'Alert ID, rule, host or evidence'],
   'al.severity': ['ความรุนแรง', 'Severity'],
@@ -23,7 +24,7 @@ export const alerts = {
   'al.ruleLevel': ['Rule {rule} · level {level}', 'Rule {rule} · level {level}'],
   'al.minAgo': ['{n} นาทีที่แล้ว', '{n} min ago'],
   'al.openIncident': ['เปิด Incident', 'Open incident'],
-  'al.review': ['ตรวจ', 'Review'],
+  'al.review': ['ตรวจ Alert', 'Review'],
   'al.view': ['ดู', 'View'],
   'al.loading': ['กำลังโหลด Alert…', 'Loading alerts…'],
   'al.empty': ['ไม่มี Alert ตามตัวกรองนี้', 'No alerts match these filters.'],

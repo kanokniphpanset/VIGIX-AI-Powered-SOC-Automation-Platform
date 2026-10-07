@@ -1,3 +1,4 @@
+import { authenticatedTenant } from "../middlewares/auth.middleware";
 import { Request, Response } from "express";
 import { CreateVerificationUseCase } from "../../../application/verification/use-cases/CreateVerification.usecase";
 import { GetVerificationUseCase } from "../../../application/verification/use-cases/GetVerification.usecase";
@@ -9,7 +10,6 @@ import { ISiemRehuntPort } from "../../../application/verification/ports/ISiemRe
 import { z } from "zod";
 import { validateBody } from "../validators/validateBody";
 
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 /** Same rule as CreateVerification's derived result: contained, no spread, no recurrence and zero matching events. */
 export function wouldResolve(b: { threatContained: boolean; spreadDetected?: boolean; iocRecurrence?: boolean; matchingEvents: number }): boolean {
@@ -37,7 +37,7 @@ export class VerificationController {
    * the evidence and derives RESOLVED / NOT_RESOLVED itself.
    */
   rehunt = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(z.object({ responseId: z.string().uuid(), notes: z.string().nullable().optional() }).strict(), req, res);
     if (!body) return;
     if (!req.user) {
@@ -66,7 +66,7 @@ export class VerificationController {
   };
 
   list = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const limit = req.query.limit ? Number(req.query.limit) : 100;
     const offset = req.query.offset ? Number(req.query.offset) : 0;
     const verifications = await this.listAllVerifications.execute({ tenantId, limit, offset });
@@ -74,7 +74,7 @@ export class VerificationController {
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const body = validateBody(createVerificationSchema, req, res);
     if (!body) return;
     if (!req.user) {
@@ -103,7 +103,7 @@ export class VerificationController {
   };
 
   getById = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const result = await this.getVerification.execute({ id: req.params.id, tenantId });
     if (result.isFailure) {
       res.status(404).json({ error: "VERIFICATION_NOT_FOUND" });
@@ -113,7 +113,7 @@ export class VerificationController {
   };
 
   listByIncident = async (req: Request, res: Response): Promise<void> => {
-    const tenantId = (req.query.tenantId as string) ?? DEFAULT_TENANT_ID;
+    const tenantId = authenticatedTenant(req);
     const verifications = await this.listVerifications.execute({ incidentId: req.params.incidentId, tenantId });
     res.json({ items: verifications.map((v) => v.toJSON()) });
   };

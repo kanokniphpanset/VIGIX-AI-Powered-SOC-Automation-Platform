@@ -1,0 +1,75 @@
+{
+  "phase": "pre",
+  "runLabel": "tc05-e2e-real-wazuh-20261003",
+  "recordedAt": "2026-10-03T10:29:27.484066+00:00",
+  "git": {
+    "branch": "feature/report-period-windows",
+    "commit": "f3114be24fb9e0f4a96f4ff5244d83ffa135fc86",
+    "trackedDiffSha256(apps/backend+apps/ai-orchestrator)": "5019020c5c88e469e8bc84031e5d5e5f88da394a6881ad4151a8d1f3d7f5c4eb",
+    "modifiedFiles": 41
+  },
+  "fileSha256": {
+    "apps/backend/src/evaluation/groundTruthReal.ts": "89d24951a9a8f2e743cc2c5c070ede1f2a322d4a78d80d9cbaf4b59880e4f3a6",
+    "apps/backend/src/evaluation/groundTruthCorrectness.ts": "36a489881475a3b72b425666efcffe020f7cf700b1eed84c32cedf6dd83f3eb3",
+    "apps/backend/src/evaluation/correctRecommendation.ts": "33941467c252624844b418ff1742583d69b7d3edd864727b17d514a07df72de0",
+    "apps/backend/src/evaluation/EvaluationService.ts": "47bbc8ad8b791606982eecde2fd776b080d213a0dd68eeed0efc4ca6c7feea3d",
+    "apps/backend/src/evaluation/types.ts": "c5cf173a1c3707714ab33414bfa3f9bebb891f4530cb751ab0839c5984aa9f91",
+    "apps/backend/src/evaluation/iocRecall.ts": "09606cb59f8361c5b175a32b85c47525c2aed5395d22ce38f90926d637749c7b",
+    "apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts": "e0c37133b21edfb817bcbe7aaf7e14836ed7d18a21514859fa36c10ba38507e3",
+    "apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts": "b9d63c0767897cff8fc2a79e8866cb9aac888a7773bc532f65615fc9afe9362f",
+    "apps/backend/src/domain/investigation/alertIocs.ts": "b3add72b004fa3782e28524db60903c872985279e1a746ece5eb46f236b96a73",
+    "apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts": "8766e03674668021185a59a6ec28e66c862220e704b4f8845120852ac020c8b7",
+    "apps/backend/scripts/eval/run-real-evaluation.ts": "cd507388d154183e230c6c6fad1aefec87e5fc2e95c23cf236ae4594fcf339f4",
+    "apps/backend/scripts/eval/simulations.ts": "b0b1bca35e6adb28a2f67525b7d6100c582b92e42b9107f6a7c5e8801e18f2ab",
+    "apps/backend/scripts/eval/wiring.ts": "e94d1c18fd9d1932a2a56ff82dd973f6f211dccd91dc28818c94bae3658c8335",
+    "apps/backend/scripts/eval/indexerClient.ts": "77193c0f221b45943db78651e1b08c0663b235b8a9e965572767becaae3c374f",
+    "apps/backend/scripts/eval/eval-env.sh": "a10b8af9dc69da8d64e64abf8e58774abc105e38eca7f00276399ee915fe31ac",
+    "apps/backend/scripts/eval/final/final-metrics.v2.ts": "5658a4206e2c561732d5a278f30ec014d09e9176574581bc5e3fa3424ba2d5de",
+    "apps/backend/scripts/eval/final/correct-recommendation-metrics.ts": "1557b89b55f97e9307c6dc705e860c3344e98e1cecd9d1d2b3cdf7979d32e7e7",
+    "apps/backend/prisma/seeds/playbook.seed.ts": "d26c6fd29be3d3f73877200d283c708c6e2227b107d1053faffd3dd0a8232a97",
+    "apps/backend/prisma/seeds/policy.seed.ts": "8f49bbc20a18c51a468aad80643aa9afae2601ae4d98d05679a96e4f4fefd68c",
+    "apps/backend/prisma/seeds/action.seed.ts": "3c6ec7bc7992e2b37f4389d79eea1847b69cbe8c7c91565b029586ae6bd34532",
+    "apps/backend/src/domain/knowledge/actionKnowledge.ts": "801bf8b96a95d773c5de14405bf05e3188d54a1683dd46ac1a84f12135962960",
+    "infra/docker/wazuh-manager/vigix_eval_rules.xml": "f3da602b25f4a9a95dd5f72e46104e7ceea296e02f2dfde8c68a87c4d25e0f9a"
+  },
+  "groundTruth": {
+    "realGroundTruthSha256": "9a800baba905dfc8aca73810ef9f4984ac5923b3909eb013984bd11fcc69f6de",
+    "correctness": {
+      "version": "correctness-gt-v3.3",
+      "sha256": "d2f1dae6d576d8e0534bc8a26cae4a7afc5f6a529e06da2f675a5b44855951a8"
+    }
+  },
+  "wazuh": {
+    "version": [
+      "v4.9.2"
+    ],
+    "agent010": [
+      "Agent Name: vigix-win10-ps",
+      "Status:     Active",
+      "Operating system:    Microsoft Windows 10 Education",
+      "Client version:      Wazuh v4.9.2"
+    ],
+    "installedRulesSha256": [
+      "f3da602b25f4a9a95dd5f72e46104e7ceea296e02f2dfde8c68a87c4d25e0f9a"
+    ],
+    "repoRulesSha256": "f3da602b25f4a9a95dd5f72e46104e7ceea296e02f2dfde8c68a87c4d25e0f9a"
+  },
+  "llm": {
+    "provider": "openrouter",
+    "model": "vllm-spark-01/gemma4-26b-uncensored",
+    "endpointConfigured": true
+  },
+  "database": "soar_tc05_eval",
+  "databaseCounts": {
+    "alerts": "0",
+    "incidents": "0",
+    "recommendations": "0",
+    "audit_logs": "0",
+    "actions": "14",
+    "playbooks": "11",
+    "mitre": "26",
+    "policies": "29",
+    "runbooks": "17"
+  },
+  "devDatabaseAlerts(soar_platform, must stay 260)": "260"
+}

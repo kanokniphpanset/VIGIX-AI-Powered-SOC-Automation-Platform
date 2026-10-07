@@ -1,7 +1,7 @@
 import type { DashboardSummary } from '@/api/vigix'
 
 /**
- * Monthly SOC Operations Report — the T-NET company template (VIGIX_Monthly_SOC_Report_From_Template.docx) as data.
+ * SOC Operations Report (daily / weekly / 1-month / 3-month windows) — the T-NET company template (VIGIX_Monthly_SOC_Report_From_Template.docx) as data.
  * The company header, section order and table layout are the template; every value inside is editable and is
  * pre-filled from the live VIGIX summary. Pure (no DOM / no fetch) so it runs under `node --test`.
  * Rendered by utils/socReportDocx.ts (Word) and utils/socReportHtml.ts (print / PDF).
@@ -66,9 +66,9 @@ export interface ReportSection {
 }
 
 export interface SocReport {
-  version: 2
-  /** YYYY-MM */
-  period: string
+  version: 3
+  /** Report window (see REPORT_WINDOWS). */
+  period: ReportWindow
   title: string
   subtitle: string
   /** Label/value pairs, laid out two per row like the template's cover table. */
@@ -86,18 +86,43 @@ export function thaiMonthYear(period: string, short = false): string {
   if (!y || !m || m < 1 || m > 12) return period
   return `${(short ? THAI_MONTHS_SHORT : THAI_MONTHS)[m - 1]} ${y + 543}`
 }
-/** Date -> '30 กันยายน 2569'. */
-export function thaiDate(d: Date): string {
-  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`
+/** Date -> '30 กันยายน 2569' ('30 ก.ย. 2569' when short). */
+export function thaiDate(d: Date, short = false): string {
+  return `${d.getDate()} ${(short ? THAI_MONTHS_SHORT : THAI_MONTHS)[d.getMonth()]} ${d.getFullYear() + 543}`
 }
-/** The month before a 'YYYY-MM' period. */
-export function previousPeriod(period: string): string {
-  const [y, m] = period.split('-').map(Number)
-  const d = new Date(y, m - 2, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
+/**
+ * Report windows, each ending at the moment of preparation: daily = since local midnight, weekly = the last 7×24 hours,
+ * 1 / 3 months = back to the same date and time 1 / 3 calendar months earlier (clamped to the month's last day).
+ */
+export const REPORT_WINDOWS = [
+  { key: 'daily', days: 0, months: 0, label: 'รายงานประจำวัน' },
+  { key: 'weekly', days: 7, months: 0, label: 'รายงานประจำสัปดาห์' },
+  { key: '1m', days: 0, months: 1, label: 'รายงาน 1 เดือน' },
+  { key: '3m', days: 0, months: 3, label: 'รายงาน 3 เดือน' },
+] as const
+export type ReportWindow = (typeof REPORT_WINDOWS)[number]['key']
+export const DEFAULT_WINDOW: ReportWindow = 'weekly'
+const windowOf = (w: ReportWindow) => REPORT_WINDOWS.find((x) => x.key === w) ?? REPORT_WINDOWS[0]
+export const isReportWindow = (x: unknown): x is ReportWindow => REPORT_WINDOWS.some((w) => w.key === x)
+
+/** First instant counted in the window ending at `now`. */
+export function windowStart(w: ReportWindow, now: Date): Date {
+  const { days, months } = windowOf(w)
+  if (months) {
+    const first = new Date(now.getFullYear(), now.getMonth() - months, 1, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds())
+    const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate()
+    first.setDate(Math.min(now.getDate(), lastDay))
+    return first
+  }
+  if (days === 0) return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return new Date(now.getTime() - days * 86_400_000)
 }
-export function periodOf(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+/** Cover text: 'รายงานประจำวัน (30 กันยายน 2569)' / 'รายงานประจำสัปดาห์ (23 ก.ย. 2569 – 30 ก.ย. 2569)'. */
+export function windowLabel(w: ReportWindow, now: Date): string {
+  const { label, days, months } = windowOf(w)
+  if (!days && !months) return `${label} (${thaiDate(now)})`
+  return `${label} (${thaiDate(windowStart(w, now), true)} – ${thaiDate(now, true)})`
 }
 
 export const NO_DATA = 'ไม่มีข้อมูล'
@@ -123,8 +148,11 @@ function table(columns: string[], widths: number[], align: Align[], rows: string
   return { kind: 'table', columns, widths, align, rows, severityTone }
 }
 
-/** Build the report from the live summary. `period` = 'YYYY-MM' shown as the report cycle. */
-export function buildSocReport(d: DashboardSummary, opts: { period: string; preparedAt: Date }): SocReport {
+/**
+ * Build the report from the live summary. `d` must be fetched for the same window (dashboardApi.summary with
+ * `since = windowStart(period, preparedAt)`), so event counts cover the window and backlog items are "as of now".
+ */
+export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow; preparedAt: Date }): SocReport {
   const byStatus = d.incidents.byStatus
   const totalIncidents = d.incidents.total
   const resolved = byStatus.resolved ?? 0
@@ -151,7 +179,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
   const sev = d.severityDistribution
   const sevTotal = sev.CRITICAL + sev.HIGH + sev.MEDIUM + sev.LOW
   const asOf = thaiDate(new Date(d.generatedAt))
-  const month = thaiMonthYear(opts.period)
+  const cycle = windowLabel(opts.period, opts.preparedAt)
 
   const sections: ReportSection[] = [
     {
@@ -173,11 +201,10 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
         {
           kind: 'text',
           text:
-            `ณ วันที่ ${asOf} VIGIX รับ Alert จาก Wazuh สะสม ${d.alerts.total} รายการ และมี Incident ทั้งหมด ${totalIncidents} Case ` +
+            `ในรอบรายงาน ${cycle} VIGIX รับ Alert จาก Wazuh ${d.alerts.total} รายการ และเปิด Incident ${totalIncidents} Case ` +
             `ปิดแล้ว ${resolved} Case (${pct(resolved, totalIncidents)}) อยู่ระหว่างดำเนินการ ${openInProgress} Case และ Escalate ${escalated} Case ` +
-            `ในรอบ 7 วันล่าสุดเปิด Incident ใหม่ ${d.incidents.openedLast7d} Case และปิดได้ ${d.incidents.resolvedLast7d} Case ` +
             `ผลการตรวจสอบหลังการรับมือ (Re-hunt) ยืนยันว่าควบคุมภัยคุกคามได้ ${verifResolved} จาก ${verifTotal} ครั้ง (${pct(verifResolved, verifTotal)}) ` +
-            `และมี Incident ที่เกิน SLA ${d.sla.breached} Case`,
+            `และ ณ วันที่ ${asOf} มี Incident ที่เกิน SLA ${d.sla.breached} Case`,
         },
       ],
     },
@@ -224,8 +251,8 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
           ['รออนุมัติ', s(pendingApproval), pct(pendingApproval, approvalRequests), 'ค้าง ณ วันที่จัดทำรายงาน'],
           ['เวลาอนุมัติเฉลี่ย', '-', thaiDuration(d.kpi.timeToDecisionMinutes), 'Request → Decision'],
         ]),
-        { kind: 'heading', text: 'แนวโน้มเมื่อเทียบกับเดือนก่อน (Monthly Trend)' },
-        table(['ตัวชี้วัด', thaiMonthYear(previousPeriod(opts.period), true), thaiMonthYear(opts.period, true), 'เปลี่ยนแปลง'], [34, 22, 22, 22], ['left', 'center', 'center', 'center'], [
+        { kind: 'heading', text: 'แนวโน้มเมื่อเทียบกับรอบก่อน (Trend)' },
+        table(['ตัวชี้วัด', 'รอบก่อน', 'รอบนี้', 'เปลี่ยนแปลง'], [34, 22, 22, 22], ['left', 'center', 'center', 'center'], [
           ['Incident ทั้งหมด', '—', s(totalIncidents), '—'],
           ['Closed', '—', s(resolved), '—'],
           ['Response Ticket (IR)', '—', s(responsePlans), '—'],
@@ -240,7 +267,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
       include: true,
       pageBreakBefore: true,
       blocks: [
-        table(['ตัวชี้วัด', 'ผลเดือนนี้', 'รายละเอียด'], [34, 22, 44], ['left', 'center', 'left'], [
+        table(['ตัวชี้วัด', 'ผลรอบนี้', 'รายละเอียด'], [34, 22, 44], ['left', 'center', 'left'], [
           ['Average Investigation Time', thaiDuration(d.kpi.investigationTimeMinutes), `Incident opened → first recommendation (${d.kpi.investigationSamples} Case)`],
           ['Average Time-to-Decision', thaiDuration(d.kpi.timeToDecisionMinutes), `Approval requested → final decision (${d.kpi.decisionSamples} Case)`],
           ['Average Resolution Time', thaiDuration(d.incidents.mttrMinutes), 'Incident → Resolved'],
@@ -271,13 +298,13 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
       blocks: [
         {
           kind: 'text',
-          text: 'หลักการ: ใช้ข้อมูลจากเหตุการณ์และผลการปฏิบัติงานประจำเดือนเพื่อระบุช่องว่างของ Knowledge, Playbook, Policy, Detection และ Workflow แล้วกำหนด Action ที่ติดตามได้ในรอบถัดไป',
+          text: 'หลักการ: ใช้ข้อมูลจากเหตุการณ์และผลการปฏิบัติงานในรอบรายงานเพื่อระบุช่องว่างของ Knowledge, Playbook, Policy, Detection และ Workflow แล้วกำหนด Action ที่ติดตามได้ในรอบถัดไป',
         },
         table(['ด้านที่พัฒนา', 'สิ่งที่พบจาก Report', 'ข้อเสนอแนะ / สิ่งที่ควรพัฒนา', 'Priority', 'ผู้รับผิดชอบ'], [16, 27, 33, 10, 14], ['left', 'left', 'left', 'center', 'center'], [
           ['Knowledge Base', 'Incident บางประเภทเกิดซ้ำและใช้ Evidence/ขั้นตอนคล้ายกัน', 'เพิ่ม/ปรับ Knowledge Article สำหรับ Incident Type ที่พบบ่อย พร้อม Evidence สำคัญ', 'สูง', 'SOC / IR'],
           ['Playbook', `มี Re-hunt ที่ยังพบความผิดปกติ ${verifNotResolved} ครั้ง`, 'ทบทวน Playbook ให้ครอบคลุม Validate → Containment → Response → Verification และกำหนด Exit Criteria', 'สูง', 'IR'],
           ['Policy', `มี Case รอ Approval ${pendingApproval} รายการ และเกิน SLA ${d.sla.breached} Case`, 'ทบทวน Approval Rule, Assignment และ SLA ให้สอดคล้องกับ Severity/ภาระงาน', 'สูง', 'SOC / IR'],
-          ['Detection / Wazuh', `Alert สะสม ${d.alerts.total} รายการ (ยังไม่ผูก Incident ${d.alerts.unlinked})`, 'ทบทวน Wazuh Rule / Threshold / Suppression และเพิ่ม Rule สำคัญ', 'กลาง', 'SOC'],
+          ['Detection / Wazuh', `Alert ในรอบ ${d.alerts.total} รายการ (ยังไม่ผูก Incident ${d.alerts.unlinked})`, 'ทบทวน Wazuh Rule / Threshold / Suppression และเพิ่ม Rule สำคัญ', 'กลาง', 'SOC'],
           ['AI / RAG', 'มีบาง Case ที่ Analyst ปรับ Severity/ข้อเสนอแนะจาก AI', 'เก็บ feedback และเพิ่ม Evidence/Knowledge เพื่อปรับ Retrieval และ Recommendation', 'กลาง', 'AI / SOC'],
           ['Workflow / Notification', `SLA at risk ${d.sla.atRisk} Case`, 'เพิ่ม Notification / Escalation ก่อนครบ SLA และติดตาม Pending State จาก Dashboard', 'กลาง', 'Platform / SOC'],
           ['Verification', `รอ Re-hunt ${awaitingRehunt} รายการ`, 'ปรับ Query Template และเกณฑ์ Verification ให้สอดคล้องกับ Incident Type/Playbook', 'กลาง', 'IR / SOC'],
@@ -286,7 +313,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
     },
     {
       id: 'plan',
-      title: 'ส่วนที่ 7 แผนงานที่ควรติดตามในเดือนถัดไป',
+      title: 'ส่วนที่ 7 แผนงานที่ควรติดตามในรอบถัดไป',
       include: true,
       blocks: [
         table(['ลำดับ', 'Action', 'ผลลัพธ์ที่คาดหวัง', 'สถานะ'], [9, 40, 35, 16], ['center', 'left', 'left', 'center'], [
@@ -299,7 +326,8 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
         {
           kind: 'note',
           text:
-            `หมายเหตุ: ตัวเลขในรายงานนี้ดึงจาก VIGIX ณ วันที่ ${asOf} เป็นยอดสะสมทั้งหมด (ยกเว้นที่ระบุว่า 7 วัน) ` +
+            `หมายเหตุ: ตัวเลขในรายงานนี้ดึงจาก VIGIX ณ วันที่ ${asOf} นับเฉพาะเหตุการณ์ในรอบรายงาน ${cycle} ` +
+            'ส่วนรายการค้าง (รออนุมัติ, รอ Re-hunt, SLA) เป็นสถานะ ณ วันที่จัดทำรายงาน ' +
             'โดยแยก Wazuh Rule Level ออกจาก VIGIX Severity และไม่ใช้ Risk Score เป็นเกณฑ์ตัดสินใจ กรุณาตรวจทานก่อนเผยแพร่',
         },
       ],
@@ -320,12 +348,12 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
   ]
 
   return {
-    version: 2,
+    version: 3,
     period: opts.period,
-    title: 'รายงานสรุปการปฏิบัติงานด้านความมั่นคงปลอดภัยประจำเดือน (Monthly SOC Operations Report)',
+    title: 'รายงานสรุปการปฏิบัติงานด้านความมั่นคงปลอดภัย (SOC Operations Report)',
     subtitle: 'สำหรับทีม SOC และทีม Incident Response (IR)  |  VIGIX',
     meta: [
-      { label: 'รอบรายงาน', value: month },
+      { label: 'รอบรายงาน', value: cycle },
       { label: 'วันที่จัดทำ', value: thaiDate(opts.preparedAt) },
       { label: 'แหล่งข้อมูล', value: 'VIGIX / Wazuh' },
       { label: 'กลุ่มผู้รับรายงาน', value: 'SOC / IR' },
@@ -333,25 +361,12 @@ export function buildSocReport(d: DashboardSummary, opts: { period: string; prep
       { label: 'หลักการคำนวณ', value: 'ข้อมูล Incident + Approval + Response + Verification + SLA' },
     ],
     sections,
-    footer: 'VIGIX • Monthly SOC Operations Report',
+    footer: 'VIGIX • SOC Operations Report',
   }
 }
 
-/** Point the report at another month: cover "รอบรายงาน" and the trend table headers follow the period. */
-export function setReportPeriod(r: SocReport, period: string): void {
-  r.period = period
-  const cycle = r.meta.find((m) => m.label === 'รอบรายงาน')
-  if (cycle) cycle.value = thaiMonthYear(period)
-  for (const sec of r.sections)
-    for (const b of sec.blocks)
-      if (b.kind === 'table' && b.columns[0] === 'ตัวชี้วัด' && b.columns[3] === 'เปลี่ยนแปลง') {
-        b.columns[1] = thaiMonthYear(previousPeriod(period), true)
-        b.columns[2] = thaiMonthYear(period, true)
-      }
-}
-
-/** Accept only a well-formed saved draft (localStorage may hold an older shape). */
+/** Accept only a well-formed saved draft (localStorage may hold an older shape, e.g. a v2 monthly report). */
 export function isSocReport(x: unknown): x is SocReport {
   const r = x as SocReport
-  return !!r && r.version === 2 && typeof r.title === 'string' && Array.isArray(r.meta) && Array.isArray(r.sections)
+  return !!r && r.version === 3 && isReportWindow(r.period) && typeof r.title === 'string' && Array.isArray(r.meta) && Array.isArray(r.sections)
 }

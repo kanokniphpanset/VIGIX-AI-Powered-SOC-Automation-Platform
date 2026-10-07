@@ -35,8 +35,10 @@ class VectorSearchClient:
         timeout_s: float = 10.0,
         max_retries: int = 2,
         http_client: httpx.AsyncClient | None = None,
+        service_token: str | None = None,
     ):
         self._base_url = backend_url.rstrip("/")
+        self._service_token = service_token
         self._timeout_s = timeout_s
         self._max_retries = max_retries
         # Client lifecycle (fixes "Event loop is closed"): rag_retrieval_tool
@@ -76,7 +78,7 @@ class VectorSearchClient:
 
         for attempt in range(self._max_retries + 1):
             try:
-                response = await client.post(f"{self._base_url}/api/v1/knowledge/search", json=body)
+                response = await client.post(f"{self._base_url}/api/v1/knowledge/search", json=body, headers={"Authorization": f"Bearer {self._service_token}"} if self._service_token else {})
                 response.raise_for_status()
                 return response.json().get("results", [])
             except httpx.HTTPStatusError as exc:

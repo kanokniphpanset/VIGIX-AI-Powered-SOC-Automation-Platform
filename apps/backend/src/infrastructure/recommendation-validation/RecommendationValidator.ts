@@ -4,6 +4,8 @@ import {
   RecommendationContextActionProcedure,
   RecommendationContextDto,
   citableEvidence,
+  newStepOptions,
+  stepKey,
   targetableIocValues,
 } from "../../application/recommendation/dto/RecommendationContextDto";
 import {
@@ -14,6 +16,10 @@ import {
   CreateRecommendationStepData,
   RecommendationSnapshotData,
 } from "../../domain/recommendation/repositories/IRecommendationRepository";
+import { ACTION_KNOWLEDGE, findActionKnowledge } from "../../domain/knowledge/actionKnowledge";
+import { attackTypeForIncidentType } from "../../domain/knowledge/attackKnowledge";
+import { TargetKind, iocKind } from "../../domain/knowledge/knowledgeTypes";
+import { missingEvidenceForTarget } from "../../application/recommendation/services/ActionEvidence";
 
 export interface RecommendationValidationOutcome {
   status: "VALIDATED" | "INVALID";
@@ -38,6 +44,8 @@ export type RecommendationViolationCode =
   | "INVENTED_ACTION"
   | "DISABLED_ACTION"
   | "ACTION_NOT_IN_PLAYBOOK"
+  | "ACTION_NOT_APPLICABLE"
+  | "INSUFFICIENT_EVIDENCE"
   | "RUNBOOK_MISMATCH"
   | "INVENTED_TARGET"
   | "TARGET_TYPE_MISMATCH"
@@ -52,34 +60,17 @@ export type RecommendationViolationCode =
   | "CORE_FLOW_REPETITION"
   | "EMPTY_INSTRUCTIONS"
   | "INVALID_INSTRUCTIONS"
-  | "DUPLICATE_STEP";
+  | "DUPLICATE_STEP"
+  | "NO_NEW_STEP";
 
 /**
- * What kind of target each containment Action operates on. A target must be a
- * recorded value of that kind — e.g. Block Source IP on a hostname, or Disable
- * Account on an IP, is rejected even though both values are "known".
+ * What kind of target each containment Action operates on (domain/knowledge/actionKnowledge.ts). A target must be a
+ * recorded value of that kind — e.g. Block Source IP on a hostname, or Disable Account on an IP, is rejected even
+ * though both values are "known".
  */
-const ACTION_TARGET_KIND: Record<string, TargetKind> = {
-  "ACT-BLOCK-SOURCE-IP": "ip",
-  "ACT-BLOCK-DOMAIN": "domain",
-  "ACT-BLOCK-URL": "url",
-  "ACT-DISABLE-ACCOUNT": "account",
-  "ACT-ISOLATE-ENDPOINT": "host",
-  "ACT-QUARANTINE-EMAIL": "email",
-};
-type TargetKind = "ip" | "domain" | "url" | "account" | "host" | "email" | "hash" | "other";
-
-function iocKind(iocType: string): TargetKind {
-  const t = iocType.toLowerCase();
-  if (["ipv4", "ipv6", "ip", "srcip", "src_ip"].includes(t)) return "ip";
-  if (["domain", "fqdn"].includes(t)) return "domain";
-  if (t === "url") return "url";
-  if (["username", "user", "account"].includes(t)) return "account";
-  if (t === "email") return "email";
-  if (["hostname", "host"].includes(t)) return "host";
-  if (["md5", "sha1", "sha256", "hash"].includes(t)) return "hash";
-  return "other";
-}
+const ACTION_TARGET_KIND: Record<string, TargetKind> = Object.fromEntries(
+  ACTION_KNOWLEDGE.filter((a) => a.targetKind).map((a) => [a.code, a.targetKind as TargetKind])
+);
 
 /** Core Flow phases the platform itself performs — an action-level instruction must never restate them. */
 const CORE_FLOW_INSTRUCTION_PATTERNS: RegExp[] = [
@@ -134,6 +125,18 @@ const COMMAND =
  *   responsibleRole ≠ Policy, any attempt to waive/skip/pre-empt approval,
  *   empty or mis-ordered instructions, duplicate action+target steps.
  * requiresApproval is taken from Policy, never from the AI (RULE-006/010).
+ *
+ * Knowledge Expansion (Step 9) — also rejected:
+ *   ACTION_NOT_APPLICABLE  the Action does not apply to the incident's attack type (domain/knowledge), or has no
+ *                          attack-type knowledge at all while the attack type is known — the AI can never extend
+ *                          the attack -> action mapping;
+ *   INSUFFICIENT_EVIDENCE  the target lacks evidence the Action requires (its own knowledge) or an ACTION_COMPLIANCE
+ *                          Policy requires (POL-A02 / POL-A03) — ActionEvidence.ts, deterministic.
+ *
+ * New round / regenerate — also rejected:
+ *   NO_NEW_STEP            every step repeats an Action + target pair an earlier Recommendation of this incident
+ *                          already proposed. The same Action on a new target is new; a repeated pair is fine next to
+ *                          at least one new one.
  */
 export class RecommendationValidator {
   constructor(
@@ -167,9 +170,14 @@ export class RecommendationValidator {
     // Only IOCs linked to this cycle's evidence or added by an analyst are actionable targets. An IOC the
     // pipeline merely extracted (e.g. the victim agent's own IP) is context, not something to contain.
     const targetable = targetableIocValues(context);
-    const iocKindByValue = new Map<string, TargetKind>(
-      context.iocs.filter((i) => targetable.has(i.iocValue)).map((i) => [i.iocValue, iocKind(i.iocType)])
-    );
+    // One value can be several kinds at once (a binary's path is both a FILE_PATH and a PROCESS_NAME): keep every kind.
+    const iocKindsByValue = new Map<string, Set<TargetKind>>();
+    for (const i of context.iocs) {
+      if (!targetable.has(i.iocValue)) continue;
+      const kinds = iocKindsByValue.get(i.iocValue) ?? new Set<TargetKind>();
+      kinds.add(iocKind(i.iocType));
+      iocKindsByValue.set(i.iocValue, kinds);
+    }
     const evidenceText = [
       context.incidentTitle,
       ...context.iocs.map((i) => i.iocValue),
@@ -210,6 +218,14 @@ export class RecommendationValidator {
       }
       const procedure = procedures.get(action.code);
       if (playbook && !procedure) flag("ACTION_NOT_IN_PLAYBOOK", `${label}: action is not allowed by playbook ${playbook.code} (${playbook.allowedActions.join(", ") || "none"})`);
+      const attackType = attackTypeForIncidentType(playbook?.incidentType);
+      if (attackType) {
+        const knowledge = findActionKnowledge(action.code);
+        if (!knowledge) flag("ACTION_NOT_APPLICABLE", `${label}: ${action.code} has no attack-type knowledge, so it cannot be recommended for ${attackType}`);
+        else if (!knowledge.applicableAttackTypes.includes(attackType)) {
+          flag("ACTION_NOT_APPLICABLE", `${label}: ${action.code} does not apply to ${attackType} (applies to ${knowledge.applicableAttackTypes.join(", ") || "none"})`);
+        }
+      }
 
       // ---- Playbook / Runbook --------------------------------------------------------------------
       if (playbook && step.playbook !== playbook.code) {
@@ -223,11 +239,23 @@ export class RecommendationValidator {
       }
 
       // ---- Target --------------------------------------------------------------------------------
-      const targetKind: TargetKind | undefined = hosts.includes(step.target) ? "host" : iocKindByValue.get(step.target);
-      if (!targetKind) {
+      const targetKinds: ReadonlySet<TargetKind> | undefined = hosts.includes(step.target) ? new Set<TargetKind>(["host"]) : iocKindsByValue.get(step.target);
+      const requiredKind = ACTION_TARGET_KIND[action.code];
+      if (!targetKinds) {
         flag("INVENTED_TARGET", `${label}: target "${step.target}" is not an evidence-linked/analyst-added IOC or an affected host`);
-      } else if (ACTION_TARGET_KIND[action.code] && ACTION_TARGET_KIND[action.code] !== targetKind) {
-        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${targetKind}, but ${action.code} operates on a ${ACTION_TARGET_KIND[action.code]}`);
+      } else if (requiredKind && !targetKinds.has(requiredKind)) {
+        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${[...targetKinds].join("/")}, but ${action.code} operates on a ${requiredKind}`);
+      }
+      // Required evidence (Action knowledge + ACTION_COMPLIANCE policy). VALIDATED_IOC_TARGET is reported by the
+      // INVENTED_TARGET / TARGET_TYPE_MISMATCH checks above with a more precise message.
+      if (targetKinds) {
+        const compliance = procedure?.compliance;
+        const missing = missingEvidenceForTarget(context, action.code, step.target, compliance?.requiredEvidence ?? []).filter((r) => r !== "VALIDATED_IOC_TARGET");
+        if (missing.length) {
+          const source = (r: string) => compliance?.rules.filter((x) => x.requiredEvidence.includes(r)).map((x) => x.policy) ?? [];
+          const detail = missing.map((r) => (source(r).length ? `${r} (${source(r).join(", ")})` : r)).join(", ");
+          flag("INSUFFICIENT_EVIDENCE", `${label}: required evidence is not recorded for target "${step.target}": ${detail}`);
+        }
       }
       const pairKey = `${action.code}|${step.target}`;
       if (seen.has(pairKey)) flag("DUPLICATE_STEP", `${label}: the same action on the same target appears more than once`);
@@ -263,7 +291,7 @@ export class RecommendationValidator {
         flag("INVALID_INSTRUCTIONS", `${label}: instruction order must be 1..${instructions.length} without gaps or duplicates`);
       }
       for (const ins of instructions) {
-        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindByValue.has(ins.target)) {
+        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindsByValue.has(ins.target)) {
           flag("INVENTED_TARGET", `${label}: instruction ${ins.order} targets "${ins.target}", which is not an evidence-linked/analyst-added IOC or an affected host`);
         }
       }
@@ -307,6 +335,18 @@ export class RecommendationValidator {
         verificationCriteria: runbook!.verificationCriteria,
       });
       snapshotPolicy[action.code] = policy;
+    }
+
+    const previous = context.previousSteps ?? [];
+    if (previous.length && ordered.length) {
+      const proposed = new Set(previous.map((s) => stepKey(s.actionCode, s.target)));
+      if (ordered.every((s) => proposed.has(stepKey(s.action, s.target)))) {
+        const options = newStepOptions(context);
+        flag(
+          "NO_NEW_STEP",
+          `every step repeats an Action + target pair an earlier Recommendation of this incident already proposed; include at least one new pair${options?.length ? ` (the evidence supports: ${options.map((o) => `${o.actionCode} -> ${o.target}`).join(", ")})` : ""}`
+        );
+      }
     }
 
     if (violations.length > 0 || steps.length === 0 || !playbook) {

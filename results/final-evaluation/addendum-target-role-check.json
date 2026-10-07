@@ -1,0 +1,96 @@
+{
+ "generatedAt": "2026-10-01T05:37:31.421992+00:00",
+ "database": "soar_final_eval (SELECT only)",
+ "rule": "ACT-BLOCK-SOURCE-IP target must equal the alert's data.srcip; ACT-BLOCK-DESTINATION-IP target must equal its data.dstip",
+ "mainRunIpSteps": [
+  {
+   "case": "TC-01",
+   "rule": "5712",
+   "action": "ACT-BLOCK-SOURCE-IP",
+   "target": "172.19.0.6",
+   "alertSrcip": "172.19.0.6",
+   "alertDstip": "",
+   "expectedRoleTarget": "172.19.0.6",
+   "correctRole": true,
+   "pointsAtSourceWhenDestinationExpected": false
+  },
+  {
+   "case": "TC-04",
+   "rule": "40112",
+   "action": "ACT-BLOCK-SOURCE-IP",
+   "target": "172.19.0.6",
+   "alertSrcip": "172.19.0.6",
+   "alertDstip": "",
+   "expectedRoleTarget": "172.19.0.6",
+   "correctRole": true,
+   "pointsAtSourceWhenDestinationExpected": false
+  },
+  {
+   "case": "TC-06",
+   "rule": "31103",
+   "action": "ACT-BLOCK-SOURCE-IP",
+   "target": "172.19.0.6",
+   "alertSrcip": "172.19.0.6",
+   "alertDstip": "",
+   "expectedRoleTarget": "172.19.0.6",
+   "correctRole": true,
+   "pointsAtSourceWhenDestinationExpected": false
+  },
+  {
+   "case": "TC-07",
+   "rule": "100320",
+   "action": "ACT-BLOCK-DESTINATION-IP",
+   "target": "172.19.0.5",
+   "alertSrcip": "172.19.0.5",
+   "alertDstip": "172.19.0.7",
+   "expectedRoleTarget": "172.19.0.7",
+   "correctRole": false,
+   "pointsAtSourceWhenDestinationExpected": true
+  },
+  {
+   "case": "TC-09",
+   "rule": "100340",
+   "action": "ACT-BLOCK-DESTINATION-IP",
+   "target": "172.19.0.5",
+   "alertSrcip": "172.19.0.5",
+   "alertDstip": "172.19.0.7",
+   "expectedRoleTarget": "172.19.0.7",
+   "correctRole": false,
+   "pointsAtSourceWhenDestinationExpected": true
+  },
+  {
+   "case": "TC-06",
+   "rule": "31103",
+   "action": "ACT-BLOCK-SOURCE-IP",
+   "target": "172.19.0.6",
+   "alertSrcip": "172.19.0.6",
+   "alertDstip": "",
+   "expectedRoleTarget": "172.19.0.6",
+   "correctRole": true,
+   "pointsAtSourceWhenDestinationExpected": false
+  }
+ ],
+ "mainRun": {
+  "correct": 4,
+  "of": 6
+ },
+ "mainRunDestinationIpSteps": {
+  "correct": 0,
+  "of": 2
+ },
+ "mainRunSourceIpSteps": {
+  "correct": 4,
+  "of": 4
+ },
+ "consistencyRepetitionsIpSteps": {
+  "correct": 15,
+  "of": 25
+ },
+ "consistencyDestinationIpSteps": {
+  "correct": 0,
+  "of": 10
+ },
+ "interpretation": "In TC-07 and TC-09 the endpoint (172.19.0.5) is the SOURCE of the C2/exfiltration traffic and the lab server (172.19.0.7) the destination; BLOCK-DESTINATION-IP was aimed at the endpoint's own address. Executed, it would cut the monitored host off the network. The IR approval gate is the only thing that stops it; the compliance evaluator (evidence-linked target) does not detect it.",
+ "reportedInFinalReport": false,
+ "note": "Found after the final report was issued; the final KPI values are unchanged, their meaning is qualified (see CORRECTIONS-final.md)."
+}

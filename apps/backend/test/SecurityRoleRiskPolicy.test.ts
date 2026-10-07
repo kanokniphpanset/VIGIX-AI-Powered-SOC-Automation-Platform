@@ -246,11 +246,9 @@ describe("SOC review in the Alert Inbox: no claim, no owner, no email", () => {
     expect(w.audit.filter((a) => a.action === "ALERT_TRIAGED")).toHaveLength(1);
   });
 
-  it("FALSE_POSITIVE: reason required; then TRIAGED + closedAt, ALERT_TRIAGED, no email, no incident, alert kept", async () => {
+  it("FALSE_POSITIVE: TRIAGED + closedAt, ALERT_TRIAGED, no email, no incident, alert kept", async () => {
     const w = world();
     const alert = await inboxAlert(w);
-    for (const reason of [null, "", "  "]) expect((await decide(w, alert.id, "soc-1", "FALSE_POSITIVE", reason)).error).toBe("REASON_REQUIRED");
-    expect(w.alerts[0].workflowState).toBe("NEW");
     const r = await decide(w, alert.id, "soc-1", "FALSE_POSITIVE", "Known lab scanner");
     expect(r.value.alert).toMatchObject({ workflowState: "TRIAGED", status: "closed" });
     expect(r.value.alert!.closedAt).toBeInstanceOf(Date);
@@ -264,12 +262,21 @@ describe("SOC review in the Alert Inbox: no claim, no owner, no email", () => {
     expect((await decide(w, alert.id, "soc-2", "INFORMATIONAL", "again")).error).toBe("ALERT_ALREADY_DECIDED");
   });
 
-  it("INFORMATIONAL: reason required; then TRIAGED + closed, no email", async () => {
+  it("INFORMATIONAL: TRIAGED + closed, no email", async () => {
     const w = world();
     const alert = await inboxAlert(w);
-    expect((await decide(w, alert.id, "soc-1", "INFORMATIONAL", null)).error).toBe("REASON_REQUIRED");
     expect((await decide(w, alert.id, "soc-1", "INFORMATIONAL", "expected maintenance")).value.alert).toMatchObject({ workflowState: "TRIAGED", status: "closed" });
     expect(w.sent).toEqual([]);
+  });
+
+  it("closing an alert without a reason is allowed (the reason is optional)", async () => {
+    for (const reason of [null, "", "  "]) {
+      const w = world();
+      const alert = await inboxAlert(w);
+      const r = await decide(w, alert.id, "soc-1", "FALSE_POSITIVE", reason);
+      expect(r.value.alert).toMatchObject({ workflowState: "TRIAGED", status: "closed" });
+      expect(r.value.alert!.triage).toMatchObject({ disposition: "FALSE_POSITIVE", note: null });
+    }
   });
 
   it("LOW alerts are outside the SOC workflow: no decision can be taken on them", async () => {
@@ -376,25 +383,24 @@ describe("Human severity validation and RESOLVED only via verification", () => {
     expect(JSON.stringify(w.audit)).not.toMatch(/ai(Suggestion|Severity)|differsFromAi/);
   });
 
-  it("an override of the Wazuh severity needs a reason; the Wazuh value stays recorded next to the SOC value", async () => {
+  it("an override of the Wazuh severity may carry a reason; the Wazuh value stays recorded next to the SOC value", async () => {
     const w = world();
-    const { writes, writer } = severityWriter();
+    const { writer } = severityWriter();
     const uc = new ValidateIncidentSeverityUseCase(w.context as never, writer, w.auditLogger);
-    for (const note of [null, "", "  "]) expect((await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "HIGH", note })).error).toBe("REASON_REQUIRED");
-    expect(writes).toHaveLength(0);
     const r = await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "HIGH", note: "confirmed exfiltration" });
     expect(r.value).toMatchObject({ severity: "HIGH", previous: "LOW", changed: true, wazuhSeverity: "LOW", overridesWazuh: true });
     expect(w.audit[0].metadata).toMatchObject({ wazuhSeverity: "LOW", severity: "HIGH", overridesWazuh: true, reason: "confirmed exfiltration" });
   });
 
-  it("keeping an existing override needs a reason (the value differs from Wazuh); reverting to Wazuh is a change and needs one too", async () => {
+  it("the reason is optional: an override or a revert to Wazuh goes through without one", async () => {
     const w = world();
+    const { writes, writer } = severityWriter();
+    const uc = new ValidateIncidentSeverityUseCase(w.context as never, writer, w.auditLogger);
+    expect((await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "HIGH", note: null })).value).toMatchObject({ changed: true, overridesWazuh: true });
+    expect(writes).toHaveLength(1);
     const ctx = { getIncidentContext: async () => ({ incidentId: "inc-low", investigationNumber: 1, title: "t", status: "investigating", priority: "high", alertSeverity: "low" }) };
-    const uc = new ValidateIncidentSeverityUseCase(ctx as never, severityWriter().writer, w.auditLogger);
-    expect((await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "HIGH", note: null })).error).toBe("REASON_REQUIRED");
-    // Reverting to the Wazuh value is still a change: it needs a reason too.
-    expect((await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "LOW", note: null })).error).toBe("REASON_REQUIRED");
-    expect((await uc.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "LOW", note: "exfiltration ruled out" })).value).toMatchObject({ changed: true, overridesWazuh: false });
+    const revert = new ValidateIncidentSeverityUseCase(ctx as never, severityWriter().writer, w.auditLogger);
+    expect((await revert.execute({ tenantId: TENANT, incidentId: "inc-low", actor: "soc-1", actorRole: "SOC", severity: "LOW", note: "  " })).value).toMatchObject({ changed: true, overridesWazuh: false });
   });
 
   it("correct: severity written + timeline, audited with previous/new, Policy ownership re-evaluated", async () => {
@@ -457,7 +463,8 @@ describe("RBAC — AI (or any non-human role) can neither approve nor execute", 
   // Real HTTP round trips on an ephemeral port: allow for a loaded machine during the full parallel run.
   jest.setTimeout(30_000);
   const secret = process.env.JWT_SECRET ?? "dev-only-insecure-secret-change-in-production";
-  const token = (role: string) => jwt.sign({ id: `${role}-user`, email: "x@corp.test", role, tenantId: TENANT }, secret);
+  // Phase 1A identity contract: a human token must expire (production signToken uses 8h).
+  const token = (role: string) => jwt.sign({ id: `${role}-user`, email: "x@corp.test", role, tenantId: TENANT }, secret, { expiresIn: "1h" });
   const reached: string[] = [];
   const ok = (name: string) => (_req: express.Request, res: express.Response) => void (reached.push(name), res.json({ ok: true }));
   let base = "";
@@ -466,7 +473,7 @@ describe("RBAC — AI (or any non-human role) can neither approve nor execute", 
   beforeAll(async () => {
     const app = express();
     app.use(express.json());
-    app.use("/api/responses", buildResponseRoutes({ list: ok("list"), create: ok("create"), getById: ok("get"), start: ok("start"), complete: ok("complete"), fail: ok("fail") } as never));
+    app.use("/api/responses", buildResponseRoutes({ list: ok("list"), create: ok("create"), getById: ok("get"), start: ok("start"), complete: ok("complete"), fail: ok("fail"), decideManually: ok("manual-decision") } as never));
     app.use("/api/approvals", buildApprovalRoutes({ request: ok("request"), getById: ok("get"), approve: ok("approve"), reject: ok("reject") } as never));
     app.use("/api/v1", buildSocTriageRoutes({ triage: ok("triage"), notificationDecision: ok("notify"), severityValidation: ok("severity"), severity: ok("severity-read") } as never));
     server = app.listen(0);

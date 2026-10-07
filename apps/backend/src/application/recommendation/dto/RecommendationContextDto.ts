@@ -16,6 +16,8 @@ export interface RecommendationContextIoc {
   manual?: boolean;
   /** Stable citation id ("I1", "I2", ...) assigned by RecommendationContextBuilder; the AI cites this, not the value. */
   ref?: string;
+  /** IP role in the triggering alert (source = data.srcip, destination = data.dstip); absent for non-IP / unknown. */
+  networkRole?: "source" | "destination";
 }
 
 export interface RecommendationContextMitreMapping {
@@ -108,7 +110,17 @@ export interface RecommendationContextActionProcedure {
   expectedResult: string | null;
   verificationCriteria: string[];
   policy: RecommendationContextPolicy;
+  /** Knowledge: the Action applies to this incident's attack type (domain/knowledge). false -> never recommendable. */
+  applicable?: boolean;
+  /** Deterministic evidence check (ActionEvidence.ts): the Action's own + Policy-required evidence, and the recorded
+   * targets that satisfy all of it. satisfied=false -> never recommendable in this cycle. */
+  evidence?: { requirements: string[]; satisfied: boolean; missing: string[]; targets: string[]; analystConfirmed: string[] };
+  /** ACTION_COMPLIANCE policies in force for this Action and what each requires. */
+  compliance?: { policies: string[]; requiredEvidence: string[]; rules: { policy: string; requiredEvidence: string[] }[] };
 }
+
+/** An Action procedure the AI may actually recommend: applicable to the attack type AND its evidence is recorded. */
+export const isRecommendable = (p: RecommendationContextActionProcedure): boolean => p.applicable !== false && p.evidence?.satisfied !== false;
 
 /**
  * Values a response step may target (Task 10.3): IOCs linked to this cycle's evidence, IOCs an analyst
@@ -118,6 +130,31 @@ export interface RecommendationContextActionProcedure {
 export function targetableIocValues(context: Pick<RecommendationContextDto, "iocs" | "evidence">): Set<string> {
   const linked = new Set(context.evidence.flatMap((e) => e.iocValues));
   return new Set(context.iocs.filter((i) => linked.has(i.iocValue) || i.manual).map((i) => i.iocValue));
+}
+
+/** One step of an earlier Recommendation of this incident (any round, any status): the Action + target it proposed. */
+export interface RecommendationContextPreviousStep {
+  recommendationNumber: number;
+  investigationNumber: number;
+  actionCode: string;
+  target: string;
+}
+
+export const stepKey = (actionCode: string, target: string): string => `${actionCode}|${target}`;
+
+/**
+ * Action + target pairs still open to a new Recommendation: recommendable Actions on their evidence-satisfying targets
+ * that no earlier Recommendation of this incident proposed. A new Recommendation must contain at least one of them.
+ * null = cannot tell (the context carries no evidence evaluation).
+ */
+export function newStepOptions(context: Pick<RecommendationContextDto, "actionProcedures" | "previousSteps">): { actionCode: string; target: string }[] | null {
+  const procedures = context.actionProcedures ?? [];
+  if (procedures.some((p) => !p.evidence)) return null;
+  const used = new Set((context.previousSteps ?? []).map((s) => stepKey(s.actionCode, s.target)));
+  return procedures
+    .filter(isRecommendable)
+    .flatMap((p) => p.evidence!.targets.map((target) => ({ actionCode: p.actionCode, target })))
+    .filter((o) => !used.has(stepKey(o.actionCode, o.target)));
 }
 
 export interface RecommendationContextDto {
@@ -140,7 +177,17 @@ export interface RecommendationContextDto {
   availableRunbooks: RecommendationContextRunbook[];
   /** Task 10.3 — incident type of the selected playbook, or null when no incident-level playbook applies. */
   incidentType?: string | null;
+  /** Knowledge attack type of the selected playbook (SSH_BRUTE_FORCE -> BRUTE_FORCE); null when none is known. */
+  attackType?: string | null;
   playbook?: RecommendationContextPlaybook | null;
   /** Actions the AI may expand (the playbook's allowedActions that exist, are enabled and are CONTAINMENT). */
   actionProcedures?: RecommendationContextActionProcedure[];
+  /**
+   * SOC response guidance in force (case > group policy > playbook default): the actions it allows (already applied
+   * to playbook.allowedActions / actionProcedures) and the SOC's instruction for the Recommendation.
+   */
+  socGuidance?: { source: "CASE" | "GROUP" | "PLAYBOOK"; allowedActions: string[]; instructions: string | null } | null;
+  /** Every step of this incident's earlier Recommendations. A new one must add at least one Action + target pair not
+   * in this list (RecommendationValidator NO_NEW_STEP); repeating a pair alongside a new one is allowed. */
+  previousSteps?: RecommendationContextPreviousStep[];
 }

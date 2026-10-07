@@ -1,0 +1,1038 @@
+{
+  "kpi": "Recommendation Compliance",
+  "formula": "compliant recommendations / evaluated recommendations × 100",
+  "source": "PostgreSQL (recommendations, recommendation_steps, playbook_snapshots, approvals) scored by EvaluationService.evaluateCompliance against the frozen Ground Truth",
+  "database": "soar_mockv2_eval",
+  "run": "mock-evaluation-v2-20261002",
+  "result": {
+    "numerator": 8,
+    "denominator": 8,
+    "pct": 100,
+    "denominatorAttemptedCases": 9,
+    "pctOfAttemptedCases": 88.89,
+    "attemptedWithoutValidRecommendation": [
+      "TC-08"
+    ]
+  },
+  "criteria": {
+    "attackAlignment": {
+      "passed": 8,
+      "of": 8
+    },
+    "evidenceSupport": {
+      "passed": 8,
+      "of": 8
+    },
+    "knowledgeValidity": {
+      "passed": 8,
+      "of": 8
+    },
+    "policyCompliance": {
+      "passed": 8,
+      "of": 8
+    },
+    "playbookAlignment": {
+      "passed": 8,
+      "of": 8
+    },
+    "approvalCorrectness": {
+      "passed": 8,
+      "of": 8
+    }
+  },
+  "criteriaMapping": {
+    "Action correctness": "attackAlignment (action inside the Ground Truth allowed set)",
+    "Target correctness": "evidenceSupport (target is a recorded value of the kind the action operates on — kind enforced by the validator, membership by the evaluator)",
+    "Evidence support": "evidenceSupport + validator required-evidence gate (a VALIDATED recommendation has its required evidence recorded)",
+    "Action catalog validity": "knowledgeValidity (action exists and is enabled in the Action Catalog)",
+    "Policy compliance": "policyCompliance (step approval flag == Policy snapshot, responsible role present)",
+    "Playbook / Runbook alignment": "playbookAlignment (selected playbook == Ground Truth and every action inside it)",
+    "(additional, kept from the frozen evaluator)": "approvalCorrectness (approval role matches Policy and a human decision exists)"
+  },
+  "notMerged": "Negative Validation (controlled invalid recommendations) and Human/Policy Validation (governance gates) are reported in their own files and are NOT part of this rate: their denominators and definitions differ.",
+  "records": [
+    {
+      "incident_id": "fbab1f48-9e41-496a-b9a3-c85272e59460",
+      "tc": "TC-01",
+      "recommended_actions": [
+        "ACT-BLOCK-SOURCE-IP"
+      ],
+      "recommended_targets": [
+        "172.19.0.7"
+      ],
+      "evidence_used": {
+        "ioc_count": 2,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "sshd: brute force trying to get access to the system. Non existent user.",
+            "172.19.0.7"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-BLOCK-SOURCE-IP": {
+          "reviewRole": null,
+          "approvalRole": null,
+          "matchedRules": [
+            "RULE-A02",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": false
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-SSH-BRUTEFORCE",
+        "expected": "PB-SSH-BRUTEFORCE",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "expectedKind": "ip",
+          "actualKind": "ip",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "7e9f7c96-0a28-4652-bd29-294332bc7031",
+      "tc": "TC-02",
+      "recommended_actions": [
+        "ACT-ISOLATE-ENDPOINT"
+      ],
+      "recommended_targets": [
+        "attack-endpoint"
+      ],
+      "evidence_used": {
+        "ioc_count": 0,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "VIGIX-EVAL: executable dropped in a user Downloads folder (malware-like artifact)"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-ISOLATE-ENDPOINT": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "POL-A01",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-MALWARE",
+        "expected": "PB-MALWARE",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "expectedKind": "host",
+          "actualKind": "host",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "fb7ce9ac-66b8-4f4d-b001-24d48ae22b41",
+      "tc": "TC-03",
+      "recommended_actions": [
+        "ACT-QUARANTINE-EMAIL",
+        "ACT-BLOCK-URL",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-ISOLATE-ENDPOINT"
+      ],
+      "recommended_targets": [
+        "it-support@vigix-eval-phish.net",
+        "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+        "vigix-eval-phish.net",
+        "attack-endpoint"
+      ],
+      "evidence_used": {
+        "ioc_count": 5,
+        "analyst_added_iocs": 4,
+        "step_evidence_refs": [
+          [
+            "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+            "it-support@vigix-eval-phish.net"
+          ],
+          [
+            "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+            "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+          ],
+          [
+            "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+            "vigix-eval-phish.net"
+          ],
+          [
+            "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-BLOCK-URL": {
+          "reviewRole": null,
+          "approvalRole": null,
+          "matchedRules": [
+            "RULE-A02",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": false
+        },
+        "ACT-BLOCK-DOMAIN": {
+          "reviewRole": null,
+          "approvalRole": null,
+          "matchedRules": [
+            "RULE-A02",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": false
+        },
+        "ACT-ISOLATE-ENDPOINT": {
+          "reviewRole": null,
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A02",
+            "POL-A01",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-QUARANTINE-EMAIL": {
+          "reviewRole": null,
+          "approvalRole": null,
+          "matchedRules": [
+            "RULE-A02",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": false
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-PHISHING",
+        "expected": "PB-PHISHING",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "expectedKind": "email",
+          "actualKind": "email",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "expectedKind": "url",
+          "actualKind": "url",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "expectedKind": "domain",
+          "actualKind": "domain",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "expectedKind": "host",
+          "actualKind": "host",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "775d3811-36d0-4306-8ae7-c4071ee1004b",
+      "tc": "TC-04",
+      "recommended_actions": [
+        "ACT-DISABLE-ACCOUNT",
+        "ACT-BLOCK-SOURCE-IP",
+        "ACT-RESET-CREDENTIAL",
+        "ACT-REVOKE-SESSION"
+      ],
+      "recommended_targets": [
+        "victim",
+        "172.19.0.7",
+        "victim",
+        "victim"
+      ],
+      "evidence_used": {
+        "ioc_count": 2,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "Multiple authentication failures followed by a success.",
+            "victim"
+          ],
+          [
+            "Multiple authentication failures followed by a success.",
+            "172.19.0.7"
+          ],
+          [
+            "Multiple authentication failures followed by a success.",
+            "victim"
+          ],
+          [
+            "Multiple authentication failures followed by a success.",
+            "victim"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-REVOKE-SESSION": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-BLOCK-SOURCE-IP": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-DISABLE-ACCOUNT": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "POL-A01",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-RESET-CREDENTIAL": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "POL-A01",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-ACCOUNT-COMPROMISE",
+        "expected": "PB-ACCOUNT-COMPROMISE",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "victim",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "expectedKind": "ip",
+          "actualKind": "ip",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "victim",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "victim",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "f7e587bf-4505-48b5-b35b-3058fffb734a",
+      "tc": "TC-06",
+      "recommended_actions": [
+        "ACT-BLOCK-SOURCE-IP"
+      ],
+      "recommended_targets": [
+        "172.19.0.7"
+      ],
+      "evidence_used": {
+        "ioc_count": 3,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "SQL injection attempt.",
+            "172.19.0.7"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-BLOCK-SOURCE-IP": {
+          "reviewRole": null,
+          "approvalRole": null,
+          "matchedRules": [
+            "RULE-A02",
+            "RULE-I02",
+            "POL-005"
+          ],
+          "reviewRequired": false,
+          "responsibleRole": "SOC",
+          "approvalRequired": false
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-SQL-INJECTION",
+        "expected": "PB-SQL-INJECTION",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-BLOCK-SOURCE-IP",
+          "target": "172.19.0.7",
+          "expectedKind": "ip",
+          "actualKind": "ip",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "330af1c5-10ef-49cb-9b30-15f6f8b918a8",
+      "tc": "TC-07",
+      "recommended_actions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ],
+      "recommended_targets": [
+        "172.19.0.5",
+        "vigix-eval-c2.net",
+        "http://vigix-eval-c2.net:8080/gate.php",
+        "attack-endpoint"
+      ],
+      "evidence_used": {
+        "ioc_count": 4,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "VIGIX-EVAL: outbound beaconing to a command-and-control server",
+            "172.19.0.5"
+          ],
+          [
+            "VIGIX-EVAL: outbound beaconing to a command-and-control server",
+            "vigix-eval-c2.net"
+          ],
+          [
+            "VIGIX-EVAL: outbound beaconing to a command-and-control server",
+            "http://vigix-eval-c2.net:8080/gate.php"
+          ],
+          [
+            "VIGIX-EVAL: outbound beaconing to a command-and-control server"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-BLOCK-URL": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-BLOCK-DOMAIN": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-ISOLATE-ENDPOINT": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "POL-A01",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-BLOCK-DESTINATION-IP": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-C2",
+        "expected": "PB-C2",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "expectedKind": "ip",
+          "actualKind": "ip",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-c2.net",
+          "expectedKind": "domain",
+          "actualKind": "domain",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-c2.net:8080/gate.php",
+          "expectedKind": "url",
+          "actualKind": "url",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "expectedKind": "host",
+          "actualKind": "host",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "32de49ff-87df-4d7e-ad4f-204a9bdd01fc",
+      "tc": "TC-09",
+      "recommended_actions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ],
+      "recommended_targets": [
+        "172.19.0.5",
+        "vigix-eval-exfil.net",
+        "http://vigix-eval-exfil.net:8080/upload",
+        "attack-endpoint"
+      ],
+      "evidence_used": {
+        "ioc_count": 5,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)",
+            "172.19.0.5"
+          ],
+          [
+            "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)",
+            "vigix-eval-exfil.net"
+          ],
+          [
+            "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)",
+            "http://vigix-eval-exfil.net:8080/upload"
+          ],
+          [
+            "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-BLOCK-URL": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-BLOCK-DOMAIN": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-ISOLATE-ENDPOINT": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "POL-A01",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-BLOCK-DESTINATION-IP": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A03",
+            "RULE-P02",
+            "RULE-P07",
+            "RULE-I03",
+            "POL-003"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-DATA-EXFIL",
+        "expected": "PB-DATA-EXFIL",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-BLOCK-DESTINATION-IP",
+          "target": "172.19.0.5",
+          "expectedKind": "ip",
+          "actualKind": "ip",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-exfil.net",
+          "expectedKind": "domain",
+          "actualKind": "domain",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-exfil.net:8080/upload",
+          "expectedKind": "url",
+          "actualKind": "url",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "expectedKind": "host",
+          "actualKind": "host",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    },
+    {
+      "incident_id": "bbb99218-6fe3-4bdf-af28-f262c4552158",
+      "tc": "TC-10",
+      "recommended_actions": [
+        "ACT-DISABLE-ACCOUNT",
+        "ACT-RESET-CREDENTIAL",
+        "ACT-REVOKE-SESSION"
+      ],
+      "recommended_targets": [
+        "evaluser",
+        "evaluser",
+        "evaluser"
+      ],
+      "evidence_used": {
+        "ioc_count": 1,
+        "analyst_added_iocs": 0,
+        "step_evidence_refs": [
+          [
+            "VIGIX-EVAL: user added to a privileged group (privilege change)",
+            "evaluser"
+          ],
+          [
+            "VIGIX-EVAL: user added to a privileged group (privilege change)",
+            "evaluser"
+          ],
+          [
+            "VIGIX-EVAL: user added to a privileged group (privilege change)",
+            "evaluser"
+          ]
+        ]
+      },
+      "action_catalog_match": true,
+      "policy_result": true,
+      "policy_snapshot": {
+        "ACT-REVOKE-SESSION": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A04",
+            "RULE-P03",
+            "RULE-P09",
+            "RULE-I04",
+            "POL-001"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-DISABLE-ACCOUNT": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A04",
+            "RULE-P03",
+            "POL-A01",
+            "RULE-P09",
+            "RULE-I04",
+            "POL-001"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        },
+        "ACT-RESET-CREDENTIAL": {
+          "reviewRole": "IR_TEAM",
+          "approvalRole": "IR_TEAM",
+          "matchedRules": [
+            "RULE-A04",
+            "RULE-P03",
+            "POL-A01",
+            "RULE-P09",
+            "RULE-I04",
+            "POL-001"
+          ],
+          "reviewRequired": true,
+          "responsibleRole": "SOC",
+          "approvalRequired": true
+        }
+      },
+      "playbook_result": {
+        "selected": "PB-ACCOUNT-COMPROMISE",
+        "expected": "PB-ACCOUNT-COMPROMISE",
+        "aligned": true
+      },
+      "criteria": {
+        "attackAlignment": true,
+        "evidenceSupport": true,
+        "knowledgeValidity": true,
+        "policyCompliance": true,
+        "playbookAlignment": true,
+        "approvalCorrectness": true
+      },
+      "compliance_result": "COMPLIANT",
+      "failure_reason": null,
+      "supplementary_target_checks": [
+        {
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        },
+        {
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "expectedKind": "account",
+          "actualKind": "account",
+          "kindMatches": true,
+          "selfTargetingEndpointIp": false
+        }
+      ]
+    }
+  ],
+  "notEvaluated": [
+    {
+      "incident_id": "a7e1d195-e4ff-4281-985a-8546298f5466",
+      "tc": "TC-08",
+      "reason": "NO_VALID_RECOMMENDATION after 5 model attempts",
+      "retries": {
+        "failedGenerationCalls": 5,
+        "details": [
+          {
+            "at": "2026-10-02T07:05:03.423Z",
+            "reason": "INVALID_AI_OUTPUT",
+            "attempts": 2,
+            "violations": [
+              "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+              "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+            ],
+            "firstAttemptViolations": [
+              "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+              "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+            ],
+            "retryError": null
+          },
+          {
+            "at": "2026-10-02T07:05:56.645Z",
+            "reason": "INVALID_AI_OUTPUT",
+            "attempts": 2,
+            "violations": [
+              "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+              "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+            ],
+            "firstAttemptViolations": [
+              "TARGET_TYPE_MISMATCH: step 1 (ACT-KILL-PROCESS): target \"attack-endpoint\" is a host, but ACT-KILL-PROCESS operates on a process",
+              "INSUFFICIENT_EVIDENCE: step 1 (ACT-KILL-PROCESS): required evidence is not recorded for target \"attack-endpoint\": COMMAND_LINE",
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+            ],
+            "retryError": null
+          },
+          {
+            "at": "2026-10-02T07:06:45.816Z",
+            "reason": "INVALID_AI_OUTPUT",
+            "attempts": 2,
+            "violations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"/tmp/.cache/kworkerd\" is a process, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"/tmp/.cache/kworkerd\": FILE_HASH"
+            ],
+            "firstAttemptViolations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"/tmp/.cache/kworkerd\" is a process, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"/tmp/.cache/kworkerd\": FILE_HASH"
+            ],
+            "retryError": null
+          },
+          {
+            "at": "2026-10-02T07:07:33.387Z",
+            "reason": "INVALID_AI_OUTPUT",
+            "attempts": 2,
+            "violations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"attack-endpoint\" is a host, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"attack-endpoint\": FILE_HASH"
+            ],
+            "firstAttemptViolations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"/tmp/.cache/kworkerd\" is a process, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"/tmp/.cache/kworkerd\": FILE_HASH"
+            ],
+            "retryError": null
+          },
+          {
+            "at": "2026-10-02T07:08:24.903Z",
+            "reason": "INVALID_AI_OUTPUT",
+            "attempts": 2,
+            "violations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"/tmp/.cache/kworkerd\" is a process, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"/tmp/.cache/kworkerd\": FILE_HASH"
+            ],
+            "firstAttemptViolations": [
+              "TARGET_TYPE_MISMATCH: step 2 (ACT-QUARANTINE-FILE): target \"/tmp/.cache/kworkerd\" is a process, but ACT-QUARANTINE-FILE operates on a file",
+              "INSUFFICIENT_EVIDENCE: step 2 (ACT-QUARANTINE-FILE): required evidence is not recorded for target \"/tmp/.cache/kworkerd\": FILE_HASH"
+            ],
+            "retryError": null
+          }
+        ],
+        "byClass": {
+          "MODEL_OUTPUT_REJECTED_BY_VALIDATOR": 5
+        },
+        "modelCaused": 5,
+        "infrastructureCaused": 0
+      }
+    }
+  ]
+}

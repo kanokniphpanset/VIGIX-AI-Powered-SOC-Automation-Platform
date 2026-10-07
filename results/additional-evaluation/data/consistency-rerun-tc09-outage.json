@@ -1,0 +1,207 @@
+{
+  "evaluation": "B_recommendation_consistency",
+  "startedAt": "2026-09-30T13:02:38.299Z",
+  "finishedAt": "2026-09-30T13:02:52.193Z",
+  "database": "soar_addl_eval",
+  "orchestrator": "http://localhost:8001",
+  "source_run": "clean-v2-real-wazuh-20260930",
+  "repetitions": 5,
+  "cases": [
+    "TC-09"
+  ],
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "firstRoundContext": "the incident's earlier recommendations are hidden from the context (previousSteps=[]) — the condition of the original first-round generation; otherwise the NO_NEW_STEP validator rule would reject any repeat by design",
+  "nothingPersisted": true,
+  "evidenceSnapshots": {
+    "TC-09": {
+      "incidentId": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidenceSnapshotHashes": [
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea",
+        "7ce2018927c021aab5c4e37ede7ee27b684f1f54ae88440681f975b8c2a83cea"
+      ],
+      "iocCount": 5,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-DATA-EXFIL",
+      "matchedTechniques": [
+        "T1048"
+      ],
+      "mitreMappings": [
+        "T1048",
+        "T1071.001"
+      ],
+      "recommendableActions": [
+        "ACT-BLOCK-DESTINATION-IP",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-BLOCK-URL",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    }
+  },
+  "overall": {
+    "runs": 5,
+    "consistent_runs": 0,
+    "consistency_pct": 0,
+    "per_case_mean_pct": 0,
+    "per_case_sd_pct": 0,
+    "validated_runs": 0,
+    "all_evidence_snapshots_identical": true
+  },
+  "perCase": [
+    {
+      "case_id": "TC-09",
+      "runs": 5,
+      "validated_runs": 0,
+      "consistent_runs": 0,
+      "consistency_pct": 0,
+      "modal_primary": null,
+      "distinct_primary_recommendations": 0,
+      "distribution": {},
+      "step_set_agreement_runs": 0,
+      "step_set_agreement_pct": 0,
+      "failed_runs": [
+        {
+          "repetition": 1,
+          "reason": "AI_UNAVAILABLE"
+        },
+        {
+          "repetition": 2,
+          "reason": "AI_UNAVAILABLE"
+        },
+        {
+          "repetition": 3,
+          "reason": "AI_UNAVAILABLE"
+        },
+        {
+          "repetition": 4,
+          "reason": "AI_UNAVAILABLE"
+        },
+        {
+          "repetition": 5,
+          "reason": "AI_UNAVAILABLE"
+        }
+      ],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 5,
+        "mean": 2.71,
+        "median": 2.6,
+        "min": 2.58,
+        "max": 3.15,
+        "sd": 0.25
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "TC-09",
+      "repetition": 1,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 2.62,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (AI_UNAVAILABLE)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "AI_UNAVAILABLE",
+      "violations": [
+        "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}"
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 2,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 2.58,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (AI_UNAVAILABLE)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "AI_UNAVAILABLE",
+      "violations": [
+        "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}"
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 3,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 2.6,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (AI_UNAVAILABLE)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "AI_UNAVAILABLE",
+      "violations": [
+        "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}"
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 4,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 3.15,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (AI_UNAVAILABLE)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "AI_UNAVAILABLE",
+      "violations": [
+        "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}"
+      ]
+    },
+    {
+      "case_id": "TC-09",
+      "repetition": 5,
+      "incident_id": "3f51b0d8-b4c4-43fa-bd6e-6108fcb29529",
+      "evidence_snapshot_hash": "7ce2018927c021aa",
+      "generation_seconds": 2.59,
+      "attempts": 1,
+      "mitre_technique": "T1048",
+      "playbook_id": "PB-DATA-EXFIL",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (AI_UNAVAILABLE)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "AI_UNAVAILABLE",
+      "violations": [
+        "AI orchestrator responded with 503 for recommendation generation: {\"detail\":{\"error\":\"LLM_UNAVAILABLE\",\"message\":\"LLM call failed (ConnectError)\"}}"
+      ]
+    }
+  ]
+}

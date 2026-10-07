@@ -37,6 +37,7 @@ export interface IAlertRepository {
 
 export interface CommitTriageData {
   disposition: "FALSE_POSITIVE" | "INFORMATIONAL";
-  reason: string;
+  /** Optional SOC note. */
+  reason: string | null;
   at: Date;
 }
