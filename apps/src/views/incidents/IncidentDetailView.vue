@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Bot, Loader2, RotateCw, Sparkles, Ticket } from 'lucide-vue-next'
 import ResponseTicketAction from '@/components/incidents/ResponseTicketAction.vue'
 import InvestigationForms from '@/components/incidents/InvestigationForms.vue'
 import ManualVerification from '@/components/incidents/ManualVerification.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
-import IncidentLifecycle from '@/components/incidents/IncidentLifecycle.vue'
 import AuditTimeline from '@/components/incidents/AuditTimeline.vue'
 import ContextEmailPanel from '@/components/incidents/ContextEmailPanel.vue'
 import SeverityValidationPanel from '@/components/incidents/SeverityValidationPanel.vue'
 import ResponseGuidancePanel from '@/components/incidents/ResponseGuidancePanel.vue'
 import { workApi, type AiJob, type AuditEntry, type WorkTicket } from '@/api/work'
-import type { LifecycleFacts } from '@/utils/workspace'
 import { workflowApi } from '@/api/vigix'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
@@ -24,6 +22,7 @@ import RelatedAlertEvidence from '@/components/incidents/RelatedAlertEvidence.vu
 import IncidentAlertFactsTable from '@/components/incidents/IncidentAlertFactsTable.vue'
 import MarkdownText from '@/components/common/MarkdownText.vue'
 import { nextStep } from '@/utils/nextStep'
+import { INCIDENT_TABS, resolveTab, tabForStep, type IncidentTab } from '@/utils/incidentTabs'
 import { feedback } from '@/utils/feedback'
 import { useI18n, type MsgKey } from '@/i18n'
 import { hasMsg } from '@/i18n/messages'
@@ -52,9 +51,11 @@ import { aiButtonLabel, hasAiAnalysis, initialAiRunState, runAiAnalysis, type Ai
 import { canGenerateRecommendation, generateButtonLabel, initialGenerateState, runGenerate, type GenerateState } from '@/utils/recommendation'
 
 /**
- * Incident 360 — the ONE shared incident every role sees (RBAC decides actions, not which incident exists):
- * overview, investigation, evidence, AI analysis (+ AI jobs), recommendation, Policy & approval chain, response,
- * verification and the full audit trail. Approval / response / re-hunt actions stay on their backend-gated routes.
+ * Incident 360 — the ONE shared incident every role sees (RBAC decides actions, not which incident exists).
+ * Progress is shown once, in the "ขั้นต่อไป" card (8 steps). Four tabs: overview · evidence (investigations, evidence,
+ * IOC, MITRE) · AI & recommendation (analysis, AI jobs, recommendation, send to IR) · history (re-hunt results,
+ * email, audit). The page opens on the tab that holds the current step's work. Approval / response / re-hunt actions
+ * stay on their backend-gated routes.
  */
 const route = useRoute()
 const router = useRouter()
@@ -86,15 +87,18 @@ const session = useSessionStore()
 const ui = useUiStore()
 const { locale, t } = useI18n()
 
-// Investigation and evidence are one tab: the alert facts, each investigation round with its evidence, IOC and MITRE.
-type Tab = 'overview' | 'investigation' | 'ai' | 'recommendation' | 'verification' | 'email' | 'audit'
-const ALL_TABS: Tab[] = ['overview', 'investigation', 'ai', 'recommendation', 'verification', 'email', 'audit']
-// Re-hunt verification is IR work; the IR decision and response execution live on the Response Tickets.
-const HIDDEN_TABS: Record<string, Tab[]> = { SOC: ['verification'] }
-const tabs = computed(() => ALL_TABS.filter((k) => !(HIDDEN_TABS[session.role ?? ''] ?? []).includes(k)))
-// Old links to ?tab=evidence land on the merged tab.
-const requestedTab = typeof route.query.tab === 'string' ? ((route.query.tab === 'evidence' ? 'investigation' : route.query.tab) as Tab) : 'overview'
-const tab = ref<Tab>(tabs.value.includes(requestedTab) ? requestedTab : 'overview')
+// ?tab= (current or former tab names) wins; otherwise the tab of the current step is chosen once the data is in.
+const requested = resolveTab(route.query.tab)
+const tab = ref<IncidentTab>(requested?.tab ?? 'overview')
+let tabSettled = !!requested
+function selectTab(key: IncidentTab) {
+  tab.value = key
+  tabSettled = true
+}
+// Re-hunt verification is IR work (the SOC sees the round summary in History, not the re-hunt controls).
+const showVerification = computed(() => session.role !== 'SOC')
+/** Small counters on the tabs (they replace the overview's number tiles). */
+const tabCount = computed<Partial<Record<IncidentTab, number>>>(() => ({ evidence: iocs.value.length, history: verifications.value.length }))
 
 
 const settle = <T,>(p: Promise<T>, fallback: T) => p.catch(() => { error.value = t('inc.loadPartial'); return fallback })
@@ -131,9 +135,18 @@ async function load() {
   verifications.value = ver.items
   const ev = await Promise.all(inv.items.map((i) => settle(incidentsApi.evidence(i.id), [] as Evidence[])))
   evidence.value = Object.fromEntries(inv.items.map((i, n) => [i.id, asItems(ev[n])]))
+  seen.value = fingerprint(incident.value, tl.length, rsp.items, ver.items)
+  stale.value = false
   loading.value = false
-  void loadExtras()
+  await loadExtras()
+  if (!tabSettled && next.value) selectTab(tabForStep(next.value.key))
+  if (requested?.anchor && !anchorDone) {
+    anchorDone = true
+    await nextTick()
+    document.getElementById(requested.anchor)?.scrollIntoView({ block: 'start' })
+  }
 }
+let anchorDone = false
 async function loadExtras() {
   const [tk, au, jobs, s] = await Promise.all([
     workApi.tickets('all', 200, 0, id.value).catch(() => null),
@@ -148,6 +161,23 @@ async function loadExtras() {
   aiJobs.value = jobs?.items ?? []
 }
 onMounted(load)
+
+// Someone else (IR / SOC) may move the case while this page is open: check every 30 s and offer the new data with a
+// banner instead of swapping it under the reader (who may be filling in a form).
+const seen = ref('')
+const stale = ref(false)
+function fingerprint(i: Incident | null, timelineLength: number, plans: ResponsePlan[], rounds: Verification[]) {
+  return JSON.stringify([i?.status, i?.priority, i?.investigationNumber, timelineLength, plans.map((p) => `${p.id}:${p.status}`).sort(), rounds.map((v) => v.id).sort()])
+}
+async function checkForUpdates() {
+  if (loading.value || stale.value || document.hidden || !incident.value) return
+  try {
+    const [inc, tl, rsp, ver] = await Promise.all([incidentsApi.get(id.value), incidentsApi.timeline(id.value), incidentsApi.responses(id.value), incidentsApi.verifications(id.value)])
+    if (!loading.value && fingerprint(inc, tl.length, rsp.items, ver.items) !== seen.value) stale.value = true
+  } catch { /* offline for a moment — try again on the next tick */ }
+}
+const poll = setInterval(checkForUpdates, 30_000)
+onUnmounted(() => clearInterval(poll))
 async function reloadWorkflow() {
   const [rec, rsp] = await Promise.all([incidentsApi.recommendations(id.value), incidentsApi.responses(id.value)])
   await load()
@@ -236,25 +266,13 @@ async function doNext() {
   const a = next.value?.action
   if (!a) return
   if (a.kind === 'route') return void router.push(a.to)
-  if (a.kind === 'run-ai') { tab.value = 'ai'; return void runAnalysis() }
-  if (a.kind === 'generate') { tab.value = 'recommendation'; return void regenerate() }
-  tab.value = a.tab as Tab
+  if (a.kind === 'run-ai') { selectTab('ai'); return void runAnalysis() }
+  if (a.kind === 'generate') { selectTab('ai'); return void regenerate() }
+  const target = resolveTab(a.tab)
+  selectTab(target?.tab ?? 'overview')
   await nextTick()
-  document.getElementById(a.anchor ?? 'incident-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById(a.anchor ?? target?.anchor ?? 'incident-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
-const lifecycleFacts = computed<LifecycleFacts>(() => ({
-  hasAlert: alerts.value.length > 0,
-  incidentStatus: incident.value?.status ?? '',
-  hasInvestigation: investigations.value.length > 0,
-  hasAiAnalysis: !!ai.value?.summary,
-  hasRecommendation: recommendations.value.some((r) => r.status === 'VALIDATED' || r.status === 'SUPERSEDED'),
-  ticketCount: responses.value.length,
-  approvalPending: responses.value.some((r) => r.status === 'PENDING_IR_DECISION' || r.status === 'PENDING_APPROVAL'),
-  approvalBlocked: responses.value.some((r) => r.status === 'REJECTED' || r.status === 'MORE_EVIDENCE_REQUESTED'),
-  anyReadyOrLater: responses.value.some((r) => ['READY_FOR_EXECUTION', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'FAILED'].includes(r.status)),
-  anyCompleted: responses.value.some((r) => r.status === 'COMPLETED'),
-  anyVerification: verifications.value.length > 0,
-}))
 /** Policy owner from the latest INCIDENT_ASSIGNED audit (never derived in the UI). */
 /** Threat Intelligence verdict of an IOC (as recorded by the AI pipeline): label and badge tone. */
 const TI_TONE: Record<string, string> = {
@@ -310,9 +328,12 @@ const assignment = computed(() => {
             <p class="text-sm text-amber-800">{{ t('inc.manualStatusNote') }}</p>
           </WorkflowAction>
         </div>
-        <IncidentLifecycle :facts="lifecycleFacts" :investigation-number="incident.investigationNumber" :max-rounds="3" />
       </div>
       <NextStepCard v-if="next" :step="next" :role="session.role" :busy="nextBusy" @act="doNext" />
+      <div v-if="stale" class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900" role="status">
+        <span>{{ t('inc.updatedBanner') }}</span>
+        <button type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" @click="load"><RotateCw class="size-3.5" /> {{ t('inc.updatedShow') }}</button>
+      </div>
 
       <div class="grid gap-5 lg:grid-cols-[300px_1fr]">
         <aside class="h-fit min-w-0 rounded-xl border border-slate-200 bg-white p-4">
@@ -333,29 +354,22 @@ const assignment = computed(() => {
         <div class="min-w-0">
           <div id="incident-tabs" class="mb-4 flex scroll-mt-4 gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
             <button
-              v-for="key in tabs"
+              v-for="key in INCIDENT_TABS"
               :key="key"
               type="button"
               role="tab"
               :aria-selected="tab === key"
               class="whitespace-nowrap border-b-2 px-3 py-2 text-sm"
               :class="tab === key ? 'border-accent-500 font-semibold text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'"
-              @click="tab = key"
+              @click="selectTab(key)"
             >
-              {{ t(`inc.tab.${key}`) }}
+              {{ t(`inc.tab.${key}`) }}<span v-if="tabCount[key]" class="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{{ tabCount[key] }}</span>
             </button>
           </div>
 
           <section class="rounded-xl border border-slate-200 bg-white p-5 text-sm">
             <!-- Overview -->
             <div v-if="tab === 'overview'" class="space-y-5">
-              <div class="grid gap-3 sm:grid-cols-4">
-                <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-400">{{ t('inc.severity') }}</p><p class="mt-1"><SeverityBadge :severity="severity" size="sm" /></p></div>
-                <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-400">{{ t('inc.iocs') }}</p><p class="text-lg font-bold">{{ iocs.length }}</p></div>
-                <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-400">{{ t('inc.responsePlans') }}</p><p class="text-lg font-bold">{{ responses.length }}</p></div>
-                <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-400">{{ t('inc.verifications') }}</p><p class="text-lg font-bold">{{ verifications.length }}</p></div>
-              </div>
-              <WorkflowSummary :incident-status="incident.status" :investigation-number="incident.investigationNumber" :tickets="tickets" :verifications="verifications" />
               <SeverityValidationPanel id="severity" class="scroll-mt-4" :key="`sev-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-validate="canValidateSeverity" @done="severityDone" />
               <ResponseGuidancePanel id="guidance" class="scroll-mt-4" :key="`rg-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-edit="session.canTriage" @saved="(m: string) => ui.notify({ type: 'success', title: m, message: t('rgd.nextStep'), link: null })" />
               <p class="text-xs text-slate-500">{{ t('inc.ownerByPolicy') }} <strong>{{ assignment?.responsibleRole || t('inc.notAssigned') }}</strong><template v-if="assignment?.executorRole"> · {{ t('inc.executor', { role: assignment.executorRole }) }}</template></p>
@@ -375,11 +389,12 @@ const assignment = computed(() => {
               </div>
             </div>
 
-            <!-- Investigation & evidence: what happened (alert facts), each investigation round with its evidence, then IOC / MITRE -->
-            <div v-else-if="tab === 'investigation'" class="space-y-5">
+            <!-- Evidence: what happened (alert facts), each investigation round with its evidence, then IOC / MITRE -->
+            <div v-else-if="tab === 'evidence'" class="space-y-5">
               <IncidentAlertFactsTable :incident-id="incident.id" :incident-label="incidentLabel(incident.id)" :incident-title="incident.title" />
               <template v-if="session.canRunAiAnalysis"><InvestigationForms v-for="i in investigations.filter(i => i.isCurrent && i.status === 'ACTIVE')" :key="i.id" :investigation-id="i.id" :reload="reloadWorkflow" /></template>
               <RelatedAlertEvidence :incident-id="incident.id" :investigation-id="investigations.find(i => i.isCurrent && i.status === 'ACTIVE')?.id ?? null" :can-add="session.canTriage" :reload="load" />
+              <h3 id="sec-investigation" class="-mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.investigation') }}</h3>
               <p v-if="!investigations.length" class="text-slate-500">{{ t('inc.noInvestigation') }}</p>
               <div v-for="i in investigations" :key="i.id" class="rounded-lg border border-slate-200 p-3" :class="i.isCurrent ? 'border-sky-200' : ''">
                 <div class="mb-2 flex flex-wrap items-center gap-3">
@@ -442,7 +457,7 @@ const assignment = computed(() => {
               </div>
             </div>
 
-            <!-- AI Analysis -->
+            <!-- AI analysis + recommendation -->
             <div v-else-if="tab === 'ai'">
               <p class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
                 <Bot class="size-4" /> {{ t('inc.aiDisclaimer') }}
@@ -490,10 +505,8 @@ const assignment = computed(() => {
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            <!-- Recommendation -->
-            <div v-else-if="tab === 'recommendation'">
+              <div class="mt-6 border-t border-slate-100 pt-5">
+              <h3 id="sec-recommendation" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.recommendation') }}</h3>
               <div v-if="!currentRecommendation">
                 <p class="text-slate-500">{{ t('inc.noRec') }}</p>
                 <button
@@ -568,10 +581,15 @@ const assignment = computed(() => {
                 </article>
                 <p v-if="recommendations.length > 1" class="text-xs text-slate-400">{{ t('inc.superseded', { n: recommendations.length - 1 }) }}</p>
               </template>
+              </div>
             </div>
 
-            <!-- Verification -->
-            <div v-else-if="tab === 'verification'">
+            <!-- History: re-hunt rounds, email, audit -->
+            <div v-else-if="tab === 'history'" class="space-y-6">
+              <div>
+              <h3 id="sec-verification" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.verification') }}</h3>
+                <WorkflowSummary :incident-status="incident.status" :investigation-number="incident.investigationNumber" :tickets="tickets" :verifications="verifications" />
+                <div v-if="showVerification" class="mt-4">
               <p class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ t('inc.verifyNote') }}</p>
               <ManualVerification v-if="session.canExecuteResponse" :incident-id="id" :responses="responses.filter(r => r.status === 'COMPLETED' && !verifications.some(v => v.responseId === r.id))" :reload="reloadWorkflow" />
               <p v-if="!verifications.length" class="text-slate-500">{{ t('inc.noVerification') }}</p>
@@ -584,16 +602,16 @@ const assignment = computed(() => {
                   <span class="text-xs text-slate-400">{{ t('inc.contained', { v: v.threatContained ? t('c.yes') : t('c.no') }) }}</span>
                 </li>
               </ul>
-            </div>
-
-            <!-- Email (content follows the sender's role) -->
-            <div v-else-if="tab === 'email'">
+                </div>
+              </div>
+              <div>
+              <h3 id="sec-email" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.email') }}</h3>
               <ContextEmailPanel :incident-id="incident.id" />
-            </div>
-
-            <!-- Audit (audit log of the incident + its alerts / recommendations / tickets / approvals / verifications, and the timeline) -->
-            <div v-else-if="tab === 'audit'">
+              </div>
+              <div>
+              <h3 id="sec-audit" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.audit') }}</h3>
               <AuditTimeline :entries="audit" :error="auditError" :loading="loading" />
+              </div>
             </div>
           </section>
         </div>

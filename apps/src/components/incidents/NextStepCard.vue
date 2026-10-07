@@ -20,6 +20,7 @@ const STYLE = {
 const style = computed(() => STYLE[props.step.tone])
 const turnLabel = computed(() => (props.step.mine ? t('next.yourTurn') : t(`next.who.${props.step.turn}` as MsgKey)))
 const showButton = computed(() => props.step.mine || props.step.turn === 'NONE')
+const stepLabel = (i: number) => t(`next.step.${i}` as MsgKey)
 </script>
 
 <template>
@@ -32,9 +33,15 @@ const showButton = computed(() => props.step.mine || props.step.turn === 'NONE')
       </span>
       <span v-if="step.position" class="ml-auto text-slate-500">{{ t('next.progress', { n: step.position, total: WORKFLOW_STEPS }) }}</span>
     </div>
-    <div v-if="step.position" class="mt-2 flex gap-1" aria-hidden="true">
-      <span v-for="i in WORKFLOW_STEPS" :key="i" class="h-1 flex-1 rounded-full" :class="i < step.position ? 'bg-emerald-400' : i === step.position ? 'bg-navy-800' : 'bg-slate-200'" />
-    </div>
+    <!-- The one progress indicator on the incident page: SOC steps 1–4, IR steps 5–8 (same numbers as "step n of 8"). -->
+    <ol v-if="step.position" class="mt-3 grid grid-cols-4 gap-x-1 gap-y-2 sm:grid-cols-8" :aria-label="t('next.progress', { n: step.position, total: WORKFLOW_STEPS })">
+      <li v-for="i in WORKFLOW_STEPS" :key="i" class="min-w-0" :aria-current="i === step.position ? 'step' : undefined">
+        <span class="block h-1 rounded-full" :class="i < step.position ? 'bg-emerald-400' : i === step.position ? 'bg-navy-800' : 'bg-slate-200'" />
+        <span class="mt-1 block text-[11px] leading-tight" :class="i === step.position ? 'font-semibold text-slate-900' : i < step.position ? 'text-emerald-700' : 'text-slate-400'">
+          <span class="block font-semibold">{{ i <= 4 ? 'SOC' : 'IR' }} {{ i }}</span>{{ stepLabel(i) }}
+        </span>
+      </li>
+    </ol>
     <p v-if="step.newCycle" class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900">{{ t('next.newCycle', { n: step.newCycle }) }}</p>
 
     <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
