@@ -57,6 +57,21 @@ export interface AiJobRow {
   errorMessage: string | null;
 }
 
+/** One indicator across every incident of the tenant (threat_intel_iocs grouped by type + value). */
+export interface IocLibraryRow {
+  iocType: string;
+  iocValue: string;
+  sources: string[];
+  /** Highest stored reputation (0–100) / confidence across sightings; null when no provider scored it. */
+  reputationScore: number | null;
+  confidence: number | null;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  caseCount: number;
+  /** Incidents the indicator was recorded on, newest first. */
+  cases: { id: string; title: string; status: string; openedAt: string | null }[];
+}
+
 /** Read-only projections for the role workspaces (tenant-scoped SQL). */
 export interface IWorkReadRepository {
   /** Newest tickets first, at most `limit` (queues are derived in memory from these rows). */
@@ -66,4 +81,6 @@ export interface IWorkReadRepository {
   /** null when the incident does not exist in this tenant. */
   incidentAudit(tenantId: string, incidentId: string, limit: number): Promise<AuditEntry[] | null>;
   incidentAiJobs(tenantId: string, incidentId: string): Promise<AiJobRow[] | null>;
+  /** Most-sighted indicators first, at most `limit`; `total` is the number of distinct indicators. */
+  iocLibrary(tenantId: string, limit: number): Promise<{ items: IocLibraryRow[]; total: number }>;
 }

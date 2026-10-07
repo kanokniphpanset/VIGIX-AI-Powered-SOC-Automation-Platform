@@ -142,6 +142,19 @@ export interface AiJob {
   errorMessage: string | null
 }
 
+/** GET /api/v1/work/iocs — one indicator across every incident of the tenant. */
+export interface IocLibraryItem {
+  iocType: string
+  iocValue: string
+  sources: string[]
+  reputationScore: number | null
+  confidence: number | null
+  firstSeen: string | null
+  lastSeen: string | null
+  caseCount: number
+  cases: { id: string; title: string; status: string; openedAt: string | null }[]
+}
+
 export const workApi = {
   tickets: (queue: TicketQueue, limit = 25, offset = 0, incidentId?: string) =>
     api<{ queue: TicketQueue; counts: Record<TicketQueue, number>; total: number; items: WorkTicket[] }>('/api/v1/work/tickets', {
@@ -153,6 +166,7 @@ export const workApi = {
     }),
   incidents: (f: { status?: string; priority?: string; search?: string; limit?: number; offset?: number }) =>
     api<{ total: number; items: WorkIncident[] }>('/api/v1/work/incidents', { query: { ...f } }),
+  iocs: (limit = 500) => api<{ total: number; items: IocLibraryItem[] }>('/api/v1/work/iocs', { query: { limit } }),
   audit: (incidentId: string) => api<{ items: AuditEntry[] }>(`/api/v1/incidents/${incidentId}/audit`),
   aiJobs: (incidentId: string) => api<{ items: AiJob[] }>(`/api/v1/incidents/${incidentId}/ai-jobs`),
 }
