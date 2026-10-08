@@ -1,0 +1,8 @@
+# FIXTURE - not the real organization. Tools confirmed, but IR has no execute authority (approval case).
+enforcement_points:
+  - {host: attack-endpoint, service: "SSH (22/TCP)", enforcement_point: "perimeter firewall FW-EDGE-1 (ตัวอย่างใน fixture)"}
+capability:
+  cap.scoped_network_enforcement: true
+  cap.connection_state_termination: true
+authority:
+  ir_execute: false

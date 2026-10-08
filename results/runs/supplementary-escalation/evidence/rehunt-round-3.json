@@ -1,0 +1,37 @@
+{
+  "round": 3,
+  "investigationNumber": 3,
+  "chosenResponseStep": "ACT-BLOCK-URL→http://vigix-eval-c2.net:8080/gate.php",
+  "recommendationUsed": {
+    "number": 1,
+    "investigationNumber": 1,
+    "fallbackToEarlierRecommendation": true
+  },
+  "newRoundRecommendationGeneration": {
+    "attempts": 5,
+    "infra": 0,
+    "ok": false
+  },
+  "responseId": "869d5bf2-8393-4a6d-b58b-d3feb7b7888f",
+  "responseCompletedAt": "2026-10-03T12:33:50.493Z",
+  "recurrence": {
+    "simulatedAt": "2026-10-03T12:33:50.493Z",
+    "alertSeenInIndexer": true,
+    "alertId": "1791030832.2033871"
+  },
+  "verification": {
+    "id": "a01e64f6-7f97-4285-92f0-0b0551040bd8",
+    "result": "NOT_RESOLVED",
+    "matchingEvents": 3,
+    "iocRecurrence": true,
+    "spreadDetected": false,
+    "threatContained": false,
+    "verifiedAt": "2026-10-03T12:34:19.007",
+    "evidenceSource": "WAZUH_INDEXER"
+  },
+  "incidentAfter": {
+    "status": "escalated",
+    "investigationNumber": 3
+  },
+  "continues": false
+}

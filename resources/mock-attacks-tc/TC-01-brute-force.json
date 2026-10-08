@@ -5,14 +5,81 @@
     "id": "5712",
     "level": 10,
     "description": "sshd: Multiple authentication failures (possible SSH brute force attack)",
-    "groups": ["syslog", "sshd", "authentication_failures", "vigix_custom"],
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures",
+      "vigix_custom"
+    ],
     "firedtimes": 8,
-    "mitre": { "id": ["T1110"], "tactic": ["Credential Access"], "technique": ["Brute Force"] }
+    "mitre": {
+      "id": [
+        "T1110"
+      ],
+      "tactic": [
+        "Credential Access"
+      ],
+      "technique": [
+        "Brute Force"
+      ]
+    },
+    "mail": false,
+    "frequency": 8,
+    "pci_dss": [
+      "11.4",
+      "10.2.4",
+      "10.2.5"
+    ],
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "hipaa": [
+      "164.312.b"
+    ],
+    "nist_800_53": [
+      "SI.4",
+      "AU.14",
+      "AC.7"
+    ],
+    "tsc": [
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ]
   },
-  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "sshd" },
+  "agent": {
+    "id": "003",
+    "name": "WEB-01",
+    "ip": "10.0.3.10"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "sshd",
+    "parent": "sshd"
+  },
+  "predecoder": {
+    "program_name": "sshd",
+    "timestamp": "Sep 30 01:12:00",
+    "hostname": "WEB-01"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/auth.log",
+  "GeoLocation": {
+    "country_name": "Germany",
+    "region_name": "Hesse",
+    "city_name": "Frankfurt am Main",
+    "location": {
+      "lat": 50.1109,
+      "lon": 8.6821
+    }
+  },
+  "previous_output": "Sep 30 01:11:58 WEB-01 sshd[24816]: Failed password for admin from 185.220.101.45 port 50120 ssh2\nSep 30 01:11:55 WEB-01 sshd[24815]: Failed password for oracle from 185.220.101.45 port 50118 ssh2\nSep 30 01:11:52 WEB-01 sshd[24814]: Failed password for postgres from 185.220.101.45 port 50116 ssh2",
   "data": {
     "srcip": "185.220.101.45",
     "srcport": "50122",

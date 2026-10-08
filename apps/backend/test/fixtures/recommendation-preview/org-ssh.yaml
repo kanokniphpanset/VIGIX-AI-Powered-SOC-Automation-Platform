@@ -1,0 +1,3 @@
+# FIXTURE - not the real organization. Sample enforcement point for the recorded 5712 alert host.
+enforcement_points:
+  - {host: attack-endpoint, service: "SSH (22/TCP)", enforcement_point: "perimeter firewall FW-EDGE-1 (ตัวอย่างใน fixture)"}

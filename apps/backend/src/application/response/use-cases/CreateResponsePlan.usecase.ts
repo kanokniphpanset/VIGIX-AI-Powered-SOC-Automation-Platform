@@ -117,6 +117,7 @@ export class CreateResponsePlanUseCase {
     try {
       await this.notificationDispatcher.emit(
         buildResponseAssignedEvent({
+          recommendation,
           tenantId: input.tenantId,
           baseUrl: this.vigixBaseUrl,
           incident: {

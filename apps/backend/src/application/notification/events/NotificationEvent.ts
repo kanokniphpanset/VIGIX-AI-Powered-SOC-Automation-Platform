@@ -89,6 +89,8 @@ export interface RecommendationSummary {
   stepsRequiringApproval?: RecommendationStepRef[];
   /** Only on APPROVAL_APPROVED: the approved steps with their operational instructions. */
   responseProcess?: ResponseProcess;
+  investigationNumber?: number;
+  recommendationStepId?: string;
 }
 
 export interface ApprovalSummary {
@@ -121,5 +123,5 @@ export interface NotificationEvent {
   recommendation?: RecommendationSummary;
   approval?: ApprovalSummary;
   verification?: VerificationSummary;
-  links: { ticket?: string; approval?: string };
+  links: { ticket?: string; approval?: string; incident?: string };
 }

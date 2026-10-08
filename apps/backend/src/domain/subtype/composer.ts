@@ -60,7 +60,7 @@ export interface Composition {
   readiness: { instanceKey: string; action: string; target: string | null; ready: string[]; notReady: { step: string; title: string; cause: string; detail: string }[] }[];
 }
 
-const AUTH_LABEL: Record<string, string> = {
+export const AUTH_LABEL: Record<string, string> = {
   ir_emergency: "IR (อำนาจเร่งด่วน)", dba: "DBA", business_authority: "ผู้มีอำนาจของรายการธุรกิจ", asset_owner: "เจ้าของ asset/workload",
   change_approval: "ผู้อนุมัติ change/control", ir_execute: "IR (ผู้ดำเนินการ)",
 };
@@ -73,6 +73,8 @@ export const EXPLAIN_TITLE = "สรุปสถานะ";
 export const TOOL_NOTE_TITLE = "หมายเหตุเรื่องเครื่องมือ";
 /** @deprecated kept so older stored recommendations still render; new ones use MISSING_TITLE. */
 export const INVESTIGATE_TITLE = "ตรวจสอบเพิ่มเติมก่อนกำหนดมาตรการ";
+/** Generic "confirm the alert" line used when nothing more specific is known (the preview replaces it with specific gaps). */
+export const GENERIC_CONFIRM = "ยืนยันหลักฐานที่ทำให้เกิดการแจ้งเตือน (สถานะ เวลา และ entity) จาก log ที่มีอยู่ โดยไม่ execute script/binary ที่น่าสงสัย";
 
 const TOOL_NOTE = "องค์กรยังไม่ได้ระบุเครื่องมือ/คำสั่ง/เมนูที่ใช้ลงมือในระบบ ข้อความข้างต้นจึงระบุเฉพาะขอบเขต เงื่อนไข และผลที่ต้องตรวจ — IR ใช้เครื่องมือขององค์กรให้ตรงตามนั้น";
 const NOT_READY_PREFIX: Record<string, string> = { METHOD_ORG_INPUT: "ต้องมีข้อมูลหรือขั้นตอนเฉพาะขององค์กร — ", METHOD_IR_REVIEW: "รอ IR กำหนด — ", NO_METHOD: "", ORG_DATA: "ต้องระบุ ", PREREQUISITE: "" };
@@ -194,7 +196,7 @@ export function composePlan(kb: KnowledgeBase, plan: SubtypePlan, evidenceRefOf:
     else if (hasStatus) explain = "ไม่มีมาตรการใหม่ที่ต้องเสนอในรอบนี้ ตามสถานะของมาตรการจากรอบก่อนด้านล่าง";
     else explain = "ยังไม่พบหลักฐานที่ยืนยันประเภทภัยจนเปิดมาตรการ containment ได้ (สิ่งที่พบอาจเป็นเพียง indicator)";
     steps.push(checkStep(EXPLAIN_TITLE, "อธิบายเหตุที่ยังไม่มีขั้นตอนพร้อมลงมือ", "สรุปจากผลประเมิน policy", [explain]));
-    if (!uniqueMissing.length && !hasStatus && !approvals && !authorizedNote) uniqueMissing.push("ยืนยันหลักฐานที่ทำให้เกิดการแจ้งเตือน (สถานะ เวลา และ entity) จาก log ที่มีอยู่ โดยไม่ execute script/binary ที่น่าสงสัย");
+    if (!uniqueMissing.length && !hasStatus && !approvals && !authorizedNote) uniqueMissing.push(GENERIC_CONFIRM);
   }
   if (uniqueMissing.length) steps.push(checkStep(MISSING_TITLE, "ข้อมูลที่ยังขาดสำหรับมาตรการ", "ข้อมูลที่ยังไม่ครบ ไม่ถูกเติมเอง", uniqueMissing));
   if (notes.length) steps.push(checkStep(NOTES_TITLE, "สถานะของมาตรการที่เสนอ/ดำเนินการไปแล้วในรอบก่อน", "จาก Response Ticket และผล Re-hunt จริงของรอบก่อน", notes));

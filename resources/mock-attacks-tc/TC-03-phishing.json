@@ -5,22 +5,66 @@
     "id": "100310",
     "level": 10,
     "description": "Phishing email with a credential-harvesting link delivered to a user mailbox",
-    "groups": ["email", "phishing", "vigix_custom"],
+    "groups": [
+      "email",
+      "phishing",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1566.002"], "tactic": ["Initial Access"], "technique": ["Spearphishing Link"] }
+    "mitre": {
+      "id": [
+        "T1566.002"
+      ],
+      "tactic": [
+        "Initial Access"
+      ],
+      "technique": [
+        "Spearphishing Link"
+      ]
+    },
+    "mail": false
   },
-  "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "mail" },
+  "agent": {
+    "id": "019",
+    "name": "WKS-HR-03",
+    "ip": "10.0.5.19"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "mail"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/mail/secure-gw.log",
+  "GeoLocation": {
+    "country_name": "Netherlands",
+    "region_name": "North Holland",
+    "city_name": "Amsterdam",
+    "location": {
+      "lat": 52.374,
+      "lon": 4.8897
+    }
+  },
   "data": {
     "srcip": "45.155.205.233",
     "url": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
-    "dns": { "question": { "name": "vigix-mock-phish.net" } },
+    "dns": {
+      "question": {
+        "name": "vigix-mock-phish.net"
+      }
+    },
     "email": {
       "from": "it-support@vigix-mock-phish.net",
       "to": "hr.clerk@corp.local",
-      "subject": "[Action Required] Your mailbox will be deactivated in 24 hours"
+      "subject": "[Action Required] Your mailbox will be deactivated in 24 hours",
+      "message_id": "<20260930030455.7F3A1C2B@vigix-mock-phish.net>",
+      "spf": "fail",
+      "dkim": "none",
+      "dmarc": "fail",
+      "attachments": "0"
     }
   },
   "full_log": "Phishing link http://vigix-mock-phish.net/o365/verify?id=hr.clerk from it-support@vigix-mock-phish.net (sending MTA 45.155.205.233) delivered to hr.clerk@corp.local subject 'Your mailbox will be deactivated in 24 hours'; SPF=fail DKIM=none"

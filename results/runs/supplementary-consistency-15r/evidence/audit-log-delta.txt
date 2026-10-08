@@ -1,0 +1,6 @@
+action|count
+POLICY_EVALUATED|480
+(1 row)
+count
+232
+(1 row)

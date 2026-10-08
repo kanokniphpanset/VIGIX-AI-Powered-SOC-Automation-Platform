@@ -1,0 +1,35 @@
+RUN supplementary-ir-reject  mode=intervention  ground-truth sha256=9a800baba905dfc8…
+  [PASS] evaluation database: connected to 'soar_supp_ir_reject_eval' (must end with _eval; soar_platform is never touched)
+  [PASS] REHUNT_PROVIDER: REHUNT_PROVIDER=wazuh — mock would make verification MOCK
+  [PASS] recommendation agent: RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)
+  [PASS] AI orchestrator (eval instance): http://localhost:8001 -> {"status":"ok","service":"soar-ai-orchestrator"}
+  [PASS] Wazuh Indexer + re-hunt provider: WazuhRehuntAdapter health: reachable=true cluster=green indices=5 pattern=wazuh-alerts-4.x-*
+  [PASS] Wazuh manager API: UP: analysisd, remoted, logcollector, integratord running · agents 3 active / 5 total (2 disconnected)
+  [PASS] Wazuh agent attack-endpoint: ID: 009, Name: attack-endpoint, IP: any, Active
+  [PASS] custom rule 100310 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100320 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100330 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100340 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100350 loaded: wazuh-logtest on the manager
+  [PASS] Knowledge Base complete for ground truth: 11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present
+decision mode: reject
+
+=== TC-01 Brute Force [STOCK_RULE] ===
+   simulated 2026-10-03T12:23:37.568Z -> 2026-10-03T12:24:07.334Z
+   REAL Wazuh alert 1791030229.2010448 rule 5712 L10 mitre=["T1110"] srcip=172.19.0.3
+   PASS IRR-01 approval attempted by "SOC" instead of IR_TEAM: expected denied (ROLE_MISMATCH), actual ROLE_MISMATCH
+   PASS IRR-02 approval attempted by "AI_AGENT" instead of IR_TEAM: expected denied (ROLE_MISMATCH), actual ROLE_MISMATCH
+   PASS IRR-03 approval attempted by "admin" instead of IR_TEAM: expected denied (ADMIN_NOT_APPROVER), actual ADMIN_NOT_APPROVER
+   PASS IRR-04 IR rejects the recommendation: expected ticket PENDING_MANUAL_DECISION, actual OK; PENDING_MANUAL_DECISION
+   PASS IRR-05 start the response after the reject: expected blocked, actual APPROVAL_PENDING
+   PASS IRR-06 rejected recommendation not executed: expected 0 step executions, actual 0
+   PASS IRR-07 incident not closed/resolved by the reject: expected status unchanged (open), actual open
+   PASS IRR-08 no automatic AI regeneration after the reject: expected 0 new recommendations / generation attempts, actual 1 recommendations (was 1); 0 generation audit records after the reject
+   PASS IRR-09 re-hunt/verification requested before any response completed: expected blocked, actual RESPONSE_NOT_COMPLETED
+   PASS IRR-10 manual decision by SOC: expected denied (ROLE_MISMATCH), actual ROLE_MISMATCH
+   PASS IRR-11 manual decision by IR without a note: expected denied (NOTE_REQUIRED), actual NOTE_REQUIRED
+   PASS IRR-12 IR records the Manual Decision: expected ticket READY_FOR_EXECUTION (not executed), actual OK; READY_FOR_EXECUTION
+   => TC-01: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+Wrote C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\results\runs\supplementary-ir-reject\run.json
+exit 0

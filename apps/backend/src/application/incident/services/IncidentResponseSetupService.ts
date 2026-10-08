@@ -34,6 +34,13 @@ export interface ResponseSetup {
   effective: { allowedActions: string[]; instructions: string | null; source: GuidanceSource };
 }
 
+/** Read-only view of an incident's group (type + severity): its RESPONSE_GUIDANCE policy and every incident in the group. */
+export interface GroupOverview {
+  group: { incidentType: string; severity: Severity; policyCode: string } | null;
+  policy: { code: string; enabled: boolean; version: number; updatedAt: Date; allowedActions: string[] | null; note: string | null } | null;
+  members: { id: string; title: string; status: string; severity: Severity; openedAt: Date; typeSource: "SOC" | "MITRE" }[];
+}
+
 export type ResponseSetupError = "INCIDENT_NOT_FOUND" | "INCIDENT_CLOSED" | "UNKNOWN_INCIDENT_TYPE" | "NO_PLAYBOOK" | "ACTION_NOT_IN_PLAYBOOK" | "NO_ACTION_SELECTED";
 
 const CLOSED = ["resolved", "dismissed"];
@@ -69,6 +76,46 @@ export class IncidentResponseSetupService {
       enable: Pick<EnablePolicyUseCase, "execute">;
     }
   ) {}
+
+  /**
+   * Group overview (read-only): the incident's group, the group's RESPONSE_GUIDANCE policy as stored, and every incident
+   * of the tenant whose type (SOC choice, else the MITRE match - the same selection as resolve) and severity are the same.
+   */
+  async groupOverview(incidentId: string, tenantId: string): Promise<Result<GroupOverview, "INCIDENT_NOT_FOUND">> {
+    const setup = await this.get(incidentId, tenantId);
+    if (setup.isFailure) return Result.fail(setup.error as "INCIDENT_NOT_FOUND");
+    const { incidentType, severity } = setup.value;
+    if (!incidentType) return Result.ok({ group: null, policy: null, members: [] });
+    const policyCode = groupPolicyCode(incidentType, severity);
+    const stored = this.policies ? await this.policies.repository.findByCode(policyCode, tenantId) : null;
+    const rule = stored?.rules?.[0] as unknown as { result?: { allowedActions?: unknown; guidanceNote?: unknown } } | undefined;
+    const policy = stored ? {
+      code: stored.code, enabled: stored.enabled, version: stored.version, updatedAt: stored.updatedAt,
+      allowedActions: Array.isArray(rule?.result?.allowedActions) ? (rule!.result!.allowedActions as string[]) : null,
+      note: typeof rule?.result?.guidanceNote === "string" ? rule.result.guidanceNote : null,
+    } : null;
+
+    const playbooks = await this.playbooks.findAll(tenantId);
+    const members: GroupOverview["members"] = [];
+    for (const inc of await this.incidents.findAll(tenantId, 1000, 0)) {
+      const row = await this.store.get(inc.id, tenantId);
+      if (!row || toSeverity(row.severity) !== severity) continue;   // severity first: only same-severity incidents need the type
+      const type = await this.typeOf(inc.id, tenantId, row.incidentType, playbooks);
+      if (type.incidentType !== incidentType) continue;
+      members.push({ id: inc.id, title: inc.title, status: inc.status, severity, openedAt: inc.openedAt, typeSource: type.source });
+    }
+    return Result.ok({ group: { incidentType, severity, policyCode }, policy, members });
+  }
+
+  /** The incident type exactly as resolve() selects it (SOC type first, else the MITRE match), without the guidance part. */
+  private async typeOf(incidentId: string, tenantId: string, socType: string | null, playbooks: Playbook[]): Promise<{ incidentType: string | null; source: "SOC" | "MITRE" }> {
+    const [mappings, alerts] = await Promise.all([this.context.getMitreMappings(incidentId), this.incidents.findAlerts(incidentId, tenantId)]);
+    const alertTechniques = alerts.flatMap((a) => summarizeAlert(a.rawPayload).mitreTechniques);
+    const techniques = [...new Set([...mappings.map((m) => m.techniqueId), ...alertTechniques])];
+    const chosen = socType ? this.selector.selectByType(playbooks, socType, techniques) : null;
+    const selected = chosen ?? this.selector.select(playbooks, techniques, alertTechniques);
+    return { incidentType: selected?.incidentType ?? null, source: chosen ? "SOC" : "MITRE" };
+  }
 
   /** The selected playbook (SOC type first, else the MITRE match) — also used by RecommendationContextBuilder. */
   async resolve(incidentId: string, tenantId: string, generationCatalog?: Playbook[]): Promise<Result<ResponseSetup & { selected: SelectedPlaybook | null }, "INCIDENT_NOT_FOUND">> {

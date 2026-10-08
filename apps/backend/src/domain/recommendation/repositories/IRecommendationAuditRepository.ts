@@ -20,4 +20,6 @@ export interface RecommendationAuditRecord {
 export interface IRecommendationAuditRepository {
   save(record: RecommendationAuditRecord): Promise<void>;
   findByRecommendation(recommendationId: string, tenantId: string): Promise<(RecommendationAuditRecord & { createdAt: Date }) | null>;
+  /** Latest stored evaluation of an incident (read-only; used by the Recommendation Preview to reuse a stored shadow result). */
+  findLatestByIncident?(incidentId: string, tenantId: string): Promise<(RecommendationAuditRecord & { createdAt: Date }) | null>;
 }

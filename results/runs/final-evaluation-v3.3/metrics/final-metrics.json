@@ -1,0 +1,466 @@
+{
+  "runId": "final-evaluation-v3.3",
+  "start": "2026-10-03T11:38:02.054Z",
+  "end": "2026-10-03T12:04:52.996Z",
+  "correctRecommendation": {
+    "numerator": 4,
+    "denominator": 10,
+    "pct": 40.0,
+    "correctCases": [
+      "TC-01",
+      "TC-03",
+      "TC-06",
+      "TC-08"
+    ],
+    "incorrectCases": [
+      "TC-02",
+      "TC-04",
+      "TC-05",
+      "TC-07",
+      "TC-09",
+      "TC-10"
+    ],
+    "note": "TC-05 produced no valid final recommendation (NO_VALID_RECOMMENDATION after 5 calls) and is counted as not correct; harness correctRecommendation=null for TC-05",
+    "conditionalOnRecommendationExisting": {
+      "numerator": 4,
+      "denominator": 9,
+      "pct": 44.44
+    }
+  },
+  "compliance": {
+    "compliant": 9,
+    "evaluated": 9,
+    "total": 10,
+    "note": "TC-05 NOT_EVALUATED (no recommendation exists to evaluate)"
+  },
+  "coreConsistency": "NOT MEASURED (single run; consistency needs repeated generations)",
+  "firstPass": {
+    "numerator": 8,
+    "denominator": 10,
+    "level": "use-case call (first call produced a valid recommendation)"
+  },
+  "iocRecall": {
+    "found": 21,
+    "expected": 23,
+    "pct": 91.3,
+    "casesFullRecall": 9,
+    "cases": 10
+  },
+  "workflowCompletion": {
+    "numerator": 7,
+    "denominator": 10
+  },
+  "verification": {
+    "resolved": 7,
+    "rehuntExecuted": 7,
+    "denominator": 10
+  },
+  "investigationTime": {
+    "n": 9,
+    "meanSec": 95.86,
+    "medianSec": 77.77,
+    "minSec": 47.1,
+    "maxSec": 243.43
+  },
+  "interventionRate": {
+    "numerator": 2,
+    "denominator": 10,
+    "cases": [
+      "TC-03",
+      "TC-05"
+    ]
+  },
+  "retryRate": {
+    "casesWithFailedCall": 2,
+    "denominator": 10,
+    "failedUseCaseCalls": 7,
+    "totalUseCaseCalls": 16,
+    "cases": [
+      "TC-03",
+      "TC-05"
+    ]
+  },
+  "escalationRate": {
+    "numerator": 0,
+    "denominator": 7,
+    "definition": "re-hunt escalation after R_max rounds; denominator = executed re-hunts",
+    "note": "never triggered (all re-hunts RESOLVED in round 1)",
+    "irTeamApprovalRequired": {
+      "numerator": 10,
+      "denominator": 10
+    }
+  },
+  "infrastructureFailureRate": {
+    "numerator": 0,
+    "denominator": 10
+  },
+  "rows": [
+    {
+      "case": "TC-01",
+      "expected": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3"
+      ],
+      "actual": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3"
+      ],
+      "correct": true,
+      "hasRec": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 2,
+        "found": 2,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 54.74,
+      "tdec": 0.06,
+      "interventions": [],
+      "sev": "medium",
+      "pb": "PB-SSH-BRUTEFORCE",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-02",
+      "expected": [
+        "ACT-QUARANTINE-FILE -> /root/Downloads/Invoice_Q4_2026.xls.exe",
+        "ACT-BLOCK-HASH -> 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "actual": [
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "hasRec": true,
+      "reason": "missing: ACT-QUARANTINE-FILE -> /root/Downloads/Invoice_Q4_2026.xls.exe; ACT-BLOCK-HASH -> 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 2,
+        "found": 0,
+        "missing": [
+          "hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+          "file:/root/Downloads/Invoice_Q4_2026.xls.exe"
+        ]
+      },
+      "wf": false,
+      "final": "open",
+      "ver": null,
+      "vmode": "NONE",
+      "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA",
+      "t": 75.44,
+      "tdec": 0.06,
+      "interventions": [],
+      "sev": "high",
+      "pb": "PB-MALWARE",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-03",
+      "expected": [
+        "ACT-BLOCK-URL -> http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-phish.net",
+        "ACT-QUARANTINE-EMAIL -> it-support@vigix-eval-phish.net"
+      ],
+      "actual": [
+        "ACT-QUARANTINE-EMAIL -> it-support@vigix-eval-phish.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-phish.net"
+      ],
+      "correct": true,
+      "hasRec": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "compliance": "COMPLIANT",
+      "calls": 3,
+      "failed": 2,
+      "firstpass": false,
+      "ioc": {
+        "expected": 4,
+        "found": 4,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 243.43,
+      "tdec": 0.06,
+      "interventions": [
+        {
+          "type": "ANALYST_IOC_CORRECTION",
+          "detail": "promoted existing URL IOC http://vigix-eval-phish.net/o365/verify?id=hr.clerk to analyst-confirmed/actionable"
+        },
+        {
+          "type": "ANALYST_IOC_CORRECTION",
+          "detail": "promoted existing DOMAIN IOC vigix-eval-phish.net to analyst-confirmed/actionable"
+        },
+        {
+          "type": "ANALYST_IOC_CORRECTION",
+          "detail": "promoted existing IPV4 IOC 203.0.113.45 to analyst-confirmed/actionable"
+        },
+        {
+          "type": "ANALYST_IOC_CORRECTION",
+          "detail": "promoted existing EMAIL IOC it-support@vigix-eval-phish.net to analyst-confirmed/actionable"
+        }
+      ],
+      "sev": "medium",
+      "pb": "PB-PHISHING",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-04",
+      "expected": [
+        "ACT-DISABLE-ACCOUNT -> victim",
+        "ACT-RESET-CREDENTIAL -> victim",
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3"
+      ],
+      "actual": [
+        "ACT-DISABLE-ACCOUNT -> victim",
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3",
+        "ACT-RESET-CREDENTIAL -> victim",
+        "ACT-REVOKE-SESSION -> victim"
+      ],
+      "correct": false,
+      "hasRec": true,
+      "reason": "unexpected: ACT-REVOKE-SESSION -> victim",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 2,
+        "found": 2,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 93.32,
+      "tdec": 0.06,
+      "interventions": [],
+      "sev": "high",
+      "pb": "PB-ACCOUNT-COMPROMISE",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-05",
+      "expected": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "actual": [],
+      "correct": false,
+      "hasRec": false,
+      "reason": null,
+      "compliance": "NOT_EVALUATED",
+      "calls": 5,
+      "failed": 5,
+      "firstpass": false,
+      "ioc": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "wf": false,
+      "final": "open",
+      "ver": null,
+      "vmode": "NONE",
+      "rehuntError": null,
+      "t": null,
+      "tdec": null,
+      "interventions": [
+        {
+          "type": "ANALYST_IOC_CORRECTION",
+          "detail": "promoted existing DOMAIN IOC vigix-eval-ps-stager.test to analyst-confirmed/actionable"
+        }
+      ],
+      "sev": "high",
+      "pb": null,
+      "timing": "OPERATOR_TRIGGERED"
+    },
+    {
+      "case": "TC-06",
+      "expected": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3"
+      ],
+      "actual": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.3"
+      ],
+      "correct": true,
+      "hasRec": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 47.1,
+      "tdec": 0.06,
+      "interventions": [],
+      "sev": "medium",
+      "pb": "PB-SQL-INJECTION",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-07",
+      "expected": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-c2.net",
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.7"
+      ],
+      "actual": [
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.7",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-c2.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "hasRec": true,
+      "reason": "unexpected: ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php; ACT-ISOLATE-ENDPOINT -> attack-endpoint",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 3,
+        "found": 3,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 83.99,
+      "tdec": 0.05,
+      "interventions": [],
+      "sev": "high",
+      "pb": "PB-C2",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-08",
+      "expected": [
+        "ACT-KILL-PROCESS -> /tmp/.cache/kworkerd",
+        "ACT-QUARANTINE-FILE -> /tmp/.cache/kworkerd",
+        "ACT-BLOCK-HASH -> c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+      ],
+      "actual": [
+        "ACT-KILL-PROCESS -> /tmp/.cache/kworkerd",
+        "ACT-QUARANTINE-FILE -> /tmp/.cache/kworkerd",
+        "ACT-BLOCK-HASH -> c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+      ],
+      "correct": true,
+      "hasRec": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 4,
+        "found": 4,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 115.56,
+      "tdec": 0.05,
+      "interventions": [],
+      "sev": "medium",
+      "pb": "PB-SUSPICIOUS-PROCESS",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-09",
+      "expected": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-exfil.net",
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.7"
+      ],
+      "actual": [
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.7",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-exfil.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "hasRec": true,
+      "reason": "unexpected: ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload; ACT-ISOLATE-ENDPOINT -> attack-endpoint",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 3,
+        "found": 3,
+        "missing": []
+      },
+      "wf": true,
+      "final": "resolved",
+      "ver": "RESOLVED",
+      "vmode": "REAL_WAZUH",
+      "rehuntError": null,
+      "t": 77.77,
+      "tdec": 0.06,
+      "interventions": [],
+      "sev": "high",
+      "pb": "PB-DATA-EXFIL",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    },
+    {
+      "case": "TC-10",
+      "expected": [
+        "ACT-DISABLE-ACCOUNT -> evaluser"
+      ],
+      "actual": [
+        "ACT-DISABLE-ACCOUNT -> evaluser",
+        "ACT-REVOKE-SESSION -> evaluser"
+      ],
+      "correct": false,
+      "hasRec": true,
+      "reason": "unexpected: ACT-REVOKE-SESSION -> evaluser",
+      "compliance": "COMPLIANT",
+      "calls": 1,
+      "failed": 0,
+      "firstpass": true,
+      "ioc": {
+        "expected": 1,
+        "found": 1,
+        "missing": []
+      },
+      "wf": false,
+      "final": "open",
+      "ver": null,
+      "vmode": "NONE",
+      "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA",
+      "t": 71.42,
+      "tdec": 0.05,
+      "interventions": [],
+      "sev": "critical",
+      "pb": "PB-ACCOUNT-COMPROMISE",
+      "timing": "UNINTERRUPTED_SCRIPTED"
+    }
+  ]
+}

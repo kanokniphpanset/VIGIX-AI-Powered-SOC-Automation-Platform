@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { BellRing, Bot, CheckCircle2, Database, KeyRound, Loader2, Monitor, RotateCcw, Save, ShieldCheck, UserRound, Users, XCircle } from 'lucide-vue-next'
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm.vue'
 import ChangeEmailForm from '@/components/settings/ChangeEmailForm.vue'
+import EmailProviderForm from '@/components/settings/EmailProviderForm.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { dashboardApi, settingsApi, slaApi, systemApi, type NotificationRecipient, type RehuntHealth } from '@/api/vigix'
 import { ApiError } from '@/api/http'
@@ -264,6 +265,8 @@ const rehuntProvider = computed(() => (rehunt.value?.provider === 'mock' || rehu
           <section class="card p-5">
             <h2 class="flex items-center gap-2 text-sm font-semibold text-slate-900"><BellRing class="size-4 text-slate-400" /> {{ t('set.notification') }}</h2>
             <p class="mt-2 text-sm text-slate-700">{{ t('set.notificationIntro') }}</p>
+            <EmailProviderForm v-if="isAdmin" />
+            <p v-else class="mt-3 text-xs text-slate-500">การตั้งค่า SMTP ผู้ส่งเป็นสิทธิ์ผู้ดูแลระบบ ส่วนผู้รับ IR ตั้งค่าได้ด้านล่าง</p>
             <h3 class="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('set.recipientPerRole') }}</h3>
             <p class="mt-1 text-xs text-slate-500">
               <template v-if="session.canEditRecipients">{{ t('set.recipientEditHint') }}</template>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ChevronDown, ChevronRight } from 'lucide-vue-next'
 import StatusPill from '@/components/common/StatusPill.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { IocLibraryItem } from '@/api/work'
@@ -56,13 +55,6 @@ const reputation = (score: number | null) => {
 }
 
 const keyOf = (i: IocLibraryItem) => `${i.iocType}:${i.iocValue}`
-const open = ref<Set<string>>(new Set())
-const toggle = (i: IocLibraryItem) => {
-  const next = new Set(open.value)
-  if (!next.delete(keyOf(i))) next.add(keyOf(i))
-  open.value = next
-}
-const CASES_SHOWN = 10
 </script>
 
 <template>
@@ -86,40 +78,34 @@ const CASES_SHOWN = 10
       </div>
       <ul class="divide-y divide-slate-100 border-t border-slate-100">
         <li v-for="i in visible" :key="keyOf(i)">
-          <button
-            type="button"
-            class="-mx-2 grid w-[calc(100%+1rem)] grid-cols-[116px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-2 py-3 text-left hover:bg-slate-50 md:grid-cols-[116px_minmax(0,1fr)_120px_80px_96px]"
-            :aria-expanded="open.has(keyOf(i))"
-            :aria-label="t('ti.rowAria', { value: i.iocValue })"
-            @click="toggle(i)"
+          <div
+            class="-mx-2 grid w-[calc(100%+1rem)] grid-cols-[116px_minmax(0,1fr)] items-start gap-x-3 gap-y-1 px-2 py-3 text-left md:grid-cols-[116px_minmax(0,1fr)_120px_80px_96px]"
           >
             <span class="flex items-center gap-1">
-              <component :is="open.has(keyOf(i)) ? ChevronDown : ChevronRight" class="size-3.5 shrink-0 text-slate-400" />
               <span class="truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset" :class="GROUP_TONE[groupOf(i.iocType)]">{{ i.iocType }}</span>
             </span>
             <span class="min-w-0">
-              <span class="block truncate font-mono text-xs font-semibold text-slate-800" :title="i.iocValue">{{ i.iocValue }}</span>
-              <span class="block truncate text-[11px] text-slate-400">{{ i.sources.join(' · ') }}</span>
+              <span class="block break-all font-mono text-xs font-semibold text-slate-800">{{ i.iocValue }}</span>
+              <span class="block break-words text-[11px] text-slate-400">{{ i.sources.join(' · ') }}</span>
             </span>
             <span class="col-start-2 flex flex-wrap items-center gap-2 md:col-start-auto md:contents">
               <span><span class="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset" :class="reputation(i.reputationScore).tone">{{ reputation(i.reputationScore).label }}</span></span>
               <span class="text-xs font-semibold text-slate-700">{{ t('ti.cases', { n: i.caseCount }) }}</span>
               <span class="text-xs text-slate-500" :title="i.lastSeen ? formatDateTime(i.lastSeen) : undefined">{{ i.lastSeen ? timeAgo(i.lastSeen) : '—' }}</span>
             </span>
-          </button>
-          <div v-if="open.has(keyOf(i))" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs md:ml-[124px]">
+          </div>
+          <div class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs md:ml-[124px]">
             <p class="text-slate-500">
               {{ t('ti.seen', { first: i.firstSeen ? formatDateTime(i.firstSeen) : '—', last: i.lastSeen ? formatDateTime(i.lastSeen) : '—' }) }}
               <template v-if="i.confidence != null"> · {{ t('ti.confidence', { n: i.confidence }) }}</template>
             </p>
             <ul class="mt-2 space-y-1.5">
-              <li v-for="c in i.cases.slice(0, CASES_SHOWN)" :key="c.id" class="flex flex-wrap items-center gap-2">
+              <li v-for="c in i.cases" :key="c.id" class="flex flex-wrap items-center gap-2">
                 <RouterLink :to="{ name: 'incident-detail', params: { id: c.id } }" class="font-mono font-semibold text-accent-700 hover:underline">{{ incidentLabel(c.id) }}</RouterLink>
-                <span class="min-w-0 flex-1 truncate text-slate-700" :title="c.title">{{ c.title }}</span>
+                <span class="min-w-0 flex-1 text-slate-700">{{ c.title }}</span>
                 <StatusPill :status="c.status" />
               </li>
             </ul>
-            <p v-if="i.cases.length > CASES_SHOWN" class="mt-1.5 text-slate-400">{{ t('ti.moreCases', { n: i.cases.length - CASES_SHOWN }) }}</p>
           </div>
         </li>
       </ul>

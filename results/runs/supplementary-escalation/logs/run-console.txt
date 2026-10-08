@@ -1,0 +1,35 @@
+
+=== ESC-01 (TC-07 telemetry) ===
+   incident 47e1cf76-9ffb-4fb1-9623-cbb09611c706 severity high
+
+--- round 1 (investigation #1) ---
+   > recurrence simulated after the response; alert in indexer: true
+Failed to auto-generate recommendation after investigation reopened d59bc04b-94b2-4045-8113-fd565d3ef5ed NO_NEW_RECOMMENDATION
+   verification NOT_RESOLVED (3 matching events); incident investigating, investigation #2; new recommendations: 0
+   PASS R1a round 1: the REAL_WAZUH re-hunt sees the recurrence: expected NOT_RESOLVED, matching events > 0; actual NOT_RESOLVED, 3
+   PASS R1b round 1: investigation reopened, incident not closed: expected investigation #2, status not resolved/escalated; actual #2, investigating
+
+--- round 2 (investigation #2) ---
+   > recurrence simulated after the response; alert in indexer: true
+Failed to auto-generate recommendation after investigation reopened 8ec65c73-2f0c-4474-9ebf-ef8aab57c0a1 NO_NEW_RECOMMENDATION
+   verification NOT_RESOLVED (3 matching events); incident investigating, investigation #3; new recommendations: 0
+   PASS R2a round 2: the REAL_WAZUH re-hunt sees the recurrence: expected NOT_RESOLVED, matching events > 0; actual NOT_RESOLVED, 3
+   PASS R2b round 2: investigation reopened, incident not closed: expected investigation #3, status not resolved/escalated; actual #3, investigating
+
+--- round 3 (investigation #3) ---
+   > recurrence simulated after the response; alert in indexer: true
+   verification NOT_RESOLVED (3 matching events); incident escalated, investigation #3; new recommendations: 0
+   PASS R3a round 3: the REAL_WAZUH re-hunt sees the recurrence: expected NOT_RESOLVED, matching events > 0; actual NOT_RESOLVED, 3
+   PASS E1 three REAL_WAZUH verifications, all NOT_RESOLVED: expected 3 × NOT_RESOLVED; actual NOT_RESOLVED, NOT_RESOLVED, NOT_RESOLVED
+   PASS E2 the third NOT_RESOLVED escalates the incident (not resolved, not closed): expected status escalated, investigation #3; actual escalated, #3
+   PASS E3 INVESTIGATION_ESCALATED audited with MAX_INVESTIGATION_ROUNDS_REACHED: expected present; actual [["MAX_INVESTIGATION_ROUNDS_REACHED"]]
+   PASS E4 INCIDENT_ESCALATED audited, INVESTIGATION_REOPENED exactly twice: expected INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2; actual INCIDENT_ESCALATED=1, INVESTIGATION_REOPENED=2
+   PASS E5 no new recommendation / investigation after the escalation: expected 0 recommendations after the 3rd verification; investigation stays #3; actual 0 new recommendations; #3
+   PASS E6 no response was created or executed automatically after the escalation: expected 0 new tickets; actual 0 new tickets
+   PASS E7 an escalated incident cannot be resolved by hand: expected refused RESOLVE_REQUIRES_VERIFICATION; actual RESOLVE_REQUIRES_VERIFICATION
+   PASS E8 a ticket cannot be verified twice (no silent fourth round): expected refused; actual ALREADY_VERIFIED
+   PASS E9 the escalated incident is still not closed after all attempts: expected status escalated; actual escalated
+   PASS E10 no AI/system actor changed the incident status: expected 0; actual 0
+
+Wrote results/extended-evaluation/runs/supp-escalation-20261003.json — PASS; escalatedObserved=true
+exit 0

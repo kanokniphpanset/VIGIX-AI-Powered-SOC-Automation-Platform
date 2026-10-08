@@ -1,0 +1,4 @@
+soar_v33_eval
+10|10|9|7|232|9|9
+soar_supp_consistency_eval
+10|10|9|7|712|9|9

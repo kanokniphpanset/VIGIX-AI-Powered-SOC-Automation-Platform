@@ -24,7 +24,7 @@ export const knowledge = {
   'kb.lib.history': ['History Cases', 'History Cases'],
   'kb.lib.history.blurb': ['เคสที่ปิดแล้วทั้งหมด ใช้อ้างอิงการรับมือเคสใหม่', 'Every closed case, to reference when handling new ones.'],
   'kb.historyHint': ['เคสที่ปิดแล้วทั้งหมด: Incident ที่แก้ไขแล้ว / ปิด / รวมเคส และ Alert ที่ SOC ปิด (False positive / Informational) · คลิกรายการเพื่อเปิด', 'Every closed case: resolved / dismissed / merged incidents and alerts closed by the SOC (false positive / informational) · click an item to open it'],
-  'ti.hint': ['IOC ที่พบในทุกเคส · ดูได้อย่างเดียว · คลิกรายการเพื่อดูเคสที่เกี่ยวข้อง', 'Indicators seen across all cases · read-only · click an item to see its cases'],
+  'ti.hint': ['IOC ที่พบในทุกเคส พร้อมเคสที่เกี่ยวข้อง · ดูได้อย่างเดียว', 'Indicators seen in every case, with their related cases · read-only'],
   'ti.filterAria': ['กรองตามประเภท IOC', 'Filter by indicator type'],
   'ti.group.all': ['ทั้งหมด', 'All'],
   'ti.group.ip': ['IP', 'IP'],

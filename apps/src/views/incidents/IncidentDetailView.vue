@@ -1,33 +1,30 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Bot, Loader2, RotateCw, Sparkles, Ticket } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, RotateCw, Sparkles, Ticket } from 'lucide-vue-next'
 import ResponseTicketAction from '@/components/incidents/ResponseTicketAction.vue'
-import InvestigationForms from '@/components/incidents/InvestigationForms.vue'
 import ManualVerification from '@/components/incidents/ManualVerification.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
 import AuditTimeline from '@/components/incidents/AuditTimeline.vue'
 import ContextEmailPanel from '@/components/incidents/ContextEmailPanel.vue'
-import SeverityValidationPanel from '@/components/incidents/SeverityValidationPanel.vue'
-import ResponseGuidancePanel from '@/components/incidents/ResponseGuidancePanel.vue'
-import { workApi, type AiJob, type AuditEntry, type WorkTicket } from '@/api/work'
+import IncidentGroupPolicy from '@/components/incidents/IncidentGroupPolicy.vue'
+import { workApi, type AuditEntry, type WorkTicket } from '@/api/work'
 import { workflowApi } from '@/api/vigix'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
 import SeverityBadge from '@/components/common/SeverityBadge.vue'
 import StatusPill from '@/components/common/StatusPill.vue'
 import WorkflowSummary from '@/components/incidents/WorkflowSummary.vue'
-import NextStepCard from '@/components/incidents/NextStepCard.vue'
-import RelatedAlertEvidence from '@/components/incidents/RelatedAlertEvidence.vue'
+import OpenIncidents from '@/components/incidents/OpenIncidents.vue'
 import SimilarCases from '@/components/incidents/SimilarCases.vue'
 import IncidentAlertFactsTable from '@/components/incidents/IncidentAlertFactsTable.vue'
-import MarkdownText from '@/components/common/MarkdownText.vue'
+import IncidentRecommendation from '@/components/incidents/IncidentRecommendation.vue'
+import PreviewEvidenceBasis from '@/components/incidents/PreviewEvidenceBasis.vue'
 import { nextStep } from '@/utils/nextStep'
 import { INCIDENT_TABS, resolveTab, tabForStep, type IncidentTab } from '@/utils/incidentTabs'
 import { feedback } from '@/utils/feedback'
 import { useI18n, type MsgKey } from '@/i18n'
 import { hasMsg } from '@/i18n/messages'
-import { timelineText } from '@/utils/systemText'
 import { incidentSla } from '@/utils/triage'
 import {
   incidentsApi,
@@ -42,14 +39,15 @@ import {
   type MitreMapping,
   type RawAlert,
   type Recommendation,
+  type RecommendationPreview,
   type ResponsePlan,
   type TimelineEntry,
   type Verification,
 } from '@/api/vigix'
 import { incidentLabel, statusLabel, toSeverity } from '@/utils/vigix'
 import { formatDateTime } from '@/utils/formatters'
-import { aiButtonLabel, hasAiAnalysis, initialAiRunState, runAiAnalysis, type AiRunState } from '@/utils/aiAnalysis'
-import { canGenerateRecommendation, generateButtonLabel, initialGenerateState, runGenerate, type GenerateState } from '@/utils/recommendation'
+import { hasAiAnalysis, initialAiRunState, runAiAnalysis, type AiRunState } from '@/utils/aiAnalysis'
+import { canGenerateRecommendation, initialGenerateState, runGenerate, type GenerateState } from '@/utils/recommendation'
 
 /**
  * Incident 360 — the ONE shared incident every role sees (RBAC decides actions, not which incident exists).
@@ -73,13 +71,14 @@ const iocs = ref<Ioc[]>([])
 const mitre = ref<MitreMapping[]>([])
 const ai = ref<AiAnalysis | null>(null)
 const recommendations = ref<Recommendation[]>([])
+/** Preview loaded by IncidentRecommendation; its evidence basis is shown at the top of the AI tab. */
+const recPreview = ref<RecommendationPreview | null>(null)
 const responses = ref<ResponsePlan[]>([])
 const verifications = ref<Verification[]>([])
 // Incident 360 extras (read-only): tickets with their approval chains, the audit trail and the AI analysis jobs.
 const tickets = ref<WorkTicket[]>([])
 const audit = ref<AuditEntry[]>([])
 const auditError = ref('')
-const aiJobs = ref<AiJob[]>([])
 // Incident SLA (Policy) as targets under the title: "start responding within 4 h", "resolve within 3 days" + deadlines.
 const sla = ref<IncidentSla | null>(null)
 const slaTargets = computed(() => incidentSla(sla.value, new Date()))
@@ -149,17 +148,15 @@ async function load() {
 }
 let anchorDone = false
 async function loadExtras() {
-  const [tk, au, jobs, s] = await Promise.all([
+  const [tk, au, s] = await Promise.all([
     workApi.tickets('all', 200, 0, id.value).catch(() => null),
     workApi.audit(id.value).catch(() => null),
-    workApi.aiJobs(id.value).catch(() => null),
     slaApi.incident(id.value).catch(() => null),
   ])
   sla.value = s
   tickets.value = tk?.items ?? []
   audit.value = au?.items ?? []
   auditError.value = au ? '' : t('inc.auditLoadFailed')
-  aiJobs.value = jobs?.items ?? []
 }
 onMounted(load)
 
@@ -202,22 +199,27 @@ const unsentSteps = computed(() => (currentRecommendation.value?.steps ?? []).fi
 // Run / Re-run AI Analysis: POST .../ai-analysis/run (the existing pipeline, analysis only), then reload everything the
 // analysis feeds (AI tab, IOCs/MITRE, investigation, recommendations). The AI never produces a severity.
 const aiRun = ref<AiRunState>(initialAiRunState())
-async function runAnalysis() {
-  if (aiRun.value.status === 'running') return
-  const final = await runAiAnalysis(() => incidentsApi.runAiAnalysis(id.value), (s) => (aiRun.value = s))
-  if (final.status === 'success') {
-    await load() // reload first, so the page already shows what the message says
-    ui.notify(feedback('aiDone', locale.value, {}, final.message))
-  } else {
-    ui.notify(feedback('aiFailed', locale.value, {}, final.message))
-  }
-}
 
 // Generate (first) / Regenerate Recommendation — both the existing POST /api/recommendations/generate, validated by the
 // backend (nothing is saved on failure). A click while one is running is ignored.
 const genState = ref<GenerateState>(initialGenerateState())
 const regenerating = computed(() => genState.value.status === 'running')
 const canGenerate = computed(() => canGenerateRecommendation(session.role))
+/** Re-run AI Analysis + generate Recommendation as one action. Same gates as the two backend routes (SOC / IR_TEAM; admin passes). */
+const canAnalyzeAndRecommend = computed(() => session.canRunAiAnalysis && canGenerate.value)
+const analyzeBusy = computed(() => aiRun.value.status === 'running' || genState.value.status === 'running')
+async function analyzeAndRecommend() {
+  if (analyzeBusy.value) return
+  genState.value = initialGenerateState()
+  // The page does not report which agents of the pipeline returned errors (PARTIAL_SUCCESS shows as a plain success).
+  const plain = (s: AiRunState): AiRunState => (s.message ? { ...s, message: s.message.replace(t('ai.done.partial'), '') } : s)
+  const analysis = plain(await runAiAnalysis(() => incidentsApi.runAiAnalysis(id.value), (s) => (aiRun.value = plain(s))))
+  ui.notify(feedback(analysis.status === 'success' ? 'aiDone' : 'aiFailed', locale.value, {}, analysis.message))
+  // The recommendation is generated even when this AI run failed (the backend builds its context from the evidence and the
+  // analysis it classifies as trusted); the notification above says the run failed.
+  await regenerate()
+  if (genState.value.status !== 'success') await load() // regenerate() reloads only on success
+}
 async function regenerate() {
   const hadRecommendation = !!currentRecommendation.value
   const final = await runGenerate(genState.value, () => workflowApi.regenerate(id.value), (s) => (genState.value = s))
@@ -237,6 +239,13 @@ const severity = computed(() => toSeverity(incident.value?.priority))
 const canValidateSeverity = computed(() => ['SOC', 'admin'].includes(session.role ?? ''))
 // Bumped after the severity / type is confirmed: both setup panels reload (the group may have changed).
 const setupVersion = ref(0)
+/** Group panel saved something: a severity move goes through severityDone (Policy re-assignment, reload); else reload + toast. */
+async function groupChanged(message: string, result?: { changed: boolean; severity: string }) {
+  if (result) return severityDone(message, result)
+  setupVersion.value++
+  await load()
+  ui.notify({ type: 'success', title: message, message: '', link: null })
+}
 async function severityDone(_message: string, result?: { changed: boolean; severity: string }) {
   const sev = result?.severity?.toUpperCase() ?? ''
   setupVersion.value++
@@ -244,7 +253,7 @@ async function severityDone(_message: string, result?: { changed: boolean; sever
   ui.notify(feedback(result?.changed ? 'severityChanged' : 'severityConfirmed', locale.value, { sev }))
 }
 
-// "ขั้นต่อไป": whose turn, what is next, one button — from the records this page already loaded.
+// Next workflow step (from the records this page already loaded); only used to open the matching tab first.
 const next = computed(() =>
   incident.value
     ? nextStep({
@@ -262,18 +271,6 @@ const next = computed(() =>
       })
     : null,
 )
-const nextBusy = computed(() => aiRun.value.status === 'running' || regenerating.value)
-async function doNext() {
-  const a = next.value?.action
-  if (!a) return
-  if (a.kind === 'route') return void router.push(a.to)
-  if (a.kind === 'run-ai') { selectTab('ai'); return void runAnalysis() }
-  if (a.kind === 'generate') { selectTab('ai'); return void regenerate() }
-  const target = resolveTab(a.tab)
-  selectTab(target?.tab ?? 'overview')
-  await nextTick()
-  document.getElementById(a.anchor ?? target?.anchor ?? 'incident-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 /** Policy owner from the latest INCIDENT_ASSIGNED audit (never derived in the UI). */
 /** Threat Intelligence verdict of an IOC (as recorded by the AI pipeline): label and badge tone. */
 const TI_TONE: Record<string, string> = {
@@ -283,7 +280,6 @@ const TI_TONE: Record<string, string> = {
   UNKNOWN: 'bg-slate-100 text-slate-600 ring-slate-200',
 }
 const tiLabel = (v: string) => (hasMsg(`inc.ioc.v.${v}`) ? t(`inc.ioc.v.${v}` as MsgKey) : v)
-const jobTrigger = (v: string | null) => (v && hasMsg(`inc.trigger.${v}`) ? t(`inc.trigger.${v}` as MsgKey) : v ?? '—')
 const assignment = computed(() => {
   const e = audit.value.find((a) => a.action === 'INCIDENT_ASSIGNED')
   const m = e?.metadata ?? null
@@ -323,35 +319,14 @@ const assignment = computed(() => {
             </li>
           </ul>
         </section>
-        <div v-if="session.canRunAiAnalysis" class="mt-3 flex flex-wrap gap-2">
-          <!-- RESOLVED is produced only by Verification (re-hunt NO MATCH); it is never a manual action. -->
-          <WorkflowAction v-for="status in ['dismissed', 'escalated'].filter(s => s !== incident!.status && incident!.status !== 'resolved')" :key="`${incident.id}-${status}`" :label="status === 'dismissed' ? t('inc.dismiss') : t('inc.escalate')" :action="() => incidentsApi.updateStatus(id, status)" :reload="reloadWorkflow">
-            <p class="text-sm text-amber-800">{{ t('inc.manualStatusNote') }}</p>
-          </WorkflowAction>
-        </div>
       </div>
-      <NextStepCard v-if="next" :step="next" :role="session.role" :busy="nextBusy" @act="doNext" />
       <div v-if="stale" class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900" role="status">
         <span>{{ t('inc.updatedBanner') }}</span>
         <button type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" @click="load"><RotateCw class="size-3.5" /> {{ t('inc.updatedShow') }}</button>
       </div>
 
-      <div class="grid gap-5 lg:grid-cols-[300px_1fr]">
-        <aside class="h-fit min-w-0 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 class="mb-3 text-sm font-semibold text-slate-800">{{ t('inc.alertsN', { n: alerts.length }) }}</h2>
-          <ul class="space-y-2">
-            <li v-for="a in alerts" :key="a.id">
-              <button type="button" class="w-full rounded-lg border border-slate-100 px-2.5 py-2 text-left hover:bg-slate-50" @click="router.push(`/alerts/${a.id}`)">
-                <span class="flex items-center justify-between gap-2">
-                  <span class="truncate font-mono text-[11px] text-slate-500">{{ a.externalAlertId }}</span>
-                  <StatusPill status="in_incident" />
-                </span>
-                <span class="mt-0.5 block truncate text-xs text-slate-700">{{ (a.rawPayload.rule as { description?: string } | undefined)?.description ?? '—' }}</span>
-              </button>
-            </li>
-          </ul>
-          <SimilarCases :incident-id="incident.id" class="mt-4 border-t border-slate-100 pt-4" />
-        </aside>
+      <!-- single column: the former sidebar content now lives in the tabs (alerts -> Evidence, knowledge cases -> Overview) -->
+      <div>
 
         <div class="min-w-0">
           <div id="incident-tabs" class="mb-4 flex scroll-mt-4 gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
@@ -372,31 +347,31 @@ const assignment = computed(() => {
           <section class="rounded-xl border border-slate-200 bg-white p-5 text-sm">
             <!-- Overview -->
             <div v-if="tab === 'overview'" class="space-y-5">
-              <SeverityValidationPanel id="severity" class="scroll-mt-4" :key="`sev-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-validate="canValidateSeverity" @done="severityDone" />
-              <ResponseGuidancePanel id="guidance" class="scroll-mt-4" :key="`rg-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-edit="session.canTriage" @saved="(m: string) => ui.notify({ type: 'success', title: m, message: t('rgd.nextStep'), link: null })" />
-              <p class="text-xs text-slate-500">{{ t('inc.ownerByPolicy') }} <strong>{{ assignment?.responsibleRole || t('inc.notAssigned') }}</strong><template v-if="assignment?.executorRole"> · {{ t('inc.executor', { role: assignment.executorRole }) }}</template></p>
-              <div v-if="session.canTriage" class="rounded-lg border border-slate-200 p-3">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.notification') }}</h3>
-                  <p class="mt-1 text-xs text-slate-500"><template v-if="severity === 'LOW'">{{ t('inc.notifyLow') }}</template>{{ t('inc.notifyHint') }}</p>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <WorkflowAction :label="t('inc.sendNotify')" :success-label="t('inc.sendNotifyDone')" :action="(note) => incidentsApi.notificationDecision(id, 'SEND', note || null)" :reload="reloadWorkflow" />
-                    <WorkflowAction :label="t('inc.skipNotify')" :success-label="t('inc.skipNotifyDone')" :action="(note) => incidentsApi.notificationDecision(id, 'SKIP', note || null)" :reload="reloadWorkflow" />
-                  </div>
-              </div>
-              <div>
-                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.latestActivity') }}</h3>
-                <ol class="space-y-1.5">
-                  <li v-for="entry in timeline.slice(0, 5)" :key="entry.id" class="flex gap-3"><span class="w-36 shrink-0 text-xs text-slate-400">{{ formatDateTime(entry.occurredAt) }}</span><span>{{ timelineText(entry.eventType, entry.description) }}</span></li>
-                </ol>
-              </div>
+              <SimilarCases :incident-id="incident.id" class="rounded-xl border border-slate-200 bg-white p-4" />
+              <!-- the incident's group (type + severity) and the group's Response Policy; replaces the severity / guidance panels -->
+              <IncidentGroupPolicy id="severity" class="scroll-mt-4" :key="`grp-${incident.priority}-${setupVersion}`" :incident-id="incident.id" :incident-status="incident.status" :can-edit="canValidateSeverity" @changed="groupChanged" />
+              <!-- every incident not closed yet (replaces the latest-activity list; the audit trail stays in History) -->
+              <OpenIncidents :current-id="incident.id" :can-group="canValidateSeverity" @grouped="groupChanged" />
             </div>
 
             <!-- Evidence: what happened (alert facts), each investigation round with its evidence, then IOC / MITRE -->
             <div v-else-if="tab === 'evidence'" class="space-y-5">
-              <IncidentAlertFactsTable :incident-id="incident.id" :incident-label="incidentLabel(incident.id)" :incident-title="incident.title" />
-              <template v-if="session.canRunAiAnalysis"><InvestigationForms v-for="i in investigations.filter(i => i.isCurrent && i.status === 'ACTIVE')" :key="i.id" :investigation-id="i.id" :reload="reloadWorkflow" /></template>
-              <RelatedAlertEvidence :incident-id="incident.id" :investigation-id="investigations.find(i => i.isCurrent && i.status === 'ACTIVE')?.id ?? null" :can-add="session.canTriage" :reload="load" />
-              <h3 id="sec-investigation" class="-mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.investigation') }}</h3>
+              <!-- the incident's alerts, before the investigation rounds -->
+              <section>
+                <h3 class="mb-2 text-sm font-semibold text-slate-800">{{ t('inc.alertsN', { n: alerts.length }) }}</h3>
+                <ul class="space-y-2">
+                  <li v-for="a in alerts" :key="a.id">
+                    <button type="button" class="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50" @click="router.push(`/alerts/${a.id}`)">
+                      <span class="min-w-0 flex-1">
+                        <span class="block text-sm text-slate-800">{{ (a.rawPayload.rule as { description?: string } | undefined)?.description ?? '—' }}</span>
+                        <span class="block break-all font-mono text-[11px] text-slate-500">{{ a.externalAlertId }}</span>
+                      </span>
+                      <StatusPill status="in_incident" />
+                    </button>
+                  </li>
+                </ul>
+              </section>
+              <h3 id="sec-investigation" class="-mb-2 scroll-mt-4 text-sm font-semibold text-slate-800">{{ t('inc.sec.investigation') }}</h3>
               <p v-if="!investigations.length" class="text-slate-500">{{ t('inc.noInvestigation') }}</p>
               <div v-for="i in investigations" :key="i.id" class="rounded-lg border border-slate-200 p-3" :class="i.isCurrent ? 'border-sky-200' : ''">
                 <div class="mb-2 flex flex-wrap items-center gap-3">
@@ -415,6 +390,7 @@ const assignment = computed(() => {
                   <li v-if="!(evidence[i.id] ?? []).length" class="text-slate-500">{{ t('inc.noEvidence') }}</li>
                 </ul>
               </div>
+              <IncidentAlertFactsTable :incident-id="incident.id" :incident-label="incidentLabel(incident.id)" :incident-title="incident.title" />
               <div>
                 <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.iocs') }}</h3>
                 <div class="overflow-x-auto">
@@ -426,7 +402,7 @@ const assignment = computed(() => {
                     <tr v-for="i in iocs" :key="i.id ?? i.iocType + i.iocValue">
                       <td class="py-1.5 pr-3 align-top text-xs text-slate-500">{{ i.iocType }}</td>
                       <td class="py-1.5 pr-3 align-top font-mono break-all">{{ i.iocValue }}</td>
-                      <td class="py-1.5 align-top text-xs text-slate-400">
+                      <td class="py-1.5 pr-3 align-top text-xs text-slate-400">
                         {{ i.source }}
                         <!-- Related-alert provenance: which other Wazuh alert, why, and when the SOC linked it -->
                         <span v-if="i.sourceAlertId" class="mt-0.5 block text-slate-600">
@@ -461,75 +437,47 @@ const assignment = computed(() => {
 
             <!-- AI analysis + recommendation -->
             <div v-else-if="tab === 'ai'">
-              <p class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
-                <Bot class="size-4" /> {{ t('inc.aiDisclaimer') }}
+              <PreviewEvidenceBasis v-if="recPreview?.evidenceBasis" :preview="recPreview" class="mb-6" />
+              <!-- Recommendation only (the AI analysis text and job table were removed as duplicate); the one action re-runs the AI
+                   analysis and then generates the Recommendation (SOC and IR team). -->
+              <div class="mt-6 border-t border-slate-100 pt-5">
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <h3 id="sec-recommendation" class="scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.recommendation') }}</h3>
                 <button
-                  v-if="session.canRunAiAnalysis"
+                  v-if="canAnalyzeAndRecommend"
                   type="button"
                   class="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="aiRun.status === 'running'"
-                  :aria-busy="aiRun.status === 'running'"
-                  @click="runAnalysis"
+                  :disabled="analyzeBusy || ['resolved', 'escalated', 'dismissed'].includes(incident.status)"
+                  :aria-busy="analyzeBusy"
+                  @click="analyzeAndRecommend"
                 >
-                  <Loader2 v-if="aiRun.status === 'running'" class="size-3.5 animate-spin" /><Sparkles v-else class="size-3.5" /> {{ aiButtonLabel(aiRun, ai) }}
+                  <Loader2 v-if="analyzeBusy" class="size-3.5 animate-spin" /><Sparkles v-else class="size-3.5" />
+                  {{ aiRun.status === 'running' ? t('inc.aiRec.runningAi') : genState.status === 'running' ? t('inc.aiRec.runningRec') : t('inc.aiRec.btn') }}
                 </button>
-                <button type="button" class="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50" :class="session.canRunAiAnalysis ? '' : 'ml-auto'" :title="t('inc.aiReloadTitle')" @click="load"><RotateCw class="size-3" /> {{ t('c.reload') }}</button>
-              </p>
+              </div>
               <p v-if="aiRun.status === 'running'" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.aiRunning') }}</p>
               <p v-else-if="aiRun.status === 'success'" class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800" role="status">{{ aiRun.message }}</p>
-              <div v-else-if="aiRun.status === 'error'" class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">
-                <p>{{ aiRun.message }}</p>
-                <!-- The failed run produced nothing new: say so when an older analysis is still shown below. -->
-                <p v-if="hasAiAnalysis(ai)" class="mt-1 font-semibold">{{ t('inc.aiPreviousShown') }}</p>
+              <p v-else-if="aiRun.status === 'error'" class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">{{ aiRun.message }}</p>
+              <p v-if="genState.status === 'running'" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.recRunning') }}</p>
+              <p v-else-if="genState.status === 'success'" class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800" role="status">{{ genState.message }}</p>
+              <p v-else-if="genState.status === 'error'" class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">{{ genState.message }}</p>
+              <IncidentRecommendation @preview="recPreview = $event" :incident-id="incident.id" :revision="JSON.stringify([incident.investigationNumber, alerts.map(a => [a.id, a.rawPayload]), ai?.generatedAt])" />
+
               </div>
-              <p v-if="!hasAiAnalysis(ai) && aiRun.status !== 'running'" class="mb-3 text-xs text-slate-500">{{ t('inc.aiNoneYet') }}</p>
-              <div v-if="ai?.grounding?.status === 'UNGROUNDED'" role="alert" class="mb-3 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"><strong>{{ t('inc.ungroundedTitle') }}</strong><p>{{ t('inc.ungroundedBody') }}</p><p v-for="issue in ai.grounding.ungrounded" :key="issue.kind + issue.value">{{ issue.kind }}: {{ issue.value }}</p></div>
-              <template v-if="ai?.summary">
-                <p class="mb-2 text-[11px] text-slate-500">{{ t('inc.generatedBy') }}<template v-if="ai.model"> · <span class="font-mono">{{ ai.model }}</span></template><template v-if="ai.generatedAt"> · {{ formatDateTime(ai.generatedAt) }}</template></p>
-                <p v-if="locale === 'th'" class="mb-2 inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{{ t('ai.originalLang') }}</p>
-                <MarkdownText :text="ai.summary" class="mb-3" />
-              </template>
-              <p v-if="ai?.latestRun?.source === 'FAILED'" class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">{{ t('inc.aiLatestFailed', { at: formatDateTime(ai.latestRun.generatedAt) }) }}{{ ai?.summary ? t('inc.aiLatestFailedKept') : '' }}{{ t('inc.aiLatestFailedTail') }}</p>
-              <p v-else-if="ai?.latestRun?.source === 'HEURISTIC_FALLBACK'" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.aiHeuristic', { at: formatDateTime(ai.latestRun.generatedAt) }) }}</p>
-              <p v-else-if="ai?.latestRun?.source === 'UNVERIFIED_LEGACY'" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.aiLegacy', { at: formatDateTime(ai.latestRun.generatedAt) }) }}</p>
-              <ul v-if="ai?.keyFindings.length" class="list-disc space-y-1 pl-5 text-slate-700"><li v-for="f in ai.keyFindings" :key="f">{{ f }}</li></ul>
-              <p v-if="!ai?.summary" class="text-slate-500">{{ t('inc.aiNone') }}</p>
-              <h3 class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.aiJobs') }}</h3>
-              <p v-if="!aiJobs.length" class="text-xs text-slate-500">{{ t('inc.aiJobsNone') }}</p>
-              <div v-else class="overflow-x-auto">
-                <table class="w-full min-w-[520px] text-xs">
-                  <thead class="text-left text-slate-400"><tr><th class="pb-1">{{ t('inc.job.status') }}</th><th class="pb-1">{{ t('inc.job.trigger') }}</th><th class="pb-1">{{ t('inc.job.attempt') }}</th><th class="pb-1">{{ t('inc.job.queued') }}</th><th class="pb-1">{{ t('inc.job.completed') }}</th><th class="pb-1">{{ t('inc.job.error') }}</th></tr></thead>
-                  <tbody class="divide-y divide-slate-100">
-                    <tr v-for="j in aiJobs" :key="j.id">
-                      <td class="py-1 font-semibold" :class="j.status === 'FAILED' ? 'text-rose-700' : j.status === 'PARTIAL_SUCCESS' ? 'text-amber-700' : j.status === 'SUCCESS' ? 'text-emerald-700' : 'text-violet-700'">{{ statusLabel(j.status) }}</td>
-                      <td class="py-1">{{ jobTrigger(j.trigger) }}</td>
-                      <td class="py-1">{{ j.attempt }}</td>
-                      <td class="py-1">{{ formatDateTime(j.queuedAt ?? j.startedAt) }}</td>
-                      <td class="py-1">{{ j.completedAt ? formatDateTime(j.completedAt) : '—' }}</td>
-                      <td class="py-1 text-rose-700">{{ j.errorCode ?? '' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <!-- notification email, at the bottom of the Recommendation tab -->
               <div class="mt-6 border-t border-slate-100 pt-5">
-              <h3 id="sec-recommendation" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.recommendation') }}</h3>
-              <div v-if="!currentRecommendation">
-                <p class="text-slate-500">{{ t('inc.noRec') }}</p>
-                <button
-                  v-if="canGenerate"
-                  type="button"
-                  class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-navy-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  :disabled="regenerating || ['resolved', 'escalated', 'dismissed'].includes(incident.status)"
-                  :aria-busy="regenerating"
-                  @click="regenerate"
-                >
-                  <Loader2 v-if="regenerating" class="size-3.5 animate-spin" /><Sparkles v-else class="size-3.5" /> {{ generateButtonLabel(genState, false) }}
-                </button>
-                <p v-else class="mt-2 text-xs text-slate-400">{{ t('inc.recRoleOnly') }}</p>
-                <p v-if="regenerating" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.recRunning') }}</p>
-                <p v-else-if="genState.status === 'error'" class="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">{{ genState.message }} {{ t('inc.tryAgain') }}</p>
+              <h3 id="sec-email" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.email') }}</h3>
+              <ContextEmailPanel :incident-id="incident.id" />
               </div>
-              <template v-else>
+
+            </div>
+
+            <!-- History: re-hunt rounds, email, audit -->
+            <div v-else-if="tab === 'history'" class="space-y-6">
+              <section v-if="currentRecommendation" class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <h3 class="text-sm font-medium text-slate-600">ประวัติคำแนะนำที่บันทึกไว้และ Ticket เดิม</h3>
+                <p class="my-3 text-xs text-slate-500">ข้อมูลย้อนหลังสำหรับติดตามงานเดิม ไม่ใช่คำแนะนำจากหลักฐานล่าสุด</p>
+              <template v-if="currentRecommendation">
                 <p class="mb-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   {{ t('inc.recHeader', { n: currentRecommendation.recommendationNumber, i: currentRecommendation.investigationNumber }) }}
                   <StatusPill :status="currentRecommendation.status" /> · {{ currentRecommendation.createdBy }}
@@ -537,9 +485,7 @@ const assignment = computed(() => {
                 <p v-if="locale === 'th'" class="mb-2 inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{{ t('ai.originalLang') }}</p>
                 <p class="mb-4 text-slate-800">{{ currentRecommendation.summary }}</p>
                 <div class="mb-4 flex flex-wrap gap-2">
-                  <button v-if="canGenerate" type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="regenerating || ['resolved', 'escalated', 'dismissed'].includes(incident.status)" :aria-busy="regenerating" @click="regenerate">
-                    <Loader2 v-if="regenerating" class="size-3.5 animate-spin" /><RotateCw v-else class="size-3.5" /> {{ generateButtonLabel(genState, true) }}
-                  </button>
+
                   <button v-if="responses.length" type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50" @click="router.push(`/tickets?incident=${incident.id}`)">
                     <Ticket class="size-3.5" /> {{ t('inc.openTickets') }}
                   </button>
@@ -571,10 +517,10 @@ const assignment = computed(() => {
                     />
                   </div>
                 </div>
-                <details v-if="currentRecommendation.recommendationText" class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                  <summary class="cursor-pointer text-xs font-semibold text-slate-600">{{ t('inc.recText') }}</summary>
+                <div v-if="currentRecommendation.recommendationText" class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <p class="text-xs font-semibold text-slate-600">{{ t('inc.recText') }}</p>
                   <pre class="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-800">{{ currentRecommendation.recommendationText }}</pre>
-                </details>
+                </div>
                 <article v-for="s in currentRecommendation.steps" :key="s.id" class="mb-4 rounded-lg border border-slate-200 p-4">
                   <h3 class="font-semibold text-slate-900">
                     {{ s.stepOrder }}. {{ s.title }}
@@ -602,11 +548,7 @@ const assignment = computed(() => {
                 </article>
                 <p v-if="recommendations.length > 1" class="text-xs text-slate-400">{{ t('inc.superseded', { n: recommendations.length - 1 }) }}</p>
               </template>
-              </div>
-            </div>
-
-            <!-- History: re-hunt rounds, email, audit -->
-            <div v-else-if="tab === 'history'" class="space-y-6">
+              </section>
               <div>
               <h3 id="sec-verification" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.verification') }}</h3>
                 <WorkflowSummary :incident-status="incident.status" :investigation-number="incident.investigationNumber" :tickets="tickets" :verifications="verifications" />
@@ -624,10 +566,6 @@ const assignment = computed(() => {
                 </li>
               </ul>
                 </div>
-              </div>
-              <div>
-              <h3 id="sec-email" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.email') }}</h3>
-              <ContextEmailPanel :incident-id="incident.id" />
               </div>
               <div>
               <h3 id="sec-audit" class="mb-2 scroll-mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">{{ t('inc.sec.audit') }}</h3>

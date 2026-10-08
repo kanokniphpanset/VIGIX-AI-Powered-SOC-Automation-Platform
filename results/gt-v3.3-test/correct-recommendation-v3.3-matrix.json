@@ -1,0 +1,333 @@
+{
+  "generatedFor": "correctness GT correctness-gt-v3.3",
+  "groundTruth": {
+    "version": "correctness-gt-v3.3",
+    "sha256": "d2f1dae6d576d8e0534bc8a26cae4a7afc5f6a529e06da2f675a5b44855951a8"
+  },
+  "rule": "strict set of (action,target); playbook must match; every expected pair present; any unexpected pair => INCORRECT; no optional pairs; allowedActions not used; case-insensitive, trimmed, order-independent",
+  "sources": {
+    "v2-frozen": {
+      "file": "../../results/runs/mock-evaluation-v2-rerun-20261002/run.json",
+      "sha256": "26f06aea8ee6bfec1ae7e2b6c39592ef10cc8630d8729e1f3d0029204bae94fc",
+      "runLabel": "mock-evaluation-v2-rerun-20261002",
+      "startedAt": "2026-10-02T09:48:24.318Z",
+      "aggregate": {
+        "nEvaluated": 9,
+        "nCorrect": 5,
+        "ratePct": 55.56,
+        "correctCases": [
+          "TC-01",
+          "TC-03",
+          "TC-06",
+          "TC-08",
+          "TC-10"
+        ],
+        "incorrectCases": [
+          "TC-02",
+          "TC-04",
+          "TC-07",
+          "TC-09"
+        ],
+        "notEvaluable": [
+          "TC-05"
+        ]
+      }
+    },
+    "tc05-e2e": {
+      "file": "../../results/runs/tc05-e2e-real-wazuh-20261003/run.json",
+      "sha256": "f2d6f06ee55c23a6579034b97707c5ded1793dc8d7805792b6ec594342b6e16d",
+      "runLabel": "tc05-e2e-real-wazuh-20261003",
+      "startedAt": "2026-10-03T10:36:55.610Z",
+      "aggregate": {
+        "nEvaluated": 1,
+        "nCorrect": 0,
+        "ratePct": 0,
+        "correctCases": [],
+        "incorrectCases": [
+          "TC-05"
+        ],
+        "notEvaluable": []
+      }
+    }
+  },
+  "rows": [
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-01",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7"
+      ],
+      "correct": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "2/2",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-02",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-QUARANTINE-FILE -> /root/Downloads/Invoice_Q4_2026.xls.exe",
+        "ACT-BLOCK-HASH -> 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "reason": "missing: ACT-QUARANTINE-FILE -> /root/Downloads/Invoice_Q4_2026.xls.exe; ACT-BLOCK-HASH -> 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [
+        "ACT-QUARANTINE-FILE -> /root/Downloads/Invoice_Q4_2026.xls.exe",
+        "ACT-BLOCK-HASH -> 275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+      ],
+      "compliance": "COMPLIANT",
+      "workflow": "incomplete (open)",
+      "verification": "none - REHUNT_INSUFFICIENT_CRITERIA",
+      "iocRecall": "0/2",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-03",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-URL -> http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-phish.net",
+        "ACT-QUARANTINE-EMAIL -> it-support@vigix-eval-phish.net"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-QUARANTINE-EMAIL -> it-support@vigix-eval-phish.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-phish.net"
+      ],
+      "correct": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "4/4",
+      "notes": "use-case calls 4; failed calls 3"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-04",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-DISABLE-ACCOUNT -> victim",
+        "ACT-RESET-CREDENTIAL -> victim",
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-DISABLE-ACCOUNT -> victim",
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "reason": "missing: ACT-RESET-CREDENTIAL -> victim | unexpected: ACT-ISOLATE-ENDPOINT -> attack-endpoint",
+      "playbookMatch": true,
+      "unexpected": [
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "missing": [
+        "ACT-RESET-CREDENTIAL -> victim"
+      ],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "2/2",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-05",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "observedAvailable": false,
+      "observedPairs": null,
+      "correct": "N/A",
+      "reason": "ENVIRONMENT_UNAVAILABLE in this run: not evaluated",
+      "playbookMatch": null,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "NOT_EVALUATED",
+      "workflow": "N/A",
+      "verification": "N/A",
+      "iocRecall": "N/A",
+      "notes": ""
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-06",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-BLOCK-SOURCE-IP -> 172.19.0.7"
+      ],
+      "correct": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "1/1",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-07",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-c2.net",
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.5"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.5",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-c2.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "reason": "unexpected: ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php; ACT-ISOLATE-ENDPOINT -> attack-endpoint",
+      "playbookMatch": true,
+      "unexpected": [
+        "ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "3/3",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-08",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-KILL-PROCESS -> /tmp/.cache/kworkerd",
+        "ACT-QUARANTINE-FILE -> /tmp/.cache/kworkerd",
+        "ACT-BLOCK-HASH -> c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-KILL-PROCESS -> /tmp/.cache/kworkerd",
+        "ACT-QUARANTINE-FILE -> /tmp/.cache/kworkerd",
+        "ACT-BLOCK-HASH -> c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+      ],
+      "correct": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "4/4",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-09",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-exfil.net",
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.5"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-BLOCK-DESTINATION-IP -> 172.19.0.5",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-exfil.net",
+        "ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "correct": false,
+      "reason": "unexpected: ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload; ACT-ISOLATE-ENDPOINT -> attack-endpoint",
+      "playbookMatch": true,
+      "unexpected": [
+        "ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "3/3",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "v2-frozen",
+      "caseId": "TC-10",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-DISABLE-ACCOUNT -> evaluser"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-DISABLE-ACCOUNT -> evaluser"
+      ],
+      "correct": true,
+      "reason": "playbook and all expected action->target pairs match; no unexpected pair",
+      "playbookMatch": true,
+      "unexpected": [],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "incomplete (open)",
+      "verification": "none - REHUNT_INSUFFICIENT_CRITERIA",
+      "iocRecall": "1/1",
+      "notes": "use-case calls 1"
+    },
+    {
+      "source": "tc05-e2e",
+      "caseId": "TC-05",
+      "gtDefined": true,
+      "expectedPairs": [
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "observedAvailable": true,
+      "observedPairs": [
+        "ACT-ISOLATE-ENDPOINT -> vigix-win10-ps",
+        "ACT-BLOCK-DOMAIN -> vigix-eval-ps-stager.test"
+      ],
+      "correct": false,
+      "reason": "unexpected: ACT-ISOLATE-ENDPOINT -> vigix-win10-ps",
+      "playbookMatch": true,
+      "unexpected": [
+        "ACT-ISOLATE-ENDPOINT -> vigix-win10-ps"
+      ],
+      "missing": [],
+      "compliance": "COMPLIANT",
+      "workflow": "complete (resolved)",
+      "verification": "RESOLVED (REAL_WAZUH)",
+      "iocRecall": "1/1",
+      "notes": "use-case calls 2; failed calls 1"
+    }
+  ]
+}

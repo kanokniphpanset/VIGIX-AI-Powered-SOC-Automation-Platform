@@ -5,6 +5,7 @@ import {
   AiAnalysisContextRow,
   EvidenceContextRow,
   IRecommendationContextRepository,
+  IncidentAlertRow,
   IncidentContextRow,
   IocContextRow,
   AnalysisRunRow,
@@ -133,9 +134,18 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
       const s = r.structuredData && typeof r.structuredData === "object" && !Array.isArray(r.structuredData) ? (r.structuredData as Record<string, unknown>) : null;
       return {
         id: r.id, ref: `E${n + 1}`, type: r.type, origin: r.origin === "SYSTEM" ? "SYSTEM" : "MANUAL", createdBy: r.createdBy, timestamp: r.timestamp, title: r.title,
-        host: s && typeof s.agent === "string" ? s.agent : null, structured: s,
+        host: s && typeof s.agent === "string" ? s.agent : null, structured: s, alertId: r.alertId ?? null,
       };
     });
+  }
+
+  async getIncidentAlerts(incidentId: string, tenantId: string): Promise<IncidentAlertRow[]> {
+    const rows = await this.prisma.incidentAlert.findMany({
+      where: { incidentId, incident: { tenantId }, alert: { tenantId } },
+      select: { alert: { select: { id: true, externalAlertId: true, siemSource: true, rawPayload: true, receivedAt: true, createdAt: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return rows.map(({ alert: a }) => ({ id: a.id, externalAlertId: a.externalAlertId, siemSource: a.siemSource, rawPayload: a.rawPayload, eventTime: a.receivedAt, ingestedAt: a.createdAt }));
   }
 
   async getTicketHistory(incidentId: string, tenantId: string): Promise<TicketRecord[]> {

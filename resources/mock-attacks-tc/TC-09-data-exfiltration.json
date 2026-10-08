@@ -5,21 +5,78 @@
     "id": "100340",
     "level": 13,
     "description": "Large outbound data transfer to an external host (possible data exfiltration)",
-    "groups": ["ids", "exfiltration", "dlp", "vigix_custom"],
+    "groups": [
+      "ids",
+      "exfiltration",
+      "dlp",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1048"], "tactic": ["Exfiltration"], "technique": ["Exfiltration Over Alternative Protocol"] }
+    "mitre": {
+      "id": [
+        "T1048"
+      ],
+      "tactic": [
+        "Exfiltration"
+      ],
+      "technique": [
+        "Exfiltration Over Alternative Protocol"
+      ]
+    },
+    "mail": true
   },
-  "agent": { "id": "002", "name": "FILESRV-01", "ip": "10.0.2.50" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "suricata" },
+  "agent": {
+    "id": "002",
+    "name": "FILESRV-01",
+    "ip": "10.0.2.50"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "suricata"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/suricata/eve.json",
   "data": {
     "srcip": "10.0.2.50",
     "dstip": "45.61.136.77",
     "dstport": "443",
     "url": "https://vigix-mock-exfil.net/upload",
-    "dns": { "question": { "name": "vigix-mock-exfil.net" } },
-    "bytes_out": "2483920128"
+    "dns": {
+      "question": {
+        "name": "vigix-mock-exfil.net"
+      }
+    },
+    "bytes_out": "2483920128",
+    "timestamp": "2026-09-30T09:37:41.220118+0000",
+    "flow_id": "1936201874455123",
+    "in_iface": "eth0",
+    "event_type": "flow",
+    "src_ip": "10.0.2.50",
+    "src_port": "52144",
+    "dest_ip": "45.61.136.77",
+    "dest_port": "443",
+    "proto": "TCP",
+    "app_proto": "tls",
+    "flow": {
+      "pkts_toserver": "1843920",
+      "pkts_toclient": "211804",
+      "bytes_toserver": "2483920128",
+      "bytes_toclient": "10543221",
+      "start": "2026-09-30T09:29:41.100233+0000",
+      "end": "2026-09-30T09:37:41.220118+0000",
+      "age": "480",
+      "state": "established",
+      "reason": "timeout",
+      "alerted": "false"
+    },
+    "tls": {
+      "sni": "vigix-mock-exfil.net",
+      "version": "TLS 1.3"
+    }
   },
   "full_log": "Outbound 2.48 GB in 8 minutes from 10.0.2.50 -> 45.61.136.77:443 (vigix-mock-exfil.net/upload); archived /srv/share/hr/*.xlsx and /srv/share/finance/*.pdf into data.7z before transfer; volume 60x this host's daily baseline"
 }

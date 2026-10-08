@@ -10,6 +10,8 @@ import { RejectRecommendationUseCase } from "../../../application/recommendation
 import { validateBody } from "../validators/validateBody";
 import { IRecommendationAuditRepository } from "../../../domain/recommendation/repositories/IRecommendationAuditRepository";
 import { renderUserText } from "../../../domain/subtype/composer";
+import { PreviewSubtypeRecommendationUseCase } from "../../../application/subtype/PreviewSubtypeRecommendation.usecase";
+import { listPreviewFixtures, previewFixturesEnabled, runPreviewFixture } from "../../../application/subtype/previewFixtures";
 import { z } from "zod";
 
 const sendToIrSchema = z.object({ note: z.string().trim().max(2000).nullable().optional() }).strict();
@@ -37,8 +39,33 @@ export class RecommendationController {
     private readonly validateRecommendation: ValidateRecommendationUseCase,
     private readonly sendRecommendationToIr: SendRecommendationToIrUseCase,
     private readonly rejectRecommendation?: RejectRecommendationUseCase,
-    private readonly audits?: IRecommendationAuditRepository
+    private readonly audits?: IRecommendationAuditRepository,
+    private readonly previewRecommendation?: PreviewSubtypeRecommendationUseCase
   ) {}
+
+  /**
+   * Recommendation Preview (GET, read-only): the subtype-knowledge recommendation of the incident, shown separately from the
+   * SOC-reviewed recommendation. Creates nothing (no Recommendation, Ticket, audit row or action) and carries no internal ids.
+   */
+  preview = async (req: Request, res: Response): Promise<void> => {
+    const tenantId = authenticatedTenant(req);
+    if (!this.previewRecommendation) { res.status(501).json({ error: "NOT_CONFIGURED" }); return; }
+    const preview = await this.previewRecommendation.execute({ incidentId: req.params.incidentId, tenantId });
+    if (!preview) { res.status(404).json({ error: "INCIDENT_NOT_FOUND" }); return; }
+    res.set("Cache-Control", "no-store").json(preview);
+  };
+
+  /** FIXTURE preview (simulated data, RECOMMENDATION_PREVIEW_FIXTURES=true only): never tied to a real incident, never persisted. */
+  previewFixtures = async (_req: Request, res: Response): Promise<void> => {
+    res.json({ enabled: previewFixturesEnabled(), items: previewFixturesEnabled() ? listPreviewFixtures() : [] });
+  };
+
+  previewFixture = async (req: Request, res: Response): Promise<void> => {
+    if (!previewFixturesEnabled()) { res.status(404).json({ error: "PREVIEW_FIXTURES_DISABLED" }); return; }
+    const preview = await runPreviewFixture(req.params.fixtureId);
+    if (!preview) { res.status(404).json({ error: "FIXTURE_NOT_FOUND" }); return; }
+    res.set("Cache-Control", "no-store").json(preview);
+  };
 
   /** Internal audit of the subtype evaluation (policy decisions, targets, versions, ordering, authority/capability). SOC / IR_TEAM only. */
   getAudit = async (req: Request, res: Response): Promise<void> => {

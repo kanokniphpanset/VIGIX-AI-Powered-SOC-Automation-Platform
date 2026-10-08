@@ -1,0 +1,92 @@
+{
+  "checks": [
+    {
+      "id": "IRR-01",
+      "scenario": "approval attempted by \"SOC\" instead of IR_TEAM",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-02",
+      "scenario": "approval attempted by \"AI_AGENT\" instead of IR_TEAM",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-03",
+      "scenario": "approval attempted by \"admin\" instead of IR_TEAM",
+      "expected": "denied (ADMIN_NOT_APPROVER)",
+      "actual": "ADMIN_NOT_APPROVER",
+      "pass": true
+    },
+    {
+      "id": "IRR-04",
+      "scenario": "IR rejects the recommendation",
+      "expected": "ticket PENDING_MANUAL_DECISION",
+      "actual": "OK; PENDING_MANUAL_DECISION",
+      "pass": true
+    },
+    {
+      "id": "IRR-05",
+      "scenario": "start the response after the reject",
+      "expected": "blocked",
+      "actual": "APPROVAL_PENDING",
+      "pass": true
+    },
+    {
+      "id": "IRR-06",
+      "scenario": "rejected recommendation not executed",
+      "expected": "0 step executions",
+      "actual": "0",
+      "pass": true
+    },
+    {
+      "id": "IRR-07",
+      "scenario": "incident not closed/resolved by the reject",
+      "expected": "status unchanged (open)",
+      "actual": "open",
+      "pass": true
+    },
+    {
+      "id": "IRR-08",
+      "scenario": "no automatic AI regeneration after the reject",
+      "expected": "0 new recommendations / generation attempts",
+      "actual": "1 recommendations (was 1); 0 generation audit records after the reject",
+      "pass": true
+    },
+    {
+      "id": "IRR-09",
+      "scenario": "re-hunt/verification requested before any response completed",
+      "expected": "blocked",
+      "actual": "RESPONSE_NOT_COMPLETED",
+      "pass": true
+    },
+    {
+      "id": "IRR-10",
+      "scenario": "manual decision by SOC",
+      "expected": "denied (ROLE_MISMATCH)",
+      "actual": "ROLE_MISMATCH",
+      "pass": true
+    },
+    {
+      "id": "IRR-11",
+      "scenario": "manual decision by IR without a note",
+      "expected": "denied (NOTE_REQUIRED)",
+      "actual": "NOTE_REQUIRED",
+      "pass": true
+    },
+    {
+      "id": "IRR-12",
+      "scenario": "IR records the Manual Decision",
+      "expected": "ticket READY_FOR_EXECUTION (not executed)",
+      "actual": "OK; READY_FOR_EXECUTION",
+      "pass": true
+    }
+  ],
+  "passed": 12,
+  "total": 12,
+  "planId": "56bce2f0-db5e-4609-9e1a-7aef615a858f",
+  "note": "continues below: start -> manual response -> REAL_WAZUH re-hunt -> verification"
+}

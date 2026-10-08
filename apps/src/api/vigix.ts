@@ -181,6 +181,13 @@ export interface ResponseSetup {
   effective: { allowedActions: string[]; instructions: string | null; source: GuidanceSource }
 }
 
+/** GET /api/v1/incidents/:id/response-group - the incident's group (type + severity), its response policy, its incidents. */
+export interface ResponseGroup {
+  group: { incidentType: string; severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; policyCode: string } | null
+  policy: { code: string; enabled: boolean; version: number; updatedAt: string; allowedActions: string[] | null; note: string | null } | null
+  members: { id: string; title: string; status: string; severity: string; openedAt: string; typeSource: 'SOC' | 'MITRE' }[]
+}
+
 export interface RawAlert {
   id: string
   externalAlertId: string
@@ -326,6 +333,56 @@ export interface Recommendation {
   recommendationText?: string
 }
 
+/** Recommendation Preview (subtype knowledge): read-only, never persisted; no internal ids. */
+export interface RecommendationPreview {
+  available: boolean
+  /** FIXTURE_PREVIEW = simulated data, never the result of a real incident. */
+  source: 'STORED_SHADOW' | 'COMPUTED_PREVIEW' | 'FIXTURE_PREVIEW' | null
+  fixture?: { id: string; title: string; note: string }
+  label: string
+  reviewed: boolean
+  unavailableReason: string | null
+  generatedAt: string
+  investigationNumber: number | null
+  basis: { ticketCount: number; rehunt: { round: number; result: string; verifiedAt: string | null } | null; organizationContextComplete: boolean } | null
+  summary: string | null
+  explain: string[]
+  measures: {
+    label: string
+    target: string | null
+    objective: string
+    instructions: { title: string; method: string | null; methodKind: 'method' | 'detail'; preconditions: string[]; impact: string | null; verify: string | null; rollback: string | null; note: string | null; owner: string | null }[]
+  }[]
+  overallVerify: string[]
+  approvals: { label: string; target: string | null; text: string }[]
+  missingInfo: string[]
+  priorStatus: { category: 'effective' | 'pending' | 'unverified' | 'failed'; label: string; text: string }[]
+  toolNote: string | null
+  text: string | null
+  /** Computed preview: what it was computed from (the incident's real alerts) and what is still missing. */
+  evidenceBasis?: {
+    alerts: {
+      ref: string
+      externalAlertId: string | null
+      eventTime: string | null
+      ingestedAt: string | null
+      provenanceClass: 'REAL_TELEMETRY' | 'HARNESS_GENERATED' | 'MOCK_FIXTURE' | 'UNKNOWN_ORIGIN' | null
+      mapping: 'STORED_V2' | 'ADAPTED_IN_MEMORY' | 'EXTRACT_FAILED' | 'NOT_WAZUH' | 'NO_RAW_ALERT'
+      error: string | null
+      observed: { label: string; value: string }[]
+      unmapped: { label: string; path: string; value: string }[]
+    }[]
+    adaptedInMemory: boolean
+    analystAssertions: number
+    gap: {
+      family: { label: string; source: 'SOC' | 'MITRE' } | null
+      targets: { label: string; value: string; ok: boolean; problems: string[] }[]
+      needed: { subtype: string; items: string[]; notEnough: string[] }[]
+    }
+    familyNote: string | null
+  }
+}
+
 export interface ResponsePlan {
   id: string
   recommendationId: string
@@ -408,6 +465,8 @@ export const incidentsApi = {
   alertFacts: (id: string) => api<IncidentAlertFacts>(`/api/v1/incidents/${id}/alert-facts`),
   /** SOC response setup before a Recommendation: incident type, group / case guidance, what applies now. */
   responseSetup: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-setup`),
+  /** Read-only: the incident's group, its response policy and the incidents in the group. */
+  responseGroup: (id: string) => api<ResponseGroup>(`/api/v1/incidents/${id}/response-group`),
   setIncidentType: (id: string, incidentType: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/incident-type`, { method: 'PUT', body: { incidentType } }),
   setCaseGuidance: (id: string, allowedActions: string[], instructions: string | null) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'PUT', body: { allowedActions, instructions } }),
   clearCaseGuidance: (id: string) => api<ResponseSetup>(`/api/v1/incidents/${id}/response-guidance`, { method: 'DELETE' }),
@@ -421,6 +480,8 @@ export const incidentsApi = {
   investigations: (id: string) => api<{ items: Investigation[] }>(`/api/v1/incidents/${id}/investigations`),
   evidence: (investigationId: string) => api<{ items: Evidence[] } | Evidence[]>(`/api/v1/investigations/${investigationId}/evidence`),
   recommendations: (id: string) => api<{ items: Recommendation[] }>(`/api/incidents/${id}/recommendations`),
+  /** Read-only Recommendation Preview (GET): creates no recommendation, ticket or action. SOC / IR_TEAM. */
+  recommendationPreview: (id: string) => api<RecommendationPreview>(`/api/incidents/${id}/recommendations/preview`),
   responses: (id: string) => api<{ items: ResponsePlan[] }>('/api/responses', { query: { incidentId: id, limit: 100 } }),
   verifications: (id: string) => api<{ items: Verification[] }>(`/api/incidents/${id}/verifications`),
   /** Create Incident from alerts that belong to no incident yet (SOC). */
@@ -497,6 +558,9 @@ export const workflowApi = {
   manualDecision: (responseId: string, note: string) => api<ResponsePlan>(`/api/responses/${responseId}/manual-decision`, { method: 'POST', body: { note } }),
   /** SOC Validation REJECT: rejects the recommendation and closes the incident (note mandatory). */
   rejectRecommendation: (recommendationId: string, note: string) => api<Recommendation>(`/api/recommendations/${recommendationId}/reject`, { method: 'POST', body: { note } }),
+  /** Recommendation Preview with SIMULATED data (backend RECOMMENDATION_PREVIEW_FIXTURES=true); read-only. */
+  previewFixtures: () => api<{ enabled: boolean; items: { id: string; title: string; note: string }[] }>('/api/recommendations/preview-fixtures'),
+  previewFixture: (fixtureId: string) => api<RecommendationPreview>(`/api/recommendations/preview-fixtures/${encodeURIComponent(fixtureId)}`),
   /** IR starts executing an APPROVED ticket. */
   start: (responseId: string) => api<ResponsePlan>(`/api/responses/${responseId}/start`, { method: 'POST', body: {} }),
   complete: (responseId: string, executionResult: Record<string, unknown>) => api<ResponsePlan>(`/api/responses/${responseId}/complete`, { method: 'POST', body: { executionResult } }),
@@ -653,6 +717,8 @@ export interface NotificationRecipient {
   updatedAt: string | null
 }
 export const settingsApi = {
+  emailProvider: () => api<{ configured: boolean; user: string; source: string }>('/api/v1/settings/email-provider'),
+  saveEmailProvider: (user: string, password?: string) => api<{ configured: boolean; user: string; source: string }>('/api/v1/settings/email-provider', { method: 'PUT', body: { user, ...(password ? { password } : {}) } }),
   notificationRecipients: () => api<{ items: NotificationRecipient[] }>('/api/v1/settings/notification-recipients'),
   /** Admin only. email = null clears the Settings value (the server default applies again). */
   setNotificationRecipient: (role: string, email: string | null) =>

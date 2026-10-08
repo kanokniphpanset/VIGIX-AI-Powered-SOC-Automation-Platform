@@ -1,0 +1,25 @@
+{
+  "case_id": "TC-08",
+  "repetition": 4,
+  "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+  "evidence_snapshot_hash": "292813a34da9ca74",
+  "generation_seconds": 71.24,
+  "attempts": 2,
+  "mitre_technique": "T1059.004",
+  "playbook_id": "PB-SUSPICIOUS-PROCESS",
+  "primary_action": null,
+  "target_type": null,
+  "target_value": null,
+  "recommendation_status": "NOT_GENERATED",
+  "validation_status": "INVALID (INVALID_AI_OUTPUT)",
+  "policy_status": "not reached",
+  "all_steps": [],
+  "failure_reason": "INVALID_AI_OUTPUT",
+  "violations": [
+    "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): target \"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\" is not an evidence-linked/analyst-added IOC or an affected host"
+  ],
+  "rerun_after_infrastructure_failure": false,
+  "previous_infrastructure_failures": [],
+  "run_id": "supplementary-consistency-15r:TC-08:r04",
+  "signature": null
+}

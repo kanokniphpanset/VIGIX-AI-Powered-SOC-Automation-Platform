@@ -1,0 +1,37 @@
+{
+  "round": 2,
+  "investigationNumber": 2,
+  "chosenResponseStep": "ACT-BLOCK-DOMAIN→vigix-eval-c2.net",
+  "recommendationUsed": {
+    "number": 1,
+    "investigationNumber": 1,
+    "fallbackToEarlierRecommendation": true
+  },
+  "newRoundRecommendationGeneration": {
+    "attempts": 5,
+    "infra": 0,
+    "ok": false
+  },
+  "responseId": "ff693f81-f186-4158-b4e8-0fe16c727198",
+  "responseCompletedAt": "2026-10-03T12:33:18.390Z",
+  "recurrence": {
+    "simulatedAt": "2026-10-03T12:33:18.390Z",
+    "alertSeenInIndexer": true,
+    "alertId": "1791030800.2031225"
+  },
+  "verification": {
+    "id": "8ec65c73-2f0c-4474-9ebf-ef8aab57c0a1",
+    "result": "NOT_RESOLVED",
+    "matchingEvents": 3,
+    "iocRecurrence": true,
+    "spreadDetected": false,
+    "threatContained": false,
+    "verifiedAt": "2026-10-03T12:33:46.821",
+    "evidenceSource": "WAZUH_INDEXER"
+  },
+  "incidentAfter": {
+    "status": "investigating",
+    "investigationNumber": 3
+  },
+  "continues": true
+}

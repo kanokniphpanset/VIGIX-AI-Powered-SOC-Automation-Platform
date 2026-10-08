@@ -1,0 +1,2068 @@
+{
+  "evaluation": "B_recommendation_consistency",
+  "startedAt": "2026-10-03T12:42:49.447Z",
+  "finishedAt": "2026-10-03T13:11:08.423Z",
+  "database": "soar_supp_consistency_eval",
+  "orchestrator": "http://localhost:8001",
+  "source_run": "final-evaluation-v3.3",
+  "repetitions": 15,
+  "cases": [
+    "TC-03",
+    "TC-08",
+    "TC-10"
+  ],
+  "definition": "identical validated primary recommendation = same playbook + primary action + target type + target value; consistency = modal validated primary / total runs",
+  "firstRoundContext": "the incident's earlier recommendations are hidden from the context (previousSteps=[]) — the condition of the original first-round generation; otherwise the NO_NEW_STEP validator rule would reject any repeat by design",
+  "nothingPersisted": true,
+  "infrastructure_failures": [],
+  "infrastructure_failure_count": 0,
+  "evidenceSnapshots": {
+    "TC-03": {
+      "incidentId": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidenceSnapshotHashes": [
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f",
+        "38ac592e94cd1220360e85189654e1ca454e77315ae06b4b2e6c021efe7ee50f"
+      ],
+      "iocCount": 5,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-PHISHING",
+      "matchedTechniques": [
+        "T1566.002"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-QUARANTINE-EMAIL",
+        "ACT-BLOCK-URL",
+        "ACT-BLOCK-DOMAIN",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    },
+    "TC-08": {
+      "incidentId": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidenceSnapshotHashes": [
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490",
+        "292813a34da9ca74763aa14389b99a70080750ce0e7afc087167aeb4e13bf490"
+      ],
+      "iocCount": 6,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-SUSPICIOUS-PROCESS",
+      "matchedTechniques": [
+        "T1059.004"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-KILL-PROCESS",
+        "ACT-QUARANTINE-FILE",
+        "ACT-BLOCK-HASH",
+        "ACT-ISOLATE-ENDPOINT"
+      ]
+    },
+    "TC-10": {
+      "incidentId": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidenceSnapshotHashes": [
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991",
+        "4b0ac4d0a6575d7363d87a189217605d8f040adb1c52b212fe7d17efb60ba991"
+      ],
+      "iocCount": 1,
+      "evidenceRows": 1,
+      "affectedHosts": [
+        "attack-endpoint"
+      ],
+      "playbook": "PB-ACCOUNT-COMPROMISE",
+      "matchedTechniques": [
+        "T1098"
+      ],
+      "mitreMappings": [],
+      "recommendableActions": [
+        "ACT-DISABLE-ACCOUNT",
+        "ACT-ISOLATE-ENDPOINT",
+        "ACT-RESET-CREDENTIAL",
+        "ACT-REVOKE-SESSION"
+      ]
+    }
+  },
+  "overall": {
+    "runs": 45,
+    "consistent_runs": 44,
+    "consistency_pct": 97.78,
+    "per_case_mean_pct": 97.78,
+    "per_case_sd_pct": 3.85,
+    "validated_runs": 44,
+    "all_evidence_snapshots_identical": true
+  },
+  "perCase": [
+    {
+      "case_id": "TC-03",
+      "runs": 15,
+      "validated_runs": 15,
+      "consistent_runs": 15,
+      "consistency_pct": 100,
+      "modal_primary": "PB-PHISHING|ACT-QUARANTINE-EMAIL|email|it-support@vigix-eval-phish.net",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-PHISHING|ACT-QUARANTINE-EMAIL|email|it-support@vigix-eval-phish.net": 15
+      },
+      "step_set_agreement_runs": 12,
+      "step_set_agreement_pct": 80,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 15,
+        "mean": 37.2,
+        "median": 34.43,
+        "min": 28.75,
+        "max": 64.19,
+        "sd": 10.14
+      }
+    },
+    {
+      "case_id": "TC-08",
+      "runs": 15,
+      "validated_runs": 14,
+      "consistent_runs": 14,
+      "consistency_pct": 93.33,
+      "modal_primary": "PB-SUSPICIOUS-PROCESS|ACT-KILL-PROCESS|process|/tmp/.cache/kworkerd",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-SUSPICIOUS-PROCESS|ACT-KILL-PROCESS|process|/tmp/.cache/kworkerd": 14
+      },
+      "step_set_agreement_runs": 13,
+      "step_set_agreement_pct": 86.67,
+      "failed_runs": [
+        {
+          "repetition": 4,
+          "reason": "INVALID_AI_OUTPUT"
+        }
+      ],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 15,
+        "mean": 47.15,
+        "median": 35.68,
+        "min": 29.69,
+        "max": 74.27,
+        "sd": 17.45
+      }
+    },
+    {
+      "case_id": "TC-10",
+      "runs": 15,
+      "validated_runs": 15,
+      "consistent_runs": 15,
+      "consistency_pct": 100,
+      "modal_primary": "PB-ACCOUNT-COMPROMISE|ACT-DISABLE-ACCOUNT|account|evaluser",
+      "distinct_primary_recommendations": 1,
+      "distribution": {
+        "PB-ACCOUNT-COMPROMISE|ACT-DISABLE-ACCOUNT|account|evaluser": 15
+      },
+      "step_set_agreement_runs": 8,
+      "step_set_agreement_pct": 53.33,
+      "failed_runs": [],
+      "evidence_snapshot_identical_across_runs": true,
+      "generation_seconds": {
+        "n": 15,
+        "mean": 28.63,
+        "median": 26.51,
+        "min": 19.99,
+        "max": 57.46,
+        "sd": 10.65
+      }
+    }
+  ],
+  "runs": [
+    {
+      "case_id": "TC-03",
+      "repetition": 1,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 42.28,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r01",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 2,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 37.21,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r02",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|ISOLATE-ENDPOINT::attack-endpoint|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 3,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 35.58,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r03",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 4,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 28.75,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r04",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 5,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 34.43,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r05",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 6,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 29.26,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r06",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 7,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 34.1,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r07",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 8,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 37.24,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r08",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|ISOLATE-ENDPOINT::attack-endpoint|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 9,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 38.57,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r09",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|ISOLATE-ENDPOINT::attack-endpoint|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 10,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 29.36,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r10",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 11,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 64.19,
+      "attempts": 2,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r11",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 12,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 29.47,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r12",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 13,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 55.4,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r13",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 14,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 30.02,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r14",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-03",
+      "repetition": 15,
+      "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+      "evidence_snapshot_hash": "38ac592e94cd1220",
+      "generation_seconds": 32.12,
+      "attempts": 1,
+      "mitre_technique": "T1566.002",
+      "playbook_id": "PB-PHISHING",
+      "primary_action": "ACT-QUARANTINE-EMAIL",
+      "target_type": "email",
+      "target_value": "it-support@vigix-eval-phish.net",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-QUARANTINE-EMAIL",
+          "target": "it-support@vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-BLOCK-DOMAIN",
+          "target": "vigix-eval-phish.net",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-URL",
+          "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-03:r15",
+      "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 1,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 35.88,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r01",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 2,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 30.38,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r02",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 3,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 74.27,
+      "attempts": 2,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r03",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 4,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 71.24,
+      "attempts": 2,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": null,
+      "target_type": null,
+      "target_value": null,
+      "recommendation_status": "NOT_GENERATED",
+      "validation_status": "INVALID (INVALID_AI_OUTPUT)",
+      "policy_status": "not reached",
+      "all_steps": [],
+      "failure_reason": "INVALID_AI_OUTPUT",
+      "violations": [
+        "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): target \"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\" is not an evidence-linked/analyst-added IOC or an affected host"
+      ],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r04",
+      "signature": null
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 5,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 35.68,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r05",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 6,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 60.67,
+      "attempts": 2,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r06",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 7,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 34.07,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r07",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 8,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 34.28,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r08",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 9,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 29.69,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r09",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 10,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 59.52,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r10",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 11,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 67.58,
+      "attempts": 2,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r11",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 12,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 34.9,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r12",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 13,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 35.63,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r13",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 14,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 70.28,
+      "attempts": 2,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        },
+        {
+          "order": 4,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r14",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|ISOLATE-ENDPOINT::attack-endpoint|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-08",
+      "repetition": 15,
+      "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+      "evidence_snapshot_hash": "292813a34da9ca74",
+      "generation_seconds": 33.17,
+      "attempts": 1,
+      "mitre_technique": "T1059.004",
+      "playbook_id": "PB-SUSPICIOUS-PROCESS",
+      "primary_action": "ACT-KILL-PROCESS",
+      "target_type": "process",
+      "target_value": "/tmp/.cache/kworkerd",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-KILL-PROCESS",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 2,
+          "action": "ACT-QUARANTINE-FILE",
+          "target": "/tmp/.cache/kworkerd",
+          "requiresApproval": false
+        },
+        {
+          "order": 3,
+          "action": "ACT-BLOCK-HASH",
+          "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+          "requiresApproval": false
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-08:r15",
+      "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 1,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 26.51,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r01",
+      "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 2,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 30.12,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r02",
+      "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 3,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 57.46,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r03",
+      "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 4,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 30.92,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r04",
+      "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 5,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 21.16,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r05",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 6,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 21.06,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r06",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 7,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 23.06,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r07",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 8,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 21.02,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r08",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 9,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 28.61,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r09",
+      "signature": "DISABLE-ACCOUNT::evaluser|ISOLATE-ENDPOINT::attack-endpoint|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 10,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 20.91,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r10",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 11,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 23.45,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r11",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 12,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 28.36,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-RESET-CREDENTIAL",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r12",
+      "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 13,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 19.99,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r13",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 14,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 28.63,
+      "attempts": 1,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 3,
+          "action": "ACT-ISOLATE-ENDPOINT",
+          "target": "attack-endpoint",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r14",
+      "signature": "DISABLE-ACCOUNT::evaluser|ISOLATE-ENDPOINT::attack-endpoint|REVOKE-SESSION::evaluser"
+    },
+    {
+      "case_id": "TC-10",
+      "repetition": 15,
+      "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+      "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+      "generation_seconds": 48.14,
+      "attempts": 2,
+      "mitre_technique": "T1098",
+      "playbook_id": "PB-ACCOUNT-COMPROMISE",
+      "primary_action": "ACT-DISABLE-ACCOUNT",
+      "target_type": "account",
+      "target_value": "evaluser",
+      "recommendation_status": "VALIDATED",
+      "validation_status": "VALIDATED",
+      "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+      "all_steps": [
+        {
+          "order": 1,
+          "action": "ACT-DISABLE-ACCOUNT",
+          "target": "evaluser",
+          "requiresApproval": true
+        },
+        {
+          "order": 2,
+          "action": "ACT-REVOKE-SESSION",
+          "target": "evaluser",
+          "requiresApproval": true
+        }
+      ],
+      "failure_reason": null,
+      "violations": [],
+      "rerun_after_infrastructure_failure": false,
+      "previous_infrastructure_failures": [],
+      "run_id": "supplementary-consistency-15r:TC-10:r15",
+      "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser"
+    }
+  ]
+}

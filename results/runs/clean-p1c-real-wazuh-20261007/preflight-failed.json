@@ -1,0 +1,98 @@
+{
+  "RUN_LABEL": "clean-p1c-real-wazuh-20261007",
+  "pre": {
+    "checks": [
+      {
+        "name": "evaluation database",
+        "ok": true,
+        "detail": "connected to 'soar_p1c_eval' (must end with _eval; soar_platform is never touched)"
+      },
+      {
+        "name": "REHUNT_PROVIDER",
+        "ok": true,
+        "detail": "REHUNT_PROVIDER=wazuh — mock would make verification MOCK"
+      },
+      {
+        "name": "recommendation agent",
+        "ok": true,
+        "detail": "RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)"
+      },
+      {
+        "name": "AI orchestrator (eval instance)",
+        "ok": true,
+        "detail": "http://localhost:8001 -> {\"status\":\"ok\",\"service\":\"soar-ai-orchestrator\"}"
+      },
+      {
+        "name": "Wazuh Indexer + re-hunt provider",
+        "ok": false,
+        "detail": "WazuhRehuntAdapter health: reachable=false cluster=undefined indices=undefined pattern=wazuh-alerts-4.x-* error=Wazuh Indexer is not configured (WAZUH_INDEXER_URL/USERNAME/PASSWORD)."
+      },
+      {
+        "name": "Wazuh manager API",
+        "ok": false,
+        "detail": "NOT_CONFIGURED: Set WAZUH_API_URL / WAZUH_API_USERNAME / WAZUH_API_PASSWORD to check the Wazuh manager (alerts still arrive by webhook)."
+      },
+      {
+        "name": "Wazuh agent attack-endpoint",
+        "ok": true,
+        "detail": "ID: 009, Name: attack-endpoint, IP: any, Active"
+      },
+      {
+        "name": "custom rule 100310 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100320 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100330 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100340 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "custom rule 100350 loaded",
+        "ok": true,
+        "detail": "wazuh-logtest on the manager"
+      },
+      {
+        "name": "Knowledge Base complete for ground truth",
+        "ok": true,
+        "detail": "11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present"
+      }
+    ],
+    "kbGaps": [],
+    "env": {
+      "wazuhVersion": "WAZUH_VERSION=\"v4.9.2\" WAZUH_REVISION=\"40921\" WAZUH_TYPE=\"server\" ",
+      "wazuhAgent": "ID: 009, Name: attack-endpoint, IP: any, Active",
+      "wazuhManagerApi": {
+        "status": "NOT_CONFIGURED",
+        "detail": "Set WAZUH_API_URL / WAZUH_API_USERNAME / WAZUH_API_PASSWORD to check the Wazuh manager (alerts still arrive by webhook).",
+        "latencyMs": null
+      },
+      "indexer": {
+        "configured": false,
+        "reachable": false,
+        "indexPattern": "wazuh-alerts-4.x-*",
+        "error": "Wazuh Indexer is not configured (WAZUH_INDEXER_URL/USERNAME/PASSWORD)."
+      },
+      "aiOrchestrator": "http://localhost:8001",
+      "llm": {
+        "provider": "openai-compatible",
+        "model": "vllm-spark-01/gemma4-26b-uncensored",
+        "note": ""
+      },
+      "database": "soar_p1c_eval",
+      "verificationModeConfigured": "REAL_WAZUH (REHUNT_PROVIDER=wazuh)",
+      "recommendationAgent": "llm",
+      "node": "v24.19.0"
+    }
+  }
+}

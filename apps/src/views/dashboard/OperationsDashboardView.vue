@@ -19,8 +19,8 @@ import { activityText, attention, caseFlow, dueText, glossary, healthSummary, my
  *   2. needs attention — only what needs action now (SLA, escalations, failures, systems down),
  *      with the most urgent SLA cases listed inline
  *   3. case flow — every stage of the SOC → IR flow, clickable
- *   4. statistics & trends (collapsed for SOC / IR, open for admin) — full SLA list, KPIs, trend, threats, activity
- *   5. technical details (collapsed) — system health, AI queue, workload, raw counts
+ *   4. statistics & trends — full SLA list, KPIs, trend, threats, activity
+ *   5. technical details — system health, AI queue, workload, raw counts
  * Every number comes from the backend; nothing is computed from guesses. Text follows the TH / EN switch.
  */
 const router = useRouter()
@@ -88,8 +88,6 @@ function go(to: string | null) {
   if (!to) return
   if (to.startsWith('#')) {
     const el = document.getElementById(to.slice(1))
-    const fold = el?.closest('details') // the target may sit in a collapsed section — open it for the user
-    if (fold) fold.open = true
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   } else void router.push(to)
 }
@@ -97,28 +95,10 @@ function go(to: string | null) {
 // SLA: the most urgent first (breached, then at risk)
 const SLA_ORDER: Record<string, number> = { BREACHED: 0, AT_RISK: 1, ON_TRACK: 2, NOT_STARTED: 3 }
 const slaRows = computed(() => [...(d.value?.sla.watchlist ?? [])].sort((a, b) => (SLA_ORDER[a.slaStatus] ?? 9) - (SLA_ORDER[b.slaStatus] ?? 9) || a.dueAt.localeCompare(b.dueAt)))
-const showAllSla = ref(false)
 const SLA_TONE: Record<string, string> = { BREACHED: TONE.danger, AT_RISK: TONE.warning, ON_TRACK: TONE.ok, MET: TONE.ok }
 /** The few SLA cases shown inside "needs attention"; the full list lives in the statistics section. */
 const urgentSla = computed(() => slaRows.value.filter((w) => w.slaStatus === 'BREACHED' || w.slaStatus === 'AT_RISK').slice(0, 3))
 
-// Statistics & trends: open by default for admin only; each user's own choice is remembered on this browser.
-const STATS_KEY = `vigix.dashboard.statsOpen.${session.session?.email ?? 'anon'}`
-function readStatsOpen(): boolean | null {
-  try {
-    const v = localStorage.getItem(STATS_KEY)
-    return v === null ? null : v === '1'
-  } catch {
-    return null
-  }
-}
-const statsOpen = ref(readStatsOpen() ?? role.value === 'admin')
-function onStatsToggle(e: Event) {
-  const open = (e.target as HTMLDetailsElement).open
-  if (open === statsOpen.value) return // the browser also fires "toggle" when the initial state renders — not a user choice
-  statsOpen.value = open
-  try { localStorage.setItem(STATS_KEY, statsOpen.value ? '1' : '0') } catch { /* storage blocked — keep the in-memory state */ }
-}
 
 // Trend + severity
 const dailyLabels = computed(() => (d.value?.alerts.daily ?? []).map((x) => new Date(`${x.date}T00:00:00Z`).toLocaleDateString(L.value === 'th' ? 'th-TH' : 'en-GB', { month: 'short', day: 'numeric' })))
@@ -258,9 +238,9 @@ const known = (prefix: string, value: string) => {
         </div>
       </section>
 
-      <!-- 4. Statistics & trends (collapsed for SOC / IR) -->
-      <details id="stats" class="scroll-mt-4 rounded-2xl bg-white ring-1 ring-slate-200" :open="statsOpen" @toggle="onStatsToggle">
-        <summary class="cursor-pointer select-none px-5 py-4 text-base font-semibold text-slate-900">{{ t('dash.stats.title') }} <span class="text-sm font-normal text-slate-500">{{ t('dash.stats.hint') }}</span></summary>
+      <!-- 4. Statistics & trends -->
+      <section id="stats" class="scroll-mt-4 rounded-2xl bg-white ring-1 ring-slate-200">
+        <h2 class="px-5 py-4 text-base font-semibold text-slate-900">{{ t('dash.stats.title') }} <span class="text-sm font-normal text-slate-500">{{ t('dash.stats.hint') }}</span></h2>
         <div class="space-y-6 border-t border-slate-100 bg-slate-50/60 p-5">
           <label class="flex items-center gap-2 text-sm text-slate-600">{{ t('dash.period') }}
             <select v-model.number="days" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
@@ -277,7 +257,7 @@ const known = (prefix: string, value: string) => {
             <p v-if="slaRows.length && d.sla.breached + d.sla.atRisk > slaRows.length" class="mb-2 text-xs text-slate-500">{{ t('dash.sla.partial', { n: slaRows.length }) }} <router-link to="/incidents?view=investigation" class="font-medium text-accent-700 hover:underline">{{ t('dash.sla.partialLink') }}</router-link></p>
             <p v-if="!slaRows.length" class="py-6 text-center text-sm text-slate-500">{{ t('dash.sla.none') }}</p>
             <ul v-else class="divide-y divide-slate-100">
-              <li v-for="w in showAllSla ? slaRows : slaRows.slice(0, 5)" :key="w.incidentId + w.clock">
+              <li v-for="w in slaRows" :key="w.incidentId + w.clock">
                 <button type="button" class="flex w-full flex-wrap items-center gap-3 px-1 py-2.5 text-left hover:bg-slate-50" @click="go(`/incidents/${w.incidentId}`)">
                   <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset" :class="SLA_TONE[w.slaStatus] ?? 'bg-slate-100 text-slate-600 ring-slate-200'">{{ slaText(w.slaStatus, L) }}</span>
                   <span class="min-w-[12rem] flex-1 truncate text-sm font-medium text-slate-800" :title="w.title">{{ w.title }}</span>
@@ -287,7 +267,6 @@ const known = (prefix: string, value: string) => {
                 </button>
               </li>
             </ul>
-            <button v-if="slaRows.length > 5" type="button" class="mt-2 text-sm font-medium text-accent-700 hover:underline" @click="showAllSla = !showAllSla">{{ showAllSla ? t('common.showLess') : t('dash.sla.more', { n: slaRows.length }) }}</button>
           </section>
 
           <!-- Statistics -->
@@ -384,11 +363,11 @@ const known = (prefix: string, value: string) => {
           </section>
 
         </div>
-      </details>
+      </section>
 
       <!-- 5. Technical details -->
-      <details id="tech" class="scroll-mt-4 rounded-2xl bg-white ring-1 ring-slate-200">
-        <summary class="cursor-pointer select-none px-5 py-4 text-base font-semibold text-slate-900">{{ t('dash.tech.title') }} <span class="text-sm font-normal text-slate-500">{{ t('dash.tech.hint') }}</span></summary>
+      <section id="tech" class="scroll-mt-4 rounded-2xl bg-white ring-1 ring-slate-200">
+        <h2 class="px-5 py-4 text-base font-semibold text-slate-900">{{ t('dash.tech.title') }} <span class="text-sm font-normal text-slate-500">{{ t('dash.tech.hint') }}</span></h2>
         <div class="space-y-5 border-t border-slate-100 px-5 py-5">
           <div>
             <h3 class="mb-2 text-sm font-semibold text-slate-800">{{ t('dash.tech.health') }}</h3>
@@ -436,7 +415,7 @@ const known = (prefix: string, value: string) => {
           </div>
           <p class="text-[11px] text-slate-400">{{ t('dash.tech.source', { at: formatDateTime(d.generatedAt) }) }}</p>
         </div>
-      </details>
+      </section>
     </template>
   </div>
 </template>

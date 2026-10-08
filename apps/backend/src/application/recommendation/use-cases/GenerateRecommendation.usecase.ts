@@ -102,15 +102,6 @@ export class GenerateRecommendationUseCase {
     if (contextResult.isFailure) return Result.fail("INCIDENT_NOT_FOUND");
     const { context, provenance } = contextResult.value;
 
-    // Investigation-only UNKNOWN_INCIDENT output has no published revision to pin.
-    // Report the missing playbook before asking the LLM or attempting an incomplete snapshot.
-    if (!context.playbook && !provenance) {
-      await this.auditFailure(input, context.investigationNumber, "PLAYBOOK_PROVENANCE_NOT_FOUND", ["NO_PLAYBOOK"], {
-        nextStep: "ADDITIONAL_INVESTIGATION_OR_PUBLISH_MATCHING_PLAYBOOK",
-      });
-      return Result.fail("PLAYBOOK_PROVENANCE_NOT_FOUND");
-    }
-
     // Subtype knowledge: evaluation never breaks the legacy flow - any failure is audited and the legacy path continues.
     let evaluation: SubtypeEvaluation | null = null;
     if (this.subtype) {
@@ -126,6 +117,25 @@ export class GenerateRecommendationUseCase {
       if (mapped.ok) return this.persistSubtype(input, context, provenance, evaluation, mapped);
       evaluation = { ...evaluation, effectiveMode: "shadow", fallbackReason: mapped.reason };
     }
+    // A requested subtype replacement must never silently regenerate legacy recommendations.
+    // Review, evidence, capability and catalog prerequisites remain mandatory.
+    if (this.subtype && (evaluation?.requestedMode === "enforce" || (!evaluation && (process.env.SUBTYPE_KNOWLEDGE_MODE ?? "enforce") === "enforce"))) {
+      if (evaluation) await this.saveAudit(input, context, evaluation, null, "ENFORCE_FALLBACK");
+      await this.auditFailure(input, context.investigationNumber, "INSUFFICIENT_EVIDENCE", [], {
+        nextStep: "REVIEW_SUBTYPE_READINESS",
+        reason: evaluation?.fallbackReason ?? "SUBTYPE_EVALUATION_UNAVAILABLE",
+      });
+      return Result.fail("INSUFFICIENT_EVIDENCE");
+    }
+    // Investigation-only UNKNOWN_INCIDENT output has no published revision to pin.
+    // Report the missing playbook before asking the LLM or attempting an incomplete snapshot.
+    if (!context.playbook && !provenance) {
+      await this.auditFailure(input, context.investigationNumber, "PLAYBOOK_PROVENANCE_NOT_FOUND", ["NO_PLAYBOOK"], {
+        nextStep: "ADDITIONAL_INVESTIGATION_OR_PUBLISH_MATCHING_PLAYBOOK",
+      });
+      return Result.fail("PLAYBOOK_PROVENANCE_NOT_FOUND");
+    }
+
     const result = await this.legacyPath(input, context, provenance);
     if (evaluation && this.subtype) await this.saveAudit(input, context, evaluation, result.isSuccess ? result.value.id : null, evaluation.requestedMode === "enforce" ? "ENFORCE_FALLBACK" : "SHADOW");
     return result;

@@ -1,4 +1,6 @@
 import type { Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
+import { emailSettingsStatus, readEmailSettings } from "./EmailSettingsStore";
 import { INotificationChannelAdapter, NotificationSendInput, NotificationDeliveryOutcome } from "../../application/notification/ports/INotificationChannelAdapter";
 
 /**
@@ -18,24 +20,30 @@ export class EmailNotificationAdapter implements INotificationChannelAdapter {
   ) {}
 
   isConfigured(): boolean {
+    try { if (emailSettingsStatus().source === "settings") return emailSettingsStatus().configured; } catch { return false; }
     return this.transporter !== null && !!this.fromAddress;
   }
 
   async send(input: NotificationSendInput): Promise<NotificationDeliveryOutcome> {
-    if (!this.transporter || !this.fromAddress) {
+    let saved;
+    try { saved = readEmailSettings(); }
+    catch { return { status: "FAILED", channel: this.channel, errorMessage: "Email credential unavailable" }; }
+    const transporter = saved ? nodemailer.createTransport({ host: "smtp.gmail.com", port: 587, secure: false, requireTLS: true, auth: { user: saved.user, pass: saved.password }, connectionTimeout: 10000, socketTimeout: 20000 }) : this.transporter;
+    const fromAddress = saved?.user ?? this.fromAddress;
+    if (!transporter || !fromAddress) {
       return { status: "FAILED", channel: this.channel, errorMessage: "Email not configured (EMAIL_HOST/EMAIL_FROM missing)" };
     }
 
     try {
-      const info = await this.transporter.sendMail({
-        from: this.fromAddress,
+      const info = await transporter.sendMail({
+        from: fromAddress,
         to: input.recipient,
         subject: input.subject ?? "VIGIX Notification",
         text: input.body,
       });
       return { status: "SENT", channel: this.channel, providerMessageId: info.messageId, deliveredAt: new Date() };
     } catch (err) {
-      return { status: "FAILED", channel: this.channel, errorMessage: this.redact(this.toMessage(err)) };
+      return { status: "FAILED", channel: this.channel, errorMessage: saved ? "Gmail delivery failed; check sender credentials and provider settings" : this.redact(this.toMessage(err)) };
     }
   }
 

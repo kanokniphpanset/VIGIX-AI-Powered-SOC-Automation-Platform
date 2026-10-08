@@ -1,0 +1,37 @@
+{
+  "round": 1,
+  "investigationNumber": 1,
+  "chosenResponseStep": "ACT-BLOCK-DESTINATION-IP→172.19.0.7",
+  "recommendationUsed": {
+    "number": 1,
+    "investigationNumber": 1,
+    "fallbackToEarlierRecommendation": false
+  },
+  "newRoundRecommendationGeneration": {
+    "attempts": 1,
+    "infra": 0,
+    "ok": true
+  },
+  "responseId": "7856b5e5-126a-48ee-af71-a6fd0bf4dac6",
+  "responseCompletedAt": "2026-10-03T12:32:50.207Z",
+  "recurrence": {
+    "simulatedAt": "2026-10-03T12:32:50.207Z",
+    "alertSeenInIndexer": true,
+    "alertId": "1791030772.2028579"
+  },
+  "verification": {
+    "id": "d59bc04b-94b2-4045-8113-fd565d3ef5ed",
+    "result": "NOT_RESOLVED",
+    "matchingEvents": 3,
+    "iocRecurrence": true,
+    "spreadDetected": false,
+    "threatContained": false,
+    "verifiedAt": "2026-10-03T12:33:14.649",
+    "evidenceSource": "WAZUH_INDEXER"
+  },
+  "incidentAfter": {
+    "status": "investigating",
+    "investigationNumber": 2
+  },
+  "continues": true
+}

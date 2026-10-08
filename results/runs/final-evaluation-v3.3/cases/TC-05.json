@@ -1,0 +1,201 @@
+{
+  "caseId": "TC-05",
+  "attackType": "POWERSHELL",
+  "attackName": "PowerShell",
+  "severity": "high",
+  "risk": null,
+  "incidentId": "bc019322-f345-40a7-bded-170094002ff7",
+  "alertId": "c783f8d2-f01c-4098-ad56-df4be7f396aa",
+  "investigationId": "400858e7-6950-4a9b-916b-eeedd4eac150",
+  "recommendationId": null,
+  "playbookCode": null,
+  "decisionId": null,
+  "responseTicketId": null,
+  "verificationId": null,
+  "recommendationStatus": null,
+  "compliance": null,
+  "recommendationCompliance": "NOT_EVALUATED",
+  "investigationStartAt": "2026-10-03T11:49:38.886Z",
+  "recommendationAt": null,
+  "decisionAt": null,
+  "investigationTimeSeconds": null,
+  "timeToDecisionSeconds": null,
+  "workflow": {
+    "alertIngested": true,
+    "incidentCreated": true,
+    "aiAnalysisCompleted": true,
+    "investigationCompleted": false,
+    "recommendationCreated": false,
+    "recommendationValidated": false,
+    "policyEvaluated": false,
+    "decisionCompleted": false,
+    "responseCompleted": false,
+    "verificationCompleted": false,
+    "rehuntExecuted": false
+  },
+  "workflowCompleted": false,
+  "finalStatus": "open",
+  "verificationMode": "NONE",
+  "verificationResult": null,
+  "rehuntRound": null,
+  "recommendationAttemptCount": 5,
+  "invalidOutputCount": 5,
+  "interventionRequired": true,
+  "interventionType": [
+    "ANALYST_IOC_CORRECTION"
+  ],
+  "findings": [
+    "(ground-truth note) REAL_WAZUH controlled scenario: the endpoint activity is real (Sysmon event 22 raised by powershell.exe) but the rule is a custom rule (100300) that matches this exact lab name; the stock ruleset has no rule for a PowerShell DNS query. Reported as CUSTOM_RULE_REAL_ACTION, never as a stock detection.",
+    "(ground-truth note) The scenario proves PowerShell/DNS activity only. It does not prove that the endpoint was compromised, so ACT-ISOLATE-ENDPOINT is not an expected action (Correct Recommendation GT v3.3).",
+    "(ground-truth note) Wazuh's eventchannel decoder doubles the backslashes inside data.win.eventdata.image and .user; the extractor reports them as stated."
+  ],
+  "notes": "",
+  "mode": "CUSTOM_RULE_REAL_ACTION",
+  "telemetry": "REAL_WINDOWS_SYSMON_CUSTOM_RULE",
+  "simulation": {
+    "caseId": "TC-05",
+    "startedAt": "2026-10-03T11:48:46.637Z",
+    "endedAt": "2026-10-03T11:48:46.637Z",
+    "telemetry": "REAL_WINDOWS_SYSMON_CUSTOM_RULE",
+    "facts": {
+      "attackerIp": "172.19.0.3",
+      "endpointIp": "172.19.0.8",
+      "testServerIp": "172.19.0.7",
+      "windowsAgent": "vigix-win10-ps",
+      "domain": "vigix-eval-ps-stager.test",
+      "triggerMode": "manual",
+      "command": "powershell.exe -NoProfile -Command \"try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }\""
+    },
+    "notes": [
+      "Operator-triggered: the scenario command is run by a person on the Windows endpoint; detection latency therefore includes the operator's reaction time.",
+      "Scenario: TC-05 PowerShell DNS scenario. Expected telemetry: Sysmon event 22 (DnsQuery): image=powershell.exe, queryName=vigix-eval-ps-stager.test. Nothing is simulated by the harness; the alert is read from the Wazuh Indexer."
+    ]
+  },
+  "wazuh": {
+    "indexerDocId": "kcGZAaEBT0qgUD4hHFC_",
+    "alertId": "1791028170.1936062",
+    "timestamp": "2026-10-03T11:49:30.219+0000",
+    "ruleId": "100300",
+    "level": 12,
+    "description": "VIGIX-EVAL: PowerShell resolved a lab stager hostname (Sysmon DNS query)",
+    "mitre": [
+      "T1059.001"
+    ],
+    "agent": "vigix-win10-ps",
+    "srcip": null,
+    "stockRule": false,
+    "ruleMatch": true,
+    "levelMatch": true,
+    "mitreMatch": true,
+    "detectionLatencySeconds": 43.58
+  },
+  "groundTruth": {
+    "caseId": "TC-05",
+    "ruleId": "100300",
+    "attackName": "PowerShell",
+    "attackType": "POWERSHELL",
+    "mode": "CUSTOM_RULE_REAL_ACTION",
+    "simulation": "REAL Windows 10 endpoint (Wazuh agent 4.9.2 + Sysmon): powershell.exe resolves the reserved-TLD lab name vigix-eval-ps-stager.test (DNS query only: nothing is downloaded or changed) -> Sysmon event 22 -> custom rule 100300",
+    "expectedWazuh": {
+      "ruleId": "100300",
+      "level": 12,
+      "stockRule": false
+    },
+    "expectedSeverity": "high",
+    "expectedMitre": [
+      "T1059.001"
+    ],
+    "expectedIocs": [
+      {
+        "type": "domain",
+        "value": "vigix-eval-ps-stager.test"
+      }
+    ],
+    "allowedActions": [
+      "ACT-ISOLATE-ENDPOINT",
+      "ACT-BLOCK-DOMAIN",
+      "ACT-BLOCK-URL",
+      "ACT-BLOCK-SOURCE-IP",
+      "ACT-DISABLE-ACCOUNT",
+      "ACT-KILL-PROCESS",
+      "ACT-QUARANTINE-FILE",
+      "ACT-BLOCK-HASH"
+    ],
+    "expectedActions": [
+      "ACT-BLOCK-DOMAIN"
+    ],
+    "expectedTargets": [
+      "vigix-eval-ps-stager.test"
+    ],
+    "expectedPlaybook": "PB-POWERSHELL",
+    "approvalExpected": true,
+    "expectedPolicy": "RULE-P07 (severity HIGH) IR_TEAM approval; POL-A02 action compliance (BLOCK-DOMAIN)",
+    "expectedApproval": "IR_TEAM approval required (Policy RULE-P07, severity HIGH) before any containment; AI never approves",
+    "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+    "knownFindings": [
+      "REAL_WAZUH controlled scenario: the endpoint activity is real (Sysmon event 22 raised by powershell.exe) but the rule is a custom rule (100300) that matches this exact lab name; the stock ruleset has no rule for a PowerShell DNS query. Reported as CUSTOM_RULE_REAL_ACTION, never as a stock detection.",
+      "The scenario proves PowerShell/DNS activity only. It does not prove that the endpoint was compromised, so ACT-ISOLATE-ENDPOINT is not an expected action (Correct Recommendation GT v3.3).",
+      "Wazuh's eventchannel decoder doubles the backslashes inside data.win.eventdata.image and .user; the extractor reports them as stated."
+    ]
+  },
+  "interventions": [
+    {
+      "type": "ANALYST_IOC_CORRECTION",
+      "detail": "promoted existing DOMAIN IOC vigix-eval-ps-stager.test to analyst-confirmed/actionable"
+    }
+  ],
+  "observations": [
+    "NO_VALID_RECOMMENDATION after 5 model attempts"
+  ],
+  "timeline": {
+    "simulationStart": "2026-10-03T11:48:46.637Z",
+    "wazuhAlertTimestamp": "2026-10-03T11:49:30.219+0000",
+    "alertReceivedByVigix": "2026-10-03T11:49:38.856Z",
+    "incidentOpened": "2026-10-03T11:49:38.880Z",
+    "investigationStart": "2026-10-03T11:49:38.886Z",
+    "recommendationCreated": null,
+    "irDecision": null,
+    "responseCompleted": null,
+    "verificationAt": null,
+    "detectionLatencySeconds": 43.58,
+    "ingestToRecommendationSeconds": null
+  },
+  "iocRecall": {
+    "expected": 1,
+    "found": 1,
+    "missing": []
+  },
+  "actionMatch": null,
+  "verificationDetail": null,
+  "rehuntError": null,
+  "timingMode": "OPERATOR_TRIGGERED",
+  "environmentStatus": "AVAILABLE",
+  "correctnessGroundTruth": {
+    "caseId": "TC-05",
+    "expectedPlaybook": "PB-POWERSHELL",
+    "expectedRecommendations": [
+      {
+        "action": "ACT-BLOCK-DOMAIN",
+        "targets": [
+          {
+            "type": "domain",
+            "value": "vigix-eval-ps-stager.test"
+          }
+        ],
+        "rationale": "Playbook standard step 2: block the stager/C2 domain recorded in the evidence. REAL_WAZUH scenario: Sysmon event 22 queryName, rule 100300 L12 T1059.001.",
+        "source": {
+          "kind": "PLAYBOOK_STANDARD_STEP",
+          "playbook": "PB-POWERSHELL",
+          "stepOrder": 2,
+          "targetFrom": {
+            "kind": "REAL_WAZUH_SCENARIO",
+            "ruleId": "100300",
+            "field": "data.win.eventdata.queryName"
+          }
+        }
+      }
+    ]
+  },
+  "correctRecommendation": null,
+  "irReject": null
+}

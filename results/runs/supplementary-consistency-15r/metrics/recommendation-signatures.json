@@ -1,0 +1,115 @@
+{
+  "TC-03": {
+    "validRuns": 15,
+    "signatures": [
+      {
+        "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net",
+        "count": 12,
+        "share": "12/15",
+        "runs": [
+          "supplementary-consistency-15r:TC-03:r01",
+          "supplementary-consistency-15r:TC-03:r03",
+          "supplementary-consistency-15r:TC-03:r04",
+          "supplementary-consistency-15r:TC-03:r05",
+          "supplementary-consistency-15r:TC-03:r06",
+          "supplementary-consistency-15r:TC-03:r07",
+          "supplementary-consistency-15r:TC-03:r10",
+          "supplementary-consistency-15r:TC-03:r11",
+          "supplementary-consistency-15r:TC-03:r12",
+          "supplementary-consistency-15r:TC-03:r13",
+          "supplementary-consistency-15r:TC-03:r14",
+          "supplementary-consistency-15r:TC-03:r15"
+        ]
+      },
+      {
+        "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|ISOLATE-ENDPOINT::attack-endpoint|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net",
+        "count": 3,
+        "share": "3/15",
+        "runs": [
+          "supplementary-consistency-15r:TC-03:r02",
+          "supplementary-consistency-15r:TC-03:r08",
+          "supplementary-consistency-15r:TC-03:r09"
+        ]
+      }
+    ],
+    "notValidRuns": []
+  },
+  "TC-08": {
+    "validRuns": 14,
+    "signatures": [
+      {
+        "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd",
+        "count": 13,
+        "share": "13/14",
+        "runs": [
+          "supplementary-consistency-15r:TC-08:r01",
+          "supplementary-consistency-15r:TC-08:r02",
+          "supplementary-consistency-15r:TC-08:r03",
+          "supplementary-consistency-15r:TC-08:r05",
+          "supplementary-consistency-15r:TC-08:r06",
+          "supplementary-consistency-15r:TC-08:r07",
+          "supplementary-consistency-15r:TC-08:r08",
+          "supplementary-consistency-15r:TC-08:r09",
+          "supplementary-consistency-15r:TC-08:r10",
+          "supplementary-consistency-15r:TC-08:r11",
+          "supplementary-consistency-15r:TC-08:r12",
+          "supplementary-consistency-15r:TC-08:r13",
+          "supplementary-consistency-15r:TC-08:r15"
+        ]
+      },
+      {
+        "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|ISOLATE-ENDPOINT::attack-endpoint|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd",
+        "count": 1,
+        "share": "1/14",
+        "runs": [
+          "supplementary-consistency-15r:TC-08:r14"
+        ]
+      }
+    ],
+    "notValidRuns": [
+      "supplementary-consistency-15r:TC-08:r04"
+    ]
+  },
+  "TC-10": {
+    "validRuns": 15,
+    "signatures": [
+      {
+        "signature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser",
+        "count": 8,
+        "share": "8/15",
+        "runs": [
+          "supplementary-consistency-15r:TC-10:r05",
+          "supplementary-consistency-15r:TC-10:r06",
+          "supplementary-consistency-15r:TC-10:r07",
+          "supplementary-consistency-15r:TC-10:r08",
+          "supplementary-consistency-15r:TC-10:r10",
+          "supplementary-consistency-15r:TC-10:r11",
+          "supplementary-consistency-15r:TC-10:r13",
+          "supplementary-consistency-15r:TC-10:r15"
+        ]
+      },
+      {
+        "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser",
+        "count": 5,
+        "share": "5/15",
+        "runs": [
+          "supplementary-consistency-15r:TC-10:r01",
+          "supplementary-consistency-15r:TC-10:r02",
+          "supplementary-consistency-15r:TC-10:r03",
+          "supplementary-consistency-15r:TC-10:r04",
+          "supplementary-consistency-15r:TC-10:r12"
+        ]
+      },
+      {
+        "signature": "DISABLE-ACCOUNT::evaluser|ISOLATE-ENDPOINT::attack-endpoint|REVOKE-SESSION::evaluser",
+        "count": 2,
+        "share": "2/15",
+        "runs": [
+          "supplementary-consistency-15r:TC-10:r09",
+          "supplementary-consistency-15r:TC-10:r14"
+        ]
+      }
+    ],
+    "notValidRuns": []
+  }
+}

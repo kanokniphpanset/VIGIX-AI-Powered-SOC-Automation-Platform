@@ -16,13 +16,6 @@ const hidePolicyNoise = ref(true)
 const shown = computed(() =>
   props.entries.filter((e) => (group.value === 'all' || auditGroup(e.action) === group.value) && !(hidePolicyNoise.value && group.value === 'all' && e.action === 'POLICY_EVALUATED')),
 )
-const expanded = ref<Set<string>>(new Set())
-function toggle(id: string) {
-  const next = new Set(expanded.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  expanded.value = next
-}
 const DOT: Record<string, string> = {
   triage: 'bg-sky-400', ai: 'bg-violet-400', policy: 'bg-slate-400', approval: 'bg-amber-400', response: 'bg-navy-700',
   verification: 'bg-emerald-500', email: 'bg-accent-500', incident: 'bg-slate-500',
@@ -51,8 +44,7 @@ const DOT: Record<string, string> = {
         </p>
         <p v-if="e.description" class="mt-0.5 text-xs text-slate-700">{{ timelineText(e.action, e.description) }}</p>
         <p v-if="auditOutcome(e.metadata)" class="mt-0.5 text-xs text-slate-700">{{ auditOutcome(e.metadata) }}</p>
-        <button v-if="e.metadata && Object.keys(e.metadata).length" type="button" class="mt-0.5 text-[11px] text-slate-400 underline" @click="toggle(e.id)">{{ expanded.has(e.id) ? t('c.hideDetails') : t('c.details') }}</button>
-        <pre v-if="expanded.has(e.id)" class="mt-1 max-h-60 overflow-auto rounded bg-slate-50 p-2 text-[11px] text-slate-600">{{ JSON.stringify(e.metadata, null, 2) }}</pre>
+        <pre v-if="e.metadata && Object.keys(e.metadata).length" class="mt-1 whitespace-pre-wrap break-all rounded bg-slate-50 p-2 text-[11px] text-slate-600">{{ JSON.stringify(e.metadata, null, 2) }}</pre>
       </li>
     </ol>
   </div>

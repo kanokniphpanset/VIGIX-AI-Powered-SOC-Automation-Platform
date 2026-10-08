@@ -25,6 +25,8 @@ export interface SubtypeEvidenceRow {
   title: string;
   host: string | null;
   structured: Record<string, unknown> | null;
+  /** The stored alert this SYSTEM row was derived from (alerts.id), when there is one. */
+  alertId?: string | null;
 }
 
 export interface AssertionShape {

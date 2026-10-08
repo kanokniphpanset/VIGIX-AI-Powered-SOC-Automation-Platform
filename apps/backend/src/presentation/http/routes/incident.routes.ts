@@ -27,6 +27,8 @@ export function buildIncidentRoutes(controller: IncidentController): Router {
   router.get("/:id/sla", authenticate, controller.getSla);
   // SOC response setup before a Recommendation: incident type, case guidance, group (RESPONSE_GUIDANCE) policy.
   router.get("/:id/response-setup", authenticate, controller.getResponseSetup);
+  // Read-only group overview (type + severity): its response policy and the incidents in the group.
+  router.get("/:id/response-group", authenticate, controller.getResponseGroup);
   router.put("/:id/incident-type", authenticate, requireRole("SOC"), asyncHandler(controller.setIncidentType));
   router.put("/:id/response-guidance", authenticate, requireRole("SOC"), asyncHandler(controller.setCaseGuidance));
   router.delete("/:id/response-guidance", authenticate, requireRole("SOC"), asyncHandler(controller.clearCaseGuidance));

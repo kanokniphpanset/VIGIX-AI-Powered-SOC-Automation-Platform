@@ -5,23 +5,74 @@
     "id": "100350",
     "level": 15,
     "description": "Member added to the Domain Admins group on a domain controller (privilege escalation)",
-    "groups": ["windows", "policy_change", "privilege_escalation", "vigix_custom"],
+    "groups": [
+      "windows",
+      "policy_change",
+      "privilege_escalation",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1098"], "tactic": ["Privilege Escalation"], "technique": ["Account Manipulation"] }
+    "mitre": {
+      "id": [
+        "T1098"
+      ],
+      "tactic": [
+        "Privilege Escalation"
+      ],
+      "technique": [
+        "Account Manipulation"
+      ]
+    },
+    "mail": true
   },
-  "agent": { "id": "001", "name": "DC-01", "ip": "10.0.1.10" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "windows_eventchannel" },
+  "agent": {
+    "id": "001",
+    "name": "DC-01",
+    "ip": "10.0.1.10"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "EventChannel",
   "data": {
     "srcuser": "svc_helpdesk",
     "dstuser": "eviluser",
     "win": {
-      "system": { "eventID": "4728", "channel": "Security" },
+      "system": {
+        "eventID": "4728",
+        "channel": "Security",
+        "version": "0",
+        "level": "0",
+        "opcode": "0",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "providerGuid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+        "task": "13826",
+        "keywords": "0x8020000000000000",
+        "eventRecordID": "7712390",
+        "processID": "672",
+        "threadID": "1480",
+        "computer": "DC-01.corp.local",
+        "severityValue": "AUDIT_SUCCESS",
+        "message": "\"A member was added to a security-enabled global group.\"",
+        "systemTime": "2026-09-30T10:38:00.0000000Z"
+      },
       "eventdata": {
         "targetUserName": "Domain Admins",
         "memberName": "CN=eviluser,CN=Users,DC=corp,DC=local",
-        "subjectUserName": "svc_helpdesk"
+        "subjectUserName": "svc_helpdesk",
+        "memberSid": "S-1-5-21-1004336348-1177238915-682003330-1148",
+        "targetDomainName": "CORP",
+        "targetSid": "S-1-5-21-1004336348-1177238915-682003330-512",
+        "subjectUserSid": "S-1-5-21-1004336348-1177238915-682003330-1121",
+        "subjectDomainName": "CORP",
+        "subjectLogonId": "0x5e2a71",
+        "privilegeList": "-"
       }
     }
   },

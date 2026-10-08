@@ -12,6 +12,7 @@ import { formatDateTime } from '@/utils/formatters'
 import { incidentLabel, toSeverity } from '@/utils/vigix'
 import { workflowError } from '@/utils/workflow'
 import { useI18n, type MsgKey } from '@/i18n'
+import { hasMsg } from '@/i18n/messages'
 
 const props = defineProps<{ incidentId: string; investigationId: string | null; canAdd: boolean; reload: () => Promise<unknown> }>()
 const ui = useUiStore()
@@ -64,33 +65,40 @@ async function add() {
   }
 }
 const relation = (r: string) => t(`rae.rel.${r}` as MsgKey)
+const iocTypeLabel = (type: string) => (hasMsg(`rae.t.${type}`) ? t(`rae.t.${type}` as MsgKey) : type)
 </script>
 
 <template>
-  <div class="rounded-lg border border-slate-200 p-3">
-    <h3 class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400"><Link2 class="size-4" /> {{ t('rae.title') }}</h3>
+  <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+    <h3 class="flex items-center gap-1.5 text-sm font-semibold text-slate-800"><Link2 class="size-4" /> {{ t('rae.title') }}</h3>
     <p class="mt-1 text-xs text-slate-500">{{ t('rae.intro') }}</p>
     <p v-if="error" class="mt-2 text-xs text-rose-700" role="alert">{{ error }}</p>
     <p v-else-if="items === null" class="mt-2 text-xs text-slate-500">{{ t('c.loading') }}</p>
     <p v-else-if="!items.length" class="mt-2 text-xs text-slate-500">{{ t('rae.none') }}</p>
-    <ul v-else class="mt-3 space-y-2">
-      <li v-for="a in items" :key="a.alertId" class="rounded-lg bg-slate-50 p-3">
-        <div class="flex flex-wrap items-center gap-2 text-xs">
+    <ul v-else class="mt-3 space-y-3">
+      <li v-for="a in items" :key="a.alertId" class="rounded-xl border border-slate-200 bg-white p-4">
+        <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
           <SeverityBadge :severity="toSeverity(a.severity)" size="sm" />
-          <router-link :to="`/alerts/${a.alertId}`" class="font-medium text-slate-800 hover:underline">{{ a.ruleDescription ?? a.externalAlertId }}</router-link>
-          <span class="text-slate-500">{{ a.host ?? '—' }} · {{ t('rae.rule', { id: a.ruleId ?? '—' }) }} · {{ formatDateTime(a.receivedAt) }}</span>
-          <span v-for="r in a.relation" :key="r" class="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800">{{ relation(r) }}</span>
-          <router-link v-if="a.incidentId && a.incidentId !== incidentId" :to="`/incidents/${a.incidentId}`" class="ml-auto text-[11px] text-slate-500 hover:underline">{{ t('rae.inIncident', { inc: incidentLabel(a.incidentId) }) }}</router-link>
+          <div class="min-w-0 flex-1">
+            <router-link :to="`/alerts/${a.alertId}`" class="text-sm font-semibold text-slate-900 hover:underline">{{ a.ruleDescription ?? a.externalAlertId }}</router-link>
+            <p class="mt-0.5 text-[11px] text-slate-500">{{ a.host ?? '—' }} · {{ t('rae.rule', { id: a.ruleId ?? '—' }) }} · {{ formatDateTime(a.receivedAt) }}</p>
+          </div>
+          <router-link v-if="a.incidentId && a.incidentId !== incidentId" :to="`/incidents/${a.incidentId}`" class="shrink-0 text-[11px] text-slate-500 hover:underline">{{ t('rae.inIncident', { inc: incidentLabel(a.incidentId) }) }}</router-link>
         </div>
-        <div v-if="a.iocs.length" class="mt-2 flex flex-wrap gap-1.5">
-          <span v-for="i in a.iocs" :key="i.iocType + i.value" class="inline-flex max-w-full items-center gap-1 rounded border px-1.5 py-0.5 text-[11px]" :class="i.onIncident ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-700'">
-            <span class="text-slate-400">{{ i.iocType }}</span>
-            <span class="truncate font-mono">{{ i.value }}</span>
-            <span v-if="i.onIncident" class="font-semibold">{{ t('rae.onIncident') }}</span>
-            <button v-else-if="canAdd && investigationId" type="button" class="ml-0.5 inline-flex items-center rounded bg-navy-800 px-1 text-white hover:bg-navy-700" :aria-label="t('rae.addAria', { value: i.value })" @click="open(a, i)"><Plus class="size-3" /></button>
-          </span>
-        </div>
-        <p v-else class="mt-1 text-[11px] text-slate-400">{{ t('rae.noIndicator') }}</p>
+        <p class="mt-2 flex flex-wrap gap-1.5">
+          <span v-for="r in a.relation" :key="r" class="rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800">{{ relation(r) }}</span>
+        </p>
+        <!-- indicators as rows: type | full value (wrapped, never cut) | on this incident / add -->
+        <ul v-if="a.iocs.length" class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-100">
+          <li v-for="i in a.iocs" :key="i.iocType + i.value" class="grid grid-cols-1 gap-1 px-3 py-2 text-xs sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_auto] sm:items-start sm:gap-3">
+            <span class="text-slate-500">{{ iocTypeLabel(i.iocType) }}</span>
+            <span class="break-all font-mono text-slate-900">{{ i.value }}</span>
+            <span v-if="i.onIncident" class="whitespace-nowrap rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800">{{ t('rae.onIncidentShort') }}</span>
+            <button v-else-if="canAdd && investigationId" type="button" class="inline-flex items-center gap-1 whitespace-nowrap rounded bg-navy-800 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-navy-700" :aria-label="t('rae.addAria', { value: i.value })" @click="open(a, i)"><Plus class="size-3" /> {{ t('rae.addShort') }}</button>
+            <span v-else />
+          </li>
+        </ul>
+        <p v-else class="mt-2 text-[11px] text-slate-400">{{ t('rae.noIndicator') }}</p>
       </li>
     </ul>
 

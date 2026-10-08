@@ -1,0 +1,268 @@
+{
+  "run": "supplementary-consistency-15r",
+  "source": "scripts/eval/additional/consistency.ts (unmodified), EVAL_SOURCE_RUN=final-evaluation-v3.3",
+  "definition": "canonical signature = sorted set of ACTION::target (trim+lowercase, duplicates once, order ignored); exact comparison; no LLM judge",
+  "overall": {
+    "totalRuns": 45,
+    "totalValidRecommendationRuns": 44,
+    "failedGenerationRuns": 1,
+    "validationFailureRuns": 1,
+    "timeoutOrErrorRuns": 0,
+    "generationSuccess": {
+      "num": 44,
+      "den": 45,
+      "pct": 97.78
+    },
+    "coreRecommendationConsistency": {
+      "num": 33,
+      "den": 44,
+      "pct": 75.0,
+      "note": "pooled: sum of per-case modal counts / total valid runs; conservative over-all-runs value = 73.33"
+    },
+    "actionSetConsistency": {
+      "num": 33,
+      "den": 44,
+      "pct": 75.0
+    },
+    "targetConsistency": {
+      "num": 128,
+      "den": 128,
+      "pct": 100.0,
+      "note": "pair-level: action-target pairs whose target equals the modal target of that action, per case"
+    },
+    "playbookConsistency": {
+      "num": 44,
+      "den": 44,
+      "pct": 100.0
+    },
+    "firstPass": {
+      "num": 38,
+      "den": 45,
+      "pct": 84.44
+    },
+    "meanRetryCount": 0.156,
+    "macroMeanCoreConsistencyPct": 75.4
+  },
+  "perCase": {
+    "TC-03": {
+      "totalRuns": 15,
+      "validRecommendationRuns": 15,
+      "generationSuccess": {
+        "num": 15,
+        "den": 15,
+        "pct": 100.0
+      },
+      "coreConsistency": {
+        "modalSignature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net",
+        "modalCount": 12,
+        "den": 15,
+        "pct": 80.0,
+        "conservativePct_overAllRuns": 80.0,
+        "distinctSignatures": 2
+      },
+      "actionSetConsistency": {
+        "modalActionSet": "BLOCK-DOMAIN|BLOCK-URL|QUARANTINE-EMAIL",
+        "num": 12,
+        "den": 15,
+        "pct": 80.0,
+        "distinct": 2
+      },
+      "targetConsistency": {
+        "num": 48,
+        "den": 48,
+        "pct": 100.0,
+        "perAction": {
+          "QUARANTINE-EMAIL": {
+            "modalTarget": "it-support@vigix-eval-phish.net",
+            "num": 15,
+            "den": 15,
+            "distinctTargets": 1
+          },
+          "BLOCK-DOMAIN": {
+            "modalTarget": "vigix-eval-phish.net",
+            "num": 15,
+            "den": 15,
+            "distinctTargets": 1
+          },
+          "BLOCK-URL": {
+            "modalTarget": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+            "num": 15,
+            "den": 15,
+            "distinctTargets": 1
+          },
+          "ISOLATE-ENDPOINT": {
+            "modalTarget": "attack-endpoint",
+            "num": 3,
+            "den": 3,
+            "distinctTargets": 1
+          }
+        }
+      },
+      "playbookConsistency": {
+        "modalPlaybook": "PB-PHISHING",
+        "num": 15,
+        "den": 15,
+        "pct": 100.0,
+        "allRuns": {
+          "PB-PHISHING": 15
+        },
+        "note": "playbook_id is recorded for failed runs too (from the context); the metric uses valid runs as denominator"
+      },
+      "firstPass": {
+        "num": 14,
+        "den": 15
+      },
+      "meanRetryCount": {
+        "value": 0.067,
+        "definition": "mean(agent calls - 1) over all runs; agent call = one LLM generation (initial or the single bounded correction)"
+      }
+    },
+    "TC-08": {
+      "totalRuns": 15,
+      "validRecommendationRuns": 14,
+      "generationSuccess": {
+        "num": 14,
+        "den": 15,
+        "pct": 93.33
+      },
+      "coreConsistency": {
+        "modalSignature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd",
+        "modalCount": 13,
+        "den": 14,
+        "pct": 92.86,
+        "conservativePct_overAllRuns": 86.67,
+        "distinctSignatures": 2
+      },
+      "actionSetConsistency": {
+        "modalActionSet": "BLOCK-HASH|KILL-PROCESS|QUARANTINE-FILE",
+        "num": 13,
+        "den": 14,
+        "pct": 92.86,
+        "distinct": 2
+      },
+      "targetConsistency": {
+        "num": 43,
+        "den": 43,
+        "pct": 100.0,
+        "perAction": {
+          "KILL-PROCESS": {
+            "modalTarget": "/tmp/.cache/kworkerd",
+            "num": 14,
+            "den": 14,
+            "distinctTargets": 1
+          },
+          "QUARANTINE-FILE": {
+            "modalTarget": "/tmp/.cache/kworkerd",
+            "num": 14,
+            "den": 14,
+            "distinctTargets": 1
+          },
+          "BLOCK-HASH": {
+            "modalTarget": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+            "num": 14,
+            "den": 14,
+            "distinctTargets": 1
+          },
+          "ISOLATE-ENDPOINT": {
+            "modalTarget": "attack-endpoint",
+            "num": 1,
+            "den": 1,
+            "distinctTargets": 1
+          }
+        }
+      },
+      "playbookConsistency": {
+        "modalPlaybook": "PB-SUSPICIOUS-PROCESS",
+        "num": 14,
+        "den": 14,
+        "pct": 100.0,
+        "allRuns": {
+          "PB-SUSPICIOUS-PROCESS": 15
+        },
+        "note": "playbook_id is recorded for failed runs too (from the context); the metric uses valid runs as denominator"
+      },
+      "firstPass": {
+        "num": 10,
+        "den": 15
+      },
+      "meanRetryCount": {
+        "value": 0.333,
+        "definition": "mean(agent calls - 1) over all runs; agent call = one LLM generation (initial or the single bounded correction)"
+      }
+    },
+    "TC-10": {
+      "totalRuns": 15,
+      "validRecommendationRuns": 15,
+      "generationSuccess": {
+        "num": 15,
+        "den": 15,
+        "pct": 100.0
+      },
+      "coreConsistency": {
+        "modalSignature": "DISABLE-ACCOUNT::evaluser|REVOKE-SESSION::evaluser",
+        "modalCount": 8,
+        "den": 15,
+        "pct": 53.33,
+        "conservativePct_overAllRuns": 53.33,
+        "distinctSignatures": 3
+      },
+      "actionSetConsistency": {
+        "modalActionSet": "DISABLE-ACCOUNT|REVOKE-SESSION",
+        "num": 8,
+        "den": 15,
+        "pct": 53.33,
+        "distinct": 3
+      },
+      "targetConsistency": {
+        "num": 37,
+        "den": 37,
+        "pct": 100.0,
+        "perAction": {
+          "DISABLE-ACCOUNT": {
+            "modalTarget": "evaluser",
+            "num": 15,
+            "den": 15,
+            "distinctTargets": 1
+          },
+          "REVOKE-SESSION": {
+            "modalTarget": "evaluser",
+            "num": 15,
+            "den": 15,
+            "distinctTargets": 1
+          },
+          "RESET-CREDENTIAL": {
+            "modalTarget": "evaluser",
+            "num": 5,
+            "den": 5,
+            "distinctTargets": 1
+          },
+          "ISOLATE-ENDPOINT": {
+            "modalTarget": "attack-endpoint",
+            "num": 2,
+            "den": 2,
+            "distinctTargets": 1
+          }
+        }
+      },
+      "playbookConsistency": {
+        "modalPlaybook": "PB-ACCOUNT-COMPROMISE",
+        "num": 15,
+        "den": 15,
+        "pct": 100.0,
+        "allRuns": {
+          "PB-ACCOUNT-COMPROMISE": 15
+        },
+        "note": "playbook_id is recorded for failed runs too (from the context); the metric uses valid runs as denominator"
+      },
+      "firstPass": {
+        "num": 14,
+        "den": 15
+      },
+      "meanRetryCount": {
+        "value": 0.067,
+        "definition": "mean(agent calls - 1) over all runs; agent call = one LLM generation (initial or the single bounded correction)"
+      }
+    }
+  },
+  "unchangedByThisTest": "Final Evaluation v3.3 Correct Recommendation 4/10 = 40.00 %"
+}

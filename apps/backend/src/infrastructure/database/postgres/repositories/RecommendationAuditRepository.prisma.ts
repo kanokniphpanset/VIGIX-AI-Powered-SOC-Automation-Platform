@@ -14,7 +14,14 @@ export class PrismaRecommendationAuditRepository implements IRecommendationAudit
   }
 
   async findByRecommendation(recommendationId: string, tenantId: string) {
-    const row = await this.prisma.recommendationAudit.findFirst({ where: { recommendationId, tenantId }, orderBy: { createdAt: "desc" } });
+    return this.toRecord(await this.prisma.recommendationAudit.findFirst({ where: { recommendationId, tenantId }, orderBy: { createdAt: "desc" } }));
+  }
+
+  async findLatestByIncident(incidentId: string, tenantId: string) {
+    return this.toRecord(await this.prisma.recommendationAudit.findFirst({ where: { incidentId, tenantId }, orderBy: { createdAt: "desc" } }));
+  }
+
+  private toRecord(row: Awaited<ReturnType<PrismaClient["recommendationAudit"]["findFirst"]>>) {
     if (!row) return null;
     return {
       tenantId: row.tenantId, incidentId: row.incidentId, recommendationId: row.recommendationId, investigationNumber: row.investigationNumber,

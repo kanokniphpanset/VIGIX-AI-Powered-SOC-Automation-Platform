@@ -1,0 +1,158 @@
+{
+  "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+  "finalStatus": "escalated",
+  "finalInvestigationNumber": 3,
+  "closedAt": null,
+  "auditTrail": [
+    {
+      "at": "2026-10-03T12:33:14.603",
+      "action": "REHUNT_STARTED",
+      "metadata": {
+        "hosts": [
+          "attack-endpoint"
+        ],
+        "iocCount": 3,
+        "timeRange": {
+          "end": "2026-10-03T12:33:14.601Z",
+          "start": "2026-10-03T12:32:50.195Z"
+        },
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "investigationNumber": 1
+      }
+    },
+    {
+      "at": "2026-10-03T12:33:14.824",
+      "action": "INVESTIGATION_REOPENED",
+      "metadata": {
+        "matchedPolicies": [
+          "RULE-V01",
+          "RULE-V03"
+        ],
+        "causedByVerificationId": "d59bc04b-94b2-4045-8113-fd565d3ef5ed",
+        "newInvestigationNumber": 2
+      }
+    },
+    {
+      "at": "2026-10-03T12:33:14.826",
+      "action": "VERIFICATION_COMPLETED",
+      "metadata": {
+        "result": "NOT_RESOLVED",
+        "escalated": false,
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "iocRecurrence": true,
+        "evidenceSource": "WAZUH_INDEXER",
+        "spreadDetected": false,
+        "threatContained": false,
+        "newInvestigationNumber": 2,
+        "requireNewInvestigation": true
+      }
+    },
+    {
+      "at": "2026-10-03T12:33:46.785",
+      "action": "REHUNT_STARTED",
+      "metadata": {
+        "hosts": [
+          "attack-endpoint",
+          "vigix-eval-c2.net"
+        ],
+        "iocCount": 6,
+        "timeRange": {
+          "end": "2026-10-03T12:33:46.784Z",
+          "start": "2026-10-03T12:33:18.363Z"
+        },
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "investigationNumber": 2
+      }
+    },
+    {
+      "at": "2026-10-03T12:33:46.958",
+      "action": "INVESTIGATION_REOPENED",
+      "metadata": {
+        "matchedPolicies": [
+          "RULE-V01",
+          "RULE-V03"
+        ],
+        "causedByVerificationId": "8ec65c73-2f0c-4474-9ebf-ef8aab57c0a1",
+        "newInvestigationNumber": 3
+      }
+    },
+    {
+      "at": "2026-10-03T12:33:46.96",
+      "action": "VERIFICATION_COMPLETED",
+      "metadata": {
+        "result": "NOT_RESOLVED",
+        "escalated": false,
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "iocRecurrence": true,
+        "evidenceSource": "WAZUH_INDEXER",
+        "spreadDetected": false,
+        "threatContained": false,
+        "newInvestigationNumber": 3,
+        "requireNewInvestigation": true
+      }
+    },
+    {
+      "at": "2026-10-03T12:34:18.97",
+      "action": "REHUNT_STARTED",
+      "metadata": {
+        "hosts": [
+          "attack-endpoint"
+        ],
+        "iocCount": 9,
+        "timeRange": {
+          "end": "2026-10-03T12:34:18.969Z",
+          "start": "2026-10-03T12:33:50.477Z"
+        },
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "investigationNumber": 3
+      }
+    },
+    {
+      "at": "2026-10-03T12:34:19.018",
+      "action": "INCIDENT_ESCALATED",
+      "metadata": {
+        "reasons": [
+          "MAX_INVESTIGATION_ROUNDS_REACHED"
+        ],
+        "handoffTo": [
+          "SOC",
+          "IR_TEAM"
+        ],
+        "investigationNumber": 3,
+        "causedByVerificationId": "a01e64f6-7f97-4285-92f0-0b0551040bd8",
+        "maxInvestigationRounds": 3
+      }
+    },
+    {
+      "at": "2026-10-03T12:34:19.021",
+      "action": "INVESTIGATION_ESCALATED",
+      "metadata": {
+        "reasons": [
+          "MAX_INVESTIGATION_ROUNDS_REACHED"
+        ],
+        "escalatedTo": "IR_TEAM",
+        "matchedPolicies": [
+          "RULE-V01",
+          "RULE-V03"
+        ],
+        "investigationNumber": 3,
+        "causedByVerificationId": "a01e64f6-7f97-4285-92f0-0b0551040bd8",
+        "maxInvestigationRounds": 3
+      }
+    },
+    {
+      "at": "2026-10-03T12:34:19.022",
+      "action": "VERIFICATION_COMPLETED",
+      "metadata": {
+        "result": "NOT_RESOLVED",
+        "escalated": true,
+        "incidentId": "47e1cf76-9ffb-4fb1-9623-cbb09611c706",
+        "iocRecurrence": true,
+        "evidenceSource": "WAZUH_INDEXER",
+        "spreadDetected": false,
+        "threatContained": false,
+        "requireNewInvestigation": true
+      }
+    }
+  ]
+}

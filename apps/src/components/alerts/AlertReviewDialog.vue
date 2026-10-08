@@ -71,11 +71,11 @@ async function submit() {
         <div><dt class="text-slate-500">{{ t('rv.sla') }}</dt><dd>{{ view.alert.slaStatus ? statusLabel(view.alert.slaStatus) : t('c.notAvailable') }} · {{ view.alert.slaDueAt ? formatDateTime(view.alert.slaDueAt) : t('c.notAvailable') }}</dd></div>
         <div><dt class="text-slate-500">{{ t('rv.id') }}</dt><dd class="break-all font-mono text-xs">{{ view.alert.externalAlertId }}</dd></div>
       </dl>
-      <details class="my-4 rounded border border-slate-200 p-3 text-sm">
-        <summary>{{ t('rv.evidence') }}</summary>
+      <div class="my-4 rounded border border-slate-200 p-3 text-sm">
+        <p class="font-medium">{{ t('rv.evidence') }}</p>
         <p v-for="ioc in view.iocs" :key="ioc.path + ioc.value" class="mt-2 font-mono">{{ ioc.iocType }}: {{ ioc.value }}</p>
         <pre class="mt-3 max-h-64 overflow-auto whitespace-pre-wrap text-xs">{{ JSON.stringify(view.rawPayload, null, 2) }}</pre>
-      </details>
+      </div>
       <p v-if="!decisions.length" class="rounded bg-slate-50 p-3 text-sm text-slate-600">{{ t('rv.nothing') }}</p>
       <form v-else class="space-y-4" @submit.prevent="submit">
         <fieldset class="space-y-2">

@@ -1,0 +1,53 @@
+{
+  "purpose": "Supplementary escalation test (re-hunt failure x R_max=3 -> ESCALATED); not part of Final Evaluation v3.3",
+  "rMax": 3,
+  "rehuntRoundsObserved": 3,
+  "maxObservedInvestigationRound": 3,
+  "rounds": [
+    {
+      "round": 1,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "incidentStatusAfter": "investigating"
+    },
+    {
+      "round": 2,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "incidentStatusAfter": "investigating"
+    },
+    {
+      "round": 3,
+      "result": "NOT_RESOLVED",
+      "matchingEvents": 3,
+      "incidentStatusAfter": "escalated"
+    }
+  ],
+  "allRoundsUnresolved": true,
+  "finalStatus": "escalated",
+  "round4Observed": false,
+  "counts": {
+    "REHUNT_STARTED": 3,
+    "VERIFICATION_COMPLETED": 3,
+    "INVESTIGATION_REOPENED": 2,
+    "INVESTIGATION_ESCALATED": 1,
+    "INCIDENT_ESCALATED": 1,
+    "RESPONSE_PLAN_CREATED": 3,
+    "RECOMMENDATION_GENERATED": 1,
+    "RECOMMENDATION_GENERATION_FAILED": 12
+  },
+  "runnerChecks": {
+    "passed": 15,
+    "total": 15
+  },
+  "runnerResult": "PASS",
+  "caveats": [
+    "Rounds 2 and 3: no new VALIDATED recommendation (RECOMMENDATION_GENERATION_FAILED reason NO_NEW_RECOMMENDATION, 5 model attempts each); the runner handed an unexecuted step of recommendation #1 to IR (recorded fallback)",
+    "The recurrence is produced by the runner; the decisions NOT_RESOLVED / reopen / ESCALATE are the product's",
+    "IR approvals are scripted; single scenario (TC-07 telemetry)"
+  ],
+  "notAnApprovalMetric": "IR_TEAM approval requirements (3 scripted approvals) are not counted as escalation",
+  "integrity": {
+    "runnerOutputSha256": "8b4b3f8fb3c6026345f4fd8102fb50eb2a986912f0f0ca8b978eaea5b53a76db"
+  }
+}

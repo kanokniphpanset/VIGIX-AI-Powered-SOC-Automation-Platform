@@ -6,11 +6,12 @@ import { validateComposition } from "../../domain/subtype/outputValidator";
 import { SubtypePlan, buildPlan } from "../../domain/subtype/planner";
 import { Facts, KnowledgeBase } from "../../domain/subtype/types";
 import { FactBuildResult, buildFacts } from "./factBuilder";
+import { adaptEvidenceForPreview } from "./previewEvidenceAdapter";
 
 export type SubtypeMode = "off" | "shadow" | "enforce";
 
 export function subtypeModeFromEnv(env: NodeJS.ProcessEnv = process.env): SubtypeMode {
-  const v = (env.SUBTYPE_KNOWLEDGE_MODE ?? "shadow").toLowerCase();
+  const v = (env.SUBTYPE_KNOWLEDGE_MODE ?? "enforce").toLowerCase();
   return v === "off" || v === "enforce" ? v : "shadow";
 }
 
@@ -53,7 +54,9 @@ export class SubtypeRecommendationService {
     if (kb.status !== "VALID") {
       return base({ fallbackReason: `knowledge INVALID: ${kb.errors.slice(0, 5).join(" | ")}`, audit: { knowledge: { version: kb.version, status: kb.status, errors: kb.errors } } });
     }
-    const rows = (await this.contextRepository.getSubtypeEvidence?.(input.incidentId, input.tenantId, input.investigationNumber)) ?? [];
+    const evidenceRows = (await this.contextRepository.getSubtypeEvidence?.(input.incidentId, input.tenantId, input.investigationNumber)) ?? [];
+    const alerts = (await this.contextRepository.getIncidentAlerts?.(input.incidentId, input.tenantId)) ?? [];
+    const rows = adaptEvidenceForPreview(evidenceRows, alerts).rows;
     const tickets = (await this.contextRepository.getTicketHistory?.(input.incidentId, input.tenantId)) ?? [];
     const hosts = [...new Set(rows.map((r) => r.host).filter((h): h is string => !!h))];
     const criticality = hosts.length ? this.assets.resolve(hosts).criticality : "UNKNOWN";

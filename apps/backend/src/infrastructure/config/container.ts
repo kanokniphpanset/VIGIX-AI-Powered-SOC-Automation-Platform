@@ -107,6 +107,7 @@ import { ResourceAssetCriticalityProvider } from "../assets/ResourceAssetCritica
 import { ContainmentProcedureLoader } from "../knowledge/ContainmentProcedureLoader";
 import { SubtypeKnowledgeLoader } from "../knowledge/SubtypeKnowledgeLoader";
 import { SubtypeRecommendationService } from "../../application/subtype/SubtypeRecommendationService";
+import { PreviewSubtypeRecommendationUseCase } from "../../application/subtype/PreviewSubtypeRecommendation.usecase";
 import { AgentSubtypeNarrator } from "../ai/AgentSubtypeNarrator";
 import { PrismaRecommendationAuditRepository } from "../database/postgres/repositories/RecommendationAuditRepository.prisma";
 
@@ -832,7 +833,19 @@ export const recommendationController =
     validateRecommendationUseCase,
     sendRecommendationToIrUseCase,
     atomicWorkflow.wrap(new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger), "recommendation"),
-    new PrismaRecommendationAuditRepository(prisma)
+    new PrismaRecommendationAuditRepository(prisma),
+    // Read-only preview: the service is pinned to shadow (it only reads); the preview is never persisted or enforced.
+    new PreviewSubtypeRecommendationUseCase(
+      new SubtypeKnowledgeLoader(),
+      recommendationContextRepository,
+      new ResourceAssetCriticalityProvider(),
+      new PrismaRecommendationAuditRepository(prisma),
+      // the attack type the SOC response setup shows (SOC choice, else MITRE-detected); get() only reads
+      async (incidentId, tenantId) => {
+        const r = await incidentResponseSetupService.get(incidentId, tenantId);
+        return r.isSuccess ? { incidentType: r.value.incidentType, source: r.value.typeSource } : null;
+      }
+    )
   );
 
 export const authController =

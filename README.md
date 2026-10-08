@@ -240,23 +240,11 @@ Backend should now be running at **http://localhost:4000**. Confirm with:
 curl http://localhost:4000/api/v1/health
 ```
 
-### Orchestration worker (Phase 4)
+### Orchestration worker
 
-The webhook above only validates, persists, and enqueues — it never runs the
-AI pipeline itself (see Step 10). A separate worker process consumes the
-`vigix-ai-orchestration` queue and actually dispatches each job to the AI
-orchestrator (Step 7). Without this running, enqueued jobs just sit
-`QUEUED` forever. In another terminal:
-
-```bash
-cd apps/backend
-npm run worker:dev
-```
-
-Concurrency (how many jobs this process handles at once) is controlled by
-`AI_WORKER_CONCURRENCY` in `apps/backend/.env` (default 3) — see
-`src/worker.ts` for the full retry/backoff/idempotency picture.
-
+The backend starts the AI analysis worker in the same process as `npm run dev`.
+No separate worker command is needed. Look for `[ai-worker] started` in the backend
+logs. Set `AI_WORKER_ENABLED=false` in `apps/backend/.env` to disable it.
 ---
 
 ## Threat Intelligence module
@@ -369,131 +357,56 @@ recent-alerts feed are clearly marked **sample data** in the UI — there's no l
 detections pipeline wired up yet, so those numbers are illustrative placeholders, not
 telemetry.
 
-### Refreshing the ATT&CK catalog from MITRE
+### MITRE reference catalog
 
-The shipped catalog (697 techniques) was generated from MITRE's official STIX2 export —
-attack.mitre.org itself has no REST API, but MITRE publishes the full matrix as a STIX2
-bundle on GitHub (`mitre-attack/attack-stix-data`). To re-sync and pick up MITRE's latest
-matrix:
-
-```bash
-cd apps/backend
-npm run mitre:sync
-```
-
-This downloads the current Enterprise ATT&CK bundle (~50MB) and regenerates every file
-under `data/mitre/techniques/`. To process an already-downloaded bundle instead of
-re-downloading:
-
-```bash
-npm run mitre:sync -- /path/to/enterprise-attack.json
-```
-
-Restart the backend afterward so it picks up the refreshed files (the in-memory catalog
-cache otherwise only refreshes on its own TTL).
-
+This branch seeds its MITRE reference techniques from
+`apps/backend/prisma/seeds/mitre.seed.ts` into Postgres as part of `npm run seed`.
+There is no `mitre:sync` script on this branch. After configuring the database and
+applying migrations, run the seed from `apps/backend` if the reference catalog is
+missing. Seeding also updates the other application catalogs; inspect
+`apps/backend/prisma/seed.ts` before using it on an existing populated database.
 ---
 
 ## Knowledge Base & RAG Agent module
 
-A Retrieval-Augmented Generation layer: Markdown knowledge documents live in
-`apps/backend/data/knowledge/`, get parsed, chunked, and embedded into Qdrant, and are
-retrieved by `RagAgent` (Python, `apps/ai-orchestrator`) during the alert pipeline to give
-`LlmAnalystAgent` real evidence — retrieved playbook steps, MITRE technique context,
-threat-actor profiles — instead of reasoning from nothing.
+This branch uses Postgres Runbook rows as the source for the RAG vector index.
+It does not implement the `knowledge:ingest`, `knowledge:embed`,
+`mitre:knowledge:ingest`, or `misp:knowledge:ingest` scripts described in older
+setup instructions.
 
-### Document categories
-
-```
-apps/backend/data/knowledge/
-├── playbooks/        Incident Response Playbooks (PLAYBOOK) — 8 shipped:
-│                      ransomware, phishing, credential access/brute force,
-│                      malware infection, command and control, data
-│                      exfiltration, insider threat, privilege escalation
-├── sop/               Standard Operating Procedures (SOP)
-├── runbooks/          Step-by-step operational runbooks (RUNBOOK)
-├── detection/         Detection-rule documentation (DETECTION_RULE)
-├── threat-reports/    Threat actor / malware family profiles (THREAT_REPORT)
-└── lessons-learned/   Post-incident retrospectives (LESSONS_LEARNED)
-```
-
-Every document is Markdown with a YAML front-matter block (`title`, `documentType`,
-`incidentTypes`, `mitreTechniques`, `malwareFamilies`, `tags`, `severity`, `version`,
-`createdDate`, `updatedDate`, ...). The parser (`MarkdownFrontmatterParser.ts`) is
-intentionally minimal — it supports single-line `key: value` and single-line
-`key: [a, b, c]` flat arrays only, **not** multi-line YAML block lists (`key:\n  - item`).
-Keep every list field on one line when adding or editing a document.
-
-### How it works
-
-```
-Markdown files (apps/backend/data/knowledge/**/*.md)
-        │  npm run knowledge:ingest
-        ▼
-KnowledgeDocument rows in Postgres (embeddingStatus: PENDING)
-        │  npm run knowledge:embed
-        ▼
-Chunked (1000 chars, 200 overlap) → embedded (BAAI/bge-small-en-v1.5, via the AI
-orchestrator's /embeddings endpoint) → stored in Qdrant
-        │
-        ▼
-RagAgent (LangGraph pipeline, runs after ThreatIntelAgent + MitreAgent so it has real
-alert context) builds a semantic query → vector search → re-rank → filter → hands
-structured evidence + a context block to LlmAnalystAgent
-```
-
-### Ingesting and embedding the knowledge base
-
-Run from `apps/backend`, in this order, any time you add or edit a document:
+After Postgres has runbooks, start Qdrant and the AI orchestrator, then run:
 
 ```bash
-npm run knowledge:ingest          # Markdown -> KnowledgeDocument rows (Postgres)
-npm run knowledge:embed           # chunk + embed pending/stale documents -> Qdrant
+# From the repository root:
+npm run runbooks:index --workspace=apps/backend
 ```
 
-Also available: `npm run mitre:knowledge:ingest` (MITRE technique catalog → knowledge
-documents) and `npm run misp:knowledge:ingest` (self-hosted MISP events → knowledge
-documents, incremental).
-
-`knowledge:embed` requires the **AI orchestrator running** (it calls its `/embeddings`
-endpoint) and **Qdrant reachable** — start both before running it (see
-[Step 7](#7-start-the-ai-orchestrator-langgraph-service)). A document that fails to embed
-is marked `FAILED` and is excluded from future `knowledge:embed` runs until an operator
-resets it back to `PENDING` — see [Troubleshooting](#troubleshooting) if you hit this.
-
-### Viewing RAG Agent output
-
-Open the dashboard — **RAG Agent** in the sidebar (`http://localhost:5173/rag-agent`) —
-to see the retrieval pipeline, retrieved documents with relevance scores, the exact
-context text handed to `LlmAnalystAgent`, and source references for a given incident.
-
-> **Status:** the dashboard currently shows clearly-labeled **mock data** — the backend
-> doesn't yet expose `GET /api/v1/rag-agent/executions/latest`. Real `RagAgent` output is
-> already persisted per-incident in the `agent_results` table (`agent_name = 'rag'`);
-> wiring that endpoint is the next step to make the dashboard live.
+The script reads runbooks from Postgres, calls the orchestrator's `/embeddings/`
+endpoint, and upserts vectors into Qdrant's `knowledge_embeddings` collection.
+Re-run it after changing runbooks. Configure `DATABASE_URL`, `QDRANT_URL`, and
+`AI_ORCHESTRATOR_URL` for this command's environment (Postgres is loaded through
+Prisma; the script reads the two service URLs directly from environment variables,
+with defaults of http://localhost:6333 and http://localhost:8000).
 
 ---
-
 ## 7. Start the AI orchestrator (LangGraph service)
 
-In a new terminal:
+In a new Git Bash terminal on Windows:
 
 ```bash
-cd apps/ai-orchestrator
-cp .env.example .env      # same monorepo gotcha as Prisma — this must live in apps/ai-orchestrator/
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-uvicorn src.main:app --reload --port 8000
+# Use an absolute path so this also works when currently in apps/backend:
+cd ~/VIGIX-AI-Powered-SOC-Automation-Platform/apps/ai-orchestrator
+# Only copy the example if .env does not exist; preserve existing configuration.
+[ -f .env ] || cp .env.example .env
+# If the virtual environment does not exist yet:
+# python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r requirements.txt
+.venv/Scripts/python.exe run_server.py
 ```
 
-> **Windows, without `--reload`** (e.g. running the built app, or any other
-> single-process `uvicorn` invocation): use `python scripts/run_dev_server.py`
-> instead. `--reload` happens to work around a real bug — psycopg's async
-> pool (the Phase 4 Postgres checkpointer) cannot run under asyncio's default
-> ProactorEventLoop on Windows, and uvicorn only switches to the compatible
-> SelectorEventLoop in its `--reload`/multi-worker subprocess mode, not in
-> plain single-process mode. The Docker image is unaffected (Linux has no
-> ProactorEventLoop).
-
+`run_server.py` configures the Windows SelectorEventLoop required by psycopg.
+It runs on port 8000 without reload. On Linux/macOS, activate `.venv/bin/activate`
+and use `python -m uvicorn src.main:app --reload --port 8000` from this same directory.
 Confirm it's up:
 
 ```bash
@@ -506,7 +419,7 @@ cached under `~/.cache/huggingface`.
 
 `RagAgent` only retrieves what's actually in Qdrant — with an empty knowledge base it
 degrades gracefully to no evidence rather than fabricating any, but you want real results.
-Run `npm run knowledge:ingest` and `npm run knowledge:embed` from `apps/backend` once this
+Run `npm run runbooks:index` from `apps/backend` once this
 service is up — see [Knowledge Base & RAG Agent
 module](#knowledge-base--rag-agent-module) above for the full walkthrough.
 
@@ -933,10 +846,9 @@ Once everything is installed and seeded once, this is all you need each time you
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d   # infra (postgres, qdrant, n8n, redis, MISP)
-cd apps/backend && npm run dev                              # terminal 1 — HTTP API (webhook, dashboard, etc.)
-cd apps/backend && npm run worker:dev                        # terminal 2 — orchestration worker (Phase 4)
-cd apps/ai-orchestrator && source .venv/bin/activate && uvicorn src.main:app --reload --port 8000   # terminal 3
-cd apps/frontend && npm run dev                              # terminal 4
+npm run dev:backend                                         # terminal 1 (from repo root): API + AI worker
+cd ~/VIGIX-AI-Powered-SOC-Automation-Platform/apps/ai-orchestrator && .venv/Scripts/python.exe run_server.py   # terminal 2 (Windows Git Bash)
+npm run dev:frontend                                        # terminal 3 (from repo root)
 ```
 
 Then open **http://localhost:5173** (dashboard) or **http://localhost:4000/api-docs**
@@ -959,10 +871,6 @@ Then open **http://localhost:5173** (dashboard) or **http://localhost:4000/api-d
 | MISP: `403 Authentication failed` even with a key set | Check `docker compose logs misp-core \| grep -i redis` for `"Redis is not reachable."` — if present, `ENABLE_REDIS_EMPTY_PASSWORD` isn't taking effect; confirm it's set in `infra/docker/docker-compose.yml`'s `misp-core` service and recreate the container |
 | MISP: key stops working after a restart | The compose file doesn't set a fixed key (MISP's "advanced authkeys" mode won't honor one reliably) — regenerate with the `cake User change_authkey 1` command from Step 3 and update `.env` |
 | Backend `/analyze` errors with a self-signed-cert TLS error for MISP | `MISP_VERIFY_TLS` isn't set to `false` in `apps/backend/.env` |
-| Mitre Agent dashboard shows "Cataloged techniques: 0" or an error banner | Backend isn't reachable, or `apps/backend/data/mitre/techniques/` is empty/missing — re-run `npm run mitre:sync` from `apps/backend` (see [MitreAgent module](#mitreagent-module)) |
-| `knowledge:ingest` fails with `malformed frontmatter line (expected "key: value")` | A list field (`incidentTypes`, `mitreTechniques`, `tags`, ...) is written as a multi-line YAML block list (`key:\n  - item`) — the parser only supports single-line flow style. Rewrite it as `key: [item1, item2]` on one line |
-| `knowledge:embed` fails with `Cannot copy out of meta tensor; no data!` | PyTorch/`transformers`/`accelerate` version mismatch in the AI orchestrator's Python environment. Run `pip install -U torch transformers accelerate sentence-transformers` and **fully restart** the `uvicorn` process (not just retry the request) |
-| `knowledge:embed` reports `documents processed: 0` right after a failed run | The failed documents were marked `embeddingStatus: FAILED` and are excluded from the pending queue by design. Reset them once the underlying issue above is fixed: `UPDATE knowledge_documents SET embedding_status = 'PENDING' WHERE embedding_status = 'FAILED';` |
 | RAG Agent dashboard shows a "Mock data" banner | Expected — `GET /api/v1/rag-agent/executions/latest` isn't implemented yet. See [Knowledge Base & RAG Agent module](#knowledge-base--rag-agent-module) |
 
 ---

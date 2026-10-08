@@ -1,0 +1,61 @@
+PASS test/EvaluationCompliance.test.ts (5.202 s)
+PASS test/IocRecallPipe.test.ts (5.246 s)
+PASS test/CorrectRecommendation.test.ts (5.303 s)
+PASS test/Tc05HarnessWiring.test.ts (5.323 s)
+  ● Console
+
+    console.log
+      
+         >>> TC-05 OPERATOR ACTION: on the Windows VM (vigix-win10-ps) run, in PowerShell:
+         >>> powershell.exe -NoProfile -Command "try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }"
+         >>> waiting up to 600s for the REAL Wazuh alert (rule 100300)...
+
+      at simulate (scripts/eval/simulations.ts:234:17)
+
+PASS test/RealWazuhProcessIoc.test.ts (5.375 s)
+PASS test/ValidatorMultiKindTarget.test.ts (5.402 s)
+PASS test/RunRehuntVerification.integration.test.ts (5.49 s)
+  ● Console
+
+    console.error
+      Failed to record re-hunt events as evidence for verification verification-1 Error: evidence storage failure
+          at Object.<anonymous> (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\apps\backend\test\RunRehuntVerification.integration.test.ts:791:11)
+          at Promise.then.completed (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:104:5)
+          at _runTest (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-runner\build\runTest.js:444:34)
+          at Object.worker (C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\node_modules\jest-runner\build\testWorker.js:106:12)
+
+    [0m [90m 251 |[39m       }
+     [90m 252 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 253 |[39m       console[33m.[39merror([32m"Failed to record re-hunt events as evidence for verification"[39m[33m,[39m verificationId[33m,[39m err)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 254 |[39m     }
+     [90m 255 |[39m   }
+     [90m 256 |[39m[0m
+
+      at RunRehuntVerificationUseCase.recordRecurrenceEvidence (src/application/verification/use-cases/RunRehuntVerification.usecase.ts:253:15)
+      at RunRehuntVerificationUseCase.execute (src/application/verification/use-cases/RunRehuntVerification.usecase.ts:198:28)
+      at Object.<anonymous> (test/RunRehuntVerification.integration.test.ts:796:22)
+
+PASS test/IocThreatIntelVerdict.test.ts (5.591 s)
+PASS test/WazuhRehuntAdapter.test.ts (5.596 s)
+PASS test/RealWazuhSysmonDnsIoc.test.ts (5.623 s)
+PASS test/MockRehuntAdapter.test.ts (5.744 s)
+PASS test/RelatedAlertIocProvenance.test.ts (5.797 s)
+
+Test Suites: 12 passed, 12 total
+Tests:       210 passed, 210 total
+Snapshots:   0 total
+Time:        6.936 s
+Ran all test suites matching /test\\CorrectRecommendation.test.ts|test\\EvaluationCompliance.test.ts|test\\IocRecallPipe.test.ts|test\\IocThreatIntelVerdict.test.ts|test\\MockRehuntAdapter.test.ts|test\\RealWazuhProcessIoc.test.ts|test\\RealWazuhSysmonDnsIoc.test.ts|test\\RelatedAlertIocProvenance.test.ts|test\\RunRehuntVerification.integration.test.ts|test\\Tc05HarnessWiring.test.ts|test\\ValidatorMultiKindTarget.test.ts|test\\WazuhRehuntAdapter.test.ts/i.
+Test results written to: ..\..\results\gt-v3.3-test\jest-results.json

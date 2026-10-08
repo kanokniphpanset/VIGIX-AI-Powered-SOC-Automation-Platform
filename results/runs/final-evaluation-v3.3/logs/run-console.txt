@@ -1,0 +1,83 @@
+RUN final-evaluation-v3.3  mode=intervention  ground-truth sha256=9a800baba905dfc8…
+  [PASS] evaluation database: connected to 'soar_v33_eval' (must end with _eval; soar_platform is never touched)
+  [PASS] REHUNT_PROVIDER: REHUNT_PROVIDER=wazuh — mock would make verification MOCK
+  [PASS] recommendation agent: RECOMMENDATION_AGENT=llm (harness always builds LlmRecommendationAgent)
+  [PASS] AI orchestrator (eval instance): http://localhost:8001 -> {"status":"ok","service":"soar-ai-orchestrator"}
+  [PASS] Wazuh Indexer + re-hunt provider: WazuhRehuntAdapter health: reachable=true cluster=green indices=5 pattern=wazuh-alerts-4.x-*
+  [PASS] Wazuh manager API: UP: analysisd, remoted, logcollector, integratord running · agents 3 active / 5 total (2 disconnected)
+  [PASS] Wazuh agent attack-endpoint: ID: 009, Name: attack-endpoint, IP: any, Active
+  [PASS] Wazuh agent vigix-win10-ps (TC-05): ID: 010, Name: vigix-win10-ps, IP: any, Active
+  [PASS] custom rule 100300 installed (TC-05): manager vigix_eval_rules.xml f3da602b25f4 vs repository f3da602b25f4
+  [PASS] custom rule 100310 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100320 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100330 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100340 loaded: wazuh-logtest on the manager
+  [PASS] custom rule 100350 loaded: wazuh-logtest on the manager
+  [PASS] Knowledge Base complete for ground truth: 11 playbooks, 26 MITRE techniques, 14 actions; all ground-truth references present
+decision mode: approve
+
+=== TC-01 Brute Force [STOCK_RULE] ===
+   simulated 2026-10-03T11:38:02.058Z -> 2026-10-03T11:38:35.687Z
+   REAL Wazuh alert 1791027496.1887226 rule 5712 L10 mitre=["T1110"] srcip=172.19.0.3
+   => TC-01: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-02 Malware [CUSTOM_RULE_REAL_ACTION] ===
+   simulated 2026-10-03T11:39:48.728Z -> 2026-10-03T11:39:49.149Z
+   REAL Wazuh alert 1791027588.1905829 rule 100301 L12 mitre=["T1204.002"] srcip=null
+   ! EXPECTED_IOC_MISSING (before any correction): hash:275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f, file:/root/Downloads/Invoice_Q4_2026.xls.exe
+   ! REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA "No supported IOC is available to query." — no verification, incident not resolved
+   => TC-02: compliance=COMPLIANT workflow=false verification=null(NONE) final=open retries=0
+
+=== TC-03 Phishing [CUSTOM_RULE_CONTROLLED_TELEMETRY] ===
+   simulated 2026-10-03T11:41:39.061Z -> 2026-10-03T11:41:39.277Z
+   REAL Wazuh alert 1791027701.1907149 rule 100310 L10 mitre=["T1566.002"] srcip=203.0.113.45
+   > INTERVENTION [ANALYST_IOC_CORRECTION] promoted existing URL IOC http://vigix-eval-phish.net/o365/verify?id=hr.clerk to analyst-confirmed/actionable
+   > INTERVENTION [ANALYST_IOC_CORRECTION] promoted existing DOMAIN IOC vigix-eval-phish.net to analyst-confirmed/actionable
+   > INTERVENTION [ANALYST_IOC_CORRECTION] promoted existing IPV4 IOC 203.0.113.45 to analyst-confirmed/actionable
+   > INTERVENTION [ANALYST_IOC_CORRECTION] promoted existing EMAIL IOC it-support@vigix-eval-phish.net to analyst-confirmed/actionable
+   => TC-03: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=2
+
+=== TC-04 Account Compromise [STOCK_RULE] ===
+   simulated 2026-10-03T11:46:17.041Z -> 2026-10-03T11:46:47.005Z
+   REAL Wazuh alert 1791028007.1920894 rule 40112 L12 mitre=["T1078","T1110"] srcip=172.19.0.3
+   => TC-04: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-05 PowerShell [CUSTOM_RULE_REAL_ACTION] ===
+
+   >>> TC-05 OPERATOR ACTION: on the Windows VM (vigix-win10-ps) run, in PowerShell:
+   >>> powershell.exe -NoProfile -Command "try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }"
+   >>> waiting up to 1800s for the REAL Wazuh alert (rule 100300)...
+   simulated 2026-10-03T11:48:46.637Z -> 2026-10-03T11:48:46.637Z
+   REAL Wazuh alert 1791028170.1936062 rule 100300 L12 mitre=["T1059.001"] srcip=null
+   > INTERVENTION [ANALYST_IOC_CORRECTION] promoted existing DOMAIN IOC vigix-eval-ps-stager.test to analyst-confirmed/actionable
+   ! NO_VALID_RECOMMENDATION after 5 model attempts
+   => TC-05: compliance=NOT_EVALUATED workflow=false verification=null(NONE) final=open retries=5
+
+=== TC-06 SQL Injection [STOCK_RULE] ===
+   simulated 2026-10-03T11:56:00.398Z -> 2026-10-03T11:56:00.729Z
+   REAL Wazuh alert 1791028561.1945974 rule 31103 L7 mitre=["T1190"] srcip=172.19.0.3
+   => TC-06: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-07 Command & Control [CUSTOM_RULE_CONTROLLED_TELEMETRY] ===
+   simulated 2026-10-03T11:57:14.119Z -> 2026-10-03T11:57:19.613Z
+   REAL Wazuh alert 1791028635.1953312 rule 100320 L13 mitre=["T1071.001"] srcip=172.19.0.8
+   => TC-07: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-08 Suspicious Process [CUSTOM_RULE_CONTROLLED_TELEMETRY] ===
+   simulated 2026-10-03T11:59:05.863Z -> 2026-10-03T11:59:07.701Z
+   REAL Wazuh alert 1791028748.1957636 rule 100330 L10 mitre=["T1059.004"] srcip=null
+   => TC-08: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-09 Data Exfiltration [CUSTOM_RULE_CONTROLLED_TELEMETRY] ===
+   simulated 2026-10-03T12:01:29.742Z -> 2026-10-03T12:01:31.604Z
+   REAL Wazuh alert 1791028892.1959270 rule 100340 L13 mitre=["T1048"] srcip=172.19.0.8
+   => TC-09: compliance=COMPLIANT workflow=true verification=RESOLVED(REAL_WAZUH) final=resolved retries=0
+
+=== TC-10 Privilege Escalation [CUSTOM_RULE_REAL_ACTION] ===
+   simulated 2026-10-03T12:03:15.898Z -> 2026-10-03T12:03:19.148Z
+   REAL Wazuh alert 1791028998.1985178 rule 100350 L14 mitre=["T1098"] srcip=null
+   ! REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA "No supported IOC is available to query." — no verification, incident not resolved
+   => TC-10: compliance=COMPLIANT workflow=false verification=null(NONE) final=open retries=0
+
+Wrote C:\Users\computer\VIGIX-AI-Powered-SOC-Automation-Platform\results\runs\final-evaluation-v3.3\run.json
+exit 0

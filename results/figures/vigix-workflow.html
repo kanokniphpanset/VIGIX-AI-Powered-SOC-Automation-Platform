@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>VIGIX End-to-End Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f172a; --ink-2: #334155; --ink-3: #64748b; --line: #e2e8f0; --paper: #ffffff; --bg: #f4f6fb;
+    --sys: #475569; --sys-bg: #f1f5f9;
+    --ai: #6d28d9; --ai-bg: #f3efff;
+    --soc: #0f766e; --soc-bg: #e7f6f3;
+    --ir: #c2410c; --ir-bg: #fff1e8;
+    --brand: #d61f3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body { width: 1600px; font-family: "Inter", "IBM Plex Sans Thai", "Leelawadee UI", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .th { font-family: "IBM Plex Sans Thai", "Leelawadee UI", sans-serif; }
+  code, .mono { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; background: #eef2f7; color: #1e293b; padding: 1px 6px; border-radius: 5px; }
+
+  /* header */
+  .hero { position: relative; padding: 56px 72px 40px; background: #0b1324; color: #fff; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -120px; top: -160px; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgba(214,31,58,.35), rgba(214,31,58,0) 65%); }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 46px; height: 46px; border-radius: 12px; background: var(--brand); display: grid; place-items: center; }
+  .brand b { font-size: 26px; letter-spacing: 6px; font-weight: 800; }
+  .brand small { display: block; font-size: 11px; letter-spacing: 3px; color: #94a3b8; font-weight: 600; }
+  .hero h1 { margin-top: 30px; font-size: 46px; font-weight: 800; letter-spacing: -1px; }
+  .hero h1 span { color: #fb7185; }
+  .hero p { margin-top: 10px; font-size: 20px; color: #cbd5e1; }
+  .legend { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .lg { display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 10px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); font-size: 15px; color: #e2e8f0; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; }
+  .stats { position: absolute; right: 72px; bottom: 40px; display: flex; gap: 28px; z-index: 1; }
+  .stat b { display: block; font-size: 34px; font-weight: 800; }
+  .stat span { font-size: 13px; color: #94a3b8; }
+
+  /* timeline */
+  .flow { position: relative; padding: 36px 72px 20px; }
+  .flow::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: linear-gradient(#cbd5e1, #cbd5e1); border-radius: 4px; }
+  .phase { position: relative; z-index: 2; display: flex; justify-content: center; margin: 22px 0 18px; }
+  .phase div { background: var(--ink); color: #fff; padding: 9px 22px; border-radius: 999px; font-size: 15px; font-weight: 700; letter-spacing: .4px; box-shadow: 0 6px 18px rgba(15,23,42,.18); }
+  .phase div em { font-style: normal; color: #fda4af; margin-right: 8px; font-weight: 800; }
+  .row { display: grid; grid-template-columns: 1fr 96px 1fr; align-items: center; margin-bottom: 14px; }
+  .node { grid-column: 2; justify-self: center; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 19px; border: 5px solid var(--bg); box-shadow: 0 0 0 2px currentColor; position: relative; z-index: 2; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 18px 22px 18px 24px; box-shadow: 0 10px 30px rgba(15,23,42,.06), 0 2px 6px rgba(15,23,42,.04); position: relative; }
+  .row.l .card { grid-column: 1; grid-row: 1; margin-right: 10px; }
+  .row.r .card { grid-column: 3; grid-row: 1; margin-left: 10px; }
+  .row .node { grid-row: 1; }
+  .card::before { content: ""; position: absolute; top: 18px; bottom: 18px; width: 5px; border-radius: 5px; background: var(--c); }
+  .row.l .card::before { right: -1px; } .row.r .card::before { left: -1px; }
+  .row.l .card::after, .row.r .card::after { content: ""; position: absolute; top: 50%; width: 30px; height: 2px; background: #cbd5e1; }
+  .row.l .card::after { right: -40px; } .row.r .card::after { left: -40px; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .top h3 { font-size: 20px; font-weight: 700; letter-spacing: -.2px; }
+  .tag { margin-left: auto; font-size: 12.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; color: var(--c); background: var(--cb); white-space: nowrap; }
+  .io { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+  .box { border-radius: 12px; padding: 10px 12px; background: #f8fafc; border: 1px solid #eef2f7; }
+  .box.out { background: var(--cb); border-color: transparent; }
+  .lbl { font-size: 11px; font-weight: 800; letter-spacing: 1.4px; color: var(--ink-3); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .box.out .lbl { color: var(--c); }
+  .txt b { color: var(--ink); font-weight: 700; }
+  .lbl i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
+  .txt { font-size: 14.5px; line-height: 1.55; color: var(--ink-2); }
+  .branch { margin-top: 10px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); padding: 8px 12px; border-radius: 10px; border: 1px dashed #cbd5e1; background: #fcfdff; }
+  .branch b { color: var(--ink); }
+  .sys { --c: var(--sys); --cb: var(--sys-bg); } .ai { --c: var(--ai); --cb: var(--ai-bg); } .soc { --c: var(--soc); --cb: var(--soc-bg); } .ir { --c: var(--ir); --cb: var(--ir-bg); }
+  .node.sys { background: var(--sys); color: var(--sys); } .node.ai { background: var(--ai); color: var(--ai); } .node.soc { background: var(--soc); color: var(--soc); } .node.ir { background: var(--ir); color: var(--ir); }
+  .node span { color: #fff; }
+  .side { grid-row: 1; align-self: center; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; padding: 0 22px; }
+  .row.l .side { grid-column: 3; } .row.r .side { grid-column: 1; text-align: right; }
+  .side b { color: var(--ink-2); }
+
+  /* footer */
+  .foot { padding: 18px 72px 56px; display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; }
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; box-shadow: 0 10px 30px rgba(15,23,42,.05); }
+  .panel h4 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+  .outs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .oc { border-radius: 14px; padding: 14px; }
+  .oc b { display: block; font-size: 17px; font-weight: 800; }
+  .oc span { font-size: 13.5px; line-height: 1.5; display: block; margin-top: 4px; }
+  .o1 { background: #ecfdf3; color: #166534; } .o2 { background: #f1f5f9; color: #334155; } .o3 { background: #fff7ed; color: #9a3412; }
+  .loop { margin-top: 14px; font-size: 14px; line-height: 1.55; color: var(--ink-2); padding: 12px 14px; border-radius: 12px; background: #f8fafc; }
+  .rules li { list-style: none; display: flex; gap: 10px; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); margin-bottom: 9px; }
+  .rules li::before { content: ""; flex: 0 0 8px; height: 8px; margin-top: 8px; border-radius: 2px; background: var(--brand); }
+  .credit { text-align: center; font-size: 12.5px; color: var(--ink-3); padding-bottom: 28px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <div class="logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M12 8v4"/><circle cx="12" cy="15.5" r=".6" fill="#fff"/></svg></div>
+    <div><b>VIGIX</b><small>SECURITY OPERATIONS</small></div>
+  </div>
+  <h1>End-to-End SOC Workflow <span>·</span> Input / Output</h1>
+  <p class="th">จาก Wazuh Alert จนถึงการปิดเคส — AI ทำหน้าที่แนะนำ ทุกการตัดสินใจเป็นของคน</p>
+  <div class="legend th">
+    <div class="lg"><span class="dot" style="background:var(--sys)"></span>ระบบอัตโนมัติ</div>
+    <div class="lg"><span class="dot" style="background:var(--ai)"></span>AI (แนะนำเท่านั้น)</div>
+    <div class="lg"><span class="dot" style="background:var(--soc)"></span>SOC Analyst</div>
+    <div class="lg"><span class="dot" style="background:var(--ir)"></span>IR Team</div>
+  </div>
+  <div class="stats th">
+    <div class="stat"><b>13</b><span>ขั้นตอน</span></div>
+    <div class="stat"><b>4</b><span>จุดที่คนตัดสินใจ</span></div>
+    <div class="stat"><b>≤ 3</b><span>รอบ re-hunt</span></div>
+  </div>
+</header>
+
+<main class="flow th">
+
+  <div class="phase"><div><em>01</em>Detection &amp; Intake</div></div>
+
+  <div class="row l sys"><div class="card">
+    <div class="top"><h3>Wazuh → Webhook</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Wazuh alert JSON (rule, level, agent, srcip / dstip / url) + HMAC signature · หรือ mock alert จาก <code>resources/</code></div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">NormalizedAlert · severity จาก rule.level<br>≥14 Critical · ≥11 High · ≥7 Medium · &lt;7 Low</div></div></div>
+  </div><div class="node sys"><span>1</span></div><div class="side"><b>WazuhAdapter</b><br>POST /api/v1/webhooks/siem/wazuh</div></div>
+
+  <div class="row r sys"><div class="card">
+    <div class="top"><h3>Ingest + Policy INTAKE</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">NormalizedAlert · tenant · Policy INTAKE</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">แถว <code>alerts</code> (raw payload JSONB) + audit · กันข้อมูลซ้ำด้วย source + external id</div></div></div>
+    <div class="branch"><b>Low</b> → เก็บอย่างเดียว &nbsp;·&nbsp; <b>Medium</b> → Alert Inbox (3) &nbsp;·&nbsp; <b>High / Critical</b> → เปิด Incident อัตโนมัติ (4)</div>
+  </div><div class="node sys"><span>2</span></div><div class="side"><b>IngestAlertFromSiem</b><br>severity มาจาก Wazuh เท่านั้น — ไม่ใช่ AI</div></div>
+
+  <div class="row l soc"><div class="card">
+    <div class="top"><h3>Alert Triage</h3><span class="tag">SOC</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Medium alert + summary (rule, host, IOC) + triage SLA จาก Policy</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">ปิดเป็น False Positive / Informational<br>หรือ <b>Create Incident</b></div></div></div>
+  </div><div class="node soc"><span>3</span></div><div class="side"><b>Alert Inbox</b><br>ตัดสินใจได้ครั้งเดียวต่อ alert</div></div>
+
+  <div class="row r sys"><div class="card">
+    <div class="top"><h3>Create Incident</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Alert · Policy PRIORITY / ASSIGNMENT</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt"><code>incidents</code> · Investigation #1 · Evidence · IOC · MITRE · SLA · AI job · แจ้ง SOC</div></div></div>
+  </div><div class="node sys"><span>4</span></div><div class="side"><b>CreateIncident</b><br>priority เริ่มจาก severity ของ Wazuh</div></div>
+
+  <div class="phase"><div><em>02</em>Analysis &amp; Recommendation</div></div>
+
+  <div class="row l ai"><div class="card">
+    <div class="top"><h3>AI Analysis</h3><span class="tag">AI</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Alert payload · Evidence · IOC · MITRE · Threat intel (MISP) · LLM</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">Classification · Hypotheses · Unknowns<br>+ grounding check (GROUNDED / UNGROUNDED)</div></div></div>
+  </div><div class="node ai"><span>5</span></div><div class="side"><b>LLM Analyst</b><br>IOC ที่ AI อ้างต้องมีอยู่ในหลักฐานจริง</div></div>
+
+  <div class="row r soc"><div class="card">
+    <div class="top"><h3>Investigation &amp; Setup</h3><span class="tag">SOC</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Incident · AI analysis · related alerts · เคสคล้ายกันในอดีต</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">Severity ยืนยัน / override · incident type → Playbook · response guidance · Evidence / IOC เพิ่ม</div></div></div>
+  </div><div class="node soc"><span>6</span></div><div class="side"><b>Incident page</b><br>Set Group รวม alert ที่เป็นการโจมตีเดียวกัน</div></div>
+
+  <div class="row l ai"><div class="card">
+    <div class="top"><h3>Recommendation</h3><span class="tag">AI</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Context: incident · IOC · MITRE · evidence · AI analysis (grounded) · Playbook + allowed actions + Runbook + policy result · RAG (Qdrant)</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">ผ่าน <b>RecommendationValidator</b> → <code>recommendations</code> + steps (VALIDATED / INVALID) + playbook snapshot</div></div></div>
+  </div><div class="node ai"><span>7</span></div><div class="side"><b>Deterministic validation</b><br>action ต้องอยู่ใน catalog + มีหลักฐานรองรับ</div></div>
+
+  <div class="phase"><div><em>03</em>Decision &amp; Response</div></div>
+
+  <div class="row r soc"><div class="card">
+    <div class="top"><h3>SOC Validation</h3><span class="tag">SOC</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">VALIDATED recommendation + note</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt"><b>Accept</b> → Response Ticket ต่อ action (PENDING_IR_DECISION) + แจ้ง IR</div></div></div>
+    <div class="branch"><b>Reject</b> (ต้องใส่ note) → Incident <b>dismissed</b> · ยกเลิก SLA → History Cases</div>
+  </div><div class="node soc"><span>8</span></div><div class="side"><b>Send to IR</b><br>SOC ไม่ลงมือ response เอง</div></div>
+
+  <div class="row l ir"><div class="card">
+    <div class="top"><h3>IR Decision</h3><span class="tag">IR TEAM</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Response Ticket · policy result · evidence · note บังคับ</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt"><b>Approve</b> → READY_FOR_EXECUTION<br><b>Reject</b> → IR เขียน Manual Response แล้วอนุมัติ</div></div></div>
+  </div><div class="node ir"><span>9</span></div><div class="side"><b>Human approval gate</b><br>AI และ admin อนุมัติแทนไม่ได้</div></div>
+
+  <div class="row r ir"><div class="card">
+    <div class="top"><h3>Execute Response</h3><span class="tag">IR TEAM</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">Ticket ที่อนุมัติแล้ว + Runbook checklist</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">IN_PROGRESS → COMPLETED (ผลที่คนบันทึก) หรือ FAILED</div></div></div>
+  </div><div class="node ir"><span>10</span></div><div class="side"><b>Manual execution</b><br>ไม่มี auto-block / isolate / disable</div></div>
+
+  <div class="phase"><div><em>04</em>Verification &amp; Closure</div></div>
+
+  <div class="row l sys"><div class="card">
+    <div class="top"><h3>Verification / Re-hunt</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">IOC · host · rule · response target · เวลาที่ทำเสร็จ → query Wazuh indexer</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt"><b>RESOLVED</b> เมื่อ contained · ไม่ spread · ไม่มี IOC ซ้ำ · matching events = 0<br>นอกนั้น <b>NOT_RESOLVED</b></div></div></div>
+  </div><div class="node sys"><span>11</span></div><div class="side"><b>Evidence-based result</b><br>ผลคำนวณจากหลักฐาน ไม่มีใครกรอกเองได้</div></div>
+
+  <div class="row r sys"><div class="card">
+    <div class="top"><h3>Outcome</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">ผล verification + Policy VERIFICATION (RULE-V01…V03)</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">RESOLVED → Incident <b>resolved</b> · บันทึก closed_at</div></div></div>
+    <div class="branch">ไม่ผ่าน &amp; รอบ &lt; 3 → Investigation รอบใหม่ → Recommendation ใหม่ส่งตรงถึง IR (7 → 9)<br>ไม่ผ่านรอบที่ 3 → <b>escalated</b> ให้คนตัดสินต่อ</div>
+  </div><div class="node sys"><span>12</span></div><div class="side"><b>Closed loop</b><br>สูงสุด 3 รอบการสอบสวน</div></div>
+
+  <div class="row l sys"><div class="card">
+    <div class="top"><h3>Reporting &amp; History</h3><span class="tag">ระบบ</span></div>
+    <div class="io"><div class="box"><div class="lbl"><i></i>INPUT</div><div class="txt">ข้อมูลทุกขั้น + <code>audit_logs</code> + รอบเวลาที่เลือก</div></div>
+    <div class="box out"><div class="lbl"><i></i>OUTPUT</div><div class="txt">Dashboard · รายงาน SOC (Word / PDF) · History Cases · เคสคล้ายกันในอดีต · Audit trail</div></div></div>
+  </div><div class="node sys"><span>13</span></div><div class="side"><b>Knowledge loop</b><br>เคสที่ปิดแล้วเป็นข้อมูลอ้างอิงเคสใหม่</div></div>
+
+</main>
+
+<section class="foot th">
+  <div class="panel">
+    <h4>ผลลัพธ์ของเคส</h4>
+    <div class="outs">
+      <div class="oc o1"><b>Resolved</b><span>Re-hunt ยืนยันว่าควบคุมภัยได้แล้ว → History Cases</span></div>
+      <div class="oc o2"><b>Dismissed</b><span>SOC ปฏิเสธ (มีเหตุผล) หรือถูกรวมเข้าเคสอื่น → History Cases</span></div>
+      <div class="oc o3"><b>Escalated</b><span>ครบ 3 รอบยังไม่หาย → ยังเปิดอยู่ รอ IR ตัดสินใจ</span></div>
+    </div>
+    <div class="loop">รอบที่ 2 เป็นต้นไป Recommendation ใหม่ส่งตรงถึง IR โดยไม่ผ่าน SOC validation อีก แต่ <b>ทุก Ticket ยังต้องให้ IR อนุมัติ</b></div>
+  </div>
+  <div class="panel">
+    <h4>Guardrails</h4>
+    <ul class="rules">
+      <li>Severity มาจาก Wazuh rule level — AI ไม่กำหนดหรือเปลี่ยน severity</li>
+      <li>AI ไม่ auto-block, auto-isolate, auto-disable, auto-approve หรือ auto-close</li>
+      <li>ผลวิเคราะห์ AI ที่อ้าง IOC นอกหลักฐานถูกตัดออกจาก context</li>
+      <li>Policy Engine ตัดสินการอนุมัติ — Playbook / AI แค่เสนอ</li>
+      <li>ทุกการตัดสินใจบันทึกใน audit log พร้อมผู้ทำและเวลา</li>
+    </ul>
+  </div>
+</section>
+<div class="credit">VIGIX · AI-Powered SOC Automation Platform · Workflow overview</div>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "case_id": "TC-10",
+  "repetition": 3,
+  "incident_id": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+  "evidence_snapshot_hash": "4b0ac4d0a6575d73",
+  "generation_seconds": 57.46,
+  "attempts": 1,
+  "mitre_technique": "T1098",
+  "playbook_id": "PB-ACCOUNT-COMPROMISE",
+  "primary_action": "ACT-DISABLE-ACCOUNT",
+  "target_type": "account",
+  "target_value": "evaluser",
+  "recommendation_status": "VALIDATED",
+  "validation_status": "VALIDATED",
+  "policy_status": "approvalRequired=true; approvalRole=IR_TEAM; responsibleRole=SOC; rules=RULE-A04+RULE-P03+POL-A01+RULE-P09+RULE-I04+POL-001",
+  "all_steps": [
+    {
+      "order": 1,
+      "action": "ACT-DISABLE-ACCOUNT",
+      "target": "evaluser",
+      "requiresApproval": true
+    },
+    {
+      "order": 2,
+      "action": "ACT-RESET-CREDENTIAL",
+      "target": "evaluser",
+      "requiresApproval": true
+    },
+    {
+      "order": 3,
+      "action": "ACT-REVOKE-SESSION",
+      "target": "evaluser",
+      "requiresApproval": true
+    }
+  ],
+  "failure_reason": null,
+  "violations": [],
+  "rerun_after_infrastructure_failure": false,
+  "previous_infrastructure_failures": [],
+  "run_id": "supplementary-consistency-15r:TC-10:r03",
+  "signature": "DISABLE-ACCOUNT::evaluser|RESET-CREDENTIAL::evaluser|REVOKE-SESSION::evaluser"
+}

@@ -1,0 +1,42 @@
+{
+  "case_id": "TC-08",
+  "repetition": 11,
+  "incident_id": "0705ed7f-95a3-4edf-bf8a-fbcdf5b87924",
+  "evidence_snapshot_hash": "292813a34da9ca74",
+  "generation_seconds": 67.58,
+  "attempts": 2,
+  "mitre_technique": "T1059.004",
+  "playbook_id": "PB-SUSPICIOUS-PROCESS",
+  "primary_action": "ACT-KILL-PROCESS",
+  "target_type": "process",
+  "target_value": "/tmp/.cache/kworkerd",
+  "recommendation_status": "VALIDATED",
+  "validation_status": "VALIDATED",
+  "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+  "all_steps": [
+    {
+      "order": 1,
+      "action": "ACT-KILL-PROCESS",
+      "target": "/tmp/.cache/kworkerd",
+      "requiresApproval": false
+    },
+    {
+      "order": 2,
+      "action": "ACT-QUARANTINE-FILE",
+      "target": "/tmp/.cache/kworkerd",
+      "requiresApproval": false
+    },
+    {
+      "order": 3,
+      "action": "ACT-BLOCK-HASH",
+      "target": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+      "requiresApproval": false
+    }
+  ],
+  "failure_reason": null,
+  "violations": [],
+  "rerun_after_infrastructure_failure": false,
+  "previous_infrastructure_failures": [],
+  "run_id": "supplementary-consistency-15r:TC-08:r11",
+  "signature": "BLOCK-HASH::c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64|KILL-PROCESS::/tmp/.cache/kworkerd|QUARANTINE-FILE::/tmp/.cache/kworkerd"
+}

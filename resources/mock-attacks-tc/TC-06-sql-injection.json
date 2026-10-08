@@ -5,14 +5,75 @@
     "id": "31103",
     "level": 10,
     "description": "SQL injection attempts against the web application (multiple from one source in 120s)",
-    "groups": ["web", "attack", "sql_injection", "vigix_custom"],
+    "groups": [
+      "web",
+      "attack",
+      "sql_injection",
+      "vigix_custom"
+    ],
     "firedtimes": 12,
-    "mitre": { "id": ["T1190"], "tactic": ["Initial Access"], "technique": ["Exploit Public-Facing Application"] }
+    "mitre": {
+      "id": [
+        "T1190"
+      ],
+      "tactic": [
+        "Initial Access"
+      ],
+      "technique": [
+        "Exploit Public-Facing Application"
+      ]
+    },
+    "mail": false,
+    "frequency": 8,
+    "pci_dss": [
+      "6.5",
+      "11.4",
+      "6.5.1"
+    ],
+    "gdpr": [
+      "IV_35.7.d"
+    ],
+    "hipaa": [
+      "164.312.6"
+    ],
+    "nist_800_53": [
+      "SA.11",
+      "SI.4"
+    ],
+    "tsc": [
+      "CC6.6",
+      "CC7.1",
+      "CC8.1",
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ]
   },
-  "agent": { "id": "003", "name": "WEB-01", "ip": "10.0.3.10" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "web-accesslog" },
+  "agent": {
+    "id": "003",
+    "name": "WEB-01",
+    "ip": "10.0.3.10"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "web-accesslog"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/nginx/access.log",
+  "GeoLocation": {
+    "country_name": "Russia",
+    "region_name": "St.-Petersburg",
+    "city_name": "Saint Petersburg",
+    "location": {
+      "lat": 59.9386,
+      "lon": 30.3141
+    }
+  },
   "data": {
     "srcip": "194.87.29.10",
     "url": "/app/search.php?id=1%20union%20select%20username,password%20from%20users",

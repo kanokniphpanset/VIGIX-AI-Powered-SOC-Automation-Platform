@@ -1,0 +1,48 @@
+{
+  "case_id": "TC-03",
+  "repetition": 2,
+  "incident_id": "9f3afb06-3427-4074-a9f2-9853b0edae0c",
+  "evidence_snapshot_hash": "38ac592e94cd1220",
+  "generation_seconds": 37.21,
+  "attempts": 1,
+  "mitre_technique": "T1566.002",
+  "playbook_id": "PB-PHISHING",
+  "primary_action": "ACT-QUARANTINE-EMAIL",
+  "target_type": "email",
+  "target_value": "it-support@vigix-eval-phish.net",
+  "recommendation_status": "VALIDATED",
+  "validation_status": "VALIDATED",
+  "policy_status": "approvalRequired=false; approvalRole=null; responsibleRole=SOC; rules=RULE-A02+RULE-I02+POL-005",
+  "all_steps": [
+    {
+      "order": 1,
+      "action": "ACT-QUARANTINE-EMAIL",
+      "target": "it-support@vigix-eval-phish.net",
+      "requiresApproval": false
+    },
+    {
+      "order": 2,
+      "action": "ACT-BLOCK-URL",
+      "target": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+      "requiresApproval": false
+    },
+    {
+      "order": 3,
+      "action": "ACT-BLOCK-DOMAIN",
+      "target": "vigix-eval-phish.net",
+      "requiresApproval": false
+    },
+    {
+      "order": 4,
+      "action": "ACT-ISOLATE-ENDPOINT",
+      "target": "attack-endpoint",
+      "requiresApproval": true
+    }
+  ],
+  "failure_reason": null,
+  "violations": [],
+  "rerun_after_infrastructure_failure": false,
+  "previous_infrastructure_failures": [],
+  "run_id": "supplementary-consistency-15r:TC-03:r02",
+  "signature": "BLOCK-DOMAIN::vigix-eval-phish.net|BLOCK-URL::http://vigix-eval-phish.net/o365/verify?id=hr.clerk|ISOLATE-ENDPOINT::attack-endpoint|QUARANTINE-EMAIL::it-support@vigix-eval-phish.net"
+}

@@ -1,0 +1,79 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "data": {
+    "srcuser": "git",
+    "srcip": "172.19.0.3"
+  },
+  "rule": {
+    "mail": false,
+    "level": 10,
+    "hipaa": [
+      "164.312.b"
+    ],
+    "pci_dss": [
+      "11.4",
+      "10.2.4",
+      "10.2.5"
+    ],
+    "tsc": [
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "sshd: brute force trying to get access to the system. Non existent user.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures",
+      "vigix_custom"
+    ],
+    "nist_800_53": [
+      "SI.4",
+      "AU.14",
+      "AC.7"
+    ],
+    "frequency": 8,
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "firedtimes": 1,
+    "mitre": {
+      "technique": [
+        "Brute Force"
+      ],
+      "id": [
+        "T1110"
+      ],
+      "tactic": [
+        "Credential Access"
+      ]
+    },
+    "id": "5712"
+  },
+  "full_log": "Oct  3 12:23:47 60e9269b683a sshd[1718]: Failed password for invalid user git from 172.19.0.3 port 40510 ssh2",
+  "id": "1790000000.910001",
+  "timestamp": "2026-10-03T12:23:49.540+0000",
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "sshd",
+    "timestamp": "Oct  3 12:23:47"
+  },
+  "previous_output": "Oct  3 12:23:45 60e9269b683a sshd[1718]: Invalid user git from 172.19.0.3 port 40510\nOct  3 12:23:44 60e9269b683a sshd[1716]: Failed password for invalid user test from 172.19.0.3 port 40496 ssh2\nOct  3 12:23:42 60e9269b683a sshd[1716]: Invalid user test from 172.19.0.3 port 40496\nOct  3 12:23:41 60e9269b683a sshd[1714]: Failed password for invalid user oracle from 172.19.0.3 port 40488 ssh2\nOct  3 12:23:40 60e9269b683a sshd[1714]: Invalid user oracle from 172.19.0.3 port 40488\nOct  3 12:23:39 60e9269b683a sshd[1712]: Failed password for invalid user admin from 172.19.0.3 port 34516 ssh2\nOct  3 12:23:37 60e9269b683a sshd[1712]: Invalid user admin from 172.19.0.3 port 34516",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "decoder": {
+    "parent": "sshd",
+    "name": "sshd"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log"
+}

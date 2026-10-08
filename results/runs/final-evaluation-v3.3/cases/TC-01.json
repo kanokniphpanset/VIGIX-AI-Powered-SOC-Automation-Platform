@@ -1,0 +1,224 @@
+{
+  "caseId": "TC-01",
+  "attackType": "SSH_BRUTE_FORCE",
+  "attackName": "Brute Force",
+  "severity": "medium",
+  "risk": null,
+  "incidentId": "4a089c71-df52-4bdc-a337-ffe5ada7bbbb",
+  "alertId": "8110cd78-72b8-412d-8e66-2ff0369b2f0d",
+  "investigationId": "2063f2fe-29a0-419f-92ac-d5ba68db8757",
+  "recommendationId": "3f83ce67-3fe0-430a-9509-1c1986739bb3",
+  "playbookCode": "PB-SSH-BRUTEFORCE",
+  "decisionId": "829c56d5-101e-4529-b0ae-595cc9669f1c",
+  "responseTicketId": "e83dc56c-5c8c-4241-9eea-22252aab05f9",
+  "verificationId": "5e757a4e-ca50-4593-aea8-83340cda113e",
+  "recommendationStatus": "VALIDATED",
+  "compliance": {
+    "attackAlignment": true,
+    "evidenceSupport": true,
+    "knowledgeValidity": true,
+    "policyCompliance": true,
+    "playbookAlignment": true,
+    "approvalCorrectness": true,
+    "targetRole": true,
+    "compliant": true,
+    "failedChecks": []
+  },
+  "recommendationCompliance": "COMPLIANT",
+  "investigationStartAt": "2026-10-03T11:38:35.769Z",
+  "recommendationAt": "2026-10-03T11:39:30.504Z",
+  "decisionAt": "2026-10-03T11:39:30.567Z",
+  "investigationTimeSeconds": 54.74,
+  "timeToDecisionSeconds": 0.06,
+  "workflow": {
+    "alertIngested": true,
+    "incidentCreated": true,
+    "aiAnalysisCompleted": true,
+    "investigationCompleted": true,
+    "recommendationCreated": true,
+    "recommendationValidated": true,
+    "policyEvaluated": true,
+    "decisionCompleted": true,
+    "responseCompleted": true,
+    "verificationCompleted": true,
+    "rehuntExecuted": true
+  },
+  "workflowCompleted": true,
+  "finalStatus": "resolved",
+  "verificationMode": "REAL_WAZUH",
+  "verificationResult": "RESOLVED",
+  "rehuntRound": 1,
+  "recommendationAttemptCount": 1,
+  "invalidOutputCount": 0,
+  "interventionRequired": false,
+  "interventionType": [],
+  "findings": [],
+  "notes": "",
+  "mode": "STOCK_RULE",
+  "telemetry": "REAL_EVENTS_STOCK_RULE",
+  "simulation": {
+    "caseId": "TC-01",
+    "startedAt": "2026-10-03T11:38:02.058Z",
+    "endedAt": "2026-10-03T11:38:35.687Z",
+    "telemetry": "REAL_EVENTS_STOCK_RULE",
+    "facts": {
+      "attackerIp": "172.19.0.3",
+      "endpointIp": "172.19.0.8",
+      "testServerIp": "172.19.0.7",
+      "usersTried": "admin,oracle,test,git,postgres,ubuntu,deploy,backup,user1,support"
+    },
+    "notes": []
+  },
+  "wazuh": {
+    "indexerDocId": "WsGOAaEBT0qgUD4hz1D_",
+    "alertId": "1791027496.1887226",
+    "timestamp": "2026-10-03T11:38:16.832+0000",
+    "ruleId": "5712",
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system. Non existent user.",
+    "mitre": [
+      "T1110"
+    ],
+    "agent": "attack-endpoint",
+    "srcip": "172.19.0.3",
+    "stockRule": true,
+    "ruleMatch": true,
+    "levelMatch": true,
+    "mitreMatch": true,
+    "detectionLatencySeconds": 14.77
+  },
+  "groundTruth": {
+    "caseId": "TC-01",
+    "ruleId": "5712",
+    "attackName": "Brute Force",
+    "attackType": "SSH_BRUTE_FORCE",
+    "mode": "STOCK_RULE",
+    "simulation": "10 invalid-user SSH logins with wrong passwords, attacker container -> attack-endpoint sshd",
+    "expectedWazuh": {
+      "ruleId": "5712",
+      "level": 10,
+      "stockRule": true
+    },
+    "expectedSeverity": "medium",
+    "expectedMitre": [
+      "T1110"
+    ],
+    "expectedIocs": [
+      {
+        "type": "ip",
+        "value": "172.19.0.3"
+      },
+      {
+        "type": "user",
+        "value": "admin|oracle|test|git|postgres|ubuntu|deploy|backup|user1|support"
+      }
+    ],
+    "allowedActions": [
+      "ACT-BLOCK-SOURCE-IP",
+      "ACT-DISABLE-ACCOUNT"
+    ],
+    "expectedActions": [
+      "ACT-BLOCK-SOURCE-IP"
+    ],
+    "expectedTargets": [
+      "172.19.0.3"
+    ],
+    "expectedPlaybook": "PB-SSH-BRUTEFORCE",
+    "approvalExpected": true,
+    "expectedPolicy": "POL-A01 approval; POL-A02/A03 action compliance",
+    "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+    "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+    "knownFindings": []
+  },
+  "interventions": [],
+  "observations": [],
+  "timeline": {
+    "simulationStart": "2026-10-03T11:38:02.058Z",
+    "wazuhAlertTimestamp": "2026-10-03T11:38:16.832+0000",
+    "alertReceivedByVigix": "2026-10-03T11:38:35.725Z",
+    "incidentOpened": "2026-10-03T11:38:35.761Z",
+    "investigationStart": "2026-10-03T11:38:35.769Z",
+    "recommendationCreated": "2026-10-03T11:39:30.504Z",
+    "irDecision": "2026-10-03T11:39:30.567Z",
+    "responseCompleted": "2026-10-03T11:39:33.611Z",
+    "verificationAt": "2026-10-03T11:39:48.677Z",
+    "detectionLatencySeconds": 14.77,
+    "ingestToRecommendationSeconds": 54.79
+  },
+  "iocRecall": {
+    "expected": 2,
+    "found": 2,
+    "missing": []
+  },
+  "actionMatch": {
+    "expectedActions": [
+      "ACT-BLOCK-SOURCE-IP"
+    ],
+    "actualActions": [
+      "ACT-BLOCK-SOURCE-IP"
+    ],
+    "expectedActionHit": true,
+    "actualTargets": [
+      "172.19.0.3"
+    ],
+    "expectedTargetHit": true
+  },
+  "verificationDetail": {
+    "result": "RESOLVED",
+    "matchingEvents": 0,
+    "spreadDetected": false,
+    "iocRecurrence": false,
+    "threatContained": true,
+    "affectedHosts": [],
+    "index": "wazuh-alerts-4.x-*",
+    "evidenceSource": "WAZUH_INDEXER",
+    "searchedIocs": [
+      {
+        "type": "IPV4",
+        "value": "172.19.0.3"
+      }
+    ],
+    "skippedIocs": [],
+    "excludedIocs": [],
+    "window": {
+      "start": "2026-10-03T11:39:33.611Z",
+      "end": "2026-10-03T11:39:48.638Z"
+    }
+  },
+  "rehuntError": null,
+  "timingMode": "UNINTERRUPTED_SCRIPTED",
+  "environmentStatus": "AVAILABLE",
+  "correctnessGroundTruth": {
+    "caseId": "TC-01",
+    "expectedPlaybook": "PB-SSH-BRUTEFORCE",
+    "expectedRecommendations": [
+      {
+        "action": "ACT-BLOCK-SOURCE-IP",
+        "targets": [
+          {
+            "type": "ip",
+            "value": "172.19.0.3"
+          }
+        ],
+        "rationale": "SSH brute force from the attacker address: contain the source."
+      }
+    ]
+  },
+  "correctRecommendation": {
+    "caseId": "TC-01",
+    "correct": true,
+    "playbookMatch": true,
+    "actionTargetMatches": true,
+    "missingRecommendations": [],
+    "unexpectedRecommendations": [],
+    "mismatchedTargets": [],
+    "matchedRecommendations": [
+      {
+        "action": "ACT-BLOCK-SOURCE-IP",
+        "target": "172.19.0.3"
+      }
+    ],
+    "reason": "playbook and all expected action->target pairs match; no unexpected pair"
+  },
+  "irReject": null
+}

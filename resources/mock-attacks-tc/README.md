@@ -36,6 +36,15 @@ Severity is what `WazuhAdapter.mapSeverity` derives from `rule.level`
 | 10 | `TC-10-privilege-escalation.json` | Added to Domain Admins | DC-01 (**critical**) | 100350 / 15 | **critical** | T1098 | user `eviluser`, actor `svc_helpdesk` |
 
 Notes:
+- Each file carries the full Wazuh alert envelope, not just the fields VIGIX reads:
+  `predecoder` / `input` / `GeoLocation` / `previous_output` where Wazuh emits them,
+  `rule.mail` (+ `frequency` and compliance tags on the built-in rules 5712 / 31103),
+  full `data.win.system` + `eventdata` for Windows / Sysmon events (TC-04/05/10),
+  `syscheck.*` + `integration: virustotal` for TC-02, Suricata `alert` / `flow` /
+  `tls` for TC-07/09, and auditd syscall fields for TC-08. GeoLocation values, GUIDs
+  and SIDs are invented. Fields the IOC extractor would turn into extra indicators
+  (Sysmon hashes, JA3, machine-account `subjectUserName`) are deliberately omitted so
+  ground truth stays unchanged.
 - **TC-02** deliberately uses the harmless **EICAR** test-file hashes — real,
   well-known, and safe to look up on VirusTotal / any CTI source.
 - All attacker IPs are public/routable (VIGIX's IOC extractor drops

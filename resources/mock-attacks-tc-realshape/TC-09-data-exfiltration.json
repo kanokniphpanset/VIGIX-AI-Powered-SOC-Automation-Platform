@@ -1,0 +1,63 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "duration_seconds": "1",
+    "srcip": "172.19.0.8",
+    "vigix": {
+      "event_type": "data_exfiltration"
+    },
+    "file": "/tmp/test-data.txt",
+    "bytes_out": "3145728",
+    "dstport": "8080",
+    "dns": {
+      "question": {
+        "name": "vigix-eval-exfil.net"
+      }
+    },
+    "http_status": "200",
+    "dstip": "172.19.0.7",
+    "message": "3145728 bytes /tmp/test-data.txt uploaded 172.19.0.8 -> 172.19.0.7:8080 http://vigix-eval-exfil.net:8080/upload in 1s",
+    "url": "http://vigix-eval-exfil.net:8080/upload"
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": true,
+    "level": 13,
+    "description": "VIGIX-EVAL: large outbound transfer to an external host (possible data exfiltration)",
+    "groups": [
+      "vigix_eval",
+      "exfiltration",
+      "vigix_eval",
+      "vigix_custom"
+    ],
+    "mitre": {
+      "technique": [
+        "Exfiltration Over Alternative Protocol"
+      ],
+      "id": [
+        "T1048"
+      ],
+      "tactic": [
+        "Exfiltration"
+      ]
+    },
+    "id": "100340"
+  },
+  "decoder": {
+    "name": "json"
+  },
+  "full_log": "{\"vigix\":{\"event_type\":\"data_exfiltration\"},\"srcip\":\"172.19.0.8\",\"dstip\":\"172.19.0.7\",\"dstport\":8080,\"url\":\"http://vigix-eval-exfil.net:8080/upload\",\"dns\":{\"question\":{\"name\":\"vigix-eval-exfil.net\"}},\"file\":\"/tmp/test-data.txt\",\"bytes_out\":3145728,\"duration_seconds\":1,\"http_status\":200,\"message\":\"3145728 bytes /tmp/test-data.txt uploaded 172.19.0.8 -> 172.19.0.7:8080 http://vigix-eval-exfil.net:8080/upload in 1s\"}",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/vigix-eval/events.json",
+  "id": "1790000000.910009",
+  "timestamp": "2026-10-03T12:01:32.206+0000"
+}

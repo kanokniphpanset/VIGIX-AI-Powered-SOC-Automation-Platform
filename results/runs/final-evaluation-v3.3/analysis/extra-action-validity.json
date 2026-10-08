@@ -1,0 +1,256 @@
+{
+  "analysis": "post-hoc extra-action validity, Final Evaluation v3.3",
+  "frozenRun": "final-evaluation-v3.3",
+  "gt": "correctness-gt-v3.3",
+  "gtSha256": "d2f1dae6d576d8e0534bc8a26cae4a7afc5f6a529e06da2f675a5b44855951a8",
+  "summary": {
+    "primaryResultUnchanged": "Correct Recommendation 4/10 = 40.00% (not recalculated)",
+    "extraPairs": 6,
+    "evidenceSupported": 4,
+    "evidencePartial": 1,
+    "evidenceInsufficient": 1,
+    "playbookAligned": 5,
+    "playbookConditionalNotSatisfied": 1,
+    "policyCompliantWithApproval": 6,
+    "policyNonCompliant": 0,
+    "targetCorrect": 6,
+    "validExtra": 4,
+    "partiallySupported": 2,
+    "unsupported": 0,
+    "policyInvalid": 0,
+    "targetInvalid": 0,
+    "indeterminate": 0,
+    "descriptive": {
+      "requiredActionCoverage": {
+        "num": 17,
+        "den": 20,
+        "pct": 85.0
+      },
+      "unexpectedActionRate": {
+        "num": 6,
+        "den": 23,
+        "pct": 26.09
+      },
+      "extraActionValidityRate": {
+        "num": 4,
+        "den": 6,
+        "pct": 66.67,
+        "note": "VALID_EXTRA_ACTION / extra pairs with determinate validity; the 2 PARTIALLY_SUPPORTED pairs are in the denominator and not counted as valid; 0 INDETERMINATE excluded"
+      }
+    }
+  },
+  "perCaseCoverage": [
+    {
+      "case": "TC-01",
+      "exactMatch": "PASS",
+      "required": 1,
+      "covered": 1,
+      "aiPairs": 1,
+      "unexpected": 0,
+      "missing": 0,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-02",
+      "exactMatch": "FAIL",
+      "required": 3,
+      "covered": 1,
+      "aiPairs": 1,
+      "unexpected": 0,
+      "missing": 2,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-03",
+      "exactMatch": "PASS",
+      "required": 3,
+      "covered": 3,
+      "aiPairs": 3,
+      "unexpected": 0,
+      "missing": 0,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-04",
+      "exactMatch": "FAIL",
+      "required": 3,
+      "covered": 3,
+      "aiPairs": 4,
+      "unexpected": 1,
+      "missing": 0,
+      "unexpectedPairs": [
+        "ACT-REVOKE-SESSION -> victim"
+      ]
+    },
+    {
+      "case": "TC-05",
+      "exactMatch": "FAIL",
+      "required": 1,
+      "covered": 0,
+      "aiPairs": 0,
+      "unexpected": 0,
+      "missing": 0,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-06",
+      "exactMatch": "PASS",
+      "required": 1,
+      "covered": 1,
+      "aiPairs": 1,
+      "unexpected": 0,
+      "missing": 0,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-07",
+      "exactMatch": "FAIL",
+      "required": 2,
+      "covered": 2,
+      "aiPairs": 4,
+      "unexpected": 2,
+      "missing": 0,
+      "unexpectedPairs": [
+        "ACT-BLOCK-URL -> http://vigix-eval-c2.net:8080/gate.php",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ]
+    },
+    {
+      "case": "TC-08",
+      "exactMatch": "PASS",
+      "required": 3,
+      "covered": 3,
+      "aiPairs": 3,
+      "unexpected": 0,
+      "missing": 0,
+      "unexpectedPairs": []
+    },
+    {
+      "case": "TC-09",
+      "exactMatch": "FAIL",
+      "required": 2,
+      "covered": 2,
+      "aiPairs": 4,
+      "unexpected": 2,
+      "missing": 0,
+      "unexpectedPairs": [
+        "ACT-BLOCK-URL -> http://vigix-eval-exfil.net:8080/upload",
+        "ACT-ISOLATE-ENDPOINT -> attack-endpoint"
+      ]
+    },
+    {
+      "case": "TC-10",
+      "exactMatch": "FAIL",
+      "required": 1,
+      "covered": 1,
+      "aiPairs": 2,
+      "unexpected": 1,
+      "missing": 0,
+      "unexpectedPairs": [
+        "ACT-REVOKE-SESSION -> evaluser"
+      ]
+    }
+  ],
+  "extraPairs": [
+    {
+      "case": "TC-04",
+      "action": "ACT-REVOKE-SESSION",
+      "target": "victim",
+      "evidence": "SUPPORTED",
+      "playbook": "ALIGNED",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "VALID_EXTRA_ACTION",
+      "evidenceNote": "Wazuh rule 40112 (L12): sshd 'Accepted password for victim from 172.19.0.3' after repeated failures = a successful authenticated session of 'victim' (authentication evidence). USERNAME IOC 'victim' and IPV4 172.19.0.3 both ACTIVE from the alert.",
+      "playbookNote": "PB-ACCOUNT-COMPROMISE allowedActions includes ACT-REVOKE-SESSION; step 4 (unconditional) = reset credentials AND revoke active sessions of the account recorded in the authentication evidence. The GT lists ACT-RESET-CREDENTIAL (same step 4) but not ACT-REVOKE-SESSION.",
+      "policyNote": "Impact MEDIUM; RULE-P07 (HIGH severity) -> IR_TEAM approval required (recommendation does not execute); catalog evidence (VALIDATED_IOC_TARGET, AUTHENTICATION_EVIDENCE) satisfied and accepted by the validator.",
+      "targetNote": "'victim' = account IOC from alert data.dstuser; targetKind account matches the action."
+    },
+    {
+      "case": "TC-07",
+      "action": "ACT-BLOCK-URL",
+      "target": "http://vigix-eval-c2.net:8080/gate.php",
+      "evidence": "SUPPORTED",
+      "playbook": "ALIGNED",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "VALID_EXTRA_ACTION",
+      "evidenceNote": "Rule 100320 (L13) alert data.url = http://vigix-eval-c2.net:8080/gate.php (HTTP 200 beacon); the identical string is an ACTIVE URL IOC of the incident.",
+      "playbookNote": "PB-C2 step 1 (unconditional) lists 'IP / domain / URL' (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL); action in allowedActions. Redundant with the (expected) domain block but not contradicting it.",
+      "policyNote": "POL-A02 (validated IOC, related event, supporting evidence) satisfied; RULE-P07 -> IR_TEAM approval.",
+      "targetNote": "Exact URL string present in the alert; no derivation from the domain."
+    },
+    {
+      "case": "TC-07",
+      "action": "ACT-ISOLATE-ENDPOINT",
+      "target": "attack-endpoint",
+      "evidence": "SUPPORTED",
+      "playbook": "ALIGNED",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "VALID_EXTRA_ACTION",
+      "evidenceNote": "Rule 100320 (L13): regular 2 s HTTP beaconing from 172.19.0.8 (agent attack-endpoint) to 172.19.0.7:8080 / vigix-eval-c2.net. Beaconing to C2 infrastructure is itself an indicator that the endpoint is compromised (catalog condition 'evidence supports compromise of the endpoint'). Caveat: the alert records beacon 1 of 3.",
+      "playbookNote": "PB-C2 step 2 (unconditional): 'Isolate the endpoint that communicated with the C2 destination'; ACT-ISOLATE-ENDPOINT is in allowedActions.",
+      "policyNote": "POL-A01 (HIGH impact) -> IR_TEAM approval; POL-A03 (affected endpoint + suspicious activity) satisfied per validator.",
+      "targetNote": "'attack-endpoint' = Wazuh agent that emitted the alert; its IP 172.19.0.8 is the beacon source; targetKind host matches."
+    },
+    {
+      "case": "TC-09",
+      "action": "ACT-BLOCK-URL",
+      "target": "http://vigix-eval-exfil.net:8080/upload",
+      "evidence": "SUPPORTED",
+      "playbook": "ALIGNED",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "VALID_EXTRA_ACTION",
+      "evidenceNote": "Rule 100340 (L13) alert data.url = http://vigix-eval-exfil.net:8080/upload (3,145,728 bytes of /tmp/test-data.txt uploaded, HTTP 200); the identical string is an ACTIVE URL IOC.",
+      "playbookNote": "PB-DATA-EXFIL step 1 (unconditional) lists 'IP / domain / URL'; action in allowedActions.",
+      "policyNote": "POL-A02 satisfied; RULE-P07 -> IR_TEAM approval. No threat-intel verdict exists for the destination (reputation empty); the justification rests on the alert event.",
+      "targetNote": "Exact URL string present in the alert."
+    },
+    {
+      "case": "TC-09",
+      "action": "ACT-ISOLATE-ENDPOINT",
+      "target": "attack-endpoint",
+      "evidence": "PARTIALLY_SUPPORTED",
+      "playbook": "ALIGNED",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "PARTIALLY_SUPPORTED",
+      "evidenceNote": "The alert proves a 3 MB upload from the endpoint to an external host, but its own description says 'possible data exfiltration'; no process, hash, intel verdict or other indicator shows the endpoint itself is compromised. Same principle the GT applies to TC-05: activity alone does not establish compromise.",
+      "playbookNote": "PB-DATA-EXFIL step 2 (unconditional): 'Isolate the endpoint the data left from'; in allowedActions.",
+      "policyNote": "POL-A01 -> IR_TEAM approval; POL-A03 requirements satisfied per validator.",
+      "targetNote": "'attack-endpoint' = emitting agent; srcip 172.19.0.8; targetKind host matches."
+    },
+    {
+      "case": "TC-10",
+      "action": "ACT-REVOKE-SESSION",
+      "target": "evaluser",
+      "evidence": "INSUFFICIENT_EVIDENCE (session aspect); account itself implicated",
+      "playbook": "CONDITIONALLY_ALIGNED (condition not satisfied)",
+      "policy": "COMPLIANT_WITH_APPROVAL",
+      "targetValidity": "CORRECT",
+      "overall": "PARTIALLY_SUPPORTED",
+      "evidenceNote": "Rule 100350 (L14): usermod added 'evaluser' to group sudo. The only evidence is a privilege-change log naming the account; there is no login, session or authentication event, so an active/suspicious session is not evidenced (a username alone is not enough for session revocation). The account is genuinely implicated (privilege change).",
+      "playbookNote": "Action is in PB-ACCOUNT-COMPROMISE allowedActions, but step 4 applies it to 'the account recorded in the authentication evidence'; no authentication evidence exists in this case, so the condition is not satisfied.",
+      "policyNote": "RULE-P07/critical severity -> IR_TEAM approval. The validator accepted the step because its AUTHENTICATION_EVIDENCE check passes when any evidence row names the account; the catalog's analyst-confirmed condition ('active or suspicious session') is not demonstrated.",
+      "targetNote": "'evaluser' = account IOC from alert data.dstuser; targetKind account matches."
+    }
+  ],
+  "integrity": {
+    "runJsonSha256": "236a3c305a78b3dd61ba7b025fe5288b9e1b2bb090494f5a4ea6bfb3f02f8ed9",
+    "caseFilesSha256": {
+      "TC-01": "55e4c12abec1358858f45ad2701b96c9df4372ddbb300a1c1228ed3543a6a10a",
+      "TC-02": "7acd2642810291b83cbb3566201f5db731734afc90405c49ec024c82e1c505f0",
+      "TC-03": "f9a8dad14ffdf204d2939640566ad2b65989fc8baddce38bd874fedc708b71e0",
+      "TC-04": "8b4eca1972e82b21448bf5441288b7b094397f708474a8949ac453ac30f7748f",
+      "TC-05": "72c86165a7b7dc75148b29a7b1194c389e22939a511b11375c809af39e3e4bff",
+      "TC-06": "cb3350048405786c932de47eaeeaa535f4fc49f3af642d66bf2cf6b1ae4c8c8d",
+      "TC-07": "06ee786c6c214ab8832016e5b5be619b36b2510f6f59fb202ddf57d8eae5ce28",
+      "TC-08": "330507842c70b180c55c2e1f5428a863e4602d05033ff2e336026c444a611921",
+      "TC-09": "3371402016f20f08aaa056836d2253f66e5b209121bf2cc114f38b122882bb4b",
+      "TC-10": "930bd964be9f3f7a533902c730caa0b28655271d4097686c2823cc0dc13b6143"
+    },
+    "evidenceExtractSha256": "c609e6a64ec779bb03610367425494ad48905b775fa21752840b85ccb61eff7c"
+  }
+}

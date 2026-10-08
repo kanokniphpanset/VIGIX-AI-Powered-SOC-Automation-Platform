@@ -94,6 +94,19 @@ export interface IRecommendationContextRepository {
   getSubtypeEvidence?(incidentId: string, tenantId: string, investigationNumber: number): Promise<SubtypeEvidenceRow[]>;
   /** Subtype knowledge: every Response Ticket of the incident with its action, target, status and IR result (action state across rounds). */
   getTicketHistory?(incidentId: string, tenantId: string): Promise<TicketRecord[]>;
+  /** Raw alerts linked to the incident (read-only; Recommendation Preview adapter). eventTime = Wazuh alert time, ingestedAt = VIGIX receipt. */
+  getIncidentAlerts?(incidentId: string, tenantId: string): Promise<IncidentAlertRow[]>;
+}
+
+export interface IncidentAlertRow {
+  id: string;
+  externalAlertId: string;
+  siemSource: string;
+  rawPayload: unknown;
+  /** alerts.received_at - the Wazuh alert (event) time. */
+  eventTime: Date;
+  /** alerts.created_at - when VIGIX received it. */
+  ingestedAt: Date;
 }
 
 export interface PreviousRecommendationStepRow {

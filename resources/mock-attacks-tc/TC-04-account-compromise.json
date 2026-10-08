@@ -5,25 +5,89 @@
     "id": "100200",
     "level": 12,
     "description": "Successful logon from an anomalous geo-location after repeated failures (possible account compromise)",
-    "groups": ["authentication_success", "account_compromise", "vigix_custom"],
+    "groups": [
+      "authentication_success",
+      "account_compromise",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1078"], "tactic": ["Initial Access"], "technique": ["Valid Accounts"] }
+    "mitre": {
+      "id": [
+        "T1078"
+      ],
+      "tactic": [
+        "Initial Access"
+      ],
+      "technique": [
+        "Valid Accounts"
+      ]
+    },
+    "mail": true
   },
-  "agent": { "id": "002", "name": "FILESRV-01", "ip": "10.0.2.50" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "windows_eventchannel" },
+  "agent": {
+    "id": "002",
+    "name": "FILESRV-01",
+    "ip": "10.0.2.50"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "EventChannel",
+  "GeoLocation": {
+    "country_name": "Russia",
+    "region_name": "Moscow",
+    "city_name": "Moscow",
+    "location": {
+      "lat": 55.7558,
+      "lon": 37.6176
+    }
+  },
   "data": {
     "srcip": "91.219.236.14",
     "dstuser": "j.smith",
     "win": {
-      "system": { "eventID": "4624", "channel": "Security" },
+      "system": {
+        "eventID": "4624",
+        "channel": "Security",
+        "version": "2",
+        "level": "0",
+        "opcode": "0",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "providerGuid": "{54849625-5478-4994-a5ba-3e3b0328c30d}",
+        "task": "12544",
+        "keywords": "0x8020000000000000",
+        "eventRecordID": "48211733",
+        "processID": "716",
+        "threadID": "5124",
+        "computer": "FILESRV-01.corp.local",
+        "severityValue": "AUDIT_SUCCESS",
+        "message": "\"An account was successfully logged on.\"",
+        "systemTime": "2026-09-30T04:14:00.0000000Z"
+      },
       "eventdata": {
         "targetUserName": "j.smith",
         "targetDomainName": "CORP",
         "ipAddress": "91.219.236.14",
         "logonType": "10",
-        "workstationName": "UNKNOWN"
+        "workstationName": "UNKNOWN",
+        "targetUserSid": "S-1-5-21-1004336348-1177238915-682003330-1105",
+        "targetLogonId": "0x1a2b3c4",
+        "logonProcessName": "User32",
+        "authenticationPackageName": "Negotiate",
+        "processId": "0x2cc",
+        "processName": "C:\\Windows\\System32\\svchost.exe",
+        "ipPort": "0",
+        "elevatedToken": "%%1842",
+        "impersonationLevel": "%%1833",
+        "virtualAccount": "%%1843",
+        "logonGuid": "{00000000-0000-0000-0000-000000000000}",
+        "keyLength": "0"
       }
     }
   },

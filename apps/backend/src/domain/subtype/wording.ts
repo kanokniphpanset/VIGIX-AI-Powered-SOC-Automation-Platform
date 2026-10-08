@@ -9,7 +9,7 @@ export const FIELD_LABEL: Record<string, string> = {
   destination_role: "บทบาทของปลายทาง", source_role: "บทบาทของต้นทาง", granularity: "ระดับที่ตัด", route: "เส้นทาง request", parameter: "พารามิเตอร์",
   artifact_type: "ชนิดของ artifact", artifact_locator: "ชื่อ/ตำแหน่งของ artifact", object_locator: "ตำแหน่งไฟล์/object", process_identity: "ตัวระบุ Process",
   process_guid: "GUID ของ Process", child_process_identities: "ตัวระบุ Process ลูก", account_id: "บัญชี", provider: "ผู้ให้บริการ identity", session_ids_or_family: "session",
-  application: "แอปพลิเคชัน", credential_id: "credential", factor_or_recovery_id: "MFA factor/ช่องทาง recovery", queue_id: "mail queue", path_or_sni: "path หรือ SNI", dns_name: "ชื่อ DNS",
+  tenant_or_scope: "tenant หรือขอบเขตของบัญชี", application: "แอปพลิเคชัน", credential_id: "credential", factor_or_recovery_id: "MFA factor/ช่องทาง recovery", queue_id: "mail queue", path_or_sni: "path หรือ SNI", dns_name: "ชื่อ DNS",
 };
 export const VALUE_LABEL: Record<string, string> = {
   attacker_source: "IP ต้นทางที่หลักฐานระบุว่าเป็นผู้โจมตี", scheduled_task: "Scheduled Task", autorun: "Autorun entry", launch_entry: "Launch entry",

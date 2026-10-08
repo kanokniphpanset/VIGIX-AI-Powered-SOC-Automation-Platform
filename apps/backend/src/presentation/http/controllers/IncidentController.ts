@@ -42,6 +42,14 @@ export class IncidentController {
   ) {}
 
   /** GET /incidents/:id/response-setup — incident type, group / case guidance and what a Recommendation must follow. */
+  /** Read-only: the incident's group (type + severity), its response policy and the incidents in the group. */
+  getResponseGroup = async (req: Request, res: Response): Promise<void> => {
+    const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
+    const result = await this.responseSetup!.groupOverview(req.params.id, tenantId);
+    if (result.isFailure) { res.status(404).json({ error: result.error }); return; }
+    res.json(result.value);
+  };
+
   getResponseSetup = async (req: Request, res: Response): Promise<void> => {
     const tenantId = req.user?.tenantId ?? DEFAULT_TENANT_ID;
     const result = await this.responseSetup!.get(req.params.id, tenantId);

@@ -1,0 +1,2933 @@
+{
+  "generatedAt": "2026-10-07T11:47:00.861Z",
+  "model": "vllm-spark-01/gemma4-26b-uncensored",
+  "rag": "not used (direct LLM call)",
+  "cases": [
+    {
+      "caseId": "TC-01",
+      "attackType": "BRUTE_FORCE",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 32894
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Contain the brute force attack by blocking the malicious source IP and verifying that the targeted account remains protected.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Identify Source & Target",
+            "objective": "Identify Source & Target",
+            "actionId": null,
+            "target": null,
+            "reason": "Identify the attacking source and every targeted account from the authentication logs.",
+            "evidence": [
+              "sshd: brute force trying to get access to the system. Authentication failed.",
+              "185.220.101.45",
+              "root"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Source IP and targeted account(s) identified; brute-force pattern confirmed or ruled out.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Review failed authentication events to identify the source IP 185.220.101.45 and the targeted account root.",
+                "target": null,
+                "expectedResult": "Source IP and target account identified"
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm the pattern is a brute force attack based on the high frequency of failures from 185.220.101.45.",
+                "target": null,
+                "expectedResult": "Brute force pattern confirmed"
+              },
+              {
+                "order": 3,
+                "instruction": "Check the reputation of the source IP 185.220.101.45 to ensure it is not trusted infrastructure.",
+                "target": "185.220.101.45",
+                "expectedResult": "IP reputation determined"
+              }
+            ],
+            "verificationCriteria": "Source IP and target account identified and pattern confirmed"
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "ACTION",
+            "title": "Block Source IP — 185.220.101.45",
+            "objective": "Restrict Authentication Abuse",
+            "actionId": "action-ACT-BLOCK-SOURCE-IP",
+            "target": "185.220.101.45",
+            "reason": "Stop further authentication attempts from the confirmed malicious source.",
+            "evidence": [
+              "sshd: brute force trying to get access to the system. Authentication failed.",
+              "185.220.101.45"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-SOURCE-IP",
+            "precondition": "The source IP is confirmed malicious (brute-force pattern from one source) and is not trusted infrastructure or a shared NAT / proxy address.",
+            "expectedResult": "Source IP is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the source IP 185.220.101.45 against the incident evidence and IOC record.",
+                "target": "185.220.101.45",
+                "expectedResult": "IP confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Identify the network security control (firewall or WAF) protecting WKS-DEV-12.",
+                "target": "WKS-DEV-12",
+                "expectedResult": "Control identified"
+              },
+              {
+                "order": 3,
+                "instruction": "Apply a deny rule for the source IP 185.220.101.45 on the identified control for WKS-DEV-12.",
+                "target": "185.220.101.45",
+                "expectedResult": "Rule applied"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the deny rule is active on the control.",
+                "target": "185.220.101.45",
+                "expectedResult": "Rule active"
+              },
+              {
+                "order": 5,
+                "instruction": "Verify that new connection attempts from 185.220.101.45 to WKS-DEV-12 are rejected.",
+                "target": "185.220.101.45",
+                "expectedResult": "Connections rejected"
+              }
+            ],
+            "verificationCriteria": "Connection attempts from the blocked source IP to the affected host are rejected."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "CHECK",
+            "title": "Check — Successful Authentication Check",
+            "objective": "Successful Authentication Check",
+            "actionId": null,
+            "target": null,
+            "reason": "Determine whether any attempt succeeded after the failures.",
+            "evidence": [
+              "sshd: brute force trying to get access to the system. Authentication failed.",
+              "root"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Each targeted account is classified as compromised or not compromised.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Check for a successful login after the failed attempts for the account root.",
+                "target": "root",
+                "expectedResult": "Success/Failure status determined"
+              },
+              {
+                "order": 2,
+                "instruction": "Review the activity of any session that succeeded for the account root.",
+                "target": "root",
+                "expectedResult": "Session activity reviewed"
+              }
+            ],
+            "verificationCriteria": "Successful or failed login status determined for the target account"
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify Containment",
+            "actionId": null,
+            "target": null,
+            "reason": "Confirm unauthorized authentication has stopped and the account stays protected.",
+            "evidence": [],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query to ensure no continued malicious authentication attempts from 185.220.101.45.",
+                "target": "185.220.101.45",
+                "expectedResult": "No new attempts"
+              },
+              {
+                "order": 2,
+                "instruction": "Monitor authentication of the account root and the source IP 185.220.101.45.",
+                "target": "root",
+                "expectedResult": "Monitoring complete"
+              }
+            ],
+            "verificationCriteria": "No continued malicious authentication attempts from the source; No suspicious successful authentication for the targeted account; Targeted account remains protected."
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-SSH-BRUTEFORCE",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-BLOCK-SOURCE-IP",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "SSH_BRUTE_FORCE",
+            "matchedTechniques": [
+              "T1110"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Stop the attacking source",
+                "description": "Block the source IP recorded in the authentication evidence (ACT-BLOCK-SOURCE-IP)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Protect the targeted account",
+                "description": "Only if evidence shows a successful logon for the targeted account, disable it (ACT-DISABLE-ACCOUNT)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-SOURCE-IP",
+                "runbookCode": "RB-BLOCK-SOURCE-IP",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the source IP against the incident evidence and IOC record, and that it has no legitimate business reason to reach the affected host/service.",
+                  "Identify the network security control (perimeter firewall or WAF) that enforces traffic from this source toward the affected host/service.",
+                  "Apply a deny rule for the source IP on that control, scoped to the affected host/service named in the evidence.",
+                  "Confirm the deny rule is active on the control.",
+                  "Confirm new connection attempts from the source IP to the affected host/service are rejected.",
+                  "Record the rule identifier, scope and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Connection attempts from the blocked source IP to the affected host/service are rejected."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "BRUTE_FORCE",
+              "version": "1.0",
+              "objective": "Prevent continued authentication abuse and determine whether the targeted account has been compromised.",
+              "strategy": "Restrict the malicious authentication source, protect the targeted account, determine whether successful compromise occurred, and verify that unauthorized access has stopped.",
+              "successCriteria": [
+                "No continued malicious authentication attempts from the source",
+                "No suspicious successful authentication for the targeted account",
+                "Targeted account remains protected (sessions revoked / credential reset where required)"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-SOURCE-IP": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-SSH-BRUTEFORCE",
+          "revisionId": "fixture-revision-pb-PB-SSH-BRUTEFORCE",
+          "version": "1.0",
+          "content": {
+            "code": "PB-SSH-BRUTEFORCE",
+            "description": "Response strategy for repeated failed SSH authentication from an external source against a host.",
+            "n8nWorkflowId": null,
+            "name": "SSH Brute Force Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Block the source IP recorded in the authentication evidence (ACT-BLOCK-SOURCE-IP).",
+                "stepOrder": 1,
+                "title": "Stop the attacking source"
+              },
+              {
+                "description": "Only if evidence shows a successful logon for the targeted account, disable it (ACT-DISABLE-ACCOUNT).",
+                "stepOrder": 2,
+                "title": "Protect the targeted account"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-BLOCK-SOURCE-IP",
+                "ACT-RATE-LIMIT-SOURCE",
+                "ACT-DISABLE-ACCOUNT",
+                "ACT-REVOKE-SESSION",
+                "ACT-RESET-CREDENTIAL"
+              ],
+              "incidentType": "SSH_BRUTE_FORCE",
+              "mitreTechniques": [
+                "T1110",
+                "T1110.001"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:ef9c71fdf4ede06015ddfa0d1aa58df5daf276ee14150b11303935e56a07f729"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-01",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure BRUTE_FORCE and playbook PB-SSH-BRUTEFORCE match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "1 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 3, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (3 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-02",
+      "attackType": "MALWARE",
+      "status": "INVALID_AI_OUTPUT",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 34135
+        },
+        {
+          "correction": true,
+          "ms": 30058
+        }
+      ],
+      "recommendation": null,
+      "rubric": null,
+      "failure": {
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "INVENTED_TARGET: step 4 (CHECK): instruction 2 targets \"/home/finance/Downloads/Invoice_Q_2026.xls.exe\", which is not a recorded IOC or affected host"
+        ],
+        "attempts": 2,
+        "firstAttemptViolations": [
+          "SCHEMA: candidate failed schema validation: [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"steps\",\n      0,\n      \"stepOrder\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"steps\",\n      3,\n      \"stepOrder\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"steps\",\n      4,\n      \"stepOrder\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+        ]
+      }
+    },
+    {
+      "caseId": "TC-03",
+      "attackType": "PHISHING",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 40071
+        },
+        {
+          "correction": true,
+          "ms": 30847
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Contain the phishing campaign by blocking the malicious URL, domain, and sender, and by resetting credentials for the exposed user 'hr.clerk'.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Identify the Message",
+            "objective": "Identify the Message",
+            "actionId": null,
+            "target": null,
+            "reason": "Identify the phishing message and every recipient.",
+            "evidence": [],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The message and its full recipient list are identified.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Collect the sender, subject, URL and attachment of the message",
+                "target": null,
+                "expectedResult": "Message details identified"
+              }
+            ],
+            "verificationCriteria": "Message details collected"
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "CHECK",
+            "title": "Check — Identify the Message",
+            "objective": "Identify the Message",
+            "actionId": null,
+            "target": null,
+            "reason": "Identify the phishing message and every recipient.",
+            "evidence": [],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The message and its full recipient list are identified.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Find every recipient of the same message in the mail gateway logs",
+                "target": null,
+                "expectedResult": "Recipient list identified"
+              }
+            ],
+            "verificationCriteria": "Recipients identified"
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "ACTION",
+            "title": "Block URL — http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+            "objective": "Stop Distribution",
+            "actionId": "action-ACT-BLOCK-URL",
+            "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+            "reason": "Block the confirmed phishing URL to prevent further access.",
+            "evidence": [
+              "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+              "Phishing link delivered and clicked: credential harvesting page"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-URL",
+            "precondition": "The phishing URL is confirmed malicious.",
+            "expectedResult": "URL is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the URL http://vigix-mock-phish.net/o365/verify?id=hr.clerk against the incident evidence and IOC record.",
+                "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+                "expectedResult": "URL confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+                "expectedResult": "URL added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on that control.",
+                "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+                "expectedResult": "Block entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+                "expectedResult": "Requests blocked"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "http://vigix-mock-phish.net/o365/verify?id=hr.clerk",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "Requests to the blocked URL fail from the affected host."
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "ACTION",
+            "title": "Block Domain — vigix-mock-phish.net",
+            "objective": "Stop Distribution",
+            "actionId": "action-ACT-BLOCK-DOMAIN",
+            "target": "vigix-mock-phish.net",
+            "reason": "Block the phishing domain to prevent communication.",
+            "evidence": [
+              "vigix-mock-phish.net",
+              "Phishing link delivered and clicked: credential harvesting page"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-DOMAIN",
+            "precondition": "The phishing domain is confirmed malicious and is not a shared legitimate service.",
+            "expectedResult": "Domain is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the domain vigix-mock-phish.net against the incident evidence and IOC record.",
+                "target": "vigix-mock-phish.net",
+                "expectedResult": "Domain confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                "target": "vigix-mock-phish.net",
+                "expectedResult": "Domain added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on that control.",
+                "target": "vigix-mock-phish.net",
+                "expectedResult": "Block entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                "target": "vigix-mock-phish.net",
+                "expectedResult": "Connection blocked"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "vigix-mock-phish.net",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host."
+          },
+          {
+            "stepOrder": 5,
+            "stepType": "ACTION",
+            "title": "Reset User Credentials — hr.clerk",
+            "objective": "Protect Exposed Accounts",
+            "actionId": "action-ACT-RESET-CREDENTIAL",
+            "target": "hr.clerk",
+            "reason": "Reset credentials for the user who clicked the phishing link.",
+            "evidence": [
+              "hr.clerk",
+              "Phishing link delivered and clicked: credential harvesting page"
+            ],
+            "sourceRunbookId": "runbook-RB-RESET-CREDENTIAL",
+            "precondition": "A recipient is confirmed to have submitted credentials (credential exposure).",
+            "expectedResult": "Credentials reset",
+            "requiresApproval": true,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the account identifier hr.clerk and the authentication evidence recorded for it.",
+                "target": "hr.clerk",
+                "expectedResult": "Account confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Reset the account password in the identity provider / directory that authenticates it.",
+                "target": "hr.clerk",
+                "expectedResult": "Password reset completed"
+              },
+              {
+                "order": 3,
+                "instruction": "Require new credentials at the next sign-in and remove MFA factors the attacker may have registered.",
+                "target": "hr.clerk",
+                "expectedResult": "New credentials required"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm authentication with the previous credentials now fails.",
+                "target": "hr.clerk",
+                "expectedResult": "Old credentials fail"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the reset time and method in the execution result.",
+                "target": "hr.clerk",
+                "expectedResult": "Reset recorded"
+              }
+            ],
+            "verificationCriteria": "Authentication events show no successful use of the previous credentials."
+          },
+          {
+            "stepOrder": 6,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify Containment",
+            "actionId": null,
+            "target": null,
+            "reason": "Confirm the message is gone and no account abuse continues.",
+            "evidence": [],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm no new delivery of the message and no new access to its URL / domain",
+                "target": null,
+                "expectedResult": "No new access/delivery"
+              }
+            ],
+            "verificationCriteria": "Malicious message is no longer accessible; Malicious infrastructure is blocked where applicable; No evidence of continued credential or session abuse"
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-PHISHING",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-BLOCK-URL,RB-BLOCK-DOMAIN,RB-RESET-CREDENTIAL",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "PHISHING",
+            "matchedTechniques": [
+              "T1566.002"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Remove the message",
+                "description": "Quarantine the malicious message recorded in the evidence (ACT-QUARANTINE-EMAIL)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Cut the phishing infrastructure",
+                "description": "Block the malicious URL / domain recorded in the evidence (ACT-BLOCK-URL / ACT-BLOCK-DOMAIN)."
+              },
+              {
+                "stepOrder": 3,
+                "title": "Protect recipients who interacted",
+                "description": "Only when evidence shows a click or credential submission: reset the credentials and revoke the sessions of that account, or disable it (ACT-RESET-CREDENTIAL / ACT-REVOKE-SESSION / ACT-DISABLE-ACCOUNT)."
+              },
+              {
+                "stepOrder": 4,
+                "title": "Contain a compromised endpoint",
+                "description": "Only when evidence confirms endpoint compromise (attachment executed): isolate the endpoint (ACT-ISOLATE-ENDPOINT)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-URL",
+                "runbookCode": "RB-BLOCK-URL",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the URL against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm requests to the URL from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Requests to the blocked URL fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-DOMAIN",
+                "runbookCode": "RB-BLOCK-DOMAIN",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the domain against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Resolution/connection attempts to the blocked domain fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-RESET-CREDENTIAL",
+                "runbookCode": "RB-RESET-CREDENTIAL",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the account identifier and the authentication evidence recorded for it.",
+                  "Reset the account password in the identity provider / directory that authenticates it.",
+                  "Require new credentials at the next sign-in and remove MFA factors the attacker may have registered.",
+                  "Confirm authentication with the previous credentials now fails.",
+                  "Record the reset time and method in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Authentication events show no successful use of the previous credentials.",
+                  "No new suspicious logon for the account after the reset."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "PHISHING",
+              "version": "1.0",
+              "objective": "Stop distribution of the phishing content and prevent credential or session compromise.",
+              "strategy": "Remove the message from every mailbox and block its sender and infrastructure, determine who interacted with it, and contain exposed accounts and endpoints.",
+              "successCriteria": [
+                "Malicious message is no longer accessible",
+                "Malicious infrastructure is blocked where applicable",
+                "No evidence of continued credential or session abuse"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-URL": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-DOMAIN": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-RESET-CREDENTIAL": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": true,
+              "approvalRole": "IR_TEAM",
+              "matchedRules": [
+                "POL-A01"
+              ]
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-PHISHING",
+          "revisionId": "fixture-revision-pb-PB-PHISHING",
+          "version": "1.0",
+          "content": {
+            "code": "PB-PHISHING",
+            "description": "Response strategy for a malicious e-mail (link / attachment) and any credential theft or endpoint compromise it caused.",
+            "n8nWorkflowId": null,
+            "name": "Phishing Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Quarantine the malicious message recorded in the evidence (ACT-QUARANTINE-EMAIL).",
+                "stepOrder": 1,
+                "title": "Remove the message"
+              },
+              {
+                "description": "Block the malicious URL / domain recorded in the evidence (ACT-BLOCK-URL / ACT-BLOCK-DOMAIN).",
+                "stepOrder": 2,
+                "title": "Cut the phishing infrastructure"
+              },
+              {
+                "description": "Only when evidence shows a click or credential submission: reset the credentials and revoke the sessions of that account, or disable it (ACT-RESET-CREDENTIAL / ACT-REVOKE-SESSION / ACT-DISABLE-ACCOUNT).",
+                "stepOrder": 3,
+                "title": "Protect recipients who interacted"
+              },
+              {
+                "description": "Only when evidence confirms endpoint compromise (attachment executed): isolate the endpoint (ACT-ISOLATE-ENDPOINT).",
+                "stepOrder": 4,
+                "title": "Contain a compromised endpoint"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-QUARANTINE-EMAIL",
+                "ACT-BLOCK-SENDER",
+                "ACT-BLOCK-URL",
+                "ACT-BLOCK-DOMAIN",
+                "ACT-BLOCK-HASH",
+                "ACT-RESET-CREDENTIAL",
+                "ACT-REVOKE-SESSION",
+                "ACT-DISABLE-ACCOUNT",
+                "ACT-ISOLATE-ENDPOINT"
+              ],
+              "incidentType": "PHISHING",
+              "mitreTechniques": [
+                "T1566",
+                "T1566.001",
+                "T1566.002"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:ff805a54f27e787a73eda51fe743a2f0d1f780656ed5ba0c8e0aedbee7251760"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-03",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure PHISHING and playbook PB-PHISHING match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "3 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 4, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (3 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-04",
+      "attackType": "ACCOUNT_COMPROMISE",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 33312
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "The objective is to regain control of the j.smith account and invalidate attacker access by confirming the suspicious login, revoking active sessions, and blocking the source IP.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Confirm Compromise",
+            "objective": "Confirm the suspicious login was not the legitimate user.",
+            "actionId": null,
+            "target": "j.smith",
+            "reason": "Determine if the sign-in from 91.219.236.14 was authorized.",
+            "evidence": [
+              "Successful logon for j.smith from an unusual external source",
+              "91.219.236.14",
+              "j.smith"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The activity is classified as legitimate or attacker-controlled.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Review the suspicious login from 91.219.236.14 for j.smith at 2026-10-07T08:00:00.000Z.",
+                "target": "j.smith",
+                "expectedResult": "Review of session and token details."
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm with the user j.smith if the activity was theirs.",
+                "target": "j.smith",
+                "expectedResult": "User confirmation or denial."
+              }
+            ],
+            "verificationCriteria": "User confirms or denies the suspicious activity."
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "ACTION",
+            "title": "Revoke Active Sessions — j.smith",
+            "objective": "Terminate the active sessions associated with the affected account.",
+            "actionId": "action-ACT-REVOKE-SESSION",
+            "target": "j.smith",
+            "reason": "Invalidate existing sessions to cut attacker access.",
+            "evidence": [
+              "Successful logon for j.smith from an unusual external source",
+              "j.smith"
+            ],
+            "sourceRunbookId": "runbook-RB-REVOKE-SESSION",
+            "precondition": "An active attacker session or suspicious token exists for the account.",
+            "expectedResult": "No active session of the account remains.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the account identifier j.smith and the session evidence.",
+                "target": "j.smith",
+                "expectedResult": "Account and session identified."
+              },
+              {
+                "order": 2,
+                "instruction": "Revoke the active sessions and refresh tokens of j.smith in the identity provider.",
+                "target": "j.smith",
+                "expectedResult": "Sessions and tokens revoked."
+              },
+              {
+                "order": 3,
+                "instruction": "Terminate the interactive and remote sessions of the account on VPN-GW-01.",
+                "target": "VPN-GW-01",
+                "expectedResult": "Sessions on host terminated."
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm no active session of the account remains.",
+                "target": "j.smith",
+                "expectedResult": "No active sessions remaining."
+              }
+            ],
+            "verificationCriteria": "No active session of the account remains."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "ACTION",
+            "title": "Block Source IP — 91.219.236.14",
+            "objective": "Prevent further communication from the identified source IP to the affected host/service.",
+            "actionId": "action-ACT-BLOCK-SOURCE-IP",
+            "target": "91.219.236.14",
+            "reason": "Block the source IP used in the suspicious logon.",
+            "evidence": [
+              "Successful logon for j.smith from an unusual external source",
+              "91.219.236.14"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-SOURCE-IP",
+            "precondition": "The attacker's source IP is confirmed malicious and not a shared legitimate address.",
+            "expectedResult": "Connection attempts from the blocked source IP to the affected host/service are rejected.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the source IP 91.219.236.14 has no legitimate business reason to reach VPN-GW-01.",
+                "target": "91.219.236.14",
+                "expectedResult": "IP confirmed as suspicious."
+              },
+              {
+                "order": 2,
+                "instruction": "Identify the network security control that enforces traffic from 91.219.236.14 toward VPN-GW-01.",
+                "target": "VPN-GW-01",
+                "expectedResult": "Control identified."
+              },
+              {
+                "order": 3,
+                "instruction": "Apply a deny rule for the source IP 91.219.236.14 on the identified control.",
+                "target": "91.219.236.14",
+                "expectedResult": "Deny rule applied."
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the deny rule is active on the control.",
+                "target": "91.219.236.14",
+                "expectedResult": "Rule active."
+              },
+              {
+                "order": 5,
+                "instruction": "Confirm new connection attempts from 91.219.236.14 to VPN-GW-01 are rejected.",
+                "target": "91.219.236.14",
+                "expectedResult": "Connections rejected."
+              }
+            ],
+            "verificationCriteria": "Connection attempts from the blocked source IP to the affected host/service are rejected."
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify containment of the account and source IP.",
+            "actionId": null,
+            "target": null,
+            "reason": "Ensure the attacker is successfully contained.",
+            "evidence": [],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query to ensure no new login from 91.219.236.14 or new session on j.smith.",
+                "target": null,
+                "expectedResult": "No new activity detected."
+              }
+            ],
+            "verificationCriteria": "Attacker sessions invalidated; Credential reset completed where required; No continued suspicious authentication"
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-ACCOUNT-COMPROMISE",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-REVOKE-SESSION,RB-BLOCK-SOURCE-IP",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "ACCOUNT_COMPROMISE",
+            "matchedTechniques": [
+              "T1078"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Revoke the compromised identity",
+                "description": "Disable the account recorded in the evidence (ACT-DISABLE-ACCOUNT)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Stop the external access source",
+                "description": "Block the external source IP of the suspicious logon (ACT-BLOCK-SOURCE-IP)."
+              },
+              {
+                "stepOrder": 3,
+                "title": "Contain the affected host if misused",
+                "description": "Isolate the host only if evidence shows it was used for further malicious activity (ACT-ISOLATE-ENDPOINT)."
+              },
+              {
+                "stepOrder": 4,
+                "title": "Invalidate the stolen credentials and sessions",
+                "description": "Reset the credentials and revoke the active sessions of the account recorded in the authentication evidence (ACT-RESET-CREDENTIAL / ACT-REVOKE-SESSION)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-REVOKE-SESSION",
+                "runbookCode": "RB-REVOKE-SESSION",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the account identifier and the session evidence recorded for it.",
+                  "Revoke the active sessions and refresh tokens of the account in the identity provider.",
+                  "Terminate the interactive and remote sessions of the account on the hosts named in the evidence.",
+                  "Confirm no active session of the account remains.",
+                  "Record the revoked sessions and the time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "No active session of the account remains.",
+                  "Authentication events show no new session from the suspicious source."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-SOURCE-IP",
+                "runbookCode": "RB-BLOCK-SOURCE-IP",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the source IP against the incident evidence and IOC record, and that it has no legitimate business reason to reach the affected host/service.",
+                  "Identify the network security control (perimeter firewall or WAF) that enforces traffic from this source toward the affected host/service.",
+                  "Apply a deny rule for the source IP on that control, scoped to the affected host/service named in the evidence.",
+                  "Confirm the deny rule is active on the control.",
+                  "Confirm new connection attempts from the source IP to the affected host/service are rejected.",
+                  "Record the rule identifier, scope and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Connection attempts from the blocked source IP to the affected host/service are rejected."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "ACCOUNT_COMPROMISE",
+              "version": "1.0",
+              "objective": "Regain control of the affected account and invalidate attacker access.",
+              "strategy": "Confirm the sign-in was not the user's, cut the attacker's sessions, tokens and credentials, restore MFA, then check what the attacker changed and where else they went.",
+              "successCriteria": [
+                "Attacker sessions invalidated",
+                "Credential reset completed where required",
+                "No continued suspicious authentication"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-REVOKE-SESSION": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-SOURCE-IP": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-ACCOUNT-COMPROMISE",
+          "revisionId": "fixture-revision-pb-PB-ACCOUNT-COMPROMISE",
+          "version": "1.0",
+          "content": {
+            "code": "PB-ACCOUNT-COMPROMISE",
+            "description": "Response strategy for suspicious use or manipulation of a valid account.",
+            "n8nWorkflowId": null,
+            "name": "Account Compromise Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Disable the account recorded in the evidence (ACT-DISABLE-ACCOUNT).",
+                "stepOrder": 1,
+                "title": "Revoke the compromised identity"
+              },
+              {
+                "description": "Block the external source IP of the suspicious logon (ACT-BLOCK-SOURCE-IP).",
+                "stepOrder": 2,
+                "title": "Stop the external access source"
+              },
+              {
+                "description": "Isolate the host only if evidence shows it was used for further malicious activity (ACT-ISOLATE-ENDPOINT).",
+                "stepOrder": 3,
+                "title": "Contain the affected host if misused"
+              },
+              {
+                "description": "Reset the credentials and revoke the active sessions of the account recorded in the authentication evidence (ACT-RESET-CREDENTIAL / ACT-REVOKE-SESSION).",
+                "stepOrder": 4,
+                "title": "Invalidate the stolen credentials and sessions"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-DISABLE-ACCOUNT",
+                "ACT-BLOCK-SOURCE-IP",
+                "ACT-ISOLATE-ENDPOINT",
+                "ACT-RESET-CREDENTIAL",
+                "ACT-REVOKE-SESSION"
+              ],
+              "incidentType": "ACCOUNT_COMPROMISE",
+              "mitreTechniques": [
+                "T1078",
+                "T1098"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:211aad68c88d90a82deac347f3764a1ba26754837c9841468c6931a09674d770"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-04",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure ACCOUNT_COMPROMISE and playbook PB-ACCOUNT-COMPROMISE match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "2 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (3 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-05",
+      "attackType": "POWERSHELL",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 41361
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Contain the malicious PowerShell execution by blocking the identified stager URL and domain, and isolate the affected endpoint and user account once persistence or lateral movement is confirmed.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Analyse the Command",
+            "objective": "Analyse the Command — Collect the PowerShell execution and decide whether it is malicious.",
+            "actionId": null,
+            "target": null,
+            "reason": "Determine if the PowerShell execution is authorized or requires containment.",
+            "evidence": [
+              "Encoded PowerShell download cradle executed"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The execution is classified as authorized or malicious.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Collect the PowerShell command line, script block log and parent process from HR-WS-03.",
+                "target": "HR-WS-03",
+                "expectedResult": "Command line and script block logs retrieved."
+              },
+              {
+                "order": 2,
+                "instruction": "Check for encoded commands, downloads, credential access and network connections.",
+                "target": "HR-WS-03",
+                "expectedResult": "Identification of malicious patterns or automation."
+              }
+            ],
+            "verificationCriteria": "Decision made to either CLOSE_AS_BENIGN or CONTAIN_PROCESS based on command analysis."
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "ACTION",
+            "title": "Block URL — http://vigix-mock-stager.net/a.ps1",
+            "objective": "Prevent access to the identified malicious resource.",
+            "actionId": "action-ACT-BLOCK-URL",
+            "target": "http://vigix-mock-stager.net/a.ps1",
+            "reason": "The URL is a known stager in the evidence.",
+            "evidence": [
+              "Encoded PowerShell download cradle executed",
+              "http://vigix-mock-stager.net/a.ps1"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-URL",
+            "precondition": "The download / stager URL is confirmed malicious.",
+            "expectedResult": "URL is blocked.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the URL http://vigix-mock-stager.net/a.ps1 against the incident evidence and IOC record.",
+                "target": "http://vigix-mock-stager.net/a.ps1",
+                "expectedResult": "URL verified against E1."
+              },
+              {
+                "order": 2,
+                "instruction": "Add the URL to the block list of the web-proxy / web-filter control used by HR-WS-03.",
+                "target": "http://vigix-mock-stager.net/a.ps1",
+                "expectedResult": "URL added to block list."
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on the web-proxy/web-filter control.",
+                "target": "http://vigix-mock-stager.net/a.ps1",
+                "expectedResult": "Block entry is active."
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                "target": "http://vigix-mock-stager.net/a.ps1",
+                "expectedResult": "Requests are blocked."
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "http://vigix-mock-stager.net/a.ps1",
+                "expectedResult": "Execution result recorded."
+              }
+            ],
+            "verificationCriteria": "Requests to the blocked URL fail from the affected host."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "ACTION",
+            "title": "Block Domain — vigix-mock-stager.net",
+            "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+            "actionId": "action-ACT-BLOCK-DOMAIN",
+            "target": "vigix-mock-stager.net",
+            "reason": "The domain is the source of the malicious stager URL.",
+            "evidence": [
+              "Encoded PowerShell download cradle executed",
+              "vigix-mock-stager.net"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-DOMAIN",
+            "precondition": "The stager domain is confirmed malicious.",
+            "expectedResult": "Domain is blocked.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the domain vigix-mock-stager.net against the incident evidence and IOC record.",
+                "target": "vigix-mock-stager.net",
+                "expectedResult": "Domain verified."
+              },
+              {
+                "order": 2,
+                "instruction": "Add the domain to the block list of the DNS or web-proxy control used by HR-WS-03.",
+                "target": "vigix-mock-stager.net",
+                "expectedResult": "Domain added to block list."
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on that control.",
+                "target": "vigix-mock-stager.net",
+                "expectedResult": "Block entry is active."
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                "target": "vigix-mock-stager.net",
+                "expectedResult": "Connections are blocked."
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "vigix-mock-stager.net",
+                "expectedResult": "Execution result recorded."
+              }
+            ],
+            "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host."
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "CHECK",
+            "title": "Check — Persistence & Child Processes",
+            "objective": "Persistence & Child Processes — Find what the command started or installed.",
+            "actionId": null,
+            "target": null,
+            "reason": "Assess if the PowerShell execution led to persistence or lateral movement.",
+            "evidence": [
+              "Encoded PowerShell download cradle executed"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Second-stage payloads, persistence and lateral activity identified or ruled out.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Check child processes, scheduled tasks, services and registry run keys created by the command.",
+                "target": "HR-WS-03",
+                "expectedResult": "Persistence mechanisms identified."
+              },
+              {
+                "order": 2,
+                "instruction": "Check for lateral connections from the endpoint.",
+                "target": "HR-WS-03",
+                "expectedResult": "Lateral movement identified."
+              }
+            ],
+            "verificationCriteria": "Decision made on whether to ISOLATE_AND_MALWARE_PROCEDURE or CONTINUE_HUNTING."
+          },
+          {
+            "stepOrder": 5,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify Containment",
+            "actionId": null,
+            "target": null,
+            "reason": "Final verification of containment success.",
+            "evidence": [
+              "Encoded PowerShell download cradle executed"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query defined in verification.yaml.",
+                "target": null,
+                "expectedResult": "Query completed."
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm no new execution of the command and no suspicious child process or persistence remains.",
+                "target": "HR-WS-03",
+                "expectedResult": "No new activity detected."
+              }
+            ],
+            "verificationCriteria": "Malicious PowerShell execution stopped; No suspicious child process or persistence remains"
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-POWERSHELL",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-BLOCK-URL,RB-BLOCK-DOMAIN",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "POWERSHELL",
+            "matchedTechniques": [
+              "T1059.001"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Contain the executing endpoint",
+                "description": "Isolate the endpoint where the PowerShell activity ran (ACT-ISOLATE-ENDPOINT)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Cut the stager / C2 infrastructure",
+                "description": "Block the stager/C2 URL, domain or IP recorded in the evidence (ACT-BLOCK-URL / ACT-BLOCK-DOMAIN / ACT-BLOCK-SOURCE-IP)."
+              },
+              {
+                "stepOrder": 3,
+                "title": "Revoke the executing identity if abused",
+                "description": "Disable the user account only if evidence shows it was abused (ACT-DISABLE-ACCOUNT)."
+              },
+              {
+                "stepOrder": 4,
+                "title": "Stop the PowerShell process and its payload",
+                "description": "Terminate the malicious PowerShell process, quarantine the dropped script / payload and block its hash (ACT-KILL-PROCESS / ACT-QUARANTINE-FILE / ACT-BLOCK-HASH)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-URL",
+                "runbookCode": "RB-BLOCK-URL",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the URL against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm requests to the URL from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Requests to the blocked URL fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-DOMAIN",
+                "runbookCode": "RB-BLOCK-DOMAIN",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the domain against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Resolution/connection attempts to the blocked domain fail from the affected host."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "POWERSHELL",
+              "version": "1.0",
+              "objective": "Stop malicious PowerShell execution and contain the affected endpoint.",
+              "strategy": "Confirm the PowerShell execution is malicious, stop the process and block its artifact, then check persistence and child processes and isolate the endpoint only when active compromise, persistence or lateral-movement risk is evidenced.",
+              "successCriteria": [
+                "Malicious PowerShell execution stopped",
+                "No suspicious child process or persistence remains"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-URL": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-DOMAIN": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-POWERSHELL",
+          "revisionId": "fixture-revision-pb-PB-POWERSHELL",
+          "version": "1.0",
+          "content": {
+            "code": "PB-POWERSHELL",
+            "description": "Response strategy for malicious/obfuscated PowerShell execution, download cradles and PowerShell-based persistence.",
+            "n8nWorkflowId": null,
+            "name": "Malicious PowerShell Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Isolate the endpoint where the PowerShell activity ran (ACT-ISOLATE-ENDPOINT).",
+                "stepOrder": 1,
+                "title": "Contain the executing endpoint"
+              },
+              {
+                "description": "Block the stager/C2 URL, domain or IP recorded in the evidence (ACT-BLOCK-URL / ACT-BLOCK-DOMAIN / ACT-BLOCK-SOURCE-IP).",
+                "stepOrder": 2,
+                "title": "Cut the stager / C2 infrastructure"
+              },
+              {
+                "description": "Disable the user account only if evidence shows it was abused (ACT-DISABLE-ACCOUNT).",
+                "stepOrder": 3,
+                "title": "Revoke the executing identity if abused"
+              },
+              {
+                "description": "Terminate the malicious PowerShell process, quarantine the dropped script / payload and block its hash (ACT-KILL-PROCESS / ACT-QUARANTINE-FILE / ACT-BLOCK-HASH).",
+                "stepOrder": 4,
+                "title": "Stop the PowerShell process and its payload"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-ISOLATE-ENDPOINT",
+                "ACT-BLOCK-DOMAIN",
+                "ACT-BLOCK-URL",
+                "ACT-BLOCK-SOURCE-IP",
+                "ACT-DISABLE-ACCOUNT",
+                "ACT-KILL-PROCESS",
+                "ACT-QUARANTINE-FILE",
+                "ACT-BLOCK-HASH"
+              ],
+              "incidentType": "POWERSHELL",
+              "mitreTechniques": [
+                "T1059.001",
+                "T1547.001"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:4c39e827698e271a0e0965de1dfb6ba8d148ccb84194719db8e49f5f92678f29"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-05",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure POWERSHELL and playbook PB-POWERSHELL match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "2 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 3, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (2 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-06",
+      "attackType": "SQL_INJECTION",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 26276
+        },
+        {
+          "correction": true,
+          "ms": 24028
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Restrict the source IP 194.87.29.10 to prevent further SQL injection payloads from reaching WEB-01 and verify that the injection activity has ceased.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Identify Request & Source",
+            "objective": "Identify the source IP, the targeted URL / API endpoint and the injected parameter from the web logs",
+            "actionId": null,
+            "target": null,
+            "reason": "Identify the source and target of the SQL injection",
+            "evidence": [
+              "SQL injection attempt: UNION SELECT in request parameter",
+              "194.87.29.10"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Source, endpoint and malicious request pattern identified.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Identify the source IP and targeted endpoint from the logs",
+                "target": "194.87.29.10",
+                "expectedResult": "Source and endpoint identified"
+              }
+            ],
+            "verificationCriteria": "Source IP and targeted parameter are identified"
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "ACTION",
+            "title": "Block Source IP — 194.87.29.10",
+            "objective": "Block the confirmed malicious source IP",
+            "actionId": "action-ACT-BLOCK-SOURCE-IP",
+            "target": "194.87.29.10",
+            "reason": "Block the source IP identified in the SQL injection attempt",
+            "evidence": [
+              "SQL injection attempt: UNION SELECT in request parameter",
+              "194.87.29.10"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-SOURCE-IP",
+            "precondition": "The source sending the injection payloads is confirmed malicious (not a known scanner / partner).",
+            "expectedResult": "Connections from 194.87.29.10 are rejected",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the source IP 194.87.29.10 has no legitimate business reason to reach WEB-01",
+                "target": "194.87.29.10",
+                "expectedResult": "IP confirmed as malicious"
+              },
+              {
+                "order": 2,
+                "instruction": "Identify the network security control that enforces traffic from 194.87.29.10 toward WEB-01",
+                "target": "194.87.29.10",
+                "expectedResult": "Control identified"
+              },
+              {
+                "order": 3,
+                "instruction": "Apply a deny rule for 194.87.29.10 on the identified control, scoped to WEB-01",
+                "target": "194.87.29.10",
+                "expectedResult": "Rule applied"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the deny rule is active on the control",
+                "target": "194.87.29.10",
+                "expectedResult": "Rule active"
+              },
+              {
+                "order": 5,
+                "instruction": "Confirm new connection attempts from 194.87.29.10 to WEB-01 are rejected",
+                "target": "194.87.29.10",
+                "expectedResult": "Connections rejected"
+              }
+            ],
+            "verificationCriteria": "Connection attempts from the blocked source IP to the affected host are rejected."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify containment of the SQL injection attack",
+            "actionId": null,
+            "target": null,
+            "reason": "Confirm the injection requests stopped and impact is assessed",
+            "evidence": [
+              "SQL injection attempt: UNION SELECT in request parameter",
+              "194.87.29.10"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query to check for remaining activity from 194.87.29.10",
+                "target": "194.87.29.10",
+                "expectedResult": "No new activity"
+              }
+            ],
+            "verificationCriteria": "Malicious requests stopped; No continued SQL injection activity; Database impact has been assessed"
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-SQL-INJECTION",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-BLOCK-SOURCE-IP",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "SQL_INJECTION",
+            "matchedTechniques": [
+              "T1190"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Stop the attacking source",
+                "description": "Block the source IP of the injection requests at the WAF/firewall protecting the web tier (ACT-BLOCK-SOURCE-IP)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-SOURCE-IP",
+                "runbookCode": "RB-BLOCK-SOURCE-IP",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the source IP against the incident evidence and IOC record, and that it has no legitimate business reason to reach the affected host/service.",
+                  "Identify the network security control (perimeter firewall or WAF) that enforces traffic from this source toward the affected host/service.",
+                  "Apply a deny rule for the source IP on that control, scoped to the affected host/service named in the evidence.",
+                  "Confirm the deny rule is active on the control.",
+                  "Confirm new connection attempts from the source IP to the affected host/service are rejected.",
+                  "Record the rule identifier, scope and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Connection attempts from the blocked source IP to the affected host/service are rejected."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "SQL_INJECTION",
+              "version": "1.0",
+              "objective": "Stop malicious application requests and determine whether database impact occurred.",
+              "strategy": "Restrict the attacking source and the confirmed malicious request pattern, assess database impact from logs instead of assuming it, and verify that the injection requests stopped.",
+              "successCriteria": [
+                "Malicious requests stopped",
+                "No continued SQL injection activity",
+                "Database impact has been assessed"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-SOURCE-IP": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-SQL-INJECTION",
+          "revisionId": "fixture-revision-pb-PB-SQL-INJECTION",
+          "version": "1.0",
+          "content": {
+            "code": "PB-SQL-INJECTION",
+            "description": "Response strategy for SQL injection attempts against a public-facing web application.",
+            "n8nWorkflowId": null,
+            "name": "SQL Injection Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Block the source IP of the injection requests at the WAF/firewall protecting the web tier (ACT-BLOCK-SOURCE-IP).",
+                "stepOrder": 1,
+                "title": "Stop the attacking source"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-BLOCK-SOURCE-IP",
+                "ACT-RATE-LIMIT-SOURCE"
+              ],
+              "incidentType": "SQL_INJECTION",
+              "mitreTechniques": [
+                "T1190"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:7adb86715bb78ea7bdb912117b67326aa12378bb22387459d24fa4ffc0c8a2c1"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-06",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure SQL_INJECTION and playbook PB-SQL-INJECTION match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "1 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (3 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-07",
+      "attackType": "COMMAND_AND_CONTROL",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 42015
+        },
+        {
+          "correction": false,
+          "ms": 34428
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Block the confirmed C2 destination (IP, domain, and URL) to interrupt communication between APP-SRV-02 and the attacker infrastructure, then verify the cessation of beaconing.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Confirm C2 Destination",
+            "objective": "Identify the host and the C2 destination, and confirm it is malicious.",
+            "actionId": null,
+            "target": "APP-SRV-02",
+            "reason": "Confirm the destination is malicious rather than a legitimate service before blocking.",
+            "evidence": [
+              "Periodic beaconing to a known C2 destination"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The destination is confirmed malicious or ruled benign.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Identify the internal host making the connection and the destination IP/domain/URL.",
+                "target": "APP-SRV-02",
+                "expectedResult": "Host and destination identified"
+              },
+              {
+                "order": 2,
+                "instruction": "Check the destination reputation and the beacon pattern (interval, size, protocol).",
+                "target": "193.142.146.212",
+                "expectedResult": "Reputation and pattern confirmed"
+              }
+            ],
+            "verificationCriteria": "Destination is confirmed as malicious C2 rather than a legitimate service."
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "ACTION",
+            "title": "Block Destination IP — 193.142.146.212",
+            "objective": "Block the confirmed C2 destination IP at the firewall.",
+            "actionId": "action-ACT-BLOCK-DESTINATION-IP",
+            "target": "193.142.146.212",
+            "reason": "Interrupt the primary C2 communication channel.",
+            "evidence": [
+              "Periodic beaconing to a known C2 destination",
+              "193.142.146.212"
+            ],
+            "sourceRunbookId": "runbook-RB-C2-CONTAINMENT",
+            "precondition": "The destination IP is confirmed malicious C2 (not a legitimate cloud service).",
+            "expectedResult": "Connections to 193.142.146.212 are rejected.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the destination IP 193.142.146.212 against the incident evidence and IOC record.",
+                "target": "193.142.146.212",
+                "expectedResult": "IP confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm the supporting threat-intelligence evidence that the destination is malicious.",
+                "target": "193.142.146.212",
+                "expectedResult": "Maliciousness confirmed"
+              },
+              {
+                "order": 3,
+                "instruction": "Apply an outbound deny rule for the destination IP on the perimeter firewall or egress control.",
+                "target": "193.142.146.212",
+                "expectedResult": "Rule applied"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the deny rule is active on the control.",
+                "target": "193.142.146.212",
+                "expectedResult": "Rule active"
+              },
+              {
+                "order": 5,
+                "instruction": "Confirm new outbound connections from APP-SRV-02 to the destination IP are rejected.",
+                "target": "193.142.146.212",
+                "expectedResult": "Connections rejected"
+              }
+            ],
+            "verificationCriteria": "Re-hunt of the destination IP shows no new outbound connection."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "ACTION",
+            "title": "Block Domain — vigix-mock-c2.net",
+            "objective": "Block the confirmed C2 domain at DNS / proxy.",
+            "actionId": "action-ACT-BLOCK-DOMAIN",
+            "target": "vigix-mock-c2.net",
+            "reason": "Interrupt the C2 communication via domain resolution.",
+            "evidence": [
+              "Periodic beaconing to a known C2 destination",
+              "vigix-mock-c2.net"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-DOMAIN",
+            "precondition": "The C2 domain is confirmed malicious.",
+            "expectedResult": "Domain resolution fails.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the domain vigix-mock-c2.net against the incident evidence and IOC record.",
+                "target": "vigix-mock-c2.net",
+                "expectedResult": "Domain confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the domain to the block list of the DNS or web-proxy control.",
+                "target": "vigix-mock-c2.net",
+                "expectedResult": "Domain added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on the control.",
+                "target": "vigix-mock-c2.net",
+                "expectedResult": "Entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm name resolution or connection attempts to the domain from APP-SRV-02 are blocked.",
+                "target": "vigix-mock-c2.net",
+                "expectedResult": "Resolution/connection blocked"
+              }
+            ],
+            "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host."
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "ACTION",
+            "title": "Block URL — https://vigix-mock-c2.net/gate.php",
+            "objective": "Block the confirmed C2 URL at the proxy.",
+            "actionId": "action-ACT-BLOCK-URL",
+            "target": "https://vigix-mock-c2.net/gate.php",
+            "reason": "Interrupt the C2 communication via the specific URL path.",
+            "evidence": [
+              "Periodic beaconing to a known C2 destination",
+              "https://vigix-mock-c2.net/gate.php"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-URL",
+            "precondition": "The C2 URL / gate is confirmed malicious.",
+            "expectedResult": "URL requests are blocked.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the URL https://vigix-mock-c2.net/gate.php against the incident evidence and IOC record.",
+                "target": "https://vigix-mock-c2.net/gate.php",
+                "expectedResult": "URL confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the URL to the block list of the web-proxy or web-filter control.",
+                "target": "https://vigix-mock-c2.net/gate.php",
+                "expectedResult": "URL added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on the control.",
+                "target": "https://vigix-mock-c2.net/gate.php",
+                "expectedResult": "Entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm requests to the URL from APP-SRV-02 are blocked.",
+                "target": "https://vigix-mock-c2.net/gate.php",
+                "expectedResult": "Requests blocked"
+              }
+            ],
+            "verificationCriteria": "Requests to the blocked URL fail from the affected host."
+          },
+          {
+            "stepOrder": 5,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify that C2 communication has stopped and no alternate destinations are observed.",
+            "actionId": null,
+            "target": "APP-SRV-02",
+            "reason": "Final verification of containment effectiveness.",
+            "evidence": [
+              "Periodic beaconing to a known C2 destination"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Containment verified.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query defined in verification.yaml.",
+                "target": "APP-SRV-02",
+                "expectedResult": "Query complete"
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm no beacon to the C2 and no alternate malicious destination.",
+                "target": "APP-SRV-02",
+                "expectedResult": "No activity found"
+              }
+            ],
+            "verificationCriteria": "C2 communication stopped; No alternate malicious destination observed."
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-C2",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-C2-CONTAINMENT,RB-BLOCK-DOMAIN,RB-BLOCK-URL",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "COMMAND_AND_CONTROL",
+            "matchedTechniques": [
+              "T1071"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Cut the C2 channel",
+                "description": "Block the C2 destination IP / domain / URL recorded in the network evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Contain the beaconing endpoint",
+                "description": "Isolate the endpoint that communicated with the C2 destination (ACT-ISOLATE-ENDPOINT)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-DESTINATION-IP",
+                "runbookCode": "RB-C2-CONTAINMENT",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the destination IP against the incident evidence and IOC record, including the network event that links it to the affected endpoint.",
+                  "Confirm the supporting IOC / threat-intelligence evidence that the destination is malicious.",
+                  "Apply an outbound deny rule for the destination IP on the perimeter firewall / egress control.",
+                  "Confirm the deny rule is active on that control.",
+                  "Confirm new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "Record the rule identifier, scope and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Re-hunt of the destination IP shows no new outbound connection.",
+                  "Network events show no recurrence of the beaconing / transfer pattern."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-DOMAIN",
+                "runbookCode": "RB-BLOCK-DOMAIN",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the domain against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Resolution/connection attempts to the blocked domain fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-URL",
+                "runbookCode": "RB-BLOCK-URL",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the URL against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm requests to the URL from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Requests to the blocked URL fail from the affected host."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "COMMAND_AND_CONTROL",
+              "version": "1.0",
+              "objective": "Cut communication between the compromised host and attacker infrastructure.",
+              "strategy": "Block the confirmed C2 destination, isolate the host if C2 communication continues, block the implant artifact, and look for alternate C2 destinations.",
+              "successCriteria": [
+                "C2 communication stopped",
+                "No alternate malicious destination observed"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-DESTINATION-IP": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-DOMAIN": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-URL": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-C2",
+          "revisionId": "fixture-revision-pb-PB-C2",
+          "version": "1.0",
+          "content": {
+            "code": "PB-C2",
+            "description": "Response strategy for an endpoint communicating with attacker command-and-control infrastructure.",
+            "n8nWorkflowId": null,
+            "name": "Command & Control Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Block the C2 destination IP / domain / URL recorded in the network evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL).",
+                "stepOrder": 1,
+                "title": "Cut the C2 channel"
+              },
+              {
+                "description": "Isolate the endpoint that communicated with the C2 destination (ACT-ISOLATE-ENDPOINT).",
+                "stepOrder": 2,
+                "title": "Contain the beaconing endpoint"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-BLOCK-DESTINATION-IP",
+                "ACT-BLOCK-DOMAIN",
+                "ACT-BLOCK-URL",
+                "ACT-ISOLATE-ENDPOINT",
+                "ACT-BLOCK-HASH"
+              ],
+              "incidentType": "COMMAND_AND_CONTROL",
+              "mitreTechniques": [
+                "T1071",
+                "T1573",
+                "T1571"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:96136a4331fc13a1468651edf418dbee6cbc86ef08b425f251ec80af52728980"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-07",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure COMMAND_AND_CONTROL and playbook PB-C2 match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "3 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (2 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-08",
+      "attackType": "SUSPICIOUS_PROCESS_EXECUTION",
+      "status": "INVALID_AI_OUTPUT",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 33407
+        },
+        {
+          "correction": true,
+          "ms": 55611
+        }
+      ],
+      "recommendation": null,
+      "rubric": null,
+      "failure": {
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "INVENTED_TARGET: step 1 (CHECK): instruction 2 targets \"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\", which is not a recorded IOC or affected host",
+          "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): target \"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\" is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): instruction 4 targets \"c48c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\", which is not an evidence-linked/analyst-added IOC or an affected host",
+          "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): instruction 5 targets \"c48c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\", which is not an evidence-linked/analyst-added IOC or an affected host"
+        ],
+        "attempts": 2,
+        "firstAttemptViolations": [
+          "INVENTED_TARGET: step 3 (ACT-BLOCK-HASH): instruction 3 targets \"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d6\", which is not an evidence-linked/analyst-added IOC or an affected host"
+        ]
+      }
+    },
+    {
+      "caseId": "TC-09",
+      "attackType": "DATA_EXFILTRATION",
+      "status": "VALIDATED",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 71490
+        }
+      ],
+      "recommendation": {
+        "tenantId": "tenant-1",
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "recommendationNumber": 1,
+        "status": "VALIDATED",
+        "summary": "Contain the data exfiltration by blocking the unauthorized destination IP, domain, and URL, and isolating the source host if the transfer continues.",
+        "createdBy": "test-agent",
+        "steps": [
+          {
+            "stepOrder": 1,
+            "stepType": "CHECK",
+            "title": "Check — Identify the Transfer",
+            "objective": "Identify the source, destination and data being sent.",
+            "actionId": null,
+            "target": "DB-SRV-01",
+            "reason": "Identify the source host and destination to determine the scope of the exfiltration.",
+            "evidence": [
+              "Large outbound upload to an external storage service"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The transfer is classified as authorized or unauthorized.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Identify the source host and user of the transfer and the destination IP / domain / URL.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Source host and destination identified"
+              }
+            ],
+            "verificationCriteria": "Source host, user, and destination (IP/Domain/URL) are identified."
+          },
+          {
+            "stepOrder": 2,
+            "stepType": "CHECK",
+            "title": "Check — Identify the Transfer",
+            "objective": "Determine if the transfer is authorized.",
+            "actionId": null,
+            "target": null,
+            "reason": "Decide if the destination is a sanctioned service to determine if containment is needed.",
+            "evidence": [
+              "Large outbound upload to an external storage service",
+              "45.61.136.77",
+              "vigix-mock-exfil.net",
+              "https://vigix-mock-exfil.net/upload"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "The transfer is classified as authorized or unauthorized.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Check whether the destination is a sanctioned service and estimate the volume.",
+                "target": null,
+                "expectedResult": "Destination status (sanctioned vs unauthorized) determined"
+              }
+            ],
+            "verificationCriteria": "Decision made on whether to proceed with containment based on authorization."
+          },
+          {
+            "stepOrder": 3,
+            "stepType": "ACTION",
+            "title": "Block Destination IP — 45.61.136.77",
+            "objective": "Prevent communication from the environment to the identified destination IP.",
+            "actionId": "action-ACT-BLOCK-DESTINATION-IP",
+            "target": "45.61.136.77",
+            "reason": "Block the outbound transfer to the identified destination IP.",
+            "evidence": [
+              "Large outbound upload to an external storage service",
+              "45.61.136.77"
+            ],
+            "sourceRunbookId": "runbook-RB-C2-CONTAINMENT",
+            "precondition": "The destination IP is confirmed unauthorized / malicious (not a sanctioned service).",
+            "expectedResult": "IP 45.61.136.77 is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the destination IP 45.61.136.77 against the incident evidence and IOC record.",
+                "target": "45.61.136.77",
+                "expectedResult": "IP confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Confirm the supporting IOC evidence that the destination is malicious.",
+                "target": "45.61.136.77",
+                "expectedResult": "Maliciousness confirmed"
+              },
+              {
+                "order": 3,
+                "instruction": "Apply an outbound deny rule for the destination IP 45.61.136.77 on the perimeter firewall or egress control.",
+                "target": "45.61.136.77",
+                "expectedResult": "Deny rule applied"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the deny rule is active on the control.",
+                "target": "45.61.136.77",
+                "expectedResult": "Rule is active"
+              },
+              {
+                "order": 5,
+                "instruction": "Confirm new outbound connections from the affected endpoint to the destination IP are rejected.",
+                "target": "45.61.136.77",
+                "expectedResult": "Connections rejected"
+              },
+              {
+                "order": 6,
+                "instruction": "Record the rule identifier, scope and time applied in the execution result.",
+                "target": "45.61.136.77",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "The destination IP 45.61.136.77 is blocked and no new outbound connections are successful."
+          },
+          {
+            "stepOrder": 4,
+            "stepType": "ACTION",
+            "title": "Block Domain — vigix-mock-exfil.net",
+            "objective": "Prevent hosts from resolving or communicating with the identified domain.",
+            "actionId": "action-ACT-BLOCK-DOMAIN",
+            "target": "vigix-mock-exfil.net",
+            "reason": "Block the unauthorized domain used for exfiltration.",
+            "evidence": [
+              "Large outbound upload to an external storage service",
+              "vigix-mock-exfil.net"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-DOMAIN",
+            "precondition": "The destination domain is confirmed unauthorized / malicious.",
+            "expectedResult": "Domain vigix-mock-exfil.net is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the domain vigix-mock-exfil.net against the incident evidence and IOC record.",
+                "target": "vigix-mock-exfil.net",
+                "expectedResult": "Domain confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                "target": "vigix-mock-exfil.net",
+                "expectedResult": "Domain added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on that control.",
+                "target": "vigix-mock-exfil.net",
+                "expectedResult": "Block entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm name resolution or connection attempts to the domain are blocked.",
+                "target": "vigix-mock-exfil.net",
+                "expectedResult": "Resolution/connection blocked"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "vigix-mock-exfil.net",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "Resolution/connection attempts to the blocked domain fail from the affected host."
+          },
+          {
+            "stepOrder": 5,
+            "stepType": "ACTION",
+            "title": "Block URL — https://vigix-mock-exfil.net/upload",
+            "objective": "Prevent access to the identified malicious resource.",
+            "actionId": "action-ACT-BLOCK-URL",
+            "target": "https://vigix-mock-exfil.net/upload",
+            "reason": "Block the specific upload URL used in the exfiltration.",
+            "evidence": [
+              "Large outbound upload to an external storage service",
+              "https://vigix-mock-exfil.net/upload"
+            ],
+            "sourceRunbookId": "runbook-RB-BLOCK-URL",
+            "precondition": "The upload URL is confirmed unauthorized / malicious.",
+            "expectedResult": "URL https://vigix-mock-exfil.net/upload is blocked",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the URL https://vigix-mock-exfil.net/upload against the incident evidence and IOC record.",
+                "target": "https://vigix-mock-exfil.net/upload",
+                "expectedResult": "URL confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                "target": "https://vigix-mock-exfil.net/upload",
+                "expectedResult": "URL added to block list"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the block entry is active on that control.",
+                "target": "https://vigix-mock-exfil.net/upload",
+                "expectedResult": "Block entry active"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm requests to the URL from the affected host are blocked.",
+                "target": "https://vigix-mock-exfil.net/upload",
+                "expectedResult": "Requests blocked"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the control, block entry and time applied in the execution result.",
+                "target": "https://vigix-mock-exfil.net/upload",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "Requests to the blocked URL fail from the affected host."
+          },
+          {
+            "stepOrder": 6,
+            "stepType": "CHECK",
+            "title": "Check — Transfer & Data Check",
+            "objective": "Check whether the transfer continues and which data and account are involved.",
+            "actionId": null,
+            "target": "DB-SRV-01",
+            "reason": "Assess if the transfer is still active after blocking the destination.",
+            "evidence": [
+              "Large outbound upload to an external storage service"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "Continued transfer, responsible account and leaked data identified.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Check whether the transfer continues after the block (new destination or channel).",
+                "target": "DB-SRV-01",
+                "expectedResult": "Transfer status checked"
+              },
+              {
+                "order": 2,
+                "instruction": "Identify the account / session behind the transfer and the data that may have leaked.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Account and data identified"
+              }
+            ],
+            "verificationCriteria": "The status of the transfer and the involved account/data are determined."
+          },
+          {
+            "stepOrder": 7,
+            "stepType": "ACTION",
+            "title": "Isolate Endpoint — DB-SRV-01",
+            "objective": "Reduce communication from the affected endpoint and limit potential spread.",
+            "actionId": "action-ACT-ISOLATE-ENDPOINT",
+            "target": "DB-SRV-01",
+            "reason": "Isolate the source host to stop the exfiltration.",
+            "evidence": [
+              "Large outbound upload to an external storage service"
+            ],
+            "sourceRunbookId": "runbook-RB-ISOLATE-ENDPOINT",
+            "precondition": "Active exfiltration continues from the source endpoint or cannot otherwise be stopped.",
+            "expectedResult": "DB-SRV-01 is isolated",
+            "requiresApproval": true,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Confirm the affected endpoint DB-SRV-01 and the evidence supporting its compromise.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Endpoint confirmed"
+              },
+              {
+                "order": 2,
+                "instruction": "Apply network isolation to the endpoint through the endpoint or network control.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Isolation applied"
+              },
+              {
+                "order": 3,
+                "instruction": "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Reachability restricted"
+              },
+              {
+                "order": 4,
+                "instruction": "Confirm the suspicious process or network activity recorded in the evidence has stopped.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Activity stopped"
+              },
+              {
+                "order": 5,
+                "instruction": "Record the isolation method and time applied in the execution result.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Details recorded"
+              }
+            ],
+            "verificationCriteria": "The isolated endpoint shows no outbound or lateral network activity except management access."
+          },
+          {
+            "stepOrder": 8,
+            "stepType": "CHECK",
+            "title": "Check — Scope Check",
+            "objective": "Find related transfers on other hosts.",
+            "actionId": null,
+            "target": null,
+            "reason": "Determine if the exfiltration is happening elsewhere in the environment.",
+            "evidence": [
+              "Large outbound upload to an external storage service"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "List of every host and channel involved.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Hunt transfers to the same destination from other hosts, and staging / archiving activity on the source.",
+                "target": null,
+                "expectedResult": "Scope of transfer checked"
+              }
+            ],
+            "verificationCriteria": "Related transfers or staging activity on other hosts are identified or ruled out."
+          },
+          {
+            "stepOrder": 9,
+            "stepType": "CHECK",
+            "title": "Check — Verify Containment",
+            "objective": "Verify Containment",
+            "actionId": null,
+            "target": "DB-SRV-01",
+            "reason": "Confirm the transfer has stopped and the source is contained.",
+            "evidence": [
+              "Large outbound upload to an external storage service"
+            ],
+            "sourceRunbookId": null,
+            "precondition": null,
+            "expectedResult": "RESOLVED or NOT_RESOLVED, per verification.yaml.",
+            "requiresApproval": false,
+            "instructions": [
+              {
+                "order": 1,
+                "instruction": "Run the re-hunt query defined in verification.yaml.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Query completed"
+              },
+              {
+                "order": 2,
+                "instruction": "Monitor outbound traffic from the source host / user to confirm no continued transfer.",
+                "target": "DB-SRV-01",
+                "expectedResult": "Monitoring complete"
+              }
+            ],
+            "verificationCriteria": "Unauthorized transfer stopped; No continued outbound transfer; Source account / endpoint remains contained"
+          }
+        ],
+        "snapshot": {
+          "playbookCode": "PB-DATA-EXFIL",
+          "playbookVersion": "1.0",
+          "procedureCode": "RB-C2-CONTAINMENT,RB-BLOCK-DOMAIN,RB-BLOCK-URL,RB-ISOLATE-ENDPOINT",
+          "procedureVersion": "1.0",
+          "procedureContent": {
+            "incidentType": "DATA_EXFILTRATION",
+            "matchedTechniques": [
+              "T1567"
+            ],
+            "strategy": [
+              {
+                "stepOrder": 1,
+                "title": "Stop the transfer",
+                "description": "Block the exfiltration destination IP / domain / URL recorded in the transfer evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL)."
+              },
+              {
+                "stepOrder": 2,
+                "title": "Contain the source endpoint",
+                "description": "Isolate the endpoint the data left from (ACT-ISOLATE-ENDPOINT)."
+              }
+            ],
+            "runbooks": [
+              {
+                "actionCode": "ACT-BLOCK-DESTINATION-IP",
+                "runbookCode": "RB-C2-CONTAINMENT",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the destination IP against the incident evidence and IOC record, including the network event that links it to the affected endpoint.",
+                  "Confirm the supporting IOC / threat-intelligence evidence that the destination is malicious.",
+                  "Apply an outbound deny rule for the destination IP on the perimeter firewall / egress control.",
+                  "Confirm the deny rule is active on that control.",
+                  "Confirm new outbound connections from the affected endpoint to the destination IP are rejected.",
+                  "Record the rule identifier, scope and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Re-hunt of the destination IP shows no new outbound connection.",
+                  "Network events show no recurrence of the beaconing / transfer pattern."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-DOMAIN",
+                "runbookCode": "RB-BLOCK-DOMAIN",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the domain against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the domain to the block list of the DNS or web-proxy control used by the affected host.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm name resolution or connection attempts to the domain from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Resolution/connection attempts to the blocked domain fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-BLOCK-URL",
+                "runbookCode": "RB-BLOCK-URL",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the URL against the incident evidence and IOC record, including the event that links it to the affected host.",
+                  "Add the URL to the block list of the web-proxy / web-filter control used by the affected hosts.",
+                  "Confirm the block entry is active on that control.",
+                  "Confirm requests to the URL from the affected host are blocked.",
+                  "Record the control, block entry and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "Requests to the blocked URL fail from the affected host."
+                ]
+              },
+              {
+                "actionCode": "ACT-ISOLATE-ENDPOINT",
+                "runbookCode": "RB-ISOLATE-ENDPOINT",
+                "version": "1.0",
+                "procedure": [
+                  "Confirm the affected endpoint (hostname / IP) and the evidence supporting its compromise.",
+                  "Apply network isolation to the endpoint through the endpoint or network control, keeping analyst management access if the control supports it.",
+                  "Confirm the endpoint can no longer reach other hosts or external destinations.",
+                  "Confirm the suspicious process or network activity recorded in the evidence has stopped.",
+                  "Record the isolation method and time applied in the execution result."
+                ],
+                "verificationCriteria": [
+                  "The isolated endpoint shows no outbound or lateral network activity except management access."
+                ]
+              }
+            ],
+            "containmentProcedure": {
+              "procedureCode": "DATA_EXFILTRATION",
+              "version": "1.0",
+              "objective": "Stop unauthorized outbound transfer and contain the source of the exfiltration.",
+              "strategy": "Block the confirmed unauthorized destination, isolate the source when the transfer continues, contain the account or session responsible, and confirm the transfer stopped.",
+              "successCriteria": [
+                "Unauthorized transfer stopped",
+                "No continued outbound transfer",
+                "Source account / endpoint remains contained"
+              ]
+            }
+          },
+          "policyResult": {
+            "ACT-BLOCK-DESTINATION-IP": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-DOMAIN": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-BLOCK-URL": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": false,
+              "approvalRole": null,
+              "matchedRules": []
+            },
+            "ACT-ISOLATE-ENDPOINT": {
+              "responsibleRole": "IR_TEAM",
+              "reviewRequired": false,
+              "reviewRole": null,
+              "approvalRequired": true,
+              "approvalRole": "IR_TEAM",
+              "matchedRules": [
+                "POL-A01"
+              ]
+            }
+          }
+        },
+        "provenance": {
+          "tenantId": "tenant-1",
+          "playbookId": "pb-PB-DATA-EXFIL",
+          "revisionId": "fixture-revision-pb-PB-DATA-EXFIL",
+          "version": "1.0",
+          "content": {
+            "code": "PB-DATA-EXFIL",
+            "description": "Response strategy for data leaving the environment over a C2 channel, an alternative protocol or a web service.",
+            "n8nWorkflowId": null,
+            "name": "Data Exfiltration Response",
+            "playbookStatus": "ACTIVE",
+            "steps": [
+              {
+                "description": "Block the exfiltration destination IP / domain / URL recorded in the transfer evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL).",
+                "stepOrder": 1,
+                "title": "Stop the transfer"
+              },
+              {
+                "description": "Isolate the endpoint the data left from (ACT-ISOLATE-ENDPOINT).",
+                "stepOrder": 2,
+                "title": "Contain the source endpoint"
+              }
+            ],
+            "triggerConditions": {
+              "allowedActions": [
+                "ACT-BLOCK-DESTINATION-IP",
+                "ACT-BLOCK-DOMAIN",
+                "ACT-BLOCK-URL",
+                "ACT-ISOLATE-ENDPOINT",
+                "ACT-REVOKE-SESSION",
+                "ACT-DISABLE-ACCOUNT"
+              ],
+              "incidentType": "DATA_EXFILTRATION",
+              "mitreTechniques": [
+                "T1041",
+                "T1048",
+                "T1567"
+              ],
+              "scope": "INCIDENT"
+            },
+            "version": "1.0"
+          },
+          "contentHash": "sha256:canonical-json-v1:d286992ba91b6f85e246d3bec6649134fab2768b0199644a0a9642a7635c42f7"
+        }
+      },
+      "rubric": {
+        "caseId": "TC-09",
+        "criteria": [
+          {
+            "criterion": "ATTACK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "procedure DATA_EXFILTRATION and playbook PB-DATA-EXFIL match the attack type"
+          },
+          {
+            "criterion": "EVIDENCE_SUPPORT",
+            "result": "PASS",
+            "reason": "4 ACTION step(s), each citing recorded evidence"
+          },
+          {
+            "criterion": "ACTION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "CHECK and ACTION steps present (no Ground Truth pairs to compare)"
+          },
+          {
+            "criterion": "TARGET_CORRECTNESS",
+            "result": "NOT_EVALUABLE",
+            "reason": "no Ground Truth for this case"
+          },
+          {
+            "criterion": "POLICY_COMPLIANCE",
+            "result": "PASS",
+            "reason": "approval equals Policy and every procedure condition is carried"
+          },
+          {
+            "criterion": "PLAYBOOK_ALIGNMENT",
+            "result": "PASS",
+            "reason": "every step maps to procedure steps 1, 2, 3, 4, 5, 6 in order"
+          },
+          {
+            "criterion": "VERIFICATION_COMPLETENESS",
+            "result": "PASS",
+            "reason": "verification covered (3 success criteria)"
+          }
+        ],
+        "passed": 6,
+        "evaluable": 6,
+        "scorePct": 100
+      },
+      "failure": null
+    },
+    {
+      "caseId": "TC-10",
+      "attackType": "PRIVILEGE_ESCALATION",
+      "status": "INVALID_AI_OUTPUT",
+      "llmCalls": [
+        {
+          "correction": false,
+          "ms": 29135
+        },
+        {
+          "correction": true,
+          "ms": 15648
+        }
+      ],
+      "recommendation": null,
+      "rubric": null,
+      "failure": {
+        "incidentId": "incident-1",
+        "investigationNumber": 1,
+        "reason": "INVALID_AI_OUTPUT",
+        "violations": [
+          "WRONG_RESPONSIBLE_ROLE: step 3 (CHECK): responsibleRole \"IR__TEAM\" differs from the procedure (IR_TEAM)"
+        ],
+        "attempts": 2,
+        "firstAttemptViolations": [
+          "POLICY_BYPASS: step 2 (ACT-REMOVE-PRIVILEGE): text waives, skips or pre-empts approval/authorization (\"Change management confirms no approval\")"
+        ]
+      }
+    }
+  ]
+}

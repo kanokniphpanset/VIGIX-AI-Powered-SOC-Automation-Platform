@@ -24,3 +24,6 @@ wazuh-docker/
 
 # Additional evaluation: local venv for figures (never commit)
 results/additional-evaluation/.venv/
+
+# Encrypted local server notification credentials
+apps/backend/.local-settings/

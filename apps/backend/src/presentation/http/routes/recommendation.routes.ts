@@ -12,6 +12,9 @@ import { authenticate, requireOperationalRole, requireRole } from "../middleware
 export function buildRecommendationRoutes(controller: RecommendationController): Router {
   const router = Router();
   router.post("/generate", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.generate));
+  // Recommendation Preview with SIMULATED data (RECOMMENDATION_PREVIEW_FIXTURES=true only); before "/:id" so it is not read as an id.
+  router.get("/preview-fixtures", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.previewFixtures));
+  router.get("/preview-fixtures/:fixtureId", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.previewFixture));
   router.get("/:id", authenticate, controller.getById);
   // Internal audit of the subtype-knowledge evaluation - never part of the user-facing recommendation.
   router.get("/:id/audit", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.getAudit));
@@ -27,5 +30,7 @@ export function buildRecommendationRoutes(controller: RecommendationController):
 export function buildIncidentRecommendationRoutes(controller: RecommendationController): Router {
   const router = Router({ mergeParams: true });
   router.get("/", authenticate, controller.listByIncident);
+  // Recommendation Preview (subtype knowledge): read-only, never persisted, never sent to IR.
+  router.get("/preview", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.preview));
   return router;
 }

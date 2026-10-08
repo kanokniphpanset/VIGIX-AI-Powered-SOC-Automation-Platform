@@ -33,6 +33,12 @@ function renderProcessStep(s: ResponseProcessStep): string[] {
     ...(s.objective ? [`   Objective: ${s.objective}`] : []),
     `   Why: ${s.reason}`,
     ...s.instructions.map((i) => `   ${s.stepOrder}.${i.order} ${i.instruction}${i.target ? ` [${i.target}]` : ""}${i.expectedResult ? ` -> expected: ${i.expectedResult}` : ""}${i.verify ? ` -> verify: ${i.verify}` : ""}${i.preconditions?.length ? ` -> before: ${i.preconditions.join(" / ")}` : ""}${i.rollback ? ` -> rollback: ${i.rollback}` : ""}`),
+    ...s.instructions.flatMap(i => [
+      ...(i.method ? [`   วิธีลงมือ (${i.order}): ${i.method}`] : []),
+      ...(i.impact ? [`   ผลกระทบ (${i.order}): ${i.impact}`] : []),
+      ...(i.manualOwner ? [`   ผู้รับผิดชอบ (${i.order}): ${i.manualOwner}`] : []),
+      ...(i.note ? [`   หมายเหตุ (${i.order}): ${i.note}`] : []),
+    ]),
     ...(s.expectedResult ? [`   Expected result: ${s.expectedResult}`] : []),
     ...(s.verificationCriteria ? [`   Verification / re-hunt: ${s.verificationCriteria}`] : []),
   ];
@@ -143,15 +149,26 @@ export function renderEmail(event: NotificationEvent): RenderedEmail {
         `Ticket ID: ${t.id}`,
         `Action: ${t.action ? `${t.action.name} (${t.action.code})` : "(none)"}`,
         `Target: ${t.target ?? "(none)"}`,
-        t.runbook ? `Runbook: ${t.runbook.code}` : null,
+
         `Assigned Team: ${t.assignedRole}`,
         `Status: ${t.status}`,
         "",
+        ...(event.recommendation ? [
+          `Recommendation เวอร์ชัน: #${event.recommendation.recommendationNumber}`,
+          `รอบการวิเคราะห์: ${event.recommendation.investigationNumber ?? event.incident.investigationNumber}`,
+          `Recommendation ID: ${event.recommendation.id}`,
+          `ขั้นตอนที่ผูกกับ Ticket: ${event.recommendation.recommendationStepId ?? "—"}`,
+          "", "คำแนะนำสำหรับ Ticket นี้ (รอ IR พิจารณาอนุมัติ)",
+          event.recommendation.summary,
+          ...(event.recommendation.responseProcess?.steps.flatMap(renderProcessStep) ?? []),
+          "", "อ้างอิงคำแนะนำเวอร์ชันที่ส่ง ไม่ใช่ฉบับร่างที่เปลี่ยนภายหลัง",
+        ] : []),
         "SOC sent this recommendation to IR. Open the ticket, review the incident, evidence, AI analysis and proposed",
         "actions, then APPROVE or REJECT it (a note is required). Nothing is executed before an IR approval.",
         "",
         "Open Response Ticket:",
         event.links.ticket || "(not available)",
+        "", "เปิด Incident:", event.links.incident || "(not available)",
       ]
         .filter((l): l is string => l !== null)
         .join("\n");

@@ -5,20 +5,74 @@
     "id": "100320",
     "level": 13,
     "description": "Outbound beaconing to a known command-and-control server (threat-intel match)",
-    "groups": ["ids", "c2", "threat_intel", "vigix_custom"],
+    "groups": [
+      "ids",
+      "c2",
+      "threat_intel",
+      "vigix_custom"
+    ],
     "firedtimes": 1,
-    "mitre": { "id": ["T1071.001"], "tactic": ["Command and Control"], "technique": ["Web Protocols"] }
+    "mitre": {
+      "id": [
+        "T1071.001"
+      ],
+      "tactic": [
+        "Command and Control"
+      ],
+      "technique": [
+        "Web Protocols"
+      ]
+    },
+    "mail": true
   },
-  "agent": { "id": "012", "name": "WKS-DEV-12", "ip": "10.0.5.44" },
-  "manager": { "name": "wazuh-manager" },
-  "decoder": { "name": "suricata" },
+  "agent": {
+    "id": "012",
+    "name": "WKS-DEV-12",
+    "ip": "10.0.5.44"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "decoder": {
+    "name": "suricata"
+  },
+  "input": {
+    "type": "log"
+  },
   "location": "/var/log/suricata/eve.json",
   "data": {
     "srcip": "10.0.5.44",
     "dstip": "193.142.146.212",
     "dstport": "443",
     "url": "https://vigix-mock-c2.net/gate.php",
-    "dns": { "question": { "name": "vigix-mock-c2.net" } }
+    "dns": {
+      "question": {
+        "name": "vigix-mock-c2.net"
+      }
+    },
+    "timestamp": "2026-09-30T07:37:58.412731+0000",
+    "flow_id": "1482930112345678",
+    "in_iface": "eth0",
+    "event_type": "alert",
+    "src_ip": "10.0.5.44",
+    "src_port": "49822",
+    "dest_ip": "193.142.146.212",
+    "dest_port": "443",
+    "proto": "TCP",
+    "app_proto": "tls",
+    "alert": {
+      "action": "allowed",
+      "gid": "1",
+      "signature_id": "2027865",
+      "rev": "3",
+      "signature": "ET MALWARE Cobalt Strike Beacon Observed",
+      "category": "A Network Trojan was detected",
+      "severity": "1"
+    },
+    "tls": {
+      "sni": "vigix-mock-c2.net",
+      "version": "TLS 1.2"
+    }
   },
   "full_log": "Regular 60s beacon 10.0.5.44 -> 193.142.146.212:443 https://vigix-mock-c2.net/gate.php; JA3 fingerprint matches a Cobalt Strike profile; destination on threat-intel blocklist (vigix-mock-c2.net / 193.142.146.212)"
 }

@@ -94,7 +94,7 @@ onUnmounted(() => {
               <span v-if="!n.read" class="mt-1 size-1.5 shrink-0 rounded-full bg-accent-500" />
               <span>{{ notificationText(n).title }}</span>
             </p>
-            <p v-if="n.body" class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ notificationText(n).body }}</p>
+            <p v-if="n.body" class="mt-0.5 text-xs text-slate-500">{{ notificationText(n).body }}</p>
             <p class="mt-0.5 text-[11px] text-slate-400" :title="formatDateTime(n.createdAt)">{{ timeAgo(n.createdAt) }} · {{ notificationType(n.eventType) }}</p>
           </button>
         </li>

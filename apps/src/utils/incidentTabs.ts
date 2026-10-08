@@ -15,7 +15,7 @@ const LEGACY: Record<string, { tab: IncidentTab; anchor?: string }> = {
   recommendation: { tab: 'ai', anchor: 'sec-recommendation' },
   history: { tab: 'history' },
   verification: { tab: 'history', anchor: 'sec-verification' },
-  email: { tab: 'history', anchor: 'sec-email' },
+  email: { tab: 'ai', anchor: 'sec-email' },
   audit: { tab: 'history', anchor: 'sec-audit' },
 }
 

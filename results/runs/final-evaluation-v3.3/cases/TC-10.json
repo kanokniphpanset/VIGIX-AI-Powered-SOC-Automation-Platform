@@ -1,0 +1,220 @@
+{
+  "caseId": "TC-10",
+  "attackType": "ACCOUNT_COMPROMISE",
+  "attackName": "Privilege Escalation",
+  "severity": "critical",
+  "risk": null,
+  "incidentId": "21c05d20-ef1d-441a-b097-d5f78a4ec258",
+  "alertId": "5b4a0ebd-63a3-4749-a11e-848c964c7356",
+  "investigationId": "05210b12-4b36-4419-8c09-5fd53bc0928b",
+  "recommendationId": "1cfdf355-9b45-48a5-9e28-c7819c9c5084",
+  "playbookCode": "PB-ACCOUNT-COMPROMISE",
+  "decisionId": "68de684e-307d-492c-93ca-1d537adf5f26",
+  "responseTicketId": "7d3a5519-2746-4c7a-9eed-7a6f0bd0a404",
+  "verificationId": null,
+  "recommendationStatus": "VALIDATED",
+  "compliance": {
+    "attackAlignment": true,
+    "evidenceSupport": true,
+    "knowledgeValidity": true,
+    "policyCompliance": true,
+    "playbookAlignment": true,
+    "approvalCorrectness": true,
+    "targetRole": true,
+    "compliant": true,
+    "failedChecks": []
+  },
+  "recommendationCompliance": "COMPLIANT",
+  "investigationStartAt": "2026-10-03T12:03:23.436Z",
+  "recommendationAt": "2026-10-03T12:04:34.853Z",
+  "decisionAt": "2026-10-03T12:04:34.904Z",
+  "investigationTimeSeconds": 71.42,
+  "timeToDecisionSeconds": 0.05,
+  "workflow": {
+    "alertIngested": true,
+    "incidentCreated": true,
+    "aiAnalysisCompleted": true,
+    "investigationCompleted": false,
+    "recommendationCreated": true,
+    "recommendationValidated": true,
+    "policyEvaluated": true,
+    "decisionCompleted": true,
+    "responseCompleted": true,
+    "verificationCompleted": false,
+    "rehuntExecuted": false
+  },
+  "workflowCompleted": false,
+  "finalStatus": "open",
+  "verificationMode": "NONE",
+  "verificationResult": null,
+  "rehuntRound": null,
+  "recommendationAttemptCount": 1,
+  "invalidOutputCount": 0,
+  "interventionRequired": false,
+  "interventionType": [],
+  "findings": [
+    "(ground-truth note) Stock Wazuh 4.9.2 has NO decoder/rule for `usermod -aG sudo` (only useradd 5902/T1136 and FIM 550 fire). Detection requires the custom rule 100350 — a ruleset gap, not a VIGIX defect."
+  ],
+  "notes": "",
+  "mode": "CUSTOM_RULE_REAL_ACTION",
+  "telemetry": "REAL_ACTION_CUSTOM_RULE",
+  "simulation": {
+    "caseId": "TC-10",
+    "startedAt": "2026-10-03T12:03:15.898Z",
+    "endedAt": "2026-10-03T12:03:19.148Z",
+    "telemetry": "REAL_ACTION_CUSTOM_RULE",
+    "facts": {
+      "attackerIp": "172.19.0.3",
+      "endpointIp": "172.19.0.8",
+      "testServerIp": "172.19.0.7",
+      "user": "evaluser",
+      "oldPrivilege": "standard user (no sudo)",
+      "newPrivilege": "member of group sudo",
+      "command": "usermod -aG sudo evaluser"
+    },
+    "notes": [
+      "Test-only account evaluser; removed in cleanup."
+    ]
+  },
+  "wazuh": {
+    "indexerDocId": "ycGlAaEBT0qgUD4hu1BE",
+    "alertId": "1791028998.1985178",
+    "timestamp": "2026-10-03T12:03:18.311+0000",
+    "ruleId": "100350",
+    "level": 14,
+    "description": "VIGIX-EVAL: user added to a privileged group (privilege change)",
+    "mitre": [
+      "T1098"
+    ],
+    "agent": "attack-endpoint",
+    "srcip": null,
+    "stockRule": false,
+    "ruleMatch": true,
+    "levelMatch": true,
+    "mitreMatch": true,
+    "detectionLatencySeconds": 2.41
+  },
+  "groundTruth": {
+    "caseId": "TC-10",
+    "ruleId": "100350",
+    "attackName": "Privilege Escalation",
+    "attackType": "ACCOUNT_COMPROMISE",
+    "mode": "CUSTOM_RULE_REAL_ACTION",
+    "simulation": "Real `useradd evaluser` then `usermod -aG sudo evaluser` on the endpoint; auth.log line decoded by the custom vigix-usermod decoder",
+    "expectedWazuh": {
+      "ruleId": "100350",
+      "level": 14,
+      "stockRule": false
+    },
+    "expectedSeverity": "critical",
+    "expectedMitre": [
+      "T1098"
+    ],
+    "expectedIocs": [
+      {
+        "type": "user",
+        "value": "evaluser"
+      }
+    ],
+    "allowedActions": [
+      "ACT-DISABLE-ACCOUNT",
+      "ACT-BLOCK-SOURCE-IP",
+      "ACT-ISOLATE-ENDPOINT",
+      "ACT-RESET-CREDENTIAL",
+      "ACT-REVOKE-SESSION"
+    ],
+    "expectedActions": [
+      "ACT-DISABLE-ACCOUNT"
+    ],
+    "expectedTargets": [
+      "evaluser"
+    ],
+    "expectedPlaybook": "PB-ACCOUNT-COMPROMISE",
+    "approvalExpected": true,
+    "expectedPolicy": "POL-A01 approval",
+    "expectedApproval": "IR_TEAM approval required (Policy POL-A01) before any containment; AI never approves",
+    "expectedVerification": "REAL_WAZUH re-hunt of the Wazuh Indexer after manual response: RESOLVED only if matchingEvents=0, no spread, no IOC recurrence, threatContained",
+    "knownFindings": [
+      "Stock Wazuh 4.9.2 has NO decoder/rule for `usermod -aG sudo` (only useradd 5902/T1136 and FIM 550 fire). Detection requires the custom rule 100350 — a ruleset gap, not a VIGIX defect."
+    ]
+  },
+  "interventions": [],
+  "observations": [
+    "REHUNT_FAILED: REHUNT_INSUFFICIENT_CRITERIA \"No supported IOC is available to query.\" — no verification, incident not resolved"
+  ],
+  "timeline": {
+    "simulationStart": "2026-10-03T12:03:15.898Z",
+    "wazuhAlertTimestamp": "2026-10-03T12:03:18.311+0000",
+    "alertReceivedByVigix": "2026-10-03T12:03:23.415Z",
+    "incidentOpened": "2026-10-03T12:03:23.430Z",
+    "investigationStart": "2026-10-03T12:03:23.436Z",
+    "recommendationCreated": "2026-10-03T12:04:34.853Z",
+    "irDecision": "2026-10-03T12:04:34.904Z",
+    "responseCompleted": "2026-10-03T12:04:37.933Z",
+    "verificationAt": null,
+    "detectionLatencySeconds": 2.41,
+    "ingestToRecommendationSeconds": 71.44
+  },
+  "iocRecall": {
+    "expected": 1,
+    "found": 1,
+    "missing": []
+  },
+  "actionMatch": {
+    "expectedActions": [
+      "ACT-DISABLE-ACCOUNT"
+    ],
+    "actualActions": [
+      "ACT-DISABLE-ACCOUNT",
+      "ACT-REVOKE-SESSION"
+    ],
+    "expectedActionHit": true,
+    "actualTargets": [
+      "evaluser",
+      "evaluser"
+    ],
+    "expectedTargetHit": true
+  },
+  "verificationDetail": null,
+  "rehuntError": "REHUNT_INSUFFICIENT_CRITERIA",
+  "timingMode": "UNINTERRUPTED_SCRIPTED",
+  "environmentStatus": "AVAILABLE",
+  "correctnessGroundTruth": {
+    "caseId": "TC-10",
+    "expectedPlaybook": "PB-ACCOUNT-COMPROMISE",
+    "expectedRecommendations": [
+      {
+        "action": "ACT-DISABLE-ACCOUNT",
+        "targets": [
+          {
+            "type": "account",
+            "value": "evaluser"
+          }
+        ],
+        "rationale": "Account that was added to a privileged group."
+      }
+    ]
+  },
+  "correctRecommendation": {
+    "caseId": "TC-10",
+    "correct": false,
+    "playbookMatch": true,
+    "actionTargetMatches": false,
+    "missingRecommendations": [],
+    "unexpectedRecommendations": [
+      {
+        "action": "ACT-REVOKE-SESSION",
+        "target": "evaluser"
+      }
+    ],
+    "mismatchedTargets": [],
+    "matchedRecommendations": [
+      {
+        "action": "ACT-DISABLE-ACCOUNT",
+        "target": "evaluser"
+      }
+    ],
+    "reason": "unexpected: ACT-REVOKE-SESSION -> evaluser"
+  },
+  "irReject": null
+}
