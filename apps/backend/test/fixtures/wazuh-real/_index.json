@@ -1,0 +1,206 @@
+{
+  "5712-sshd-bruteforce.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "88G4AaEBT0qgUD4hg1Cp"
+    }
+  },
+  "40112-sshd-failures-then-success.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "jMGWAaEBT0qgUD4hoFAI"
+    }
+  },
+  "5551-pam-failures.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "_cG4AaEBT0qgUD4hrlCj"
+    }
+  },
+  "31103-web-sqli.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "n8GfAaEBT0qgUD4hEFA9"
+    }
+  },
+  "31152-web-sqli-multiple.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "nsGfAaEBT0qgUD4hEFA9"
+    }
+  },
+  "100301-fim-added-harness-rule.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "bcGQAaEBT0qgUD4hUlC5"
+    }
+  },
+  "554-fim-added.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "y8GlAaEBT0qgUD4h1lCW"
+    }
+  },
+  "550-fim-modified.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.07",
+      "docId": "hW7RFqEBmy1Sw3JDnwdE"
+    }
+  },
+  "553-fim-deleted.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "0cGlAaEBT0qgUD4h1lCW"
+    }
+  },
+  "100320-harness-c2-beacon.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "HMHBAaEBT0qgUD4h0lF_"
+    }
+  },
+  "100330-harness-suspicious-process.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "qsGhAaEBT0qgUD4h6lCr"
+    }
+  },
+  "100340-harness-exfil.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "ssGkAaEBT0qgUD4hIVAW"
+    }
+  },
+  "100310-harness-phishing.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "ccGSAaEBT0qgUD4hAFB1"
+    }
+  },
+  "100350-usermod-sudo.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "ycGlAaEBT0qgUD4hu1BE"
+    }
+  },
+  "5902-useradd-user.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "xMGlAaEBT0qgUD4hu1BE"
+    }
+  },
+  "5901-useradd-group.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "w8GlAaEBT0qgUD4hu1BE"
+    }
+  },
+  "100300-sysmon-dns-ps.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "kcGZAaEBT0qgUD4hHFC_"
+    }
+  },
+  "92027-sysmon-process-create.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "kMGZAaEBT0qgUD4hEVAH"
+    }
+  },
+  "91822-powershell-4104.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "scEjAaEBT0qgUD4hEk9q"
+    }
+  },
+  "60106-windows-logon-4624.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "TsH9AaEBT0qgUD4hf1Gg"
+    }
+  },
+  "5715-sshd-success.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.05",
+      "docId": "PvgzC6EBM2-GWfEqCyHY"
+    }
+  },
+  "31101-web-400.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.01",
+      "docId": "HaTq9aABGgCGM5y0FEGz"
+    }
+  },
+  "5710-sshd-nonexistent-user.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "BMG4AaEBT0qgUD4hzVHl"
+    }
+  },
+  "5503-pam-login-failed.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "A8G4AaEBT0qgUD4hwlEt"
+    }
+  },
+  "5760-sshd-auth-failed.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "_sG4AaEBT0qgUD4hslCO"
+    }
+  },
+  "510-rootcheck.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.07",
+      "docId": "s27DFaEBmy1Sw3JDYwa4"
+    }
+  },
+  "19004-sca-summary.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "mMERAaEBT0qgUD4h1E9O"
+    }
+  },
+  "60642-windows-app-event.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "D8G-AaEBT0qgUD4hTFEm"
+    }
+  },
+  "5763-sshd-bruteforce-auth.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "icGWAaEBT0qgUD4hkFBm"
+    }
+  },
+  "533-netstat-ports.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.07",
+      "docId": "tG7DFaEBmy1Sw3JDYwa4"
+    }
+  },
+  "31151-web-400-multiple.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.01",
+      "docId": "EaTq9aABGgCGM5y0FEGz"
+    }
+  },
+  "31153-web-attacks-multiple.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.09.30",
+      "docId": "449K8KAB-D7NF27UgD4l"
+    }
+  },
+  "40501-attacks-then-useradd.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.09.30",
+      "docId": "sI9J8KAB-D7NF27UwD61"
+    }
+  },
+  "61138-windows-service-installed.json": {
+    "indexerRef": {
+      "index": "wazuh-alerts-4.x-2026.10.03",
+      "docId": "C8FdAaEBT0qgUD4hilDV"
+    }
+  }
+}

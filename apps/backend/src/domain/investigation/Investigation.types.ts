@@ -1,3 +1,5 @@
+import type { IocRole, ProvenanceClass } from "./evidenceV2/types";
+
 /**
  * Investigation module domain types. An Investigation is ONE cycle of an Incident's investigation
  * (Incident.investigationNumber is the current cycle). Evidence and IOCs belong to a cycle, so a
@@ -20,6 +22,8 @@ export const EVIDENCE_TYPES = [
   "EMAIL",
   "THREAT_INTELLIGENCE",
   "ANALYST_NOTE",
+  /** SOC-authenticated assertion of judgement-type facts for the subtype knowledge (structuredData.subtypeFacts); the evidence reference of what it asserts. */
+  "ANALYST_ASSERTION",
   "SCREENSHOT_ARTIFACT",
   "QUERY_RESULT",
   "OTHER",
@@ -63,6 +67,26 @@ export const IOC_TYPES = [
   "OTHER",
 ] as const;
 export type IocType = (typeof IOC_TYPES)[number];
+
+/**
+ * Where and in what role an IOC was observed (Evidence Contract v2). One IOC row can be observed many times - e.g. as a
+ * SOURCE in one alert and a DESTINATION in another - so path and role live here, not on the IOC row.
+ */
+export interface IocObservationRecord {
+  id: string;
+  iocId: string;
+  alertId: string | null;
+  evidenceId: string | null;
+  /** The Wazuh JSON path the value was read from. */
+  sourcePath: string;
+  role: IocRole;
+  /** Why the role was assigned (null when UNKNOWN). */
+  roleBasis: string | null;
+  /** True for a hash/path taken from a deleted file: history, not a live indicator. */
+  lastKnown: boolean;
+  provenanceClass: ProvenanceClass;
+  observedAt: Date;
+}
 
 export const IOC_STATUSES = ["ACTIVE", "BENIGN", "FALSE_POSITIVE"] as const;
 export type IocStatus = (typeof IOC_STATUSES)[number];

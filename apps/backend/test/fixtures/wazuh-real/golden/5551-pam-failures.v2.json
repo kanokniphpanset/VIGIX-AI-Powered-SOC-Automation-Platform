@@ -1,0 +1,236 @@
+{
+  "contractVersion": 2,
+  "provenance": {
+    "class": "REAL_TELEMETRY",
+    "classBasis": [
+      "native-format Wazuh alert id; no mock or harness marker present (a hand-written fixture that copies this id format is only caught via knownFixtureIds)"
+    ],
+    "source": {
+      "siem": "wazuh",
+      "alertId": "1791030239.2016455",
+      "alertRowId": null,
+      "indexerRef": {
+        "index": "wazuh-alerts-4.x-2026.10.03",
+        "docId": "_cG4AaEBT0qgUD4hrlCj"
+      },
+      "eventKey": "log:5fefc2b0cdc9f410893d8e041849e1ac04c8c2b7b3942e89c228b5f0b9f1aa3d",
+      "manager": "wazuh.manager",
+      "decoder": {
+        "name": "pam",
+        "parent": null
+      },
+      "location": "/var/log/auth.log",
+      "inputType": "log"
+    },
+    "agent": {
+      "id": "009",
+      "name": "attack-endpoint",
+      "ip": "172.19.0.8"
+    },
+    "time": {
+      "detectedAt": "2026-10-03T12:23:59.548Z",
+      "reportedAt": "2026-10-03T12:23:58.000Z",
+      "reportedAtRaw": "Oct  3 12:23:58",
+      "eventAt": null,
+      "receivedAt": "2026-10-08T00:00:00.000Z"
+    },
+    "completeness": {
+      "network": "OBSERVED",
+      "authentication": "OBSERVED"
+    },
+    "missing": []
+  },
+  "detection": {
+    "rule": {
+      "id": "5551",
+      "level": 10,
+      "description": "PAM: Multiple failed logins in a small period of time.",
+      "groups": [
+        "pam",
+        "syslog",
+        "authentication_failures"
+      ],
+      "firedTimes": 1,
+      "frequency": 8
+    },
+    "mitre": {
+      "techniques": [
+        {
+          "id": "T1110",
+          "name": "Brute Force"
+        }
+      ],
+      "tactics": [
+        "Credential Access"
+      ]
+    }
+  },
+  "evidence": {
+    "network": {
+      "src": {
+        "ip": "172.19.0.3",
+        "port": null
+      },
+      "dst": {
+        "ip": null,
+        "port": null
+      },
+      "dnsQuery": null,
+      "dnsStatus": null,
+      "url": null,
+      "bytesOut": null,
+      "durationSeconds": null,
+      "direction": null
+    },
+    "process": {
+      "image": null,
+      "commandLine": null,
+      "pid": null,
+      "guid": null,
+      "user": null,
+      "startedAt": null,
+      "integrityLevel": null,
+      "hashes": [],
+      "parent": {
+        "image": null,
+        "commandLine": null,
+        "pid": null,
+        "guid": null,
+        "user": null,
+        "name": null
+      },
+      "windowsEvent": {
+        "id": null,
+        "channel": null,
+        "provider": null
+      }
+    },
+    "file": {
+      "path": null,
+      "hashes": {
+        "md5": null,
+        "sha1": null,
+        "sha256": null
+      }
+    },
+    "syscheck": {
+      "path": null,
+      "operation": null,
+      "detectionMode": null,
+      "hashes": {
+        "after": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null,
+          "lastKnown": false
+        },
+        "before": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null
+        }
+      },
+      "size": {
+        "after": null,
+        "before": null
+      },
+      "permissions": {
+        "after": null,
+        "before": null
+      },
+      "owner": {
+        "after": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        },
+        "before": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        }
+      },
+      "modifiedAt": {
+        "after": null,
+        "before": null
+      },
+      "inode": {
+        "after": null,
+        "before": null
+      },
+      "changedAttributes": [],
+      "diffPresent": false
+    },
+    "authentication": {
+      "result": {
+        "value": "FAILURE",
+        "derivedFrom": "rule.groups"
+      },
+      "remote": {
+        "ip": "172.19.0.3",
+        "port": null
+      },
+      "account": "backup",
+      "attemptedAccount": null,
+      "accountDomain": null,
+      "accountSid": null,
+      "actor": {
+        "name": null,
+        "domain": null,
+        "sid": null,
+        "isMachineAccount": null
+      },
+      "logon": {
+        "type": null,
+        "id": null,
+        "process": null,
+        "package": null
+      }
+    },
+    "email": {
+      "sender": null,
+      "recipients": [],
+      "subject": null
+    },
+    "powershell": {
+      "scriptBlockText": null,
+      "scriptBlockId": null,
+      "part": null,
+      "totalParts": null
+    },
+    "http": {
+      "requestTarget": null,
+      "method": null,
+      "status": null
+    },
+    "account": {
+      "user": null,
+      "group": null,
+      "uid": null,
+      "gid": null,
+      "home": null,
+      "shell": null
+    }
+  },
+  "iocs": [
+    {
+      "type": "IPV4",
+      "value": "172.19.0.3",
+      "role": "SOURCE",
+      "sourcePath": "data.srcip",
+      "roleBasis": "data.srcip is the remote peer/client address parsed by decoder pam",
+      "lastKnown": false
+    },
+    {
+      "type": "USERNAME",
+      "value": "backup",
+      "role": "TARGET",
+      "sourcePath": "data.dstuser",
+      "roleBasis": "data.dstuser is the account named by the log line",
+      "lastKnown": false
+    }
+  ],
+  "fullLog": "Oct  3 12:23:58 60e9269b683a sshd[1726]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3  user=backup"
+}

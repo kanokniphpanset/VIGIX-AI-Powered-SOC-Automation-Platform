@@ -6,8 +6,12 @@ status: ACTIVE
 playbookId: PB-STC-001
 
 objective: >
-  Prevent continued unauthorized access and determine whether the
-  targeted account has been compromised.
+  Prevent continued authentication abuse and determine whether the targeted account has been compromised.
+
+strategy: >
+  Restrict the malicious authentication source, protect the targeted account, determine whether successful
+  compromise occurred, and verify that unauthorized access has stopped.
+
 
 appliesWhen:
   incidentTypes: [BRUTE_FORCE]

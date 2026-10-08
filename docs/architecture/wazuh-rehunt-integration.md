@@ -117,6 +117,9 @@ HTTPS transport is sufficient for read-only REST requests and avoids an addition
 | `WAZUH_REHUNT_TIMEOUT_MS` | New positive per-request deadline; default 15000 ms |
 | `WAZUH_REHUNT_IOC_FIELDS` | New optional JSON mapping from ip/domain/url/hash to exact searchable field arrays |
 | `WAZUH_REHUNT_TIMESTAMP_FIELD` | New event-time field, default `timestamp`; override only according to actual mapping |
+| `WAZUH_REHUNT_PAGE_SIZE`, `WAZUH_REHUNT_RESULT_CAP` | Phase 2D: documents per page (default 100) and total fetched before the result is flagged incomplete (default 1000) |
+| `WAZUH_MONITORING_INDEX_PATTERN`, `WAZUH_ARCHIVES_INDEX_PATTERN` | Phase 2D coverage probes (defaults `wazuh-monitoring-*`, `wazuh-archives-*`); read-only |
+| `WAZUH_REHUNT_REQUIRE_AGENT_COVERAGE` | Phase 2D: default `true` - a disconnected or unknown in-scope agent makes "not found" INCOMPLETE; `false` is recorded in the result |
 
 Example mapping override: `{"ip":["data.srcip","data.dstip"],"domain":["data.dns.question.name"]}`.
 Omitted types keep adapter defaults. Field paths may not contain query syntax or wildcards.

@@ -1,0 +1,133 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for PHISHING, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: PHISHING
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Identify the Message
+  objective: Identify the phishing message and every recipient.
+  recommendedAction:
+  - Collect the sender, subject, URL and attachment of the message
+  - Find every recipient of the same message in the mail gateway logs
+  reason: Containment must cover every copy of the message, not only the reported one.
+  evidenceRequired:
+  - Sender / subject
+  - URL / attachment hash
+  - Recipient list
+  expectedResult: The message and its full recipient list are identified.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Stop Distribution
+  objective: Remove the message and block its sender and infrastructure.
+  recommendedAction:
+  - 'Quarantine / remove the message from every recipient mailbox (see containment.yaml: ACT-QUARANTINE-EMAIL)'
+  - 'Block the confirmed malicious sender at the mail gateway (see containment.yaml: ACT-BLOCK-SENDER)'
+  - 'Block the confirmed phishing URL (see containment.yaml: ACT-BLOCK-URL)'
+  - 'Block the confirmed phishing domain (see containment.yaml: ACT-BLOCK-DOMAIN)'
+  - 'Block the confirmed malicious attachment hash (see containment.yaml: ACT-BLOCK-HASH)'
+  reason: Pulling the message and blocking its indicators stops further users from interacting with it.
+  evidenceRequired:
+  - Message
+  - Sender
+  - URL / domain
+  - Attachment hash
+  expectedResult: No user can open the message or reach its infrastructure.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: false
+- stepOrder: 3
+  phase: ASSESS
+  title: User Interaction Check
+  objective: Find who clicked, opened the attachment or submitted credentials.
+  recommendedAction:
+  - Check proxy, mail and endpoint logs for recipients who clicked, downloaded or submitted credentials
+  reason: A submitted credential lets the attacker log in even after the message is removed.
+  evidenceRequired:
+  - Proxy / click logs
+  - Authentication logs
+  expectedResult: Every exposed recipient is identified.
+  decisionRef: DEC-PH-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Protect Exposed Accounts
+  objective: Contain accounts of recipients who interacted.
+  # Evidence-gated: a message that was only received never reaches this step.
+  appliesWhenSignals: [USER_CLICKED, CREDENTIAL_SUBMITTED]
+  conditionalActions: true
+  recommendedAction:
+  - 'Reset the credential of a recipient with confirmed credential exposure (see containment.yaml: ACT-RESET-CREDENTIAL)'
+  - 'Revoke the recipient''s sessions / tokens (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'Disable an account that shows attacker activity (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+  reason: An exposed credential lets the attacker log in even after the message is removed.
+  evidenceRequired:
+  - Recipient account
+  - Authentication logs
+  expectedResult: No exposed credential or session remains usable by the attacker.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: SELECT_ACTION
+  title: Contain the Executed Payload
+  objective: Contain the endpoint where a payload from the message ran and continue as a Malware incident.
+  # Evidence-gated: only when the evidence says an attachment / payload was executed.
+  appliesWhenSignals: [PAYLOAD_EXECUTED]
+  escalatesTo: MALWARE
+  conditionalActions: true
+  recommendedAction:
+  - Treat the incident as Malware as well and continue with that response - execution chain, persistence and other endpoints
+  - 'Isolate an endpoint where the attachment was executed (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  reason: An executed payload makes the endpoint, not only the mailbox, part of the incident.
+  evidenceRequired:
+  - Endpoint
+  - Process / file evidence
+  expectedResult: The endpoint cannot be used by the attacker while the Malware response continues.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 6
+  phase: ASSESS
+  title: Campaign Scope
+  objective: Find the same message or IOCs across the organisation.
+  recommendedAction:
+  - Hunt the same sender, subject, URL and attachment hash across all mailboxes and proxy / DNS logs
+  reason: Phishing campaigns arrive in waves with small variations.
+  evidenceRequired:
+  - Mail gateway search results
+  - Wazuh cross-host search results
+  expectedResult: List of every message, user and host involved.
+  decisionRef: DEC-PH-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 7
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm the message is gone and no account abuse continues.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Confirm no new delivery of the message and no new access to its URL / domain
+  - Confirm no continued suspicious authentication for exposed recipients
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

@@ -1,0 +1,32 @@
+# verification.yaml — the re-hunt template used to close the loop after containment.
+# Field names are the Wazuh alert fields the re-hunt adapter searches (WazuhRehuntAdapter DEFAULT_IOC_FIELDS:
+# data.srcip / data.dstip / data.dns.question.name / data.url / data.sha256 ...). NOT_RESOLVED never starts a
+# response by itself — it reopens the investigation for a human decision (policy RULE-009/010/011).
+
+procedureCode: SQL_INJECTION
+
+verification:
+  type: WAZUH_REHUNT
+  queryTemplate: "data.srcip:\"{{sourceIp}}\" AND rule.groups:\"sql_injection\""
+  timeRange:
+    before: "containment_time - 1h .. containment_time"
+    after: "containment_time .. containment_time + 1h"
+  fieldsCompared:
+    - matchingEventsBefore
+    - matchingEventsAfter
+    - affectedHosts
+    - iocRecurrence
+    - spreadDetected
+  additionalChecks:
+    - "No successful (2xx) injection response after containment"
+    - "Application fix / WAF rule in place"
+    - "Endpoint tested with the injection payloads before it is reopened"
+  successCriteria:
+    - "Malicious requests stopped"
+    - "No continued SQL injection activity"
+    - "Database impact has been assessed"
+  resultValues: [RESOLVED, NOT_RESOLVED]
+  onNotResolved:
+    surface: [newEvidence, spreadDetected]
+    nextAction: GENERATE_NEW_RESPONSE_PLAN
+    triggersPolicyRules: [RULE-009, RULE-010, RULE-011]

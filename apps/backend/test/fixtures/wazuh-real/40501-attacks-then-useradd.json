@@ -1,0 +1,77 @@
+{
+  "predecoder": {
+    "hostname": "56dd0e38b364",
+    "program_name": "useradd",
+    "timestamp": "Sep 30 03:09:16"
+  },
+  "agent": {
+    "ip": "172.19.0.5",
+    "name": "attack-endpoint",
+    "id": "007"
+  },
+  "previous_output": "Sep 30 03:09:09 56dd0e38b364 sshd[1170]: Accepted password for victim from 127.0.0.1 port 48272 ssh2\nSep 30 03:09:09 56dd0e38b364 sshd[1170]: Accepted password for victim from 127.0.0.1 port 48272 ssh2\nSep 30 03:09:09 56dd0e38b364 sshd[1170]: Accepted password for victim from 127.0.0.1 port 48272 ssh2",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "rule": {
+    "mail": true,
+    "level": 15,
+    "pci_dss": [
+      "10.2.7",
+      "10.6.1",
+      "11.4"
+    ],
+    "hipaa": [
+      "164.312.b"
+    ],
+    "tsc": [
+      "CC6.8",
+      "CC7.2",
+      "CC7.3",
+      "CC6.1"
+    ],
+    "description": "Attacks followed by the addition of an user.",
+    "groups": [
+      "syslog",
+      "elevation_of_privilege"
+    ],
+    "nist_800_53": [
+      "AU.14",
+      "AU.6",
+      "SI.4"
+    ],
+    "frequency": 4,
+    "gdpr": [
+      "IV_35.7.d"
+    ],
+    "firedtimes": 3,
+    "mitre": {
+      "technique": [
+        "Exploitation for Privilege Escalation",
+        "Create Account",
+        "Exploitation for Client Execution"
+      ],
+      "id": [
+        "T1068",
+        "T1136",
+        "T1203"
+      ],
+      "tactic": [
+        "Privilege Escalation",
+        "Persistence",
+        "Execution"
+      ]
+    },
+    "id": "40501"
+  },
+  "decoder": {
+    "name": "useradd"
+  },
+  "full_log": "Sep 30 03:09:16 56dd0e38b364 useradd[1185]: new group: name=eviluser, GID=1002",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log",
+  "id": "1790737758.819920",
+  "timestamp": "2026-09-30T03:09:18.243+0000"
+}

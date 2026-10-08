@@ -7,7 +7,7 @@ import { Verification } from "../../../domain/verification/entities/Verification
 import { Result } from "../../../shared/result/Result";
 import { CreateVerificationUseCase, CreateVerificationError } from "./CreateVerification.usecase";
 import { IInvestigationRepository } from "../../../domain/investigation/IInvestigationRepository";
-import { ISiemRehuntPort, RehuntError, RehuntIoc, RehuntResult, RehuntRuleSignature } from "../ports/ISiemRehuntPort";
+import { ISiemRehuntPort, RehuntCorrelationKeys, RehuntError, RehuntIoc, RehuntResult, RehuntRuleSignature } from "../ports/ISiemRehuntPort";
 import { REHUNT_IOC_TYPES } from "../../../domain/investigation/alertIocs";
 import { DuplicateIocError, IocType } from "../../../domain/investigation/Investigation.types";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
@@ -18,7 +18,11 @@ export type RunRehuntError =
   | "REHUNT_INSUFFICIENT_CRITERIA"
   | "REHUNT_UNREACHABLE"
   | "REHUNT_QUERY_FAILED"
-  | "REHUNT_TIMEOUT";
+  | "REHUNT_TIMEOUT"
+  /** The search could not see everything it needed (coverage / cap / skipped IOC types): "not seen" cannot be claimed. */
+  | "REHUNT_INCOMPLETE"
+  /** IOC values matched but nothing ties them to the incident: neither "recurred" nor "contained" may be recorded. */
+  | "REHUNT_UNCONFIRMED";
 
 export interface RunRehuntOutput {
   verification: Verification;
@@ -29,20 +33,32 @@ const IPV4 = /^(\d{1,3}\.){3}\d{1,3}$/;
 const HASH = /^[a-f0-9]{32}$|^[a-f0-9]{40}$|^[a-f0-9]{64}$/i;
 
 /** Pulls the host and detection rule out of the incident's originating alert, for both Wazuh's native shape and simplified payloads. */
-export function extractAlertSignature(raw: Record<string, unknown>): { hosts: string[]; rule?: RehuntRuleSignature } {
+export function extractAlertSignature(raw: Record<string, unknown>): { hosts: string[]; agentIds: string[]; rule?: RehuntRuleSignature; correlation: RehuntCorrelationKeys } {
   const agent = raw.agent;
   const agentName = typeof agent === "string" ? agent : (agent as { name?: string } | undefined)?.name;
+  const agentId = typeof agent === "object" && agent ? (agent as { id?: unknown }).id : undefined;
   const rule = raw.rule;
   let signature: RehuntRuleSignature | undefined;
   if (typeof rule === "string") {
     signature = { description: rule };
   } else if (rule && typeof rule === "object") {
-    const r = rule as { id?: unknown; description?: unknown };
+    const r = rule as { id?: unknown; description?: unknown; groups?: unknown };
     if (r.id !== undefined || r.description !== undefined) {
-      signature = { id: r.id !== undefined ? String(r.id) : undefined, description: typeof r.description === "string" ? r.description : undefined };
+      const groups = Array.isArray(r.groups) ? r.groups.map((g) => String(g).trim()).filter(Boolean) : [];
+      signature = { id: r.id !== undefined ? String(r.id) : undefined, description: typeof r.description === "string" ? r.description : undefined, ...(groups.length ? { groups } : {}) };
     }
   }
-  return { hosts: agentName ? [agentName] : [], rule: signature };
+  // Identifiers of the original evidence that a later event can be correlated by (an IOC value alone never corroborates).
+  const at = (path: string): unknown => path.split(".").reduce<unknown>((v, k) => (v && typeof v === "object" ? (v as Record<string, unknown>)[k] : undefined), raw);
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const guid = text(at("data.win.eventdata.processGuid"));
+  const path = text(at("syscheck.path")) ?? text(at("data.file"));
+  return {
+    hosts: agentName ? [agentName] : [],
+    agentIds: typeof agentId === "string" || typeof agentId === "number" ? [String(agentId)] : [],
+    rule: signature,
+    correlation: { processGuids: guid ? [guid] : [], filePaths: path ? [path] : [] },
+  };
 }
 
 /**
@@ -85,7 +101,7 @@ export class RunRehuntVerificationUseCase {
     if (existing.some((v) => v.responseId === response.id)) return Result.fail("ALREADY_VERIFIED");
 
     const alert = await this.alertRepository.findById(incident.alertId, input.tenantId);
-    const signature = alert ? extractAlertSignature(alert.rawPayload) : { hosts: [] as string[], rule: undefined };
+    const signature = alert ? extractAlertSignature(alert.rawPayload) : { hosts: [] as string[], agentIds: [] as string[], rule: undefined, correlation: {} as RehuntCorrelationKeys };
 
     // Only environment-wide indicators are hunted: host facts (user, process, command line...) would phrase-match
     // benign events and fake a recurrence.
@@ -134,6 +150,9 @@ export class RunRehuntVerificationUseCase {
         rule: signature.rule,
         timeRange: { start, end },
         investigationNumber: numberBefore,
+        agentIds: signature.agentIds,
+        scopeAgents: signature.hosts,
+        correlation: signature.correlation,
       });
     } catch (err) {
       // A failed re-hunt proves nothing: no Verification is created, the incident is not touched.
@@ -156,6 +175,29 @@ export class RunRehuntVerificationUseCase {
         return Result.fail(map[err.code]);
       }
       throw err;
+    }
+
+    // A correlating provider can say it could not decide. Then NO verification is created (same principle as a failed query):
+    // recording RESOLVED would claim an absence that was not established, recording NOT_RESOLVED would claim a recurrence that was not.
+    if (evidence.classification === "INCOMPLETE" || evidence.classification === "UNCORROBORATED_MATCH") {
+      const incomplete = evidence.classification === "INCOMPLETE";
+      await this.auditLogger?.record({
+        tenantId: input.tenantId,
+        actor: input.verifiedBy,
+        action: "REHUNT_FAILED",
+        entity: "ResponsePlan",
+        entityId: response.id,
+        metadata: {
+          incidentId: input.incidentId,
+          code: incomplete ? "INCOMPLETE" : "UNCONFIRMED",
+          classification: evidence.classification,
+          investigationNumber: numberBefore,
+          totalMatched: evidence.totalMatched ?? null,
+          gaps: evidence.coverage?.gaps ?? [],
+          excludedIocs,
+        },
+      });
+      return Result.fail(incomplete ? "REHUNT_INCOMPLETE" : "REHUNT_UNCONFIRMED");
     }
 
     // Recurrence evidence must exist in the NEW cycle before its recommendation is generated, so it goes in through
@@ -185,6 +227,17 @@ export class RunRehuntVerificationUseCase {
         skippedIocTypes: evidence.skippedIocTypes ?? [],
         skippedIocs: evidence.skippedIocs ?? [],
         excludedIocs,
+        // Phase 2D: why the verdict inputs are what they are (only present for a correlating provider).
+        ...(evidence.classification
+          ? {
+              classification: evidence.classification,
+              totalMatched: evidence.totalMatched ?? null,
+              ignoredEvents: evidence.ignoredEvents ?? 0,
+              correlationReasons: evidence.correlationReasons ?? {},
+              coverage: evidence.coverage ?? null,
+              pagination: evidence.pagination ?? null,
+            }
+          : {}),
       },
       notes: input.notes ?? null,
       evidenceSource: evidence.source,
@@ -241,6 +294,12 @@ export class RunRehuntVerificationUseCase {
             timestamp: e.timestamp,
             matchedIoc: e.matchedIoc,
             indexerEventId: e.id,
+            // Phase 2D (correlating provider only): the full document reference and why the event was tied to the incident.
+            indexerIndex: e.index,
+            wazuhAlertId: e.alertId,
+            provenanceClass: e.provenanceClass,
+            inScope: e.inScope,
+            correlationReasons: e.correlation?.reasons,
             verificationId,
           },
           confidence: null,

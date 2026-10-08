@@ -1,0 +1,849 @@
+# PRIVILEGE_ESCALATION — family file. Reference: reference-registry.yaml#PRIVILEGE_ESCALATION
+# Principles: an attempt / exposure / admin change is not a successful malicious escalation (PE-P1); never remove all administrators or elevation permissions (PE-P2);
+# password reset / patch does not end existing privileged contexts (PE-P3); entitlement / policy changes may not invalidate issued tokens immediately — use platform-supported restrictions (PE-P4);
+# keep approved administration / recovery access (PE-P5).
+# PE-SERVICE also covers the privileged variant of the Scheduled-Task-Hijack acceptance scenario (SC-PE-SERVICE-TASK-HIJACK).
+
+family: PRIVILEGE_ESCALATION
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: PRIVILEGE_ESCALATION, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: pe_indicator_only
+    description: "Attempt, exposure or admin change ONLY (no evidence of a successful malicious privileged context)."
+    confirm: "หาหลักฐานว่าได้ privileged context/ผลกระทบจริง และการเปลี่ยนไม่อยู่ใน change record"
+    may_be_authorized: true
+  - id: pe_exploit_privileged_context
+    description: "Exploit -> privileged context/effects (successful)."
+    confirm: "ผูก exploit กับ process/session ที่ได้สิทธิ์สูงและ effects ที่ตามมา"
+    may_be_authorized: false
+  - id: pe_local_elevation_config
+    description: "Sudo/SUID config, invocation and elevation correlated (successful abuse)."
+    confirm: "ผูก config/permission entry กับ invocation และ session ที่ได้สิทธิ์สูง"
+    may_be_authorized: true
+  - id: pe_artifact_change_privileged_execution
+    description: "Service/task/path/ACL artifact change -> privileged execution of a payload."
+    confirm: "ผูก artifact change กับ payload execution ด้วยสิทธิ์สูง และเทียบ change record"
+    may_be_authorized: true
+  - id: pe_token_impersonation
+    description: "Unauthorized impersonation / token context producing privileged access."
+    confirm: "ระบุ process/session ที่ถือ token และกลไกที่ได้มา"
+    may_be_authorized: true
+  - id: pe_unauthorized_entitlement_change
+    description: "Unauthorized entitlement change (group/role/membership/permission) with no approved change record."
+    confirm: "ตรวจ audit: ใครเพิ่ม/เปลี่ยน entry ใด ให้ใคร เมื่อไร และเทียบ change record"
+    may_be_authorized: true
+  - id: pe_cloud_iam_unauthorized_use
+    description: "Unauthorized cloud IAM trust/policy/role assumption or use (audit-log backed)."
+    confirm: "ตรวจ cloud audit: role assumption/policy change/use และเทียบกับ automation ที่อนุมัติ"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-ELEVATED-EXECUTION-CONTAIN
+    action_name: Contain exploit-elevated execution
+    label_th: "จำกัดการรันที่ยกระดับสิทธิ์ด้วย exploit"
+    objective: "contain privileged workload, หยุด identified malicious context และจำกัด exploit entry ที่พบ"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [privileged_context, host_workload, process, service_endpoint]
+    evidence_requirements: [pe_exploit_privileged_context]
+    target_requirements: [privileged_context]
+    runbook_refs: [RB-ELEVATED-EXECUTION-CONTAIN]
+    legacy_action_refs: [ACT-ISOLATE-ENDPOINT, ACT-KILL-PROCESS]
+    execution_constraints: ["password reset/patch ไม่ยกเลิก context ที่ยังอยู่", "รักษา approved admin/recovery access"]
+  - action_id: ACT-LOCAL-ELEVATION-CONTAIN
+    action_name: Cut sudo/SUID elevation path
+    label_th: "ตัดเส้นทางยกระดับสิทธิ์ผ่าน sudo/SUID"
+    objective: "เก็บ config ถอน scoped unauthorized permission และ terminate affected privileged session"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [entitlement_grant, privileged_context, session]
+    evidence_requirements: [pe_local_elevation_config]
+    target_requirements: [entitlement_grant]
+    runbook_refs: [RB-LOCAL-ELEVATION-CONTAIN]
+    legacy_action_refs: [ACT-REMOVE-PRIVILEGE]
+    execution_constraints: ["ถอนเฉพาะ entry ที่ unauthorized", "ไม่ remove elevation ทั้งระบบ"]
+  - action_id: ACT-PRIVILEGED-TRIGGER-CONTAIN
+    action_name: Contain hijacked privileged service/task
+    label_th: "จำกัด service/task สิทธิ์สูงที่ถูกจี้"
+    objective: "disable trigger หยุด payload จำกัด writable path/ACL และใช้ trusted approved configuration"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [persistence_artifact, process, process_children]
+    evidence_requirements: [pe_artifact_change_privileged_execution]
+    target_requirements: [persistence_artifact]
+    runbook_refs: [RB-PRIVILEGED-TRIGGER-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-REMOVE-PRIVILEGE]
+    execution_constraints: ["Disable ไม่หยุด instance ที่กำลังรัน — หยุดแยก", "ไม่ลบ task/service ทั้งชุด", "restore จาก trusted approved configuration ไม่ใช่ config ที่ถูกแก้"]
+  - action_id: ACT-PRIVILEGED-CONTEXT-CONTAIN
+    action_name: Contain token/impersonation privileged context
+    label_th: "จำกัด token/impersonation context สิทธิ์สูง"
+    objective: "contain identified context และ source mechanism ตาม platform capability"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [privileged_context, process, session, entitlement_grant]
+    evidence_requirements: [pe_token_impersonation]
+    target_requirements: [privileged_context]
+    runbook_refs: [RB-PRIVILEGED-CONTEXT-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-REVOKE-SESSION]
+    execution_constraints: ["password reset ไม่ยกเลิก context", "ใช้ restriction ที่ platform รองรับ"]
+  - action_id: ACT-PRIVILEGED-GRANT-CONTAIN
+    action_name: Remove unauthorized entitlement and its sessions
+    label_th: "ถอนสิทธิ์ที่ไม่ได้รับอนุญาตและ session ที่เกี่ยวข้อง"
+    objective: "remove scoped entry, revoke affected sessions และ contain abusing actor"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [entitlement_grant, session, account_identity]
+    evidence_requirements: [pe_unauthorized_entitlement_change]
+    target_requirements: [entitlement_grant]
+    runbook_refs: [RB-PRIVILEGED-GRANT-CONTAIN]
+    legacy_action_refs: [ACT-REMOVE-PRIVILEGE, ACT-REVOKE-SESSION, ACT-DISABLE-ACCOUNT]
+    execution_constraints: ["ถอนเฉพาะ entry ที่ unauthorized", "token ที่ออกแล้วอาจยังใช้ได้ — revoke sessions แยก", "รักษา approved admin/recovery access"]
+  - action_id: ACT-CLOUD-PRIVILEGE-CONTAIN
+    action_name: Contain cloud IAM privilege abuse
+    label_th: "จำกัดการใช้สิทธิ์ cloud IAM ในทางที่ผิด"
+    objective: "restrict evidenced trust/grant/resources และจัดการ exposed credentials ตาม dependencies"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [cloud_trust, secret_credential, session]
+    evidence_requirements: [pe_cloud_iam_unauthorized_use]
+    target_requirements: [cloud_trust]
+    runbook_refs: [RB-CLOUD-PRIVILEGE-CONTAIN]
+    legacy_action_refs: [ACT-REMOVE-PRIVILEGE, ACT-REVOKE-SESSION]
+    execution_constraints: ["restrict เฉพาะ trust/grant/resources ที่มี evidence", "dependency-aware rotation", "policy change อาจไม่ invalidate session ที่ออกแล้ว"]
+
+playbooks:
+  - playbook_id: PBK-PE-EXPLOIT
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-EXPLOIT
+    subtype_name: Vulnerability Exploit
+    classification_evidence:
+      all_of: [{field: evidence.pe_exploit_privileged_context.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["พบช่องโหว่หรือ exploit attempt โดยไม่พบ privileged context (PE-P1)", "vulnerability scan result อย่างเดียว"]
+    scenarios:
+      - scenario_id: SC-PE-EXPLOIT-SUCCESS
+        description: "Exploit สำเร็จและได้ privileged context/effects"
+        ordered_action_refs:
+          - {action_id: ACT-ELEVATED-EXECUTION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด privileged context ที่กำลังใช้งานก่อน (patch/reset ไม่ยกเลิก context ที่มีอยู่) แล้วจำกัด exploit entry", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+          - {action_id: ACT-QUARANTINE-FILE-OBJECT, condition: POLICY_ELIGIBLE, depends_on: [ACT-ELEVATED-EXECUTION-CONTAIN], order_reason: "quarantine payload ที่มี identity หลังหยุด context", parallel_allowed: false, fallback_action: null}
+    policy_refs: [POL-PE-001, POL-PE-007, POL-GL-QUAR-001]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.treats_attempt_as_success, operator: equals, value: true}, then: STOP, note: "attempt/exposure ไม่เท่ากับ escalation สำเร็จ"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PE-LOCAL
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-LOCAL
+    subtype_name: Sudo/SUID Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.pe_local_elevation_config.status, operator: equals, value: PRESENT}
+        - {field: evidence.pe_local_elevation_config.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["พบ SUID binary หรือ sudo rule โดยไม่มี invocation/elevation ที่ไม่ได้รับอนุญาต (PE-P1)", "rule ที่อยู่ใน change record"]
+    scenarios:
+      - scenario_id: SC-PE-LOCAL-ABUSE
+        description: "Config/invocation/elevation ที่สัมพันธ์และไม่ได้รับอนุญาต"
+        ordered_action_refs:
+          - {action_id: ACT-LOCAL-ELEVATION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "เก็บ config แล้วถอน entry เฉพาะ rule/permission ที่ผิดและปิด privileged session ที่กำลังใช้", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PE-002, POL-PE-007]
+    related_branches:
+      - {subtype_id: PE-GRANT, open_when: {field: evidence.pe_unauthorized_entitlement_change.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.removes_all_admins, operator: equals, value: true}, then: STOP, note: "ห้ามถอน elevation ทั้งระบบ"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PE-SERVICE
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-SERVICE
+    subtype_name: Service/Task Hijack
+    classification_evidence:
+      all_of:
+        - {field: evidence.pe_artifact_change_privileged_execution.status, operator: equals, value: PRESENT}
+        - {field: evidence.pe_artifact_change_privileged_execution.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["artifact change ที่ไม่ผูกกับ privileged execution", "การแก้ที่อยู่ใน change record ที่อนุมัติ (approved task change)"]
+    scenarios:
+      - scenario_id: SC-PE-SERVICE-TASK-HIJACK
+        description: "Artifact (service/task/path/ACL) ถูกแก้แล้ว payload ทำงานด้วยสิทธิ์สูง (acceptance §7.2 แบบ privileged): ปิด trigger → หยุด instance → ยุติ payload/children → จำกัด writable path → [C2 branch: จำกัด channel] → quarantine payload"
+        ordered_action_refs:
+          - {action_id: ACT-PRIVILEGED-TRIGGER-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ปิด trigger ก่อนเพื่อไม่ให้ payload ถูกเรียกซ้ำด้วยสิทธิ์สูง แล้วหยุด instance/payload และปิดช่องที่แก้ได้", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+          - {action_id: ACT-QUARANTINE-FILE-OBJECT, condition: POLICY_ELIGIBLE, depends_on: [ACT-PRIVILEGED-TRIGGER-CONTAIN], order_reason: "quarantine payload หลัง trigger/process หยุด; ต้องมี file identity", parallel_allowed: false, fallback_action: null}
+    policy_refs: [POL-PE-003, POL-PE-007, POL-GL-QUAR-001]
+    related_branches:
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-CUSTOM, open_when: {field: evidence.c2_custom_channel_identified.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: evidence.pe_artifact_change_privileged_execution.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "approved change — ไม่เปิด malicious containment"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PE-TOKEN
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-TOKEN
+    subtype_name: Token/Elevation Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.pe_token_impersonation.status, operator: equals, value: PRESENT}
+        - {field: evidence.pe_token_impersonation.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["token duplication ตาม baseline ของ service", "ไม่ทราบ process/session ที่ถือ token"]
+    scenarios:
+      - scenario_id: SC-PE-TOKEN-IMPERSONATION
+        description: "Unauthorized impersonation / token context"
+        ordered_action_refs:
+          - {action_id: ACT-PRIVILEGED-CONTEXT-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ยุติ context ที่ใช้อยู่แล้วตัดกลไกต้นทาง (password reset ไม่ยกเลิก context)", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PE-004, POL-PE-007]
+    related_branches:
+      - {subtype_id: AC-SESSION, open_when: {all_of: [{field: evidence.ac_session_replay_unauthorized.status, operator: equals, value: PRESENT}, {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.privileged_context_removed_by_reset_only, operator: equals, value: true}, then: STOP, note: "reset/patch ไม่ยกเลิก privileged context"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PE-GRANT
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-GRANT
+    subtype_name: Group/Role Manipulation
+    classification_evidence:
+      all_of:
+        - {field: evidence.pe_unauthorized_entitlement_change.status, operator: equals, value: PRESENT}
+        - {field: evidence.pe_unauthorized_entitlement_change.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["admin change โดยไม่ทราบว่ามี change record หรือไม่ (PE-P1)", "การเปลี่ยนที่ได้รับอนุมัติ"]
+    scenarios:
+      - scenario_id: SC-PE-GRANT-UNAUTHORIZED
+        description: "Entitlement change ที่ไม่ได้รับอนุญาต"
+        ordered_action_refs:
+          - {action_id: ACT-PRIVILEGED-GRANT-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ถอน entry เฉพาะรายการที่ผิดแล้ว revoke sessions (token ที่ออกแล้วอาจไม่ถูกยกเลิกทันที) และ contain actor", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PE-005, POL-PE-007]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: evidence.pe_unauthorized_entitlement_change.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "approved admin change"}
+      - {when: {field: scope.removes_all_admins, operator: equals, value: true}, then: STOP, note: "ห้าม remove administrators ทั้งระบบ"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PE-CLOUD
+    attack_family: PRIVILEGE_ESCALATION
+    subtype_id: PE-CLOUD
+    subtype_name: Cloud IAM Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.pe_cloud_iam_unauthorized_use.status, operator: equals, value: PRESENT}
+        - {field: evidence.pe_cloud_iam_unauthorized_use.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["policy/role ที่ over-permissive โดยไม่มีการ assume/use ที่ไม่ได้รับอนุญาต (PE-P1)", "automation role ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-PE-CLOUD-IAM
+        description: "Unauthorized trust/policy/role use ใน cloud audit"
+        ordered_action_refs:
+          - {action_id: ACT-CLOUD-PRIVILEGE-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "restrict trust/grant/resources ที่มี evidence ก่อน แล้วจัดการ exposed credentials ตาม dependencies และ revoke sessions ที่ออกแล้ว", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PE-006, POL-PE-007]
+    related_branches:
+      - {subtype_id: AC-SECRET, open_when: {all_of: [{field: evidence.ac_secret_exposed_or_misused.status, operator: equals, value: PRESENT}, {field: evidence.ac_secret_exposed_or_misused.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+      - {subtype_id: EXF-CLOUD, open_when: {all_of: [{field: evidence.exf_cloud_unauthorized_share.status, operator: equals, value: PRESENT}, {field: evidence.exf_cloud_unauthorized_share.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.cuts_approved_access, operator: equals, value: true}, then: STOP, note: "ห้ามตัด approved administration/recovery access"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-PE-001
+    rule_type: ACTION_GATE
+    action_id: ACT-ELEVATED-EXECUTION-CONTAIN
+    applicable_subtypes: [PE-EXPLOIT]
+    covers: [PE-P1, PE-P3, PE-P5]
+    required_evidence:
+      all_of: [{field: evidence.pe_exploit_privileged_context.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.privileged_context.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-1, reason: "attempt/exposure ไม่เท่ากับ escalation สำเร็จ (PE-P1)", when: {field: scope.treats_attempt_as_success, operator: equals, value: true}}
+      - {id: PRH-PE-2, reason: "password reset/patch ไม่ยกเลิก privileged context ที่ยังอยู่ (PE-P3)", when: {field: scope.privileged_context_removed_by_reset_only, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.workload_isolation, cap.scoped_network_enforcement]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี privileged context ที่ยืนยันว่าเกิดจาก exploit"}
+    reason: "ตัด privileged context ที่ยืนยัน; patch เป็น remediation แยก"
+    provenance: {reference: [PE-EXPLOIT, PE-P1, PE-P3, PE-P5]}
+
+  - policy_id: POL-PE-002
+    rule_type: ACTION_GATE
+    action_id: ACT-LOCAL-ELEVATION-CONTAIN
+    applicable_subtypes: [PE-LOCAL]
+    covers: [PE-P1, PE-P2, PE-P5]
+    required_evidence:
+      all_of: [{field: evidence.pe_local_elevation_config.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.entitlement_grant.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-3, reason: "ห้าม remove elevation permissions ทั้งระบบ (PE-P2)", when: {field: scope.removes_all_admins, operator: equals, value: true}}
+      - {id: PRH-PE-4, reason: "พบ config อย่างเดียวไม่เท่ากับ escalation สำเร็จ (PE-P1)", when: {field: scope.treats_attempt_as_success, operator: equals, value: true}}
+    authorization_gate: [pe_local_elevation_config]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.entitlement_management]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก entry กับ invocation/elevation"}
+    reason: "ถอนเฉพาะ rule/permission ที่ unauthorized และปิด privileged session ที่ใช้งาน โดยรักษา approved admin access"
+    provenance: {reference: [PE-LOCAL, PE-P1, PE-P2, PE-P5]}
+
+  - policy_id: POL-PE-003
+    rule_type: ACTION_GATE
+    action_id: ACT-PRIVILEGED-TRIGGER-CONTAIN
+    applicable_subtypes: [PE-SERVICE]
+    covers: [PE-P1, PE-P3, PE-P5, PS-P5, PS-P4]
+    required_evidence:
+      all_of: [{field: evidence.pe_artifact_change_privileged_execution.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.persistence_artifact.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-5, reason: "ห้าม disable/ลบ task/service ที่ไม่เกี่ยวข้องหรือทั้งชุด (PS-P5)", when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}}
+      - {id: PRH-PE-6, reason: "reset/patch ไม่ยกเลิก privileged context ที่ยังรัน (PE-P3)", when: {field: scope.privileged_context_removed_by_reset_only, operator: equals, value: true}}
+      - {id: PRH-PE-7, reason: "ห้ามปิด scheduler/service manager ทั้งเครื่อง", when: {field: scope.disables_org_wide_capability, operator: equals, value: true}}
+    authorization_gate: [pe_artifact_change_privileged_execution]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.persistence_trigger_disable]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก artifact change กับ privileged execution หรือ change ได้รับอนุมัติ"}
+    reason: "หยุด privileged trigger ที่ระบุ + payload; approved change ไม่เปิด malicious containment"
+    provenance: {reference: [PE-SERVICE, PE-P1, PE-P3, PE-P5, PS-P5]}
+
+  - policy_id: POL-PE-004
+    rule_type: ACTION_GATE
+    action_id: ACT-PRIVILEGED-CONTEXT-CONTAIN
+    applicable_subtypes: [PE-TOKEN]
+    covers: [PE-P3, PE-P4]
+    required_evidence:
+      all_of: [{field: evidence.pe_token_impersonation.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.privileged_context.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-8, reason: "password reset ไม่ยกเลิก privileged context (PE-P3)", when: {field: scope.privileged_context_removed_by_reset_only, operator: equals, value: true}}
+      - {id: PRH-PE-9, reason: "การเปลี่ยน entitlement ไม่ได้ invalidate token ที่ออกแล้วทันที (PE-P4)", when: {field: scope.assumes_token_invalidated_by_entitlement_change, operator: equals, value: true}}
+    authorization_gate: [pe_token_impersonation]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.session_revocation, cap.entitlement_management]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ process/session ที่ถือ context ไม่ได้"}
+    reason: "ตัด context ที่ระบุและกลไกต้นทางตามที่ platform รองรับ"
+    provenance: {reference: [PE-TOKEN, PE-P3, PE-P4]}
+
+  - policy_id: POL-PE-005
+    rule_type: ACTION_GATE
+    action_id: ACT-PRIVILEGED-GRANT-CONTAIN
+    applicable_subtypes: [PE-GRANT]
+    covers: [PE-P1, PE-P2, PE-P4, PE-P5]
+    required_evidence:
+      all_of: [{field: evidence.pe_unauthorized_entitlement_change.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.entitlement_grant.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-10, reason: "ห้าม remove administrators/elevation ทั้งระบบ (PE-P2)", when: {field: scope.removes_all_admins, operator: equals, value: true}}
+      - {id: PRH-PE-11, reason: "การเปลี่ยน entitlement ไม่ได้ invalidate token ที่ออกแล้วทันที — ต้อง revoke sessions แยก (PE-P4)", when: {field: scope.assumes_token_invalidated_by_entitlement_change, operator: equals, value: true}}
+      - {id: PRH-PE-12, reason: "admin change ที่ยังไม่ทราบว่าไม่ได้รับอนุมัติ ไม่เท่ากับ escalation ที่เป็นอันตราย (PE-P1)", when: {field: scope.treats_attempt_as_success, operator: equals, value: true}}
+    authorization_gate: [pe_unauthorized_entitlement_change]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.entitlement_management]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยันว่า entry ไม่ได้รับอนุมัติ"}
+    reason: "ถอน entry เฉพาะรายการที่ไม่ได้รับอนุมัติ + revoke sessions + contain actor โดยรักษา approved admin/recovery access"
+    provenance: {reference: [PE-GRANT, PE-P1, PE-P2, PE-P4, PE-P5]}
+
+  - policy_id: POL-PE-006
+    rule_type: ACTION_GATE
+    action_id: ACT-CLOUD-PRIVILEGE-CONTAIN
+    applicable_subtypes: [PE-CLOUD]
+    covers: [PE-P1, PE-P4, PE-P5]
+    required_evidence:
+      all_of: [{field: evidence.pe_cloud_iam_unauthorized_use.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.cloud_trust.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PE-13, reason: "policy/trust change อาจไม่ invalidate session ที่ออกแล้ว — ต้องใช้ restriction ที่ platform รองรับ (PE-P4)", when: {field: scope.assumes_token_invalidated_by_entitlement_change, operator: equals, value: true}}
+      - {id: PRH-PE-14, reason: "over-permissive policy โดยไม่มีการใช้ที่ไม่ได้รับอนุญาต ไม่ใช่ escalation สำเร็จ (PE-P1)", when: {field: scope.treats_attempt_as_success, operator: equals, value: true}}
+    authorization_gate: [pe_cloud_iam_unauthorized_use]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.entitlement_management]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก trust/policy/role กับการใช้ที่ไม่ได้รับอนุญาต"}
+    reason: "restrict เฉพาะ trust/grant/resources ที่มี evidence และจัดการ credentials ตาม dependencies"
+    provenance: {reference: [PE-CLOUD, PE-P1, PE-P4, PE-P5]}
+
+  - policy_id: POL-PE-007
+    rule_type: CLASSIFICATION_RULE
+    covers: [PE-P1, PE-P2, PE-P3, PE-P4, PE-P5]
+    statements:
+      - "pe_indicator_only (attempt / exposure / admin change) ไม่ใช่ classification_evidence; ต้องมี privileged context หรือ entitlement/artifact change ที่ไม่ได้รับอนุมัติและสำเร็จ"
+      - "ไม่ remove administrators หรือ elevation permissions ทั้งระบบ; ถอนเฉพาะ entry ที่ validate"
+      - "password reset หรือ patch ไม่ถือว่ายกเลิก privileged contexts ที่ยังมีอยู่; ต้องยุติ context โดยตรง"
+      - "entitlement/policy change อาจไม่ invalidate issued tokens ทันที: ใช้ session/token revocation หรือ restriction ที่ platform รองรับ"
+      - "รักษา approved administration/recovery access ในทุก action (scope.cuts_approved_access)"
+    reason: "คุม classification และข้อห้ามร่วมของ Privilege Escalation"
+    provenance: {reference: [PE-P1, PE-P2, PE-P3, PE-P4, PE-P5]}
+
+runbooks:
+  - runbook_id: RB-ELEVATED-EXECUTION-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-ELEVATED-EXECUTION-CONTAIN]
+    supported_subtypes: [PE-EXPLOIT]
+    objective: "Contain privileged workload หยุด identified malicious context และจำกัด exploit entry ที่พบ"
+    prerequisites: ["privileged context (host, context identity, mechanism)", "process identity ถ้าเกี่ยวข้อง", "exploit entry (service/พอร์ต) ถ้าระบุได้"]
+    required_evidence: [pe_exploit_privileged_context]
+    required_targets: [privileged_context]
+    required_capabilities: [cap.process_termination, cap.workload_isolation, cap.scoped_network_enforcement]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การยุติ context/จำกัด workload กระทบบริการที่รันด้วยสิทธิ์นั้น"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน privileged context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} (กลไก: {{privileged_context.mechanism}}) ว่าเกิดจาก exploit และไม่ใช่ session ผู้ดูแลที่อนุมัติ"
+        expected_result: "context ที่ต้องหยุดถูกต้อง"
+        verify: "เทียบ evidence ref และรายการ approved admin sessions"
+        on_failure: "ไม่ดำเนินการ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "Contain {{host_workload.host_id}} (คงช่องทาง IR/admin ที่อนุมัติ)"
+        origin: EXPANDED_FROM_REFERENCE
+        variant: standard
+        instruction: "Contain {{host_workload.host_id}} (restrict/isolate คงช่องทาง IR และ admin ที่อนุมัติ) เพื่อหยุดการใช้ privileged context ผ่าน network"
+        method: "แยก/จำกัด {{host_workload.host_id}} ผ่านเครือข่ายเพื่อหยุดการใช้ privileged context โดยคงเฉพาะช่องทาง IR และ admin ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า inbound/outbound ถูกจำกัดยกเว้นช่องทางที่คงไว้"
+        method_basis: NEUTRAL_DERIVED
+        requires_org: [approved_access]
+        condition: {all_of: [{field: targets.host_workload.validated, operator: equals, value: true}, {field: capability.cap.workload_isolation.supported, operator: equals, value: true}]}
+        expected_result: "host ติดต่อได้เฉพาะ IR/admin path ที่อนุมัติ"
+        verify: "outbound/inbound ถูกจำกัด"
+        on_failure: "จำกัดที่ segment และ escalate IR"
+        rollback: "ปลดหลัง IR ยืนยัน"
+        impact: "workload หยุดให้บริการ network"
+      - step_id: S2c
+        title: "ยุติเฉพาะ privileged context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} (workload สำคัญ)"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{privileged_context.host_id}} เป็น workload สำคัญ: ยุติเฉพาะ context ที่ validate และจำกัด entry path ก่อน แทน isolate ทั้งเครื่อง แล้วแจ้ง asset owner"
+        method: "จำกัด entry path ที่ใช้ context นี้ก่อน แล้วยุติเฉพาะ privileged context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} (ตรวจก่อนว่ายัง active) ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ตรวจว่า context ไม่ active"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "context ถูกยุติโดยบริการหลักยังทำงาน"
+        verify: "context identity ไม่ active"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S3
+        title: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ใน privileged context"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ทำงานใน privileged context (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ทำงานใน privileged context)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process ใน context หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict workload และ escalate IR"
+      - step_id: S4
+        title: "จำกัด exploit entry: {{service_endpoint.service}} บน {{service_endpoint.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด exploit entry: service {{service_endpoint.service}} บน {{service_endpoint.host_id}} ที่ {{service_endpoint.enforcement_point}} เฉพาะการเข้าถึงที่ใช้ exploit (patch เป็น remediation แยก)"
+        method: "จำกัดเฉพาะการเข้าถึง {{service_endpoint.service}} บน {{service_endpoint.host_id}} ที่ใช้ exploit ที่ {{service_endpoint.enforcement_point}} (ไม่ปิดบริการทั้งหมด; patch เป็น remediation แยก) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.service_endpoint.validated, operator: equals, value: true}, {field: capability.cap.scoped_network_enforcement.supported, operator: equals, value: true}]}
+        expected_result: "ผู้โจมตี exploit ซ้ำผ่าน entry นี้ไม่ได้"
+        verify: "attempt ใหม่ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR/เจ้าของ service"
+        rollback: "ถอน rule ตาม snapshot"
+        impact: "การเข้าถึง service นี้จาก scope ที่จำกัดจะหยุด"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า privileged context ไม่เกิดซ้ำบน {{privileged_context.host_id}} — ถ้าจำเป็นต้องเปลี่ยน credential/patch ให้ถือเป็น remediation แยก ไม่ใช่ตัวยกเลิก context"
+        expected_result: "ไม่มี context ใหม่"
+        verify: "re-hunt privileged execution ในช่วงเฝ้าระวัง"
+        on_failure: "หา persistence/launcher ตามหลักฐาน"
+    verification: ["ไม่มี privileged context ที่เกิดจาก exploit เหลือ"]
+    failure_handling: ["กลับมา → ประเมิน PS-PERSIST/PE-SERVICE/C2 branch ตามหลักฐาน"]
+    rollback: ["ปลด restriction ตาม IR approval"]
+    remediation_followups: ["patch ช่องโหว่ที่ถูก exploit และทบทวนสิทธิ์ (remediation แยกจาก containment)"]
+    variants: [{variant_id: critical_workload, description: "ยุติเฉพาะ context ที่ validate และจำกัด entry แทนการ isolate ทั้งเครื่อง"}]
+
+  - runbook_id: RB-LOCAL-ELEVATION-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-LOCAL-ELEVATION-CONTAIN]
+    supported_subtypes: [PE-LOCAL]
+    objective: "เก็บ config ถอน scoped unauthorized permission และ terminate affected privileged session"
+    prerequisites: ["entry (sudoers rule / SUID permission) ที่ผิด + principal", "privileged session ที่ใช้อยู่", "รายการ approved admin access"]
+    required_evidence: [pe_local_elevation_config]
+    required_targets: [entitlement_grant]
+    required_capabilities: [cap.entitlement_management, cap.session_revocation, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "principal ที่ถูกถอน entry จะ elevate ไม่ได้; admin อื่นที่อนุมัติไม่กระทบ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} (scope {{entitlement_grant.scope}}) ไม่อยู่ใน change record และไม่ใช่ admin/recovery access ที่อนุมัติ"
+        expected_result: "entry ที่ต้องถอนถูกต้อง"
+        verify: "เทียบ change record และรายการ approved admins"
+        on_failure: "ไม่ถอน; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก config ปัจจุบัน (sudoers/permission) ที่เกี่ยวข้องก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ (ไม่ถอน sudo/SUID ทั้งระบบ)"
+        method: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ ด้วยเครื่องมือจัดการสิทธิ์ของระบบนั้น (ไม่ถอนสิทธิ์ผู้ดูแลทั้งระบบ) บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า elevation ของ principal ถูกปฏิเสธและผู้ดูแลที่อนุมัติยังใช้งานได้"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "principal elevate ผ่าน entry นี้ไม่ได้"
+        verify: "ทดสอบสิทธิ์ของ principal: elevation ถูกปฏิเสธ และ admin ที่อนุมัติยังใช้ได้"
+        on_failure: "restrict principal ชั่วคราวและ escalate IR"
+        rollback: "คืน entry จาก snapshot หาก IR ยืนยัน false positive"
+        impact: "principal นี้ไม่สามารถ elevate ผ่าน entry นี้"
+      - step_id: S4
+        title: "ยุติ privileged session {{privileged_context.context_identity}} บน {{privileged_context.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ยุติ privileged session ที่ใช้ entry นี้ของ {{privileged_context.context_identity}} บน {{privileged_context.host_id}}"
+        method: "หลังถอน entry แล้ว ตรวจว่า privileged session ของ context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} ยัง active อยู่หรือไม่ ถ้ายังจึงยุติเฉพาะ session ที่ใช้ entry นั้น แล้วตรวจว่า context ไม่ active"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S3]
+        condition: {all_of: [{field: targets.privileged_context.validated, operator: equals, value: true}]}
+        expected_result: "session ที่ elevate แล้วหยุด"
+        verify: "context identity ไม่ active"
+        on_failure: "ยุติ process ใน session ด้วย identity และ escalate IR"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ auth/audit log ว่าไม่มี elevation ใหม่จาก principal {{entitlement_grant.principal_id}}"
+        expected_result: "ไม่มี elevation ใหม่"
+        verify: "re-hunt elevation events ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ entry อื่นของ principal"
+    verification: ["entry ที่ผิดถูกถอนและไม่มี elevation ใหม่", "approved admin access ยังใช้ได้"]
+    failure_handling: ["พบ entry อื่น → ถอนเฉพาะที่มี evidence"]
+    rollback: ["คืน entry จาก snapshot ตาม IR approval"]
+
+  - runbook_id: RB-PRIVILEGED-TRIGGER-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-PRIVILEGED-TRIGGER-CONTAIN]
+    supported_subtypes: [PE-SERVICE]
+    objective: "Disable trigger หยุด payload จำกัด writable path และใช้ trusted approved configuration"
+    prerequisites: ["artifact (service/task/path) ที่ถูกแก้และเรียก payload ด้วยสิทธิ์สูง", "trusted approved configuration (baseline) สำหรับ restore", "process identity ของ payload"]
+    required_evidence: [pe_artifact_change_privileged_execution]
+    required_targets: [persistence_artifact]
+    required_capabilities: [cap.persistence_trigger_disable, cap.process_termination, cap.writable_path_acl, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "service/task ที่ถูก disable จะไม่ทำงานตามรอบ ถ้าใช้ร่วมกับงานจริงต้องคืนจาก trusted configuration"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจว่า {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}} ถูกแก้โดยไม่อยู่ใน change record และผูกกับ payload ที่รันด้วยสิทธิ์สูง — ไม่แตะ artifact อื่น"
+        expected_result: "ยืนยัน artifact ที่ต้อง contain เป็นรายการเดียว"
+        verify: "เทียบ evidence ref และ change record"
+        on_failure: "ไม่ disable; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก configuration ที่ถูกแก้ของ {{persistence_artifact.artifact_locator}} (definition, run-as, ACL) ไว้เป็นหลักฐานก่อนแก้ไข"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot เพื่อ forensic"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "Disable {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Disable {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}} เฉพาะรายการนี้ (ไม่ลบ ไม่ปิด scheduler/service manager ทั้งเครื่อง)"
+        method: "ใช้เครื่องมือจัดการ task/service ของเครื่อง {{persistence_artifact.host_id}} สั่ง disable เฉพาะ {{persistence_artifact.artifact_locator}} (ไม่ลบรายการ และไม่ปิด scheduler/service manager ทั้งเครื่อง) แล้วตรวจสถานะว่าเป็น disabled"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.persistence_trigger_disable.supported, operator: equals, value: true}]}
+        expected_result: "artifact ไม่เรียก payload ตามรอบ"
+        verify: "สถานะ disabled และรอบ trigger ถัดไปไม่ทำงาน"
+        on_failure: "ปิดการเรียก payload ด้วยการจำกัด path/permission แล้ว escalate IR"
+        rollback: "enable กลับจาก trusted approved configuration (ไม่ใช่ config ที่ถูกแก้)"
+        impact: "งานตามรอบของ artifact นี้ไม่ทำงาน"
+      - step_id: S4
+        title: "หยุด instance ของ {{persistence_artifact.artifact_locator}} ที่กำลังรัน"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "หยุด instance ของ {{persistence_artifact.artifact_locator}} ที่กำลังรัน (disable ไม่หยุด instance ที่ทำงานอยู่แล้ว)"
+        method: "ตรวจสถานะของ {{persistence_artifact.artifact_locator}} ก่อน ถ้ายังเป็น running ให้ใช้เครื่องมือจัดการ task/service หยุดเฉพาะ instance นั้น (การ disable ไม่หยุด instance ที่ทำงานอยู่แล้ว)"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S3]
+        condition: {all_of: [{field: capability.cap.persistence_trigger_disable.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี running instance ของ artifact"
+        verify: "สถานะไม่เป็น running"
+        on_failure: "ยุติ payload ด้วย process identity ใน S5"
+      - step_id: S5
+        title: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} เฉพาะที่ยังรันอยู่ (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว; หากการหยุด instance ข้างต้นยุติ payload ไปแล้วให้ตรวจและยุติเฉพาะที่ยังเหลือ)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี payload process ที่ validate เหลือ"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict workload ตาม scope และ escalate IR"
+      - step_id: S6
+        title: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ของ payload"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) เฉพาะรายการที่มี lineage กับ (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุด"
+        verify: "children ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่มก่อนยุติ"
+      - step_id: S7
+        title: "จำกัด writable path/ACL ของ {{persistence_artifact.artifact_locator}} บน {{persistence_artifact.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด writable path/ACL ของ {{persistence_artifact.artifact_locator}} และ path ของ payload บน {{persistence_artifact.host_id}} ให้เขียนได้เฉพาะ principal ที่อนุมัติ"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "baseline ACL และรายชื่อ principal ที่องค์กรอนุมัติให้เขียนได้"
+        condition: {all_of: [{field: capability.cap.writable_path_acl.supported, operator: equals, value: true}]}
+        expected_result: "ผู้ไม่ได้รับอนุญาตแก้ artifact/path ไม่ได้"
+        verify: "ACL ตรงกับ baseline ที่อนุมัติ"
+        on_failure: "escalate IR/เจ้าของระบบ"
+        rollback: "คืน ACL จาก snapshot ตามการอนุมัติ"
+      - step_id: S8
+        title: "คืน configuration ของ {{persistence_artifact.artifact_locator}} จาก trusted approved configuration"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "เมื่อ IR ยืนยันแล้ว คืน configuration ของ {{persistence_artifact.artifact_locator}} จาก trusted approved configuration (ถ้ามี) แล้วค่อย enable — ไม่ใช้ config ที่ถูกแก้"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "trusted approved configuration (baseline ที่อนุมัติ) และการยืนยันจาก IR ว่าเป็น false positive หรือพร้อมคืนค่า"
+        expected_result: "artifact กลับสู่สถานะที่อนุมัติ"
+        verify: "configuration ตรงกับ trusted baseline"
+        on_failure: "คง artifact ไว้ที่สถานะ disabled และ escalate IR"
+      - step_id: S9
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจหลังรอบ trigger ถัดไปว่า {{persistence_artifact.artifact_locator}} ไม่เรียก payload ด้วยสิทธิ์สูงอีก"
+        expected_result: "ไม่มี relaunch"
+        verify: "re-hunt process creation จาก artifact ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ trigger อื่นที่มี evidence (ไม่ disable ทั้งชุด)"
+    verification: ["artifact disabled/restore เป็น baseline และไม่ relaunch", "ไม่มี payload/children (ที่ validate) เหลือ"]
+    failure_handling: ["พบ trigger อื่น → ระบุจากหลักฐานแล้วทำซ้ำเฉพาะรายการนั้น"]
+    rollback: ["enable จาก trusted approved configuration ตาม IR approval"]
+
+  - runbook_id: RB-PRIVILEGED-CONTEXT-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-PRIVILEGED-CONTEXT-CONTAIN]
+    supported_subtypes: [PE-TOKEN]
+    objective: "Contain identified context และ source mechanism ตาม platform capability"
+    prerequisites: ["context (host + process/token session)", "กลไกต้นทาง (impersonation privilege/service)", "รู้ว่า platform ยกเลิก token ได้แบบใด"]
+    required_evidence: [pe_token_impersonation]
+    required_targets: [privileged_context]
+    required_capabilities: [cap.process_termination, cap.session_revocation, cap.entitlement_management]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "process/session ที่ถือ context ถูกยุติ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} (กลไก {{privileged_context.mechanism}}) เป็น impersonation/token ที่ไม่ได้รับอนุญาต ไม่ใช่ admin session ที่อนุมัติ"
+        expected_result: "context ถูกต้อง"
+        verify: "เทียบ evidence ref และรายการ approved admin sessions"
+        on_failure: "ไม่ดำเนินการ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ถือ privileged context"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ถือ context (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ถือ privileged context)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process ที่ถือ context หยุด"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "revoke session ใน S3 และ escalate IR"
+      - step_id: S3
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke token-associated session {{session.session_ids_or_family}} ของ {{session.account_id}} ตามที่ {{session.provider}} รองรับ (reset password ไม่พอ)"
+        include_runbook: RB-SESSION-REVOKE
+        condition: {all_of: [{field: targets.session.validated, operator: equals, value: true}]}
+        expected_result: "session/token ใช้ไม่ได้"
+        verify: "request ด้วย session นั้นถูกปฏิเสธ"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S4
+        title: "ถอน privilege ต้นทาง {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ถอน privilege ต้นทาง {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} ที่ทำให้ impersonate ได้ (เฉพาะรายการ)"
+        method: "ถอน privilege ต้นทาง {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} ที่ทำให้ impersonate ได้ เฉพาะรายการนี้ บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า impersonation ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.entitlement_grant.validated, operator: equals, value: true}, {field: capability.cap.entitlement_management.supported, operator: equals, value: true}]}
+        expected_result: "กลไกต้นทางใช้ไม่ได้"
+        verify: "ทดสอบ impersonation ถูกปฏิเสธ"
+        on_failure: "escalate IR"
+        rollback: "คืน entry จาก snapshot ตาม IR approval"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี context ใหม่จากกลไกเดียวกันบน {{privileged_context.host_id}}"
+        expected_result: "ไม่มี context ใหม่"
+        verify: "re-hunt impersonation events ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจกลไกอื่นที่มี evidence"
+    verification: ["ไม่มี privileged context จากกลไกที่ระบุ"]
+    failure_handling: ["พบ context อื่น → ประเมินแยกตามหลักฐาน"]
+    rollback: ["คืน entry ตาม IR approval"]
+
+  - runbook_id: RB-PRIVILEGED-GRANT-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-PRIVILEGED-GRANT-CONTAIN]
+    supported_subtypes: [PE-GRANT]
+    objective: "Remove scoped entry, revoke affected sessions และ contain abusing actor"
+    prerequisites: ["entry (group/role/membership) ที่ไม่ได้รับอนุมัติ + principal + ผู้เปลี่ยน", "รายการ approved admin/recovery access"]
+    required_evidence: [pe_unauthorized_entitlement_change]
+    required_targets: [entitlement_grant]
+    required_capabilities: [cap.entitlement_management, cap.session_revocation, cap.identity_restriction, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "principal ที่ถูกถอน entry จะสูญสิทธิ์ที่เกี่ยวข้อง; admin/recovery ที่อนุมัติไม่กระทบ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} (scope {{entitlement_grant.scope}}) ไม่อยู่ใน change record และไม่ใช่ admin/recovery ที่อนุมัติ"
+        expected_result: "entry ที่ต้องถอนถูกต้อง"
+        verify: "เทียบ change record และรายการ approved admins"
+        on_failure: "ไม่ถอน; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกสถานะ membership/permission ปัจจุบันของ {{entitlement_grant.principal_id}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ (ไม่ remove administrators ทั้งระบบ)"
+        method: "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ ด้วยเครื่องมือจัดการสิทธิ์ของระบบนั้น (ไม่ถอนสิทธิ์ผู้ดูแลทั้งระบบ) บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า elevation ของ principal ถูกปฏิเสธและผู้ดูแลที่อนุมัติยังใช้งานได้"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "principal ไม่มีสิทธิ์จาก entry นี้"
+        verify: "membership/permission ของ principal ไม่มี entry ดังกล่าว"
+        on_failure: "restrict principal ชั่วคราวและ escalate IR"
+        rollback: "คืน entry จาก snapshot หาก IR ยืนยัน false positive"
+        impact: "principal สูญสิทธิ์ตาม entry นี้"
+      - step_id: S4
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke sessions/tokens ที่ออกให้ {{session.account_id}} ที่ {{session.provider}} ก่อนการถอน (การถอน entry ไม่ invalidate token ที่ออกแล้วทันที)"
+        include_runbook: RB-SESSION-REVOKE
+        condition: {all_of: [{field: targets.session.validated, operator: equals, value: true}]}
+        expected_result: "token เดิมใช้ไม่ได้"
+        verify: "request ด้วย session เดิมถูกปฏิเสธ"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S5
+        title: "Contain actor {{account_identity.account_id}} ที่เปลี่ยน entitlement"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Contain actor {{account_identity.account_id}} ที่เปลี่ยน entitlement โดยไม่ได้รับอนุมัติ (restrict ตาม identity scope; หากมี unauthorized authentication ให้ใช้ขั้นตอน Account Compromise)"
+        method_basis: IR_REVIEW_REQUIRED
+        method_requires: "IR ต้องกำหนดระดับการจำกัด actor ที่เปลี่ยน entitlement ตาม identity scope ที่องค์กรอนุมัติ (และใช้ขั้นตอน Account Compromise หากมีหลักฐาน unauthorized authentication)"
+        condition: {all_of: [{field: targets.account_identity.validated, operator: equals, value: true}, {field: capability.cap.identity_restriction.supported, operator: equals, value: true}]}
+        expected_result: "actor เปลี่ยน entitlement ต่อไม่ได้"
+        verify: "ไม่มีการเปลี่ยน entitlement ใหม่จาก actor"
+        on_failure: "escalate IR"
+        rollback: "คืนสิทธิ์ตาม IR approval"
+        impact: "เจ้าของบัญชี actor ใช้งานบางส่วนไม่ได้"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ audit ว่าไม่มี entitlement change ใหม่ที่ไม่ได้รับอนุมัติ และ approved admin/recovery access ยังใช้ได้"
+        expected_result: "ไม่มีการเปลี่ยนใหม่"
+        verify: "re-hunt entitlement events ในช่วงเฝ้าระวัง"
+        on_failure: "ถอนเฉพาะ entry ใหม่ที่มี evidence"
+    verification: ["entry ที่ผิดถูกถอน", "sessions เดิมถูกยกเลิก", "approved admin/recovery access ใช้ได้"]
+    failure_handling: ["พบ entry อื่น → ถอนเฉพาะที่ validate; ไม่ remove admins ทั้งระบบ"]
+    rollback: ["คืน entry จาก snapshot ตาม IR approval"]
+
+  - runbook_id: RB-CLOUD-PRIVILEGE-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-CLOUD-PRIVILEGE-CONTAIN]
+    supported_subtypes: [PE-CLOUD]
+    objective: "Restrict evidenced trust/grant/resources และจัดการ exposed credentials ตาม dependencies"
+    prerequisites: ["principal + trust/policy/role + resources จาก cloud audit", "dependencies ของ role/credential", "ช่องทาง restrict ที่ provider รองรับ"]
+    required_evidence: [pe_cloud_iam_unauthorized_use]
+    required_targets: [cloud_trust]
+    required_capabilities: [cap.entitlement_management, cap.session_revocation, cap.secret_rotation, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "services ที่ใช้ trust/role เดียวกันอาจกระทบ — ตรวจ dependencies ก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน trust/policy {{cloud_trust.trust_or_policy_ref}} ของ principal {{cloud_trust.principal_id}} ({{cloud_trust.provider}}) ถูกใช้โดยไม่ได้รับอนุญาตตาม audit และไม่ใช่ automation role ที่อนุมัติ"
+        expected_result: "รายการที่ต้อง restrict ถูกต้อง"
+        verify: "เทียบ cloud audit และรายการ approved roles"
+        on_failure: "ไม่ restrict; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก trust/policy ปัจจุบันก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "Restrict trust {{cloud_trust.trust_or_policy_ref}} ต่อ resources {{cloud_trust.resources}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Restrict trust/grant {{cloud_trust.trust_or_policy_ref}} ต่อ resources {{cloud_trust.resources}} เฉพาะส่วนที่มี evidence (ไม่ปรับ policy ทั้ง account)"
+        method: "จำกัด trust/grant {{cloud_trust.trust_or_policy_ref}} เฉพาะส่วนที่มีหลักฐานต่อ {{cloud_trust.resources}} (ไม่ปรับ policy ทั้ง account) บันทึก policy เดิมก่อนแก้ แล้วตรวจจาก cloud audit ว่า assume/use ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.entitlement_management.supported, operator: equals, value: true}]}
+        expected_result: "principal เข้า resources ผ่าน trust นี้ไม่ได้"
+        verify: "assume/use ใหม่ถูกปฏิเสธตาม cloud audit"
+        on_failure: "escalate IR/เจ้าของ cloud account"
+        rollback: "คืน policy จาก snapshot ตาม IR approval"
+        impact: "services ที่ใช้ trust/role นี้อาจเข้า resources ไม่ได้"
+      - step_id: S4
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke sessions ที่ออกจากการ assume role นี้ของ {{session.account_id}} ที่ {{session.provider}} (policy change อาจไม่ invalidate session ที่ออกแล้ว)"
+        include_runbook: RB-SESSION-REVOKE
+        condition: {all_of: [{field: targets.session.validated, operator: equals, value: true}]}
+        expected_result: "sessions เดิมใช้ไม่ได้"
+        verify: "request ด้วย session เดิมถูกปฏิเสธ"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S5
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จัดการ credential ที่ถูกเปิดเผย {{secret_credential.credential_id}} ตามแผน dependents"
+        include_runbook: RB-SERVICE-SECRET-CONTAIN
+        condition: {all_of: [{field: targets.secret_credential.validated, operator: equals, value: true}]}
+        expected_result: "credential ใหม่ใช้ได้และเดิมถูก revoke"
+        verify: "การใช้ credential เดิมถูกปฏิเสธ"
+        on_failure: "ตามขั้นตอน rotate secret"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ cloud audit ว่าไม่มีการ assume/use ใหม่ของ trust นี้โดยไม่ได้รับอนุญาต และ approved administration/recovery access ยังใช้ได้"
+        expected_result: "ไม่มีการใช้ซ้ำ"
+        verify: "re-hunt role assumption ในช่วงเฝ้าระวัง"
+        on_failure: "restrict เฉพาะ trust เพิ่มที่มี evidence"
+    verification: ["ไม่มีการ assume/use ใหม่ที่ไม่ได้รับอนุญาต", "approved admin/recovery access ใช้ได้"]
+    failure_handling: ["พบ trust อื่น → restrict เฉพาะที่มี evidence"]
+    rollback: ["คืน trust/policy จาก snapshot ตาม IR approval"]

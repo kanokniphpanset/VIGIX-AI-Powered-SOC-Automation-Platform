@@ -119,6 +119,94 @@ export interface RecommendationContextActionProcedure {
   compliance?: { policies: string[]; requiredEvidence: string[]; rules: { policy: string; requiredEvidence: string[] }[] };
 }
 
+/**
+ * Attack-specific containment procedure (knowledge/playbooks/PB-STC-001/procedures/<ATTACK_TYPE>/*.yaml). A
+ * Recommendation is built from it as ordered CHECK / ACTION / MANUAL steps:
+ *   CHECK   investigation / decision step — never an executable Action;
+ *   ACTION  a catalog Action (Policy, approval and evidence rules apply); `condition` must be confirmed before it runs;
+ *   MANUAL  a containment control VIGIX cannot execute (e.g. a WAF rule) — done by people, never by the Action Executor.
+ */
+export type ProcedureItemType = "ACTION" | "CHECK" | "MANUAL";
+
+export interface RecommendationContextProcedureItem {
+  type: ProcedureItemType;
+  text: string;
+  /** ACTION only: the catalog Action code. */
+  actionCode: string | null;
+  /** ACTION: the containment.yaml condition of the Action. MANUAL / CHECK: null. */
+  condition: string | null;
+  /** MANUAL only: the item names an approver ("requires <who> approval"). */
+  requiresApproval: boolean;
+  approver: string | null;
+}
+
+export interface RecommendationContextProcedureStep {
+  /** Evidence-gated knowledge items; empty/absent means applicable to the procedure generally. */
+  appliesWhenTechniques?: string[];
+  /** Offered only when at least one of these evidence signals (domain/knowledge/evidenceSignals.ts) is present. */
+  appliesWhenSignals?: string[];
+  /** The step starts the response of another attack type (e.g. BRUTE_FORCE -> ACCOUNT_COMPROMISE) once it applies. */
+  escalatesTo?: string;
+  requiredTypes?: ProcedureItemType[];
+  /** Include eligible actions after their checks, retaining their human-confirmed conditions. */
+  conditionalActions?: boolean;
+  stepOrder: number;
+  phase: string;
+  title: string;
+  objective: string;
+  items: RecommendationContextProcedureItem[];
+  reason: string;
+  expectedResult: string;
+  decisionRef: string | null;
+  responsibleRole: string;
+  approvalRequired: boolean;
+}
+
+export interface RecommendationContextProcedureDecision {
+  id: string;
+  stepRef: number;
+  question: string;
+  options: { value: string; label: string; leadsTo: string }[];
+}
+
+export interface RecommendationContextContainmentProcedure {
+  procedureCode: string;
+  version: string;
+  objective: string;
+  strategy: string;
+  steps: RecommendationContextProcedureStep[];
+  decisions: RecommendationContextProcedureDecision[];
+  /** Candidate Actions of the procedure with their conditions (containment.yaml). */
+  candidateActions: { actionCode: string; condition: string | null; runbookRef: string | null }[];
+  verification: { type: string; queryTemplate: string | null; successCriteria: string[]; additionalChecks: string[] };
+}
+
+/** A response-plan branch that opens another attack type's response because the evidence now supports it. */
+export interface RecommendationContextTransition {
+  from: string;
+  to: string;
+  /** The procedure step that carries the transition. */
+  stepOrder: number;
+  /** The evidence signals that made it apply. */
+  because: string[];
+}
+
+/**
+ * Knowledge retrieved for an incident that has no attack-specific playbook (RAG / IR / Defense / analyst-approved case
+ * knowledge). Only items listed here can ground a dynamic response; the model never supplies its own.
+ */
+export interface RecommendationContextRetrievedKnowledge {
+  ref: string;
+  source: "IR_KNOWLEDGE" | "DEFENSE_KNOWLEDGE" | "CASE_KNOWLEDGE" | "THREAT_INTELLIGENCE";
+  title: string;
+  /** The response phase this knowledge supports. */
+  phase: string;
+  /** The control / investigation the knowledge recommends, in words an analyst can act on. */
+  guidance: string;
+  kind: "CHECK" | "MANUAL";
+  requiresApproval: boolean;
+}
+
 /** An Action procedure the AI may actually recommend: applicable to the attack type AND its evidence is recorded. */
 export const isRecommendable = (p: RecommendationContextActionProcedure): boolean => p.applicable !== false && p.evidence?.satisfied !== false;
 
@@ -147,10 +235,18 @@ export const stepKey = (actionCode: string, target: string): string => `${action
  * that no earlier Recommendation of this incident proposed. A new Recommendation must contain at least one of them.
  * null = cannot tell (the context carries no evidence evaluation).
  */
-export function newStepOptions(context: Pick<RecommendationContextDto, "actionProcedures" | "previousSteps">): { actionCode: string; target: string }[] | null {
+export function noveltyHistory(context: Pick<RecommendationContextDto, "previousSteps"> & Partial<Pick<RecommendationContextDto, "spreadResponse" | "rehunt" | "investigationNumber">>): RecommendationContextPreviousStep[] {
+  // A verified new host scope may need the same shared IOC blocked at another service.
+  // Repeating a pair within that new cycle is still prohibited.
+  const newScope = context.spreadResponse?.newHosts.length && context.rehunt?.spreadDetected && context.rehunt.result === "NOT_RESOLVED"
+    && context.rehunt.verifiedInvestigationNumber === (context.investigationNumber ?? 0) - 1;
+  return (context.previousSteps ?? []).filter(step => !newScope || step.investigationNumber === context.investigationNumber);
+}
+
+export function newStepOptions(context: Pick<RecommendationContextDto, "actionProcedures" | "previousSteps"> & Partial<Pick<RecommendationContextDto, "spreadResponse" | "rehunt" | "investigationNumber">>): { actionCode: string; target: string }[] | null {
   const procedures = context.actionProcedures ?? [];
   if (procedures.some((p) => !p.evidence)) return null;
-  const used = new Set((context.previousSteps ?? []).map((s) => stepKey(s.actionCode, s.target)));
+  const used = new Set(noveltyHistory(context).map((s) => stepKey(s.actionCode, s.target)));
   return procedures
     .filter(isRecommendable)
     .flatMap((p) => p.evidence!.targets.map((target) => ({ actionCode: p.actionCode, target })))
@@ -158,6 +254,9 @@ export function newStepOptions(context: Pick<RecommendationContextDto, "actionPr
 }
 
 export interface RecommendationContextDto {
+  rehunt?: import("../ports/IRecommendationContextRepository").RehuntContextRow | null;
+  /** Matched spread policies; intersected with the published playbook and SOC guidance. */
+  spreadResponse?: { policies: string[]; instructions: string[]; allowedActions: string[]; newHosts: string[]; uncoveredHosts: string[] } | null;
   incidentId: string;
   investigationNumber: number;
   incidentTitle: string;
@@ -180,6 +279,18 @@ export interface RecommendationContextDto {
   /** Knowledge attack type of the selected playbook (SSH_BRUTE_FORCE -> BRUTE_FORCE); null when none is known. */
   attackType?: string | null;
   playbook?: RecommendationContextPlaybook | null;
+  /** Attack-specific containment procedure (YAML knowledge) — the primary strategy source; null when none exists. */
+  containmentProcedure?: RecommendationContextContainmentProcedure | null;
+  /** Evidence signals present in this incident (deriveEvidenceSignals) — what step gating and the validator use. */
+  signals?: string[];
+  /** Branches into another attack type's response that the present signals open (from the applicable procedure). */
+  transitions?: RecommendationContextTransition[];
+  /**
+   * true when no attack-specific playbook applies (UNKNOWN_INCIDENT): the response is investigation-first and may
+   * contain only CHECK steps, plus MANUAL steps grounded in retrievedKnowledge. No catalog Action is offered.
+   */
+  investigationOnly?: boolean;
+  retrievedKnowledge?: RecommendationContextRetrievedKnowledge[];
   /** Actions the AI may expand (the playbook's allowedActions that exist, are enabled and are CONTAINMENT). */
   actionProcedures?: RecommendationContextActionProcedure[];
   /**
@@ -190,4 +301,9 @@ export interface RecommendationContextDto {
   /** Every step of this incident's earlier Recommendations. A new one must add at least one Action + target pair not
    * in this list (RecommendationValidator NO_NEW_STEP); repeating a pair alongside a new one is allowed. */
   previousSteps?: RecommendationContextPreviousStep[];
+  /**
+   * Subtype knowledge: the APPROVED plan (already policy-checked, deterministic). Present only for narration - the AI phrases a summary and
+   * must not add, change or widen an action or target (SubtypeStepMapper reviews the answer).
+   */
+  subtypePlan?: { steps: { action: string; target: string | null; title: string }[]; missingInfo: string[] };
 }

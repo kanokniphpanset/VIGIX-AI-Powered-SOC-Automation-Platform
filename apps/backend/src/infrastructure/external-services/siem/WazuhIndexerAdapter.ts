@@ -97,8 +97,10 @@ export function buildRehuntDsl(query: RehuntQuery): Record<string, unknown> | nu
   };
 }
 
-interface SearchHit {
+export interface SearchHit {
   _id: string;
+  _index?: string;
+  sort?: unknown[];
   _source?: {
     [field: string]: unknown;
     "@timestamp"?: string;
@@ -168,6 +170,21 @@ export class WazuhIndexerAdapter implements ISiemRehuntPort {
     return typeof source[this.timestampField] === "string" ? source[this.timestampField] as string : "";
   }
 
+  /** One search hit -> RehuntEvent. A hook so a subclass can add fields without changing what the base returns. */
+  protected mapHit(h: SearchHit, query: RehuntQuery): RehuntEvent {
+    return {
+      id: h._id,
+      timestamp: this.eventTimestamp(h._source ?? {}),
+      host: h._source?.agent?.name ?? null,
+      agentId: h._source?.agent?.id ?? null,
+      ruleId: h._source?.rule?.id ?? null,
+      ruleLevel: h._source?.rule?.level ?? null,
+      ruleDescription: h._source?.rule?.description ?? null,
+      matchedIoc: (h.matched_queries ?? []).some((n) => n === "ioc" || /^ioc_\d+$/.test(n)),
+      matchedIocValues: query.iocs.filter((_, i) => (h.matched_queries ?? []).includes(`ioc_${i}`)).map((i) => i.value),
+    };
+  }
+
   async health(): Promise<RehuntHealth> {
     const base: RehuntHealth = { configured: this.isConfigured(), reachable: false, indexPattern: this.indexPattern };
     if (!base.configured) return { ...base, error: "Wazuh Indexer is not configured (WAZUH_INDEXER_URL/USERNAME/PASSWORD)." };
@@ -226,17 +243,7 @@ export class WazuhIndexerAdapter implements ISiemRehuntPort {
     const hits = body.hits?.hits ?? [];
     const matchingEvents = body.hits?.total?.value ?? hits.length;
 
-    const events: RehuntEvent[] = hits.map((h) => ({
-      id: h._id,
-      timestamp: this.eventTimestamp(h._source ?? {}),
-      host: h._source?.agent?.name ?? null,
-      agentId: h._source?.agent?.id ?? null,
-      ruleId: h._source?.rule?.id ?? null,
-      ruleLevel: h._source?.rule?.level ?? null,
-      ruleDescription: h._source?.rule?.description ?? null,
-      matchedIoc: (h.matched_queries ?? []).some(n => n === "ioc" || /^ioc_\d+$/.test(n)),
-      matchedIocValues: query.iocs.filter((_, i) => (h.matched_queries ?? []).includes(`ioc_${i}`)).map(i => i.value),
-    }));
+    const events: RehuntEvent[] = hits.map((h) => this.mapHit(h, query));
 
     const affectedHosts = (body.aggregations?.hosts?.buckets ?? []).map((b) => b.key);
     const known = new Set(query.hosts.map((h) => h.toLowerCase()));

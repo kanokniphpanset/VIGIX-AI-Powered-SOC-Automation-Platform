@@ -1,0 +1,365 @@
+# target-types.yaml — Target contract (§3.2). One entry per *kind of thing an action operates on*.
+#
+# A target is VALID (`targets.<type>.validated == true`) only when the target resolver proves ALL of:
+#   (1) every field in required_identity_fields is present and non-UNKNOWN,
+#   (2) every validation_rules entry holds,
+#   (3) no exclusions entry matches,
+#   (4) it is bound to >=1 evidence via source_evidence_refs (a target that appears in no evidence is never valid).
+# Fields are *placeholders* usable in Runbook step text as {{<type>.<field>}}; secrets are referenced by ID only.
+# Different actions need different identity — do NOT force one field set on every action (e.g. MAL-MEMORY needs no hash/file).
+
+version: "2.0.0"
+
+target_types:
+
+  # ---- Hosts, processes, files ---------------------------------------------------------------------------------
+  process:
+    description: A specific process instance on a specific host (never a process name or a bare PID).
+    label_th: "process ของ payload (เครื่อง + ตัวระบุ Process)"
+    role: affected_asset_process
+    required_identity_fields: [host_id, process_identity]
+    optional_fields: [image_path, command_line, parent_process_identity, account_id, start_time]
+    validation_rules:
+      - "process_identity = process_guid, OR (pid AND start_time AND image_path); a bare PID is INVALID (PS-P4)"
+      - "host_id must resolve to an asset in the asset inventory"
+      - "linked to the malicious behavior by source_evidence_refs (not merely 'same name')"
+    exclusions: ["image on the approved automation / security-tool list (PROC-P4)", "critical system process where termination is unsafe -> use variant critical_workload"]
+    dependency_fields: [asset_criticality, restart_policy]
+
+  process_children:
+    description: Child processes of a validated process that are evidenced as part of the malicious chain.
+    label_th: "child process ที่มี lineage กับ payload"
+    role: affected_asset_process
+    required_identity_fields: [host_id, parent_process_identity, child_process_identities]
+    optional_fields: []
+    validation_rules: ["each child has process_identity AND lineage evidence linking it to the parent (no 'all children')"]
+    exclusions: ["children without lineage evidence"]
+
+  host_workload:
+    description: A host/VM/container workload to be restricted or isolated.
+    label_th: "host/workload ที่จะจำกัด"
+    role: affected_asset
+    required_identity_fields: [host_id]
+    optional_fields: [workload_role, network_segment, owner]
+    validation_rules: ["host_id is the AFFECTED asset (agent/observer host only when evidence says the activity ran ON it)"]
+    exclusions: ["asset flagged as an approved IR/management access path without an alternative access path"]
+    dependency_fields: [asset_criticality, alternative_containment_available, business_dependencies]
+
+  file_object:
+    description: A file/object with enough identity to quarantine or block (host context + path or object id).
+    label_th: "ไฟล์/object ที่จะ quarantine (เครื่อง + ตำแหน่ง/ตัวระบุ object)"
+    role: artifact
+    required_identity_fields: [host_id, object_locator]
+    optional_fields: [sha256, size, signer]
+    validation_rules:
+      - "object_locator = absolute path OR object_id (storage platform); hash is required only when the action blocks by hash"
+      - "linked to confirmed malicious execution/behavior — presence of a file alone is not enough (MAL-P1)"
+    exclusions: ["legitimate OS binary (path under system directory with valid vendor signer) for hash-block actions (PROC-P2)"]
+
+  persistence_artifact:
+    description: A scheduled task / autorun / service / launch entry that relaunches code.
+    label_th: "task/autorun/service ที่ถูกใช้ relaunch"
+    role: persistence_mechanism
+    required_identity_fields: [host_id, artifact_type, artifact_locator]
+    optional_fields: [configuration_snapshot_ref, run_as_account, acl_summary, last_modified_by]
+    validation_rules: ["artifact change or relaunch is correlated to the payload execution by evidence (not 'all tasks')", "artifact_type in {scheduled_task, autorun, service, launch_entry}"]
+    exclusions: ["artifact whose change is AUTHORIZED / part of an approved change record", "artifacts with no relation to the incident (PS-P5, MAL-P3)"]
+
+  # ---- Network ------------------------------------------------------------------------------------------------
+  network_source:
+    description: The attacker-side source (IP/address set) with an explicit role.
+    label_th: "แหล่งโจมตี (IP + role ชัดเจน ไม่ใช่ agent.ip)"
+    role: attacker_source
+    required_identity_fields: [address, source_role]
+    optional_fields: [source_set, first_seen, last_seen]
+    validation_rules: ["source_role == attacker_source, taken from event semantics (srcip of the inbound connection)", "address is not the Wazuh agent.ip / observer / sensor"]
+    exclusions: ["agent.ip", "approved management or IR access address", "role UNKNOWN"]
+
+  service_endpoint:
+    description: The service that receives the traffic/authentication (the enforcement point for scoped deny/rate-limit).
+    label_th: "บริการปลายทางและจุดควบคุมการเข้าถึง"
+    role: victim_service
+    required_identity_fields: [host_id, service, enforcement_point]
+    optional_fields: [port, protocol, application]
+    validation_rules: ["enforcement_point is a control that sees the real client (not a NAT'd/proxy address) or is documented as such"]
+    exclusions: []
+
+  network_flow:
+    description: A directional flow with explicit source/destination roles (C2, DB egress, propagation, remote management).
+    label_th: "flow (source→destination, protocol/port) ที่ผูกกับ process"
+    role: scoped_flow
+    required_identity_fields: [source_host_id, destination, destination_role, protocol, port]
+    optional_fields: [connection_state_ref, process_identity, path_or_sni, dns_name]
+    validation_rules:
+      - "destination_role in {remote_attacker_infra, remote_c2, unauthorized_external, peer_host_infected, db_egress_destination}; NEVER the agent/observer"
+      - "the flow is linked to the malicious process/behavior by evidence (an outbound connection alone does not make it C2 — C2-P1)"
+    exclusions: ["agent.ip as destination (C2-P3)", "approved management / IR / update destinations"]
+    dependency_fields: [shared_infrastructure, granular_control_available]
+
+  destination_endpoint:
+    description: Remote destination expressed at the most granular level the control supports (URL/path, domain, IP:port).
+    label_th: "ปลายทางระดับ URL/domain ที่ละเอียดที่สุด"
+    role: remote_infra
+    required_identity_fields: [destination, granularity]
+    optional_fields: [domain, url_path, ip, shared_infrastructure_provider]
+    validation_rules: ["when shared_infrastructure (CDN/cloud) is true, granularity must be finer than whole-provider/IP-range if the control supports it (C2-P2)"]
+    exclusions: ["whole CDN/provider range when a granular rule is possible"]
+
+  dns_channel:
+    description: Domain(s) and resolver path evidenced as a DNS command/data channel.
+    label_th: "domain และ host ต้นทางของ DNS channel"
+    role: dns_channel
+    required_identity_fields: [domains, source_host_id]
+    optional_fields: [resolver_path, process_identity, evidenced_resolver_bypass]
+    validation_rules: ["domains are the evidenced ones (not a whole TLD)", "resolver bypass is included only when evidenced"]
+    exclusions: ["approved DNS resolvers and zones"]
+
+  # ---- Authentication / identity -------------------------------------------------------------------------------
+  auth_campaign_scope:
+    description: Authentication scope (application/realm) plus the correlated set of sources/accounts of a campaign.
+    label_th: "application/authentication scope ของ campaign"
+    role: authentication_campaign
+    required_identity_fields: [application, authentication_scope, campaign_window]
+    optional_fields: [source_set, targeted_account_count, control_point]
+    validation_rules: ["scope covers the correlated campaign, not one IP (BF-SPRAY) and not every user of the application"]
+    exclusions: ["approved management / break-glass access"]
+
+  login_endpoint:
+    description: A login endpoint plus client scope used by automation.
+    label_th: "login endpoint และ client scope"
+    role: authentication_endpoint
+    required_identity_fields: [application, route, client_scope]
+    optional_fields: [bot_signal_refs, control_point]
+    validation_rules: ["client_scope derived from evidence (fingerprint/ASN/UA/rate pattern), not 'all clients'"]
+    exclusions: ["approved integrations/monitoring clients"]
+
+  account_identity:
+    description: An identity (account/principal) with its tenant/provider/application scope.
+    label_th: "บัญชี (account id + provider/tenant)"
+    role: affected_identity
+    required_identity_fields: [account_id, provider, tenant_or_scope]
+    optional_fields: [account_type, privilege_level, owner, dependent_services]
+    validation_rules: ["account_id is the evidenced identity; unauthorized authentication/abuse is linked to it", "the set of accounts is exactly the evidenced set (no 'all users')"]
+    exclusions: ["approved break-glass / recovery / IR access identities", "service identities without dependency plan (AC-P4)"]
+    dependency_fields: [account_type, dependent_services]
+
+  session:
+    description: Authenticated session(s) of an identity at an IdP/application.
+    label_th: "session (ID/token family + application scope)"
+    role: affected_session
+    required_identity_fields: [session_ids_or_family, account_id, provider, application_scope]
+    optional_fields: [token_family_id, device_id]
+    validation_rules: ["session identifiers referenced by ID only (never token values — AC-P2)"]
+    exclusions: ["approved IR / administrative sessions"]
+
+  mfa_factor:
+    description: An MFA factor or recovery entry registered on an identity.
+    label_th: "MFA factor/recovery entry ที่ไม่ได้รับอนุญาต"
+    role: authentication_path
+    required_identity_fields: [account_id, provider, factor_or_recovery_id]
+    optional_fields: [registered_at, registered_from]
+    validation_rules: ["the factor/recovery entry change is unauthorized per evidence (not all factors)"]
+    exclusions: ["factors registered by the legitimate owner via approved process"]
+
+  secret_credential:
+    description: An API key / service secret referenced by credential ID (never the value).
+    label_th: "credential ID และ dependent services"
+    role: compromised_secret
+    required_identity_fields: [credential_id, provider_or_vault, dependent_services]
+    optional_fields: [owner, last_rotated, replacement_path]
+    validation_rules: ["dependent_services enumerated (dependency-aware plan, AC-P4)", "replacement is issued through secret management and is NOT derived from the compromised one (AC-P5)"]
+    exclusions: ["raw secret value must never be stored in the target"]
+    dependency_fields: [dependent_services, rotation_window]
+
+  oauth_grant:
+    description: An OAuth client/principal grant with scopes and the resources it reaches.
+    label_th: "OAuth client/principal/grant"
+    role: abused_grant
+    required_identity_fields: [client_id, principal_id, grant_id, provider, tenant_or_scope]
+    optional_fields: [scopes, resources, token_family_id]
+    validation_rules: ["grant is unauthorized (no admin/user approval record) or tied to unauthorized API calls", "token values never recorded"]
+    exclusions: ["first-party / approved applications"]
+
+  credential_material:
+    description: Hash store / credential material that was extracted or is being cracked, with the workload touching it.
+    label_th: "hash store/credential material และผู้เข้าถึง"
+    role: exposed_material
+    required_identity_fields: [store_locator, accessor_identity, exposed_account_set]
+    optional_fields: [workload_process_identity, host_id]
+    validation_rules: ["extraction or cracking workload confirmed (not merely presence of a hash file)"]
+    exclusions: ["legitimate backup/DR access to the store"]
+
+  # ---- Mail / messages / business -----------------------------------------------------------------------------
+  message_set:
+    description: Messages of a campaign with provider/tenant context and mailbox scope.
+    label_th: "ข้อความของ campaign (provider/tenant/message id/mailbox scope)"
+    role: campaign_messages
+    required_identity_fields: [provider, tenant_id, message_ids_or_campaign_id, mailbox_scope]
+    optional_fields: [sender, attachment_ref, url_refs]
+    validation_rules: ["the set is bounded by the campaign match (sender/subject/attachment/URL) — not every recipient's mailbox"]
+    exclusions: ["messages outside the correlated campaign"]
+
+  url_object:
+    description: A URL/domain/path in a message or page chain.
+    label_th: "URL/domain/path ใน chain"
+    role: malicious_link
+    required_identity_fields: [url_or_domain, granularity]
+    optional_fields: [path, redirect_chain]
+    validation_rules: ["link is in the confirmed malicious chain", "granularity respects shared infrastructure"]
+    exclusions: ["whole shared hosting/CDN domains"]
+
+  mail_path:
+    description: "Mail flow objects - forwarding rule, delegate, queue, identity."
+    label_th: "forwarding rule/delegate/queue/identity"
+    role: mail_exfil_path
+    required_identity_fields: [tenant_id, path_objects, identity_account_id]
+    optional_fields: [rule_ids, delegate_ids, queue_id]
+    validation_rules: ["each rule/delegate/queue entry is unauthorized per evidence"]
+    exclusions: ["approved forwarding/journaling"]
+
+  mailbox_access:
+    description: Mailbox sessions/rules/delegates abused in a BEC case.
+    label_th: "mailbox และ session/rule/delegate ที่ถูกใช้"
+    role: abused_mailbox
+    required_identity_fields: [tenant_id, mailbox_id, abused_objects]
+    optional_fields: [session_ids, rule_ids, delegate_ids]
+    validation_rules: ["abuse (unauthorized session/rule/delegate) is evidenced"]
+    exclusions: []
+
+  business_item:
+    description: A business transaction/instruction affected by BEC. Held ONLY by the business authority.
+    label_th: "รายการธุรกิจและผู้มีอำนาจ"
+    role: business_item
+    required_identity_fields: [item_reference, owning_authority]
+    optional_fields: [amount, counterparty]
+    validation_rules: ["fraudulent instruction evidenced", "action is MANUAL by owning_authority (PH-P4)"]
+    exclusions: []
+
+  # ---- Web / database --------------------------------------------------------------------------------------------
+  web_route:
+    description: Route + parameter + source/session scope of an injection path, plus the control that can restrict it.
+    label_th: "route/parameter ของ injection path และ control point"
+    role: injection_path
+    required_identity_fields: [application, route, parameter, control_point]
+    optional_fields: [method, source_scope, session_scope, request_samples_ref]
+    validation_rules: ["route/parameter correlate with the malicious requests (SQL keyword alone proves nothing — SQ-P1)", "restriction is a *tested* targeted rule, not a global block"]
+    exclusions: ["unrelated routes/parameters", "critical business endpoints without a tested rule"]
+
+  response_handler:
+    description: The response handler / request path that leaks DB errors.
+    label_th: "handler ที่เผย DB error"
+    role: leaking_handler
+    required_identity_fields: [application, handler_or_path]
+    optional_fields: [error_sample_ref]
+    validation_rules: ["external exposure of DB error text is evidenced in the response"]
+    exclusions: []
+
+  db_query_job:
+    description: A database query/session/job (platform context + id).
+    label_th: "query/session ใน DB"
+    role: harmful_query
+    required_identity_fields: [platform, database, query_or_session_id]
+    optional_fields: [route_correlation, duration, owning_account]
+    validation_rules: ["query is correlated to the malicious request (timing alone is not enough — SQ-P2)", "only the identified query/session — never 'all slow queries' (SQ-P4)"]
+    exclusions: ["scheduled/reporting jobs"]
+
+  db_egress:
+    description: DB workload -> outbound destination (protocol/route) evidenced for OOB.
+    label_th: "DB host→destination/protocol/route"
+    role: db_egress_channel
+    required_identity_fields: [db_host_id, destination, protocol, route]
+    optional_fields: [connection_state_ref]
+    validation_rules: ["outbound activity exists and is correlated request/query -> DB workload -> egress (SQ-P3)"]
+    exclusions: ["approved DB replication/backup destinations"]
+
+  stored_record_pipeline:
+    description: Records + the consumer/job/queue that processes them and the harmful query they cause.
+    label_th: "records→consumer/job→queue"
+    role: delayed_processing
+    required_identity_fields: [record_ids, consumer_or_job_id, queued_copies_locator]
+    optional_fields: [queue_name, retry_policy]
+    validation_rules: ["lineage record -> consumer/job -> harmful query is evidenced (SQ-P5)", "original records are preserved (quarantined in place), not deleted"]
+    exclusions: ["suspicious text without lineage"]
+
+  db_driver_path:
+    description: "Multi-statement path - route, driver setting, query and grants involved."
+    label_th: "route/driver path ที่รับหลาย statement"
+    role: batch_path
+    required_identity_fields: [application, route, driver_path, observed_statements_ref]
+    optional_fields: [db_grants, multi_statement_setting]
+    validation_rules: ["driver/query evidence shows multiple statements were accepted"]
+    exclusions: []
+
+  # ---- Remote / tooling / transfer ---------------------------------------------------------------------------
+  remote_session:
+    description: Remote execution/management session with source->destination scope.
+    label_th: "remote session (source→destination, account, protocol)"
+    role: remote_management_session
+    required_identity_fields: [session_id, source_host_id, destination_host_id, account_id, protocol]
+    optional_fields: [command_ref]
+    validation_rules: ["session is unauthorized per evidence", "scope is source->destination management path, not org-wide remoting (PS-P3)"]
+    exclusions: ["approved management / IR access"]
+
+  rmm_registration:
+    description: Remote-management/monitoring tool session, registration and service.
+    label_th: "RMM tool/registration"
+    role: unauthorized_rmm
+    required_identity_fields: [tool, host_id, registration_or_session_id]
+    optional_fields: [service_name, tenant_or_console]
+    validation_rules: ["tool use is unauthorized (not in approved RMM inventory / no change record) — name alone is insufficient (C2-P4)"]
+    exclusions: ["approved RMM tool and trusted IR access"]
+
+  transfer_session:
+    description: A transfer job/session with direction, account and destination.
+    label_th: "transfer job/session (direction, account, destination)"
+    role: exfil_transfer
+    required_identity_fields: [job_or_session_id, direction, account_id, destination]
+    optional_fields: [process_identity, host_id, protocol, volume_observed]
+    validation_rules: ["direction == outbound to unauthorized destination; authorization UNAUTHORIZED (EXF-P2)", "volume is reported only as observed (EXF-P5)"]
+    exclusions: ["approved backup/sync/transfer jobs"]
+
+  cloud_object_share:
+    description: Cloud object + share/link/ACL/grant + copy job.
+    label_th: "object/share/grant ใน cloud"
+    role: cloud_exposure
+    required_identity_fields: [tenant_or_account, object_id, exposure_objects]
+    optional_fields: [principal_id, copy_job_id]
+    validation_rules: ["the share/grant/copy is unauthorized per audit log"]
+    exclusions: ["approved sharing"]
+
+  # ---- Privilege ----------------------------------------------------------------------------------------------
+  privileged_context:
+    description: A privileged execution context (process/token-associated session) and the mechanism that produced it.
+    label_th: "privileged context (เครื่อง + ตัวระบุ context + กลไก)"
+    role: privileged_context
+    required_identity_fields: [host_id, context_identity, mechanism]
+    optional_fields: [process_identity, token_session_id]
+    validation_rules: ["context is unauthorized per evidence (exploit/impersonation/token abuse), not just 'admin process'"]
+    exclusions: ["approved administrative sessions"]
+
+  entitlement_grant:
+    description: A scoped entitlement entry (group/role/membership/sudo-rule/permission) for a principal.
+    label_th: "entitlement entry (principal + entry + scope)"
+    role: unauthorized_entitlement
+    required_identity_fields: [principal_id, entitlement_entry, scope]
+    optional_fields: [changed_by, changed_at, session_ids, configuration_snapshot_ref]
+    validation_rules: ["the specific entry was added without an approved change record", "removal is scoped to that entry — never 'all administrators' (PE-P2)"]
+    exclusions: ["approved admin / recovery accounts (PE-P5)"]
+
+  cloud_trust:
+    description: Cloud IAM principal + trust/policy/role/grant + reachable resources.
+    label_th: "cloud principal/trust/policy/resources"
+    role: cloud_privilege_path
+    required_identity_fields: [provider, principal_id, trust_or_policy_ref, resources]
+    optional_fields: [role_assumption_ref, exposed_credential_ids]
+    validation_rules: ["assumption/use of the trust/role is unauthorized per audit logs"]
+    exclusions: ["approved automation roles"]
+
+  share_session:
+    description: File-share sessions writing to shares (ransomware active-damage scope).
+    label_th: "file-share sessions ที่เขียนไฟล์"
+    role: write_sessions
+    required_identity_fields: [file_server_host_id, share_name, session_ids, source_account_id]
+    optional_fields: [source_host_id]
+    validation_rules: ["writes by these sessions correlate with the damage"]
+    exclusions: ["backup service sessions"]

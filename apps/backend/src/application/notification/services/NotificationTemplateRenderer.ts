@@ -32,7 +32,7 @@ function renderProcessStep(s: ResponseProcessStep): string[] {
     `${s.stepOrder}. ${s.title}${s.target ? ` — target: ${s.target}` : ""}`,
     ...(s.objective ? [`   Objective: ${s.objective}`] : []),
     `   Why: ${s.reason}`,
-    ...s.instructions.map((i) => `   ${s.stepOrder}.${i.order} ${i.instruction}${i.target ? ` [${i.target}]` : ""}${i.expectedResult ? ` -> expected: ${i.expectedResult}` : ""}`),
+    ...s.instructions.map((i) => `   ${s.stepOrder}.${i.order} ${i.instruction}${i.target ? ` [${i.target}]` : ""}${i.expectedResult ? ` -> expected: ${i.expectedResult}` : ""}${i.verify ? ` -> verify: ${i.verify}` : ""}${i.preconditions?.length ? ` -> before: ${i.preconditions.join(" / ")}` : ""}${i.rollback ? ` -> rollback: ${i.rollback}` : ""}`),
     ...(s.expectedResult ? [`   Expected result: ${s.expectedResult}`] : []),
     ...(s.verificationCriteria ? [`   Verification / re-hunt: ${s.verificationCriteria}`] : []),
   ];

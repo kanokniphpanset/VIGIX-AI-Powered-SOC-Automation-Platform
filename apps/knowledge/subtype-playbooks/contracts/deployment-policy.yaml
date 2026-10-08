@@ -1,0 +1,20 @@
+# deployment-policy.yaml - how subtype knowledge may be used by the backend (SubtypeKnowledgeLoader.deployability + SUBTYPE_KNOWLEDGE_MODE).
+version: "2.0.0"
+
+modes:                         # env SUBTYPE_KNOWLEDGE_MODE (default: shadow)
+  off:     "subtype knowledge is not evaluated; legacy recommendation path only"
+  shadow:  "subtype plan is evaluated and its audit stored, but the recommendation the SOC sees is still the legacy one. Safe default: no behaviour change."
+  enforce: "recommendation steps are built ONLY from the subtype plan (deterministic). Allowed only when the knowledge is deployable (below); otherwise the system falls back to shadow and records why."
+
+review_status:                 # per action and per runbook (families/*.yaml)
+  DRAFT:             "not usable"
+  IR_REVIEW_PENDING: "authored, validated by tools/tests, NOT yet reviewed by IR/SOC leads. Present state of every item."
+  IR_REVIEWED:       "IR reviewer accepted wording, ordering reasons and impact; reviewer + date recorded in contracts/review-register.yaml"
+
+enforce_requires:
+  - "knowledge status VALID (no loader/validation errors)"
+  - "every action and runbook IR_REVIEWED, OR the operator sets SUBTYPE_ALLOW_UNREVIEWED=true (explicit, audited; do this only in an isolated environment)"
+  - "organization-context.yaml reviewed by the operator (capabilities/authorities left null stay UNKNOWN, never assumed)"
+never:
+  - "auto-execute any action; a recommendation only ever becomes a Response Ticket through SOC 'Send to IR'; IR executes manually"
+  - "use LLM output as evidence, target, authority or capability"

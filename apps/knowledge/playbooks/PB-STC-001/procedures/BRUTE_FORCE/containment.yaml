@@ -1,56 +1,42 @@
-# containment.yaml — CATALOG of candidate containment actions for
-# BRUTE_FORCE, not a fixed sequence. AI Recommendation selects whichever
-# subset fits this incident's evidence; IR Team always executes them
-# manually via the referenced Runbook.
-#
-# impactLevel / approvalRequired / approvalRole use the same vocabulary
-# as the Policy Engine (policy/domain/entities/PolicyEvaluationTypes.ts:
-# ActionImpactLevel, ResponsibleRole) so a chosen action's impactLevel can
-# be fed straight into PolicyEvaluationInput.actionImpactLevel and
-# re-checked against the approval-and-review policy (RULE-013/015) rather
-# than trusting this catalog's approvalRequired blindly — this file is a
-# reasonable DEFAULT per action, not the final word; Policy always wins.
+# containment.yaml - CATALOG of candidate containment Actions for BRUTE_FORCE, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-SSH-BRUTEFORCE. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
 
 procedureCode: BRUTE_FORCE
-
 candidateActions:
-  - actionCode: BLOCK_SOURCE_IP
-    name: Block Source IP
-    appliesWhen: Source IP is confirmed malicious or has no legitimate business reason to authenticate.
-    runbookRef: RUNBOOK-NET-BLOCK-IP
-    impactLevel: LOW
-    approvalRequired: false
-
-  - actionCode: DISABLE_ACCOUNT
-    name: Disable / Restrict Account
-    appliesWhen: Compromise of the targeted account is confirmed or strongly suspected (DEC-BF-001 = NO).
-    runbookRef: RUNBOOK-IAM-DISABLE-ACCOUNT
-    impactLevel: MEDIUM
-    approvalRequired: true
-    approvalRole: IR_TEAM
-
-  - actionCode: FORCE_PASSWORD_RESET
-    name: Force Password Reset
-    appliesWhen: Account compromise confirmed; used in Eradication (step 5) regardless of whether the account was disabled.
-    runbookRef: RUNBOOK-IAM-FORCE-RESET
-    impactLevel: LOW
-    approvalRequired: false
-
-  - actionCode: REVOKE_SESSIONS
-    name: Revoke Active Sessions / Tokens
-    appliesWhen: Account compromise confirmed and the attacker may hold a live session beyond password-based access.
-    runbookRef: RUNBOOK-IAM-REVOKE-SESSIONS
-    impactLevel: MEDIUM
-    approvalRequired: false
-
-  - actionCode: ISOLATE_HOST
-    name: Network Isolation
-    appliesWhen: >
-      Evidence goes beyond credential access alone — e.g. the account was
-      used to install something or reach other hosts. Rarely needed for a
-      pure brute-force case; escalates the procedure toward
-      ACCOUNT_COMPROMISE / LATERAL_MOVEMENT territory if selected.
-    runbookRef: RUNBOOK-NET-ISOLATE
-    impactLevel: HIGH
-    approvalRequired: true
-    approvalRole: IR_TEAM
+- actionCode: ACT-BLOCK-SOURCE-IP
+  name: Block Source IP
+  condition: The source IP is confirmed malicious (brute-force pattern from one source) and is not trusted infrastructure
+    or a shared NAT / proxy address.
+  runbookRef: RB-BLOCK-SOURCE-IP
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RATE-LIMIT-SOURCE
+  name: Rate-Limit Source
+  condition: Repeated authentication attempts from the source continue, or the source cannot be blocked outright (shared address).
+  runbookRef: RB-RATE-LIMIT-SOURCE
+  impactLevel: LOW
+  approvalRequired: false
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: A successful login or an active suspicious session from the attacking source is confirmed for the targeted account.
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RESET-CREDENTIAL
+  name: Reset User Credentials
+  condition: Credential compromise of the targeted account is confirmed (a successful login the user did not make).
+  runbookRef: RB-RESET-CREDENTIAL
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-DISABLE-ACCOUNT
+  name: Disable User Account
+  condition: Account compromise is confirmed and the account must stay unusable until the credential reset is complete.
+  runbookRef: RB-DISABLE-ACCOUNT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

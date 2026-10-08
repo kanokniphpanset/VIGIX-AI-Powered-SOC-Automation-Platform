@@ -1,0 +1,157 @@
+procedureCode: POWERSHELL
+steps:
+  - stepOrder: 1
+    phase: VALIDATE
+    title: Analyse the Command
+    objective: Collect the PowerShell execution and decide whether it is malicious.
+    recommendedAction:
+      - 'Collect the PowerShell command line, script block log and parent process'
+      - >-
+        Check for encoded commands, downloads, credential access and network connections, and compare with approved
+        automation
+    reason: Administrators use PowerShell daily; the command and parent separate abuse from automation.
+    evidenceRequired:
+      - Command line
+      - Script block log
+      - Parent process
+    expectedResult: The execution is classified as authorized or malicious.
+    decisionRef: DEC-PS-001
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+    requiredTypes:
+      - CHECK
+  - stepOrder: 2
+    phase: SELECT_ACTION
+    title: Stop Malicious Execution
+    objective: Stop the process and block what it ran.
+    # Evidence-gated: PowerShell alone is not malicious. Legitimate administration is validated, not contained.
+    appliesWhenSignals:
+      - MALICIOUS_EXECUTION
+    recommendedAction:
+      - 'Terminate the malicious PowerShell process tree (see containment.yaml: ACT-KILL-PROCESS)'
+      - 'Block the identified payload hash fleet-wide (see containment.yaml: ACT-BLOCK-HASH)'
+      - 'Quarantine downloaded or dropped files (see containment.yaml: ACT-QUARANTINE-FILE)'
+    reason: A download cradle fetches its next stage immediately; blocking its infrastructure cuts the chain.
+    evidenceRequired:
+      - Process
+      - URL / domain / IP
+      - Payload hash
+    expectedResult: The execution is stopped and the payload cannot be fetched or run again.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: false
+    conditionalActions: true
+  - stepOrder: 3
+    phase: ASSESS
+    title: Persistence & Child Processes
+    objective: Find what the command started or installed.
+    recommendedAction:
+      - 'Check child processes, scheduled tasks, services and registry run keys created by the command'
+      - Check for lateral connections from the endpoint
+    reason: A second stage or persistence keeps the host compromised after the process is killed.
+    evidenceRequired:
+      - Process tree
+      - Persistence check results
+    expectedResult: 'Second-stage payloads, persistence and lateral activity identified or ruled out.'
+    decisionRef: DEC-PS-002
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+    requiredTypes:
+      - CHECK
+  - stepOrder: 4
+    phase: MANUAL
+    title: Remove Confirmed Persistence
+    objective: Remove only confirmed unauthorized Run-key persistence after human review.
+    appliesWhenTechniques:
+      - T1547.001
+    requiredTypes:
+      - MANUAL
+    manualCondition: >-
+      Unauthorized Run-key persistence is confirmed on the affected endpoint; IR_TEAM approval is recorded before
+      removal.
+    recommendedAction:
+      - >-
+        Remove or disable only the confirmed malicious Run-key entry; record the exact entry from collected evidence
+        before any change (manual - outside the VIGIX Action Catalog; requires IR_TEAM approval)
+    reason: Stopping the process does not remove a persistent restart mechanism.
+    expectedResult: The confirmed entry is removed or disabled and the malicious process does not restart after verification.
+    responsibleRole: IR_TEAM
+    approvalRequired: true
+  - stepOrder: 5
+    phase: SELECT_ACTION
+    title: Prevent Further Payload Retrieval
+    objective: Block only confirmed malicious retrieval infrastructure with a compatible catalog action.
+    appliesWhenSignals:
+      - MALICIOUS_EXECUTION
+    recommendedAction:
+      - 'Block the download URL (see containment.yaml: ACT-BLOCK-URL)'
+      - 'Block the stager domain (see containment.yaml: ACT-BLOCK-DOMAIN)'
+      - 'Block the explicitly recorded inbound attacker source IP (see containment.yaml: ACT-BLOCK-SOURCE-IP)'
+    reason: A download cradle fetches its next stage immediately; blocking its infrastructure cuts the chain.
+    evidenceRequired:
+      - Process
+      - URL / domain / IP
+      - Payload hash
+    expectedResult: The execution is stopped and the payload cannot be fetched or run again.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: false
+    conditionalActions: true
+  - stepOrder: 6
+    phase: ASSESS
+    title: Spread Check
+    objective: 'Find the same command, hash or domain on other endpoints.'
+    recommendedAction:
+      - 'Hunt the same command-line pattern, hash and domain on other endpoints'
+      - 'Hunt for child processes, persistence and lateral movement; determine whether compromise remains active'
+    reason: PowerShell payloads are usually delivered to many hosts by one campaign.
+    evidenceRequired:
+      - Wazuh cross-host search results
+    expectedResult: List of every endpoint involved.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+    requiredTypes:
+      - CHECK
+  - stepOrder: 7
+    phase: SELECT_ACTION
+    title: Contain the Endpoint
+    objective: Isolate the endpoint and contain the account when compromise is evidenced.
+    recommendedAction:
+      - 'Isolate the endpoint (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+      - 'Disable the account used to run the payload on other hosts (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+    reason: Persistence or lateral movement means killing one process is not enough.
+    evidenceRequired:
+      - Affected endpoint
+      - Account
+    expectedResult: The endpoint and the abused account are contained.
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Engineer
+    approvalRequired: true
+    approvalRole: IR_TEAM
+    conditionalActions: true
+    appliesWhenTechniques:
+      - T1547
+      - T1055
+      - T1021
+      - T1570
+  - stepOrder: 8
+    phase: VERIFY
+    title: Verify Containment
+    objective: Confirm the malicious execution stopped.
+    recommendedAction:
+      - Run the re-hunt query defined in verification.yaml
+      - Confirm no new execution of the command and no suspicious child process or persistence remains
+    reason: >-
+      Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the
+      investigation for a human decision.
+    evidenceRequired:
+      - Wazuh re-hunt results (before/after)
+    expectedResult: 'RESOLVED or NOT_RESOLVED, per verification.yaml.'
+    responsibleRole: IR_TEAM
+    responsibleDuty: IR Analyst
+    approvalRequired: false
+    requiredTypes:
+      - CHECK

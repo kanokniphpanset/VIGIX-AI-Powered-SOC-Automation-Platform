@@ -43,10 +43,11 @@ export class ActionController {
     const result = await this.createAction.execute({
       ...body,
       tenantId,
+      actorRole: req.user!.role,
       defaultApprovalRequired: body.defaultApprovalRequired ?? false,
     });
     if (result.isFailure) {
-      res.status(409).json({ error: result.error });
+      res.status(result.error === "ACTION_GOVERNANCE_FIELD_FORBIDDEN" ? 403 : result.error === "RUNBOOK_NOT_FOUND" ? 404 : 409).json({ error: result.error });
       return;
     }
     res.status(201).json(result.value.toJSON());
@@ -56,9 +57,10 @@ export class ActionController {
     const tenantId = authenticatedTenant(req);
     const body = validateBody(updateActionSchema, req, res);
     if (!body) return;
-    const result = await this.updateAction.execute({ ...body, id: req.params.id, tenantId });
+    const result = await this.updateAction.execute({ ...body, id: req.params.id, tenantId, actorRole: req.user!.role });
     if (result.isFailure) {
-      res.status(404).json({ error: "ACTION_NOT_FOUND" });
+      res.status(result.error === "ACTION_GOVERNANCE_FIELD_FORBIDDEN" ? 403 : result.error === "ACTION_RUNBOOK_TENANT_MISMATCH" ? 409 : 404)
+        .json({ error: result.error === "NOT_FOUND" ? "ACTION_NOT_FOUND" : result.error });
       return;
     }
     res.json(result.value.toJSON());

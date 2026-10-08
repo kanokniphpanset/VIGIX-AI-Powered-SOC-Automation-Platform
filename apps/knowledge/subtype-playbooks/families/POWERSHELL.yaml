@@ -1,0 +1,617 @@
+# POWERSHELL — family file. Reference: reference-registry.yaml#POWERSHELL
+# Uses the SHARED action ACT-MEMORY-EXECUTION-CONTAIN (owned by MALWARE.yaml) for PS-MEMORY.
+# Hosts the Scheduled-Task-Hijack acceptance scenario (prompt §7.2): SC-PS-PERSIST-TASK-HIJACK
+# (disable trigger -> stop running instance -> terminate payload+children -> [C2 branch: restrict channel] -> quarantine payload).
+# Principles: encoded command / powershell.exe alone never opens termination (PS-P1); never execute a suspect script to analyse it (PS-P2);
+# never disable PowerShell/remote management org-wide (PS-P3); process target = identity, not PID alone (PS-P4); never disable unrelated tasks (PS-P5).
+
+family: POWERSHELL
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: POWERSHELL, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: ps_encoded_or_binary_only
+    description: "Encoded command or powershell.exe execution ONLY (indicator; no malicious effects shown)."
+    confirm: "ถอดรหัสแบบ static (ไม่ execute) และหา effects: network, file, credential access, child process"
+    may_be_authorized: true
+  - id: ps_obfuscated_with_effects
+    description: "Obfuscated/encoded script or command AND supported malicious effects (network, file, credential access, child process)."
+    confirm: "ยืนยัน effects ที่เป็นอันตรายและผูกกับ process instance เดียวกัน; เทียบกับ approved automation"
+    may_be_authorized: true
+  - id: ps_download_execute_chain
+    requires_lineage: true
+    description: "Lineage: command -> download -> payload execution."
+    confirm: "ผูก command กับ download (URL/destination) และ payload ที่ถูกรัน (process tree + file)"
+    may_be_authorized: true
+  - id: ps_memory_script_execution
+    description: "Malicious in-memory/script execution by PowerShell (no file required)."
+    confirm: "ยืนยัน behavior ของ in-memory execution (script block log, injection indicators) พร้อม process identity"
+    may_be_authorized: true
+  - id: ps_remote_execution_unauthorized
+    description: "Unauthorized remoting tied to source host, account, target host and command."
+    confirm: "ผูก remote session กับ source/account/target/command และยืนยันว่าไม่ใช่ management ที่อนุมัติ"
+    may_be_authorized: true
+  - id: ps_persistence_relaunch
+    description: "PowerShell script tied to a scheduled task/autorun/service AND relaunch/payload execution from that artifact."
+    confirm: "ผูก artifact (task/autorun/service) กับ script และการ relaunch; ตรวจ change record ว่าได้รับอนุมัติหรือไม่"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-SCRIPT-EXECUTION-CONTAIN
+    action_name: Contain abusive PowerShell invocation
+    label_th: "จำกัดการเรียก PowerShell ที่ผิดปกติ"
+    objective: "หยุด abusive execution ต่อ process instance และ effect targets โดยไม่ execute script"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [process, process_children, network_flow]
+    evidence_requirements: [ps_obfuscated_with_effects]
+    target_requirements: [process]
+    runbook_refs: [RB-SCRIPT-EXECUTION-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS]
+    execution_constraints: ["encoded/powershell.exe อย่างเดียวไม่เปิด termination", "ห้าม execute script เพื่อวิเคราะห์", "process ระบุด้วย identity ไม่ใช่ PID อย่างเดียว"]
+  - action_id: ACT-DOWNLOAD-EXECUTION-CONTAIN
+    action_name: Break download-and-execute chain
+    label_th: "ตัดห่วงโซ่ download-and-execute"
+    objective: "ตัด delivery/chain ต่อ destination, process tree และ file identity"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [destination_endpoint, process, process_children, file_object]
+    evidence_requirements: [ps_download_execute_chain]
+    target_requirements: [destination_endpoint, process, file_object]
+    runbook_refs: [RB-DOWNLOAD-EXECUTION-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-URL, ACT-BLOCK-DOMAIN, ACT-KILL-PROCESS, ACT-QUARANTINE-FILE]
+    execution_constraints: ["granular destination เมื่อเป็น shared infrastructure", "quarantine ต้องมี file identity", "ไม่ block hash ของ OS binary"]
+  - action_id: ACT-REMOTE-SESSION-CONTAIN
+    action_name: Terminate unauthorized remote session and limit management path
+    label_th: "ยุติ remote session ที่ไม่ได้รับอนุญาตและจำกัดเส้นทางจัดการ"
+    objective: "ตัด remote path ต่อ session และ source→destination management scope พร้อม contain effects ที่ปลายทาง"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [remote_session, process, persistence_artifact]
+    evidence_requirements: [ps_remote_execution_unauthorized]
+    target_requirements: [remote_session]
+    runbook_refs: [RB-REMOTE-SESSION-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-SOURCE-IP, ACT-KILL-PROCESS, ACT-DISABLE-ACCOUNT]
+    execution_constraints: ["ไม่ปิด PowerShell/remote management ทั้งองค์กร", "รักษา approved management/IR access"]
+  - action_id: ACT-PERSISTENCE-TRIGGER-DISABLE
+    action_name: Disable persistence trigger and stop what it started
+    label_th: "ปิด persistence trigger และหยุดสิ่งที่ trigger เริ่มไว้"
+    objective: "เก็บ artifact configuration, disable trigger (task/autorun/service), หยุด running instance และ processes ที่มันเริ่ม"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [persistence_artifact, process, process_children]
+    evidence_requirements: [ps_persistence_relaunch]
+    target_requirements: [persistence_artifact]
+    runbook_refs: [RB-PERSISTENCE-TRIGGER-DISABLE]
+    legacy_action_refs: [ACT-KILL-PROCESS]
+    execution_constraints: ["Disable Task ไม่หยุด instance ที่กำลังรัน — ต้องหยุดแยก", "ไม่ลบ task ทั้งชุด/ไม่ปิด scheduler ทั้งเครื่อง", "ไม่ disable tasks ที่ไม่เกี่ยวข้อง", "ไม่ยุติ process ด้วย PID อย่างเดียว"]
+
+playbooks:
+  - playbook_id: PBK-PS-OBFUSCATED
+    attack_family: POWERSHELL
+    subtype_id: PS-OBFUSCATED
+    subtype_name: Obfuscated
+    classification_evidence:
+      all_of: [{field: evidence.ps_obfuscated_with_effects.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["encoded command หรือ powershell.exe อย่างเดียว (PS-P1)", "ไม่ทราบ effects ของ script", "script เป็น approved automation"]
+    scenarios:
+      - scenario_id: SC-PS-OBFUSCATED-EFFECTS
+        description: "Script/command ที่ obfuscate พร้อม malicious effects ที่ผูกกับ process instance"
+        ordered_action_refs:
+          - {action_id: ACT-SCRIPT-EXECUTION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด invocation ที่กำลังก่อ effects ตาม identity ของ instance ก่อนจำกัด channel", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PS-001]
+    related_branches:
+      - {subtype_id: PS-DOWNLOAD, open_when: {field: evidence.ps_download_execute_chain.status, operator: equals, value: PRESENT}}
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: evidence.ps_obfuscated_with_effects.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "approved automation — ไม่เปิด termination"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PS-DOWNLOAD
+    attack_family: POWERSHELL
+    subtype_id: PS-DOWNLOAD
+    subtype_name: Download-and-execute
+    classification_evidence:
+      all_of: [{field: evidence.ps_download_execute_chain.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["พบ command ดาวน์โหลดแต่ไม่พบ payload execution", "พบ payload แต่ไม่ผูกกับ command"]
+    scenarios:
+      - scenario_id: SC-PS-DOWNLOAD-CHAIN
+        description: "command → download → payload execution มี lineage ครบ"
+        ordered_action_refs:
+          - {action_id: ACT-DOWNLOAD-EXECUTION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด destination กัน stage ถัดไปแล้วหยุด process tree และ quarantine payload ตามหลักฐานที่ validate", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PS-002]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}, then: STOP, note: "ไม่ block/quarantine OS binary ที่ถูกต้อง"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PS-MEMORY
+    attack_family: POWERSHELL
+    subtype_id: PS-MEMORY
+    subtype_name: In-memory
+    classification_evidence:
+      all_of: [{field: evidence.ps_memory_script_execution.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["PowerShell ที่รันปกติโดยไม่มี behavior อันตรายใน memory", "ไม่มี process identity"]
+    scenarios:
+      - scenario_id: SC-PS-MEMORY-EXECUTING
+        description: "Memory/script execution ที่เป็นอันตราย (ไม่ต้องมี file)"
+        ordered_action_refs:
+          - {action_id: ACT-MEMORY-EXECUTION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด execution/workload/channel ตาม criticality; ไม่รอ hash/file", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PS-003]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, then: ESCALATE_IR, note: "critical workload — ใช้ containment ทางเลือก"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PS-REMOTE
+    attack_family: POWERSHELL
+    subtype_id: PS-REMOTE
+    subtype_name: Remote Execution
+    classification_evidence:
+      all_of: [{field: evidence.ps_remote_execution_unauthorized.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["remoting ที่เกิดจาก management tool ที่อนุมัติ", "ไม่ทราบ source/account/target ของ session"]
+    scenarios:
+      - scenario_id: SC-PS-REMOTE-UNAUTHORIZED
+        description: "Remoting ที่ไม่ได้รับอนุญาตผูกกับ source/account/target/command"
+        ordered_action_refs:
+          - {action_id: ACT-REMOTE-SESSION-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ยุติ session และจำกัดเส้นทาง management เฉพาะ source→destination แล้ว contain effects ที่ปลายทาง", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PS-004]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.disables_org_wide_capability, operator: equals, value: true}, then: STOP, note: "ห้ามปิด remote management ทั้งองค์กรจาก event เดียว"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PS-PERSIST
+    attack_family: POWERSHELL
+    subtype_id: PS-PERSIST
+    subtype_name: Persistence Trigger
+    classification_evidence:
+      all_of: [{field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["พบ task/autorun แต่ไม่ผูกกับ script และ relaunch", "การแก้ task ที่อยู่ใน change record ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-PS-PERSIST-TASK-HIJACK
+        description: "Scheduled-task/autorun/service ถูกใช้ relaunch payload (acceptance §7.2): หยุด trigger → หยุด instance → ยุติ payload/children → จำกัด channel (เมื่อมีหลักฐาน C2) → quarantine payload (เมื่อมี file identity)"
+        ordered_action_refs:
+          - {action_id: ACT-PERSISTENCE-TRIGGER-DISABLE, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ปิด trigger ก่อนเพื่อไม่ให้ relaunch payload; จากนั้นหยุด running instance และยุติ payload/children ที่ validate", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+          - {action_id: ACT-QUARANTINE-FILE-OBJECT, condition: POLICY_ELIGIBLE, depends_on: [ACT-PERSISTENCE-TRIGGER-DISABLE], order_reason: "quarantine payload หลัง process หยุดและ trigger ปิด เพื่อไม่ให้ไฟล์ถูก lock/รันซ้ำ; ต้องมี file identity", parallel_allowed: false, fallback_action: null}
+    policy_refs: [POL-PS-005, POL-GL-QUAR-001]
+    related_branches:
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-CUSTOM, open_when: {field: evidence.c2_custom_channel_identified.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: evidence.ps_persistence_relaunch.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "approved task change — ไม่เปิด malicious containment"}
+      - {when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}, then: STOP, note: "ห้ามลบ task ทั้งชุด/ปิด scheduler ทั้งเครื่อง"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-PS-001
+    rule_type: ACTION_GATE
+    action_id: ACT-SCRIPT-EXECUTION-CONTAIN
+    applicable_subtypes: [PS-OBFUSCATED]
+    covers: [PS-P1, PS-P2, PS-P4]
+    required_evidence:
+      all_of: [{field: evidence.ps_obfuscated_with_effects.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.process.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PS-1, reason: "encoded command หรือ powershell.exe อย่างเดียวไม่เปิด termination (PS-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+      - {id: PRH-PS-2, reason: "ห้าม execute suspicious script เพื่อวิเคราะห์ (PS-P2)", when: {field: scope.requires_executing_suspect_script, operator: equals, value: true}}
+      - {id: PRH-PS-3, reason: "process critical — การยุติกระทบระบบ ต้องใช้ containment ทางเลือก (PROC-P3)", when: {field: scope.critical_process_termination_unsafe, operator: equals, value: true}}
+    authorization_gate: [ps_obfuscated_with_effects]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.process_termination]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: equals, value: CRITICAL}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี effects ที่ยืนยัน หรือ process identity ไม่พอ (PID อย่างเดียว)"}
+    reason: "ยุติ invocation เมื่อมี effects ที่ยืนยัน + process identity (guid หรือ pid+start_time+image) ไม่ใช่เพราะ encoded command เท่านั้น"
+    provenance: {reference: [PS-OBFUSCATED, PS-P1, PS-P2, PS-P4]}
+
+  - policy_id: POL-PS-002
+    rule_type: ACTION_GATE
+    action_id: ACT-DOWNLOAD-EXECUTION-CONTAIN
+    applicable_subtypes: [PS-DOWNLOAD]
+    covers: [PS-P2, PS-P4, PROC-P2]
+    required_evidence:
+      all_of: [{field: evidence.ps_download_execute_chain.status, operator: equals, value: PRESENT}]
+    required_targets:
+      any_of:
+        - {field: targets.destination_endpoint.validated, operator: equals, value: true}
+        - {field: targets.process.validated, operator: equals, value: true}
+        - {field: targets.file_object.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-PS-4, reason: "ห้าม execute payload/script เพื่อวิเคราะห์ (PS-P2)", when: {field: scope.requires_executing_suspect_script, operator: equals, value: true}}
+      - {id: PRH-PS-5, reason: "ห้าม block/quarantine OS binary ที่ถูกต้อง (PROC-P2)", when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}}
+      - {id: PRH-PS-6, reason: "ห้าม block ทั้ง CDN/provider เมื่อ control แบบ granular ทำได้", when: {field: scope.shared_infra_coarse_block, operator: equals, value: true}}
+    authorization_gate: [ps_download_execute_chain]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.mail_web_link_control, cap.dns_control, cap.egress_control, cap.process_termination, cap.file_quarantine]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "lineage ไม่ครบหรือไม่มี target ใดที่ validate"}
+    reason: "ตัด chain ที่ destination, process tree และ file identity เท่าที่มีหลักฐานและ identity"
+    provenance: {reference: [PS-DOWNLOAD, PS-P2, PS-P4, PROC-P2]}
+
+  - policy_id: POL-PS-003
+    rule_type: ACTION_GATE
+    action_id: ACT-MEMORY-EXECUTION-CONTAIN
+    applicable_subtypes: [PS-MEMORY]
+    covers: [PS-P2, PS-P4, MAL-P5]
+    required_evidence:
+      all_of: [{field: evidence.ps_memory_script_execution.status, operator: equals, value: PRESENT}]
+    required_targets:
+      any_of:
+        - {field: targets.process.validated, operator: equals, value: true}
+        - {field: targets.host_workload.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-PS-7, reason: "ห้าม execute suspicious script เพื่อวิเคราะห์ (PS-P2)", when: {field: scope.requires_executing_suspect_script, operator: equals, value: true}}
+      - {id: PRH-PS-8, reason: "powershell.exe/encoded อย่างเดียวไม่เปิด termination (PS-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+    authorization_gate: [ps_memory_script_execution]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.workload_isolation]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี process identity/host ที่ validate"}
+    reason: "Memory/script execution ที่เป็นอันตรายไม่ต้องมี file/hash; ใช้ process/workload/channel"
+    provenance: {reference: [PS-MEMORY, PS-P1, PS-P2]}
+
+  - policy_id: POL-PS-004
+    rule_type: ACTION_GATE
+    action_id: ACT-REMOTE-SESSION-CONTAIN
+    applicable_subtypes: [PS-REMOTE]
+    covers: [PS-P3, PS-P4]
+    required_evidence:
+      all_of: [{field: evidence.ps_remote_execution_unauthorized.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.remote_session.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PS-9, reason: "ห้ามปิด PowerShell/remote management ทั้งองค์กรจาก event เดียว (PS-P3)", when: {field: scope.disables_org_wide_capability, operator: equals, value: true}}
+    authorization_gate: [ps_remote_execution_unauthorized]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.remote_session_termination]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: equals, value: CRITICAL}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ source/account/target ของ session"}
+    reason: "ตัด remote path เฉพาะ session และ source→destination scope"
+    provenance: {reference: [PS-REMOTE, PS-P3]}
+
+  - policy_id: POL-PS-005
+    rule_type: ACTION_GATE
+    action_id: ACT-PERSISTENCE-TRIGGER-DISABLE
+    applicable_subtypes: [PS-PERSIST]
+    covers: [PS-P4, PS-P5, MAL-P3]
+    required_evidence:
+      all_of: [{field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.persistence_artifact.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PS-10, reason: "ห้าม disable tasks ที่ไม่เกี่ยวข้อง/ลบทั้งชุด (PS-P5, MAL-P3)", when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}}
+      - {id: PRH-PS-11, reason: "ห้ามปิด scheduler/ความสามารถ management ทั้งเครื่องหรือองค์กร (PS-P3)", when: {field: scope.disables_org_wide_capability, operator: equals, value: true}}
+    authorization_gate: [ps_persistence_relaunch]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.persistence_trigger_disable]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ artifact ที่ผูกกับ relaunch ไม่ได้ หรือ change ได้รับอนุมัติ"}
+    reason: "หยุด relaunch ต่อ artifact ที่ระบุ + process ที่มันเริ่ม; approved task change ไม่เปิด malicious containment"
+    provenance: {reference: [PS-PERSIST, PS-P5, MAL-P3]}
+
+runbooks:
+  - runbook_id: RB-SCRIPT-EXECUTION-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-SCRIPT-EXECUTION-CONTAIN]
+    supported_subtypes: [PS-OBFUSCATED]
+    objective: "Terminate identified malicious invocation และจำกัด channel/effects ตาม evidence โดยไม่ execute script"
+    prerequisites: ["process instance ที่มี identity เพียงพอ (guid หรือ pid+start_time+image)", "effects ที่ยืนยัน", "script ถูกวิเคราะห์แบบ static เท่านั้น"]
+    required_evidence: [ps_obfuscated_with_effects]
+    required_targets: [process]
+    required_capabilities: [cap.process_termination, cap.scoped_network_enforcement]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การยุติ process อาจหยุดงานที่ผู้ใช้กำลังรัน — ตรวจว่าไม่ใช่ approved automation ก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (image {{process.image_path}}) มี effects อันตรายตาม evidence และไม่ใช่ approved automation — วิเคราะห์ script แบบ static เท่านั้น ห้ามรันซ้ำ"
+        expected_result: "process identity และ effects ถูกต้องตามหลักฐาน"
+        verify: "เทียบ evidence ref และรายการ approved automation"
+        on_failure: "ไม่ยุติ; คงสถานะ NEEDS_EVIDENCE/NEEDS_TARGET"
+      - step_id: S2
+        title: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "invocation หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict workload/ช่องทางตามหลักฐานและ escalate IR"
+      - step_id: S3
+        title: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่ผูกกับ (ตัวระบุ Process: {{process.process_identity}}) ตาม lineage (เฉพาะรายการที่มีหลักฐานเชื่อมโยง)"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุดทำงาน"
+        verify: "children ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่มก่อนยุติ"
+      - step_id: S4
+        title: "จำกัด channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่ผูกกับ invocation ด้วย scoped restriction"
+        method: "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.network_flow.validated, operator: equals, value: true}]}
+        expected_result: "channel ใช้ไม่ได้"
+        verify: "connection ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า process ไม่ถูกสร้างใหม่และ effects ไม่เกิดซ้ำบน {{process.host_id}}"
+        expected_result: "ไม่มีการกลับมา"
+        verify: "re-hunt process identity/command pattern และ channel"
+        on_failure: "ตรวจ persistence (PS-PERSIST) ตามหลักฐาน"
+    verification: ["ไม่มี invocation ซ้ำและ effects หยุด"]
+    failure_handling: ["กลับมา → ประเมิน PS-PERSIST/PS-DOWNLOAD branch ตามหลักฐาน; ไม่ปิด PowerShell ทั้งองค์กร"]
+    rollback: ["ไม่ต้อง (process ที่ยุติเริ่มใหม่ได้โดยผู้ใช้หาก false positive)"]
+
+  - runbook_id: RB-DOWNLOAD-EXECUTION-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-DOWNLOAD-EXECUTION-CONTAIN]
+    supported_subtypes: [PS-DOWNLOAD]
+    objective: "จำกัด download destination หยุด identified processes และ quarantine payload ตาม lineage"
+    prerequisites: ["lineage command→download→payload", "destination ที่ระบุที่ระดับ granular ที่ control รองรับ"]
+    required_evidence: [ps_download_execute_chain]
+    required_targets: []
+    required_capabilities: [cap.mail_web_link_control, cap.dns_control, cap.egress_control, cap.process_termination, cap.file_quarantine]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การ block destination กระทบผู้ใช้อื่นที่ใช้ปลายทางเดียวกัน (โดยเฉพาะ shared infrastructure) — ใช้ระดับละเอียดที่สุด"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน lineage command→download→payload ว่าเป็นชุดเดียวกัน และไม่ execute payload เพื่อวิเคราะห์"
+        expected_result: "รู้ destination, process tree และ file identity ที่ถูกต้อง"
+        verify: "เทียบ evidence ref ของแต่ละช่วง"
+        on_failure: "ดำเนินเฉพาะ target ที่ validate"
+      - step_id: S2
+        title: "จำกัดการดาวน์โหลดจาก {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดการดาวน์โหลดจาก {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}} ด้วย web/DNS/egress control (ไม่ block ทั้ง provider เมื่อทำเป็น path/domain ได้)"
+        method: "ตั้งการจำกัดที่ web/DNS/egress control ที่ตัดได้ตรงระดับ {{destination_endpoint.granularity}} สำหรับ {{destination_endpoint.destination}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path และ DNS control ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า request ถูกปฏิเสธ ถ้าตัดได้เพียงระดับกว้างกว่าให้แจ้ง IR ก่อนลงมือ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.destination_endpoint.validated, operator: equals, value: true}]}
+        expected_result: "host ดาวน์โหลดจาก destination นี้ไม่ได้"
+        verify: "request ไป destination ถูกปฏิเสธตาม log"
+        on_failure: "ใช้ระดับ domain ที่รองรับและ escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+        impact: "ผู้ใช้อื่นเข้า destination เดียวกันไม่ได้หากต้อง block ระดับ domain"
+      - step_id: S3
+        title: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "payload process ที่ validate หยุด"
+        verify: "ไม่อยู่ใน process list"
+        on_failure: "restrict host ตาม scope และ escalate IR"
+      - step_id: S3b
+        title: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ของ (ตัวระบุ Process: {{process.process_identity}}) เฉพาะรายการที่มี lineage เชื่อมโยง"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุด"
+        verify: "ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่มก่อนยุติ"
+      - step_id: S4
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Quarantine payload {{file_object.object_locator}} บน {{file_object.host_id}} (ไม่ลบ)"
+        include_runbook: RB-QUARANTINE-FILE-OBJECT
+        condition: {all_of: [{field: targets.file_object.validated, operator: equals, value: true}, {field: evidence.payload_linked_malicious_execution.status, operator: equals, value: PRESENT}]}
+        expected_result: "payload ถูก quarantine"
+        verify: "ไฟล์ไม่อยู่ที่ path เดิม"
+        on_failure: "ตามขั้นตอน quarantine"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี download/execution ซ้ำจาก {{destination_endpoint.destination}} บน host ใน logs"
+        condition: {all_of: [{field: targets.destination_endpoint.validated, operator: equals, value: true}]}
+        expected_result: "ไม่พบการกลับมา"
+        verify: "re-hunt destination/process ในช่วงเฝ้าระวัง"
+        on_failure: "หา destination สำรอง/persistence ตามหลักฐาน"
+    verification: ["ไม่มี download/execution ใหม่จาก destination", "payload ที่ระบุไม่ถูกรันซ้ำ"]
+    failure_handling: ["พบ destination ใหม่ → เพิ่มเฉพาะที่มีหลักฐาน"]
+    rollback: ["ถอน block/restore ไฟล์ตาม IR approval"]
+
+  - runbook_id: RB-REMOTE-SESSION-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-REMOTE-SESSION-CONTAIN]
+    supported_subtypes: [PS-REMOTE]
+    objective: "Terminate session จำกัด management path source→destination และ contain effects ที่ปลายทาง"
+    prerequisites: ["session id, source, destination, account, protocol", "รายการ approved management/IR access"]
+    required_evidence: [ps_remote_execution_unauthorized]
+    required_targets: [remote_session]
+    required_capabilities: [cap.remote_session_termination, cap.scoped_network_enforcement, cap.process_termination]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การจัดการจากระยะไกลระหว่าง source→destination นี้ใช้ไม่ได้ จนกว่า IR อนุมัติ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน session {{remote_session.session_id}} จาก {{remote_session.source_host_id}} ไป {{remote_session.destination_host_id}} (บัญชี {{remote_session.account_id}}, {{remote_session.protocol}}) ไม่ใช่ management/IR access ที่อนุมัติ"
+        expected_result: "session ไม่ได้รับอนุญาตตามหลักฐาน"
+        verify: "เทียบกับรายการ approved management access"
+        on_failure: "ไม่ยุติ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "ยุติ remote session {{remote_session.session_id}} บน {{remote_session.destination_host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ยุติ remote session {{remote_session.session_id}} บน {{remote_session.destination_host_id}}"
+        method: "ใช้เครื่องมือจัดการ remote session ของ {{remote_session.destination_host_id}} หา session {{remote_session.session_id}} แล้วยุติเฉพาะ session นั้น บันทึกรายละเอียดก่อนยุติ แล้วตรวจว่าไม่อยู่ในรายการ session ที่ active"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.remote_session_termination.supported, operator: equals, value: true}]}
+        expected_result: "session หยุด"
+        verify: "session id ไม่อยู่ในรายการ session ที่ active"
+        on_failure: "จำกัด path ใน S3 และ escalate IR"
+      - step_id: S3
+        title: "จำกัด management path {{remote_session.protocol}} จาก {{remote_session.source_host_id}} ไป {{remote_session.destination_host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด management path {{remote_session.protocol}} จาก {{remote_session.source_host_id}} ไป {{remote_session.destination_host_id}} เท่านั้น (ไม่ปิด remoting ทั้งองค์กรและคง approved management/IR access)"
+        method: "จำกัดเฉพาะ management path {{remote_session.protocol}} จาก {{remote_session.source_host_id}} ไป {{remote_session.destination_host_id}} ที่จุดบังคับเครือข่าย (ไม่ปิด remoting ทั้งองค์กร) โดยคง approved management/IR access ตามรายการขององค์กร (ตรวจรายการก่อน) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        requires_org: [approved_access]
+        condition: {all_of: [{field: capability.cap.scoped_network_enforcement.supported, operator: equals, value: true}]}
+        expected_result: "source ใช้ path นี้เข้า destination ไม่ได้"
+        verify: "attempt ใหม่ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+        impact: "การ management ระหว่างคู่ source/destination นี้หยุดชั่วคราว"
+      - step_id: S4
+        title: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่เกิดจาก session นี้"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ถูกสร้างจาก session นี้ (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ถูกสร้างจาก session นี้)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process จาก remote command หยุด"
+        verify: "ไม่อยู่ใน process list"
+        on_failure: "escalate IR"
+      - step_id: S5
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ artifact ที่ remote command สร้างบน {{persistence_artifact.host_id}}: ปิดเฉพาะ {{persistence_artifact.artifact_locator}}"
+        include_runbook: RB-PERSISTENCE-TRIGGER-DISABLE
+        condition: {all_of: [{field: targets.persistence_artifact.validated, operator: equals, value: true}]}
+        expected_result: "artifact ที่เกี่ยวข้องไม่ทำงาน"
+        verify: "ไม่มี relaunch"
+        on_failure: "ตามขั้นตอน disable trigger"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ log ว่าไม่มี remote session ใหม่จาก {{remote_session.source_host_id}} ด้วยบัญชี {{remote_session.account_id}}; หากพบ authentication ที่ไม่ได้รับอนุญาต ให้ประเมิน Account Compromise ของบัญชีนั้น"
+        expected_result: "ไม่มี session ใหม่"
+        verify: "re-hunt remoting events ในช่วงเฝ้าระวัง"
+        on_failure: "ขยาย scope ตามหลักฐานใหม่เท่านั้น"
+    verification: ["session ที่ระบุหยุด", "ไม่มี remoting ใหม่ผ่าน path ที่จำกัด"]
+    failure_handling: ["พบ source ใหม่ → เพิ่ม path ตามหลักฐาน ไม่ปิด remote management ทั้งองค์กร"]
+    rollback: ["ถอน management restriction ตาม IR approval"]
+
+  - runbook_id: RB-PERSISTENCE-TRIGGER-DISABLE
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-PERSISTENCE-TRIGGER-DISABLE]
+    supported_subtypes: [PS-PERSIST, MAL-BACKDOOR, PS-REMOTE]
+    objective: "เก็บ artifact configuration, disable trigger ที่ระบุ, หยุด running instance และ processes ที่มันเริ่ม"
+    prerequisites: ["artifact ที่ผูกกับ relaunch ระบุได้ (host + type + locator)", "ตรวจแล้วว่าการแก้/ใช้ artifact ไม่ได้รับอนุมัติ"]
+    required_evidence: [ps_persistence_relaunch]
+    required_targets: [persistence_artifact]
+    required_capabilities: [cap.persistence_trigger_disable, cap.process_termination, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "งานที่ถูก disable จะไม่ทำงานตามรอบ ถ้า task ใช้ร่วมกับงานจริง ต้องตรวจก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจว่า {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}} เป็น artifact ที่ผูกกับ payload execution ตาม evidence และการแก้ไม่อยู่ใน change record ที่อนุมัติ — ไม่แตะ artifact อื่น"
+        expected_result: "ยืนยัน artifact ที่ต้อง disable เป็นรายการเดียว"
+        verify: "เทียบ evidence ref และ change record"
+        on_failure: "ไม่ disable; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก configuration ปัจจุบันของ {{persistence_artifact.artifact_locator}} (definition, actions, trigger, run-as account, ACL) ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot สำหรับ forensic/rollback"
+        verify: "snapshot เก็บใน incident record"
+        on_failure: "บันทึกด้วยมือ (screenshot/export) แล้วค่อยแก้"
+      - step_id: S3
+        title: "Disable {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Disable {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) บน {{persistence_artifact.host_id}} เฉพาะรายการนี้ (ไม่ลบ ไม่ปิด scheduler/service manager ทั้งเครื่อง)"
+        method_basis: EXISTING
+        method: "ใช้เครื่องมือจัดการ task/service ของเครื่อง {{persistence_artifact.host_id}} สั่ง disable เฉพาะ {{persistence_artifact.artifact_locator}} (ไม่ลบรายการ และไม่ปิด scheduler/service manager ทั้งเครื่อง) แล้วตรวจสถานะว่าเป็น disabled"
+        condition: {all_of: [{field: capability.cap.persistence_trigger_disable.supported, operator: equals, value: true}]}
+        expected_result: "artifact ไม่เรียก payload ตามรอบอีก"
+        verify: "สถานะ artifact เป็น disabled และรอบ trigger ถัดไปไม่ทำงาน"
+        on_failure: "ปิดการเรียก payload ด้วยการ restrict path/permission ที่ artifact ชี้ แล้ว escalate IR"
+        rollback: "enable กลับด้วย configuration snapshot หาก IR ยืนยัน false positive"
+        impact: "งานตามรอบของ artifact นี้ไม่ทำงาน"
+      - step_id: S4
+        title: "หยุด instance ของ {{persistence_artifact.artifact_locator}} ที่กำลังรันอยู่"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "หยุด instance ของ {{persistence_artifact.artifact_locator}} ที่กำลังรันอยู่ (การ disable ไม่ได้หยุด instance ที่ทำงานแล้ว)"
+        method_basis: EXISTING
+        needs_prior: [S3]
+        method: "ตรวจสถานะของ {{persistence_artifact.artifact_locator}} ก่อน ถ้ายังเป็น running ให้ใช้เครื่องมือจัดการ task/service หยุดเฉพาะ instance นั้น (การ disable ไม่หยุด instance ที่ทำงานอยู่แล้ว)"
+        condition: {all_of: [{field: capability.cap.persistence_trigger_disable.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี running instance ของ artifact"
+        verify: "สถานะ artifact ไม่เป็น running"
+        on_failure: "ยุติ payload ด้วย process identity ใน S5"
+      - step_id: S5
+        title: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ payload process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} เฉพาะที่ยังรันอยู่ (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว; หากการหยุด instance ข้างต้นยุติ payload ไปแล้วให้ตรวจและยุติเฉพาะที่ยังเหลือ)"
+        method_basis: EXISTING
+        method: "ตรวจก่อนว่า process ตามตัวระบุข้างต้นยังรันอยู่ ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID อย่างเดียว) ถ้าการหยุด instance ในขั้นก่อนหน้ายุติ payload ไปแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี payload process ที่ validate เหลืออยู่"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict workload ตาม scope และ escalate IR"
+      - step_id: S6
+        title: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ของ payload"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ของ payload เฉพาะรายการที่มี lineage เชื่อมโยงกับ (ตัวระบุ Process: {{process.process_identity}}) (ไม่ยุติ child ที่ไม่มีหลักฐาน)"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุด"
+        verify: "children ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่มก่อนยุติ"
+      - step_id: S7
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจหลังรอบ trigger ถัดไปว่า {{persistence_artifact.artifact_locator}} ไม่ relaunch payload และไม่มี process ใหม่จาก artifact นี้"
+        expected_result: "ไม่มี relaunch"
+        verify: "re-hunt process creation จาก artifact ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ persistence อื่นที่มีหลักฐาน (ไม่ disable ทั้งชุด)"
+    verification: ["artifact ที่ระบุ disabled และไม่ relaunch", "ไม่มี payload process/children (ที่ validate) เหลือ"]
+    failure_handling: ["พบ trigger อื่นที่ relaunch → ระบุจากหลักฐานแล้วทำซ้ำเฉพาะรายการนั้น"]
+    rollback: ["enable artifact ตาม configuration snapshot ตาม IR approval"]

@@ -4,6 +4,7 @@ import {
   RecommendationInstruction,
   RecommendationStatus,
   RecommendationStepStatus,
+  RecommendationStepType,
 } from "../../../../domain/recommendation/entities/Recommendation.entity";
 
 type PrismaRecommendationWithSteps = PrismaRecommendation & { steps: PrismaRecommendationStep[] };
@@ -25,6 +26,12 @@ function asInstructions(value: unknown): RecommendationInstruction[] {
     .sort((a, b) => a.order - b.order);
 }
 
+/** recommendation_steps.phase carries the step type; rows written before step types existed are ACTION (with an action) or CHECK. */
+function stepTypeOf(phase: string | null, actionId: string | null): RecommendationStepType {
+  if (phase === "CHECK" || phase === "MANUAL") return phase;
+  return actionId ? "ACTION" : "CHECK";
+}
+
 export class RecommendationMapper {
   static toDomain(raw: PrismaRecommendationWithSteps): Recommendation {
     return Recommendation.create({
@@ -40,6 +47,7 @@ export class RecommendationMapper {
       steps: raw.steps.map((s) => ({
         id: s.id,
         stepOrder: s.stepOrder,
+        stepType: stepTypeOf(s.phase, s.actionId),
         title: s.title,
         objective: s.objective,
         actionId: s.actionId,

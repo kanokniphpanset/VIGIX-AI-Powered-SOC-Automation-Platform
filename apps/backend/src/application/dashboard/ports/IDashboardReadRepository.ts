@@ -60,12 +60,14 @@ export interface OpenIncidentRow {
 
 export interface IDashboardReadRepository {
   /**
-   * `since` (report window): event-scoped totals count only rows from that instant on; backlog snapshots (open by
-   * priority, pending approvals, triage queue, awaiting re-hunt, workload) stay "as of now". Omitted = all time.
+   * `since` (report window): event-scoped totals (incl. awaiting re-hunt, by response creation) count only rows from
+   * that instant on; backlog snapshots (open by priority, pending approvals, triage queue, workload) stay "as of now".
+   * Omitted = all time.
    */
   counts(tenantId: string, days: number, since?: Date | null): Promise<DashboardCounts>;
-  /** Unresolved incidents (open / investigating / escalated), newest first — the SLA watchlist candidates. */
-  openIncidents(tenantId: string, limit: number): Promise<OpenIncidentRow[]>;
+  /** Unresolved incidents (open / investigating / escalated), newest first — the SLA watchlist candidates.
+   *  `since` (report window) keeps only incidents opened from that instant on. */
+  openIncidents(tenantId: string, limit: number, since?: Date | null): Promise<OpenIncidentRow[]>;
   /** Round-trip time of a trivial query (PostgreSQL health); throws when the database is unreachable. */
   ping(): Promise<number>;
 }

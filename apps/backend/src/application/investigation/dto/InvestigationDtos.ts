@@ -29,6 +29,29 @@ export const createEvidenceSchema = z
     path: ["structuredData"],
   });
 
+/**
+ * structuredData.subtypeFacts of an ANALYST_ASSERTION evidence row: the only way judgement-type facts (an unauthorized logon, a C2 channel, a
+ * scheduled task tied to a payload, the role of a destination ...) enter the subtype knowledge. Unknown evidence ids are ignored (and audited)
+ * at evaluation time; raw secrets / tokens are refused here. The author is the authenticated user, never "system" and never an AI.
+ */
+const SECRET_LIKE = /Bearer\s+\S{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}/;
+const noSecrets = (v: unknown): boolean => JSON.stringify(v ?? null).search(SECRET_LIKE) === -1;
+const idLike = z.string().regex(/^[a-z][a-z0-9_]{2,80}$/);
+const refs = z.array(z.string().min(1).max(80)).max(30).optional();
+export const subtypeFactsSchema = z
+  .object({
+    evidence: z.array(z.object({
+      id: idLike, status: z.enum(["PRESENT", "ABSENT", "UNKNOWN"]), authorization_status: z.enum(["AUTHORIZED", "UNAUTHORIZED", "UNKNOWN"]).optional(),
+      source_event_refs: refs, lineage: refs, note: z.string().max(500).optional(), observed_at: z.string().datetime().optional(),
+    }).strict()).max(40).optional(),
+    targets: z.array(z.object({ type: idLike, fields: z.record(z.unknown()), source_event_refs: refs }).strict()).max(40).optional(),
+    scope: z.array(idLike).max(40).optional(),
+    context: z.object({ active_damage_ongoing: z.boolean().optional() }).strict().optional(),
+  })
+  .strict()
+  .refine((v) => !!(v.evidence?.length || v.targets?.length || v.scope?.length || v.context), { message: "an assertion must state at least one fact" })
+  .refine(noSecrets, { message: "raw secrets / tokens must never be recorded - reference credentials by id only" });
+
 export const createIocSchema = z
   .object({
     iocType: z.enum(IOC_TYPES),

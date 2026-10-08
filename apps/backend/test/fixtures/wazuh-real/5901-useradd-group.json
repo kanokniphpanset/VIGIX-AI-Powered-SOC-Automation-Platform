@@ -1,0 +1,64 @@
+{
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "useradd",
+    "timestamp": "Oct  3 12:03:15"
+  },
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 8,
+    "pci_dss": [
+      "10.2.7",
+      "10.2.5",
+      "8.1.2"
+    ],
+    "hipaa": [
+      "164.312.b",
+      "164.312.a.2.I",
+      "164.312.a.2.II"
+    ],
+    "tsc": [
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "New group added to the system.",
+    "groups": [
+      "syslog",
+      "adduser"
+    ],
+    "id": "5901",
+    "nist_800_53": [
+      "AU.14",
+      "AC.7",
+      "AC.2",
+      "IA.4"
+    ],
+    "gpg13": [
+      "4.13"
+    ],
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ]
+  },
+  "decoder": {
+    "name": "useradd"
+  },
+  "full_log": "Oct  3 12:03:15 60e9269b683a useradd[1561]: new group: name=evaluser, GID=1002",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log",
+  "id": "1791028996.1978813",
+  "timestamp": "2026-10-03T12:03:16.309+0000"
+}

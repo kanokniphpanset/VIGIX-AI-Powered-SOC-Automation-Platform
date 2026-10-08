@@ -5,7 +5,7 @@ import { ArrowLeft, Eye, EyeOff, FileText, Plus, Printer, RotateCw, X } from 'lu
 import { dashboardApi } from '@/api/vigix'
 import ReportTableEditor from '@/components/reports/ReportTableEditor.vue'
 import logoUrl from '@/assets/report/tnet-logo.png'
-import { COMPANY, DEFAULT_WINDOW, REPORT_WINDOWS, buildSocReport, isReportWindow, isSocReport, type ReportSection, type ReportWindow, type SocReport } from '@/utils/socReport'
+import { COMPANY, DEFAULT_WINDOW, REPORT_WINDOWS, buildSocReport, isDraftCurrent, isReportWindow, isSocReport, type ReportSection, type ReportWindow, type SocReport } from '@/utils/socReport'
 import { socReportDocx } from '@/utils/socReportDocx'
 import { socReportHtml } from '@/utils/socReportHtml'
 import { useI18n } from '@/i18n'
@@ -14,12 +14,15 @@ import { useI18n } from '@/i18n'
  * SOC Operations Report on the T-NET company template (header, logo, section layout and table styling are the
  * template; see utils/socReport.ts). The report window (daily / weekly / 1 month / 3 months) decides which events
  * are counted; values are pre-filled from the live VIGIX summary for that window and every text/number is editable
- * before export. Export = Word (.docx) or Print / Save as PDF. The draft stays in this browser only (localStorage) so
- * an unfinished edit survives a reload.
+ * before export. Export = Word (.docx) or Print / Save as PDF. Each window keeps its OWN draft in this browser
+ * (localStorage, one key per window) so switching windows never mixes daily figures into a weekly/monthly report,
+ * and a draft whose window has moved on (e.g. yesterday's daily report) is refetched instead of reused.
  */
 const router = useRouter()
 const { t } = useI18n()
-const DRAFT_KEY = 'vigix.report.soc.v3'
+const DRAFT_PREFIX = 'vigix.report.soc.v4.'
+const LAST_PERIOD_KEY = 'vigix.report.soc.period'
+const draftKey = (w: ReportWindow) => DRAFT_PREFIX + w
 
 const loading = ref(false)
 const exporting = ref(false)
@@ -34,8 +37,10 @@ async function fill(confirmOverwrite: boolean) {
   try {
     // The backend now computes the window from `period` (it filters the data); the frontend only builds labels.
     // preparedAt stays "now" = the window END; the range label is windowStart(period, now) – now at day granularity.
-    const summary = await dashboardApi.summary(14, period.value)
-    report.value = buildSocReport(summary, { period: period.value, preparedAt: new Date() })
+    const w = period.value
+    const summary = await dashboardApi.summary(14, w)
+    // Never let a late response for another window land in this one.
+    if (w === period.value) report.value = buildSocReport(summary, { period: w, preparedAt: new Date() })
   } catch {
     error.value = t('rp.loadFailed')
   } finally {
@@ -43,19 +48,39 @@ async function fill(confirmOverwrite: boolean) {
   }
 }
 
-onMounted(() => {
+/** This window's saved draft, only if it was built for this window and its window is still current. */
+function loadDraft(w: ReportWindow): SocReport | null {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY)
+    const raw = localStorage.getItem(draftKey(w))
     const draft: unknown = raw ? JSON.parse(raw) : null
-    if (isSocReport(draft)) {
-      report.value = draft
-      period.value = draft.period
-      return
-    }
+    return isSocReport(draft) && draft.period === w && isDraftCurrent(draft, new Date()) ? draft : null
   } catch {
-    /* no usable draft */
+    return null
   }
-  void fill(false)
+}
+
+/** Show window `w`: its own current draft, or fresh data fetched for exactly that window. */
+async function open(w: ReportWindow) {
+  period.value = w
+  try {
+    localStorage.setItem(LAST_PERIOD_KEY, w)
+  } catch {
+    /* storage unavailable */
+  }
+  const draft = loadDraft(w)
+  report.value = draft
+  if (!draft) await fill(false)
+}
+
+onMounted(() => {
+  let last: unknown = null
+  try {
+    last = localStorage.getItem(LAST_PERIOD_KEY)
+    localStorage.removeItem('vigix.report.soc.v3') // old single shared draft (mixed windows)
+  } catch {
+    /* storage unavailable */
+  }
+  void open(isReportWindow(last) ? last : DEFAULT_WINDOW)
 })
 
 watch(
@@ -63,7 +88,7 @@ watch(
   (r) => {
     if (!r) return
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(r))
+      localStorage.setItem(draftKey(r.period), JSON.stringify(r))
     } catch {
       /* storage unavailable — edits are simply not kept across reloads */
     }
@@ -71,17 +96,11 @@ watch(
   { deep: true },
 )
 
-/** A different window counts different events, so the report is rebuilt (after confirming edits may be replaced). */
+/** A different window counts different events: switch to that window's own report (the current one stays saved). */
 async function changePeriod(e: Event) {
-  const select = e.target as HTMLSelectElement
-  const next = select.value
+  const next = (e.target as HTMLSelectElement).value
   if (!isReportWindow(next) || next === period.value) return
-  if (report.value && !window.confirm(t('rp.refillConfirm'))) {
-    select.value = period.value
-    return
-  }
-  period.value = next
-  await fill(false)
+  await open(next)
 }
 
 function addText(sec: ReportSection) {

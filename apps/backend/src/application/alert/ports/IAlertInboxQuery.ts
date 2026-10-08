@@ -18,6 +18,8 @@ export interface InboxQueryParams {
   incident?: "linked" | "unlinked";
   /** Alerts tagged with one of these test-scenario ids. */
   scenarioIds?: string[];
+  /** Mock alerts only: external id starts with one of `prefixes` or equals one of `exact` (empty → nothing). */
+  mockExternalIds?: { prefixes: string[]; exact: string[] };
   /** Free text over the alert id and the stored Wazuh payload; also matches alerts tagged with searchScenarioIds. */
   search?: string;
   searchScenarioIds?: string[];

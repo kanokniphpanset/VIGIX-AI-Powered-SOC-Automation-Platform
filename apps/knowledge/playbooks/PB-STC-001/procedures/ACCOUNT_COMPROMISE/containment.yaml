@@ -1,0 +1,42 @@
+# containment.yaml - CATALOG of candidate containment Actions for ACCOUNT_COMPROMISE, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-ACCOUNT-COMPROMISE. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: ACCOUNT_COMPROMISE
+candidateActions:
+- actionCode: ACT-DISABLE-ACCOUNT
+  name: Disable User Account
+  condition: Compromise of the account is confirmed (the user did not perform the sign-in).
+  runbookRef: RB-DISABLE-ACCOUNT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: An active attacker session or suspicious token exists for the account.
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RESET-CREDENTIAL
+  name: Reset User Credentials
+  condition: Credential compromise is confirmed.
+  runbookRef: RB-RESET-CREDENTIAL
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-BLOCK-SOURCE-IP
+  name: Block Source IP
+  condition: The attacker's source IP is confirmed malicious and not a shared legitimate address.
+  runbookRef: RB-BLOCK-SOURCE-IP
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: The attacker used an endpoint hands-on with the compromised account.
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

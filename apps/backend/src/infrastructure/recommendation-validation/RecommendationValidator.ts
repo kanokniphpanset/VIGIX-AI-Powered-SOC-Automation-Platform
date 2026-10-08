@@ -1,10 +1,15 @@
+import { applicableProcedure, contextSignals } from "../../application/recommendation/services/ProcedureApplicability";
+import { spreadResponseOptions } from "../../application/recommendation/services/SpreadResponseCoverage";
+import { ASSUMPTION_RULES, ATTACK_SPECIFIC_CONTROLS } from "../../domain/knowledge/evidenceSignals";
 import { IActionRepository } from "../../domain/action/repositories/IActionRepository";
 import { IRunbookRepository } from "../../domain/runbook/repositories/IRunbookRepository";
 import {
   RecommendationContextActionProcedure,
   RecommendationContextDto,
+  RecommendationContextProcedureStep,
   citableEvidence,
   newStepOptions,
+  noveltyHistory,
   stepKey,
   targetableIocValues,
 } from "../../application/recommendation/dto/RecommendationContextDto";
@@ -20,6 +25,7 @@ import { ACTION_KNOWLEDGE, findActionKnowledge } from "../../domain/knowledge/ac
 import { attackTypeForIncidentType } from "../../domain/knowledge/attackKnowledge";
 import { TargetKind, iocKind } from "../../domain/knowledge/knowledgeTypes";
 import { missingEvidenceForTarget } from "../../application/recommendation/services/ActionEvidence";
+import { compatibleIocRole } from "../../application/recommendation/services/IocRole";
 
 export interface RecommendationValidationOutcome {
   status: "VALIDATED" | "INVALID";
@@ -49,6 +55,7 @@ export type RecommendationViolationCode =
   | "RUNBOOK_MISMATCH"
   | "INVENTED_TARGET"
   | "TARGET_TYPE_MISMATCH"
+  | "IOC_ROLE_MISMATCH"
   | "INVENTED_IOC"
   | "INVENTED_HOST"
   | "INVENTED_COMMAND"
@@ -61,7 +68,17 @@ export type RecommendationViolationCode =
   | "EMPTY_INSTRUCTIONS"
   | "INVALID_INSTRUCTIONS"
   | "DUPLICATE_STEP"
-  | "NO_NEW_STEP";
+  | "NO_NEW_STEP"
+  | "STEP_TYPE_MISMATCH"
+  | "UNGROUNDED_STEP"
+  | "PROCEDURE_REQUIREMENT_MISSING"
+  | "CONDITION_MISSING"
+  | "NO_ACTION_STEP"
+  | "SPREAD_RESPONSE_MISSING"
+  | "IRRELEVANT_PHASE"
+  | "STATUS_MISMATCH"
+  | "UNSUPPORTED_ASSUMPTION"
+  | "UNRELATED_ATTACK_CONTROL";
 
 /**
  * What kind of target each containment Action operates on (domain/knowledge/actionKnowledge.ts). A target must be a
@@ -92,6 +109,9 @@ const BYPASS_PATTERNS: RegExp[] = [
 ];
 /** Only a bypass when Policy DOES require approval for the action. */
 const APPROVAL_DENIAL_PATTERN = /\bapproval (?:is )?not (?:required|needed)\b|\bno approval\b/i;
+
+/** A sentence that asks, conditions or hedges (checks, "if ...", "whether ...") is not an assertion of fact. */
+const CONDITIONAL_SENTENCE = /\b(?:if|when|whether|unless|in case|until|should|would|could|may|might|possible|possibly|determine|check|verify|confirm|assess|investigate|review|ensure|rule out|look for)\b/i;
 
 const IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
 const HASH = /\b(?:[a-f0-9]{64}|[a-f0-9]{40}|[a-f0-9]{32})\b/gi;
@@ -133,6 +153,15 @@ const COMMAND =
  *   INSUFFICIENT_EVIDENCE  the target lacks evidence the Action requires (its own knowledge) or an ACTION_COMPLIANCE
  *                          Policy requires (POL-A02 / POL-A03) — ActionEvidence.ts, deterministic.
  *
+ * Attack-specific containment procedure (context.containmentProcedure) — steps are typed CHECK / ACTION / MANUAL:
+ *   STEP_TYPE_MISMATCH     a CHECK / MANUAL step names an action (checks are never executable Actions);
+ *   UNGROUNDED_STEP        a CHECK / MANUAL step does not derive from a procedure step holding an item of its type
+ *                          (or there is no procedure), or an ACTION step cites a procedure step without that Action;
+ *   CONDITION_MISSING      an ACTION step drops the condition the procedure attaches to the Action;
+ *   NO_ACTION_STEP         no ACTION step at all — checks and manual controls alone contain nothing.
+ *   The ACTION checks above apply unchanged; CHECK / MANUAL steps get the same free-text, evidence-reference,
+ *   instruction and approval-bypass checks, are persisted with no actionId and are never ticketed or executed.
+ *
  * New round / regenerate — also rejected:
  *   NO_NEW_STEP            every step repeats an Action + target pair an earlier Recommendation of this incident
  *                          already proposed. The same Action on a new target is new; a repeated pair is fine next to
@@ -158,10 +187,11 @@ export class RecommendationValidator {
     const flag = (code: RecommendationViolationCode, message: string) => violations.push(`${code}: ${message}`);
 
     const playbook = context.playbook ?? null;
-    if (!playbook) flag("NO_PLAYBOOK", "no incident-level playbook matches this incident's MITRE techniques, so no response action can be recommended");
+    const investigationOnly = context.investigationOnly === true;
+    if (!playbook && !investigationOnly) flag("NO_PLAYBOOK", "no incident-level playbook matches this incident's MITRE techniques, so no response action can be recommended");
 
     const procedures = new Map<string, RecommendationContextActionProcedure>((context.actionProcedures ?? []).map((p) => [p.actionCode, p]));
-    const actionCodes = [...new Set(candidate.steps.map((s) => s.action))];
+    const actionCodes = [...new Set(candidate.steps.map((s) => s.action).filter((a): a is string => !!a))];
     const actions = await this.actionRepository.findByCodes(actionCodes, tenantId);
     const actionByCode = new Map(actions.map((a) => [a.code, a]));
 
@@ -191,33 +221,182 @@ export class RecommendationValidator {
     // id, a free-text title, a value — is invented evidence. The AI never reproduces long titles.
     const citable = citableEvidence(context);
 
+    // A containment procedure legitimately spans check -> block -> verify, so its summary is not the generic Core Flow.
+    const procedure = applicableProcedure(context.containmentProcedure, context);
     const summaryPhases = CORE_FLOW_PHASES.filter((p) => p.test(candidate.summary)).length;
-    if (summaryPhases >= 4) flag("CORE_FLOW_REPETITION", `summary restates the VIGIX Core Flow (${summaryPhases} lifecycle phases) instead of the selected action(s)`);
+    if (!procedure && summaryPhases >= 4) flag("CORE_FLOW_REPETITION", `summary restates the VIGIX Core Flow (${summaryPhases} lifecycle phases) instead of the selected action(s)`);
     this.checkFreeText("summary", candidate.summary, evidenceText, hosts, flag);
     for (const p of BYPASS_PATTERNS) if (p.test(candidate.summary)) flag("POLICY_BYPASS", "summary claims approval/authorization is waived or automatic");
+
+    // Response quality contract: attack-specific, evidence-grounded, never an assumption presented as fact.
+    const signals = contextSignals(context);
+    const incidentAttackType = context.attackType ?? null;
+    const retrieved = new Map((context.retrievedKnowledge ?? []).map((k) => [k.ref, k]));
+    const checkClaims = (label: string, text: string, groundedByKnowledge: boolean) => {
+      for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+        if (CONDITIONAL_SENTENCE.test(sentence)) continue;
+        for (const rule of ASSUMPTION_RULES) {
+          if (rule.pattern.test(sentence) && !rule.requires.some((s) => signals.has(s)) && !(incidentAttackType && rule.types.includes(incidentAttackType))) {
+            flag("UNSUPPORTED_ASSUMPTION", `${label}: states ${rule.claim} as fact, but the incident evidence does not establish it ("${sentence.slice(0, 120)}")`);
+          }
+        }
+        if (groundedByKnowledge) continue;
+        for (const control of ATTACK_SPECIFIC_CONTROLS) {
+          if (control.pattern.test(sentence) && !(incidentAttackType && control.onlyFor.includes(incidentAttackType))) {
+            flag("UNRELATED_ATTACK_CONTROL", `${label}: ${control.description} does not belong to ${incidentAttackType ?? "an unclassified"} incident ("${sentence.slice(0, 120)}")`);
+          }
+        }
+      }
+    };
+    checkClaims("summary", candidate.summary, false);
+    const quality = (label: string, step: RecommendationCandidateStepDto, source: { phase: string } | null, groundedByKnowledge: boolean) => {
+      if (step.phase && source?.phase && step.phase !== source.phase) {
+        flag("IRRELEVANT_PHASE", `${label}: phase "${step.phase}" is not the phase of the knowledge it derives from (${source.phase}) — the step does not belong in this response`);
+      }
+      if (step.status === "CONFIRMED" && (step.evidenceRefs.length === 0 || step.condition)) {
+        flag("STATUS_MISMATCH", `${label}: status CONFIRMED needs cited evidence and no open condition`);
+      }
+      if (step.status === "CONDITIONAL" && !step.condition) flag("CONDITION_MISSING", `${label}: a CONDITIONAL step must state its condition`);
+      for (const ref of step.knowledgeRefs) {
+        if (!retrieved.has(ref)) flag("INVENTED_EVIDENCE", `${label}: knowledge reference "${ref}" was not retrieved for this incident`);
+      }
+      // An ACTION's instructions are its runbook's own wording and a conditional ACTION carries a human-confirmed
+      // precondition instead of a claim, so only the AI-authored reason of an unconditional ACTION is checked.
+      if (step.type === "ACTION" && step.condition) return;
+      const prose = step.type === "ACTION" ? [step.reason] : [step.objective, step.reason, step.expectedResult ?? "", ...step.instructions.map((i) => i.instruction)];
+      for (const text of prose) checkClaims(label, text, groundedByKnowledge);
+    };
+    /** UNKNOWN_INCIDENT only: a step grounded in retrieved knowledge instead of a procedure step. */
+    const knowledgeStep = (step: RecommendationCandidateStepDto): RecommendationContextProcedureStep | null => {
+      if (!investigationOnly || step.knowledgeRefs.length === 0) return null;
+      const items = step.knowledgeRefs.map((r) => retrieved.get(r));
+      if (items.some((k) => !k)) return null;
+      const k = items[0]!;
+      return {
+        stepOrder: 0, phase: k.phase, title: k.title, objective: k.guidance, reason: k.guidance, expectedResult: "", decisionRef: null, responsibleRole: "IR_TEAM", approvalRequired: k.requiresApproval,
+        items: [{ type: k.kind, text: k.guidance, actionCode: null, condition: null, requiresApproval: k.requiresApproval, approver: null }],
+      };
+    };
 
     const steps: CreateRecommendationStepData[] = [];
     const seen = new Set<string>();
     const snapshotRunbooks: { actionCode: string; runbookCode: string; version: string; procedure: string[]; verificationCriteria: string[] }[] = [];
     const snapshotPolicy: Record<string, unknown> = {};
     const ordered = [...candidate.steps].sort((a, b) => a.stepOrder - b.stepOrder);
+    // A CHECK must precede the control it informs; the model cannot reorder the knowledge strategy.
+    if (procedure && ordered.some((s, i) => i > 0 && s.procedureStep != null && ordered[i - 1].procedureStep != null && s.procedureStep < ordered[i - 1].procedureStep!)) {
+      flag("UNGROUNDED_STEP", "containment steps must preserve the applicable procedure's decision/control/verification order");
+    }
+    const procedureStep = (n: number | null | undefined) => (procedure && n ? procedure.steps.find((s) => s.stepOrder === n) ?? null : null);
+    const recordedValues = new Set([...hosts, ...context.iocs.map((i) => i.iocValue)]);
 
     for (const [index, step] of ordered.entries()) {
-      const label = `step ${step.stepOrder} (${step.action})`;
+      // ---- CHECK / MANUAL: grounded in the containment procedure, never an executable Action ---------------------
+      if (step.type !== "ACTION") {
+        const label = `step ${step.stepOrder} (${step.type})`;
+        const before = violations.length;
+        if (step.action) {
+          flag(
+            "STEP_TYPE_MISMATCH",
+            actionByCode.has(step.action)
+              ? `${label}: ${step.action} is a catalog Action — a ${step.type} step must not carry an executable action; use an ACTION step`
+              : `${label}: a ${step.type} step must not name an action ("${step.action}")`
+          );
+        }
+        if (!procedure) {
+          flag("UNGROUNDED_STEP", `${label}: no containment procedure is available for this incident, so a ${step.type} step cannot be grounded in knowledge`);
+          continue;
+        }
+        const fromKnowledge = step.procedureStep == null ? knowledgeStep(step) : null;
+        const source = procedureStep(step.procedureStep) ?? fromKnowledge;
+        quality(label, step, source, !!fromKnowledge);
+        if (!source) {
+          flag("UNGROUNDED_STEP", `${label}: procedureStep ${step.procedureStep ?? "(missing)"} is not a step of the ${procedure.procedureCode} procedure${investigationOnly ? ", and no retrieved knowledge (knowledgeRefs) supports it" : ""}`);
+        } else if (!source.items.some((i) => i.type === step.type)) {
+          flag("UNGROUNDED_STEP", `${label}: procedure step ${source.stepOrder} "${source.title}" has no ${step.type} item — the step is not supported by the knowledge`);
+        }
+        if (playbook && step.playbook && step.playbook !== playbook.code) {
+          flag("PLAYBOOK_MISMATCH", `${label}: playbook "${step.playbook}" does not match the playbook selected for this ${playbook.incidentType} incident (${playbook.code})`);
+        }
+        if (source && step.responsibleRole !== source.responsibleRole) {
+          flag("WRONG_RESPONSIBLE_ROLE", `${label}: responsibleRole "${step.responsibleRole}" differs from the procedure (${source.responsibleRole})`);
+        }
+        if (step.target && !recordedValues.has(step.target)) {
+          flag("INVENTED_TARGET", `${label}: target "${step.target}" is not a recorded IOC or affected host`);
+        }
+        // A manual control the procedure puts under an owner's approval stays under it — the AI cannot waive it.
+        const manualCondition = step.type === "MANUAL" ? source?.items.find(i => i.type === "MANUAL" && i.condition)?.condition : null;
+        if (manualCondition && !step.condition) flag("CONDITION_MISSING", `${label}: manual control requires condition "${manualCondition}"`);
+        const manualApproval = step.type === "MANUAL" && !!source?.items.some((i) => i.type === "MANUAL" && i.requiresApproval);
+        const freeText = [step.objective, step.reason, step.condition ?? "", step.expectedResult ?? "", step.verificationCriteria, ...step.instructions.flatMap((i) => [i.instruction, i.expectedResult ?? ""])];
+        for (const text of freeText) {
+          if (BYPASS_PATTERNS.some((p) => p.test(text)) || (manualApproval && APPROVAL_DENIAL_PATTERN.test(text))) {
+            flag("POLICY_BYPASS", `${label}: text waives, skips or pre-empts approval/authorization ("${text.slice(0, 120)}")`);
+            break;
+          }
+        }
+        if (manualApproval && step.requiresApprovalSuggested === false) {
+          flag("POLICY_BYPASS", `${label}: candidate marks approval as not required, but the procedure puts this manual control under approval`);
+        }
+        const fabricated = step.evidenceRefs.filter((ref) => !citable.has(ref));
+        for (const ref of fabricated) flag("INVENTED_EVIDENCE", `${label}: evidence reference "${ref}" is not one of this cycle's evidence ids (E<n>/I<n>/MITRE technique)`);
+        const evidence = [...new Set(step.evidenceRefs.map((ref) => citable.get(ref)).filter((r): r is string => !!r))];
+        const instructions = [...step.instructions].sort((x, y) => x.order - y.order);
+        if (instructions.some((ins, i) => ins.order !== i + 1)) {
+          flag("INVALID_INSTRUCTIONS", `${label}: instruction order must be 1..${instructions.length} without gaps or duplicates`);
+        }
+        for (const ins of instructions) {
+          if (ins.target && !recordedValues.has(ins.target)) {
+            flag("INVENTED_TARGET", `${label}: instruction ${ins.order} targets "${ins.target}", which is not a recorded IOC or affected host`);
+          }
+        }
+        for (const text of freeText) this.checkFreeText(label, text, evidenceText, hosts, flag);
+        if (violations.length > before || !source) continue;
+
+        steps.push({
+          stepOrder: index + 1,
+          stepType: step.type,
+          title: `${step.type === "CHECK" ? "Check" : "Manual control"} — ${source.title}`,
+          objective: step.objective,
+          actionId: null,
+          target: step.target ?? null,
+          reason: step.missingEvidence.length ? `${step.reason} Missing evidence: ${step.missingEvidence.join(", ")}.` : step.reason,
+          evidence,
+          sourceRunbookId: null,
+          precondition: manualCondition ?? step.condition ?? null,
+          expectedResult: step.expectedResult ?? source.expectedResult ?? null,
+          requiresApproval: manualApproval,
+          instructions: instructions.map((i) => ({ order: i.order, instruction: i.instruction, target: i.target ?? step.target ?? null, expectedResult: i.expectedResult ?? null })),
+          verificationCriteria: step.verificationCriteria,
+        });
+        continue;
+      }
+
+      const label = `step ${step.stepOrder} (${step.action ?? "no action"})`;
+      if (investigationOnly) {
+        flag("NO_PLAYBOOK", `${label}: no attack-specific playbook applies to this incident, so no catalog Action can be recommended — investigate first`);
+        continue;
+      }
+      quality(label, step, procedureStep(step.procedureStep), false);
+      if (!step.action || !step.target || !step.runbook || !step.playbook) {
+        flag("SCHEMA", `${label}: an ACTION step needs action, target, runbook and playbook`);
+        continue;
+      }
+      const a = step as RecommendationCandidateStepDto & { action: string; target: string; runbook: string; playbook: string };
       const before = violations.length;
 
       // ---- Action ------------------------------------------------------------------------------
-      const action = actionByCode.get(step.action);
+      const action = actionByCode.get(a.action);
       if (!action) {
-        flag("INVENTED_ACTION", `${label}: action "${step.action}" does not exist in the Action Catalog`);
+        flag("INVENTED_ACTION", `${label}: action "${a.action}" does not exist in the Action Catalog`);
         continue;
       }
       if (!action.enabled) flag("DISABLED_ACTION", `${label}: action is disabled`);
       if (action.category !== "CONTAINMENT") {
         flag("CORE_FLOW_REPETITION", `${label}: ${action.category} is a VIGIX Core Flow phase performed by the platform, not a response action to expand`);
       }
-      const procedure = procedures.get(action.code);
-      if (playbook && !procedure) flag("ACTION_NOT_IN_PLAYBOOK", `${label}: action is not allowed by playbook ${playbook.code} (${playbook.allowedActions.join(", ") || "none"})`);
+      const procedureOfAction = procedures.get(action.code);
+      if (playbook && !procedureOfAction) flag("ACTION_NOT_IN_PLAYBOOK", `${label}: action is not allowed by playbook ${playbook.code} (${playbook.allowedActions.join(", ") || "none"})`);
       const attackType = attackTypeForIncidentType(playbook?.incidentType);
       if (attackType) {
         const knowledge = findActionKnowledge(action.code);
@@ -227,75 +406,90 @@ export class RecommendationValidator {
         }
       }
 
+      // ---- Containment procedure: the Action's condition is never dropped -----------------------
+      const knowledgeCondition = procedure?.candidateActions.find((c) => c.actionCode === action.code)?.condition ?? null;
+      if (knowledgeCondition && !a.condition) {
+        flag("CONDITION_MISSING", `${label}: the ${procedure!.procedureCode} procedure makes ${action.code} conditional ("${knowledgeCondition}") — the step must carry that condition`);
+      }
+      if (procedure) {
+        const source = procedureStep(a.procedureStep);
+        if (!source || !source.items.some((i) => i.actionCode === action.code)) {
+          flag("UNGROUNDED_STEP", `${label}: procedure step ${a.procedureStep} of ${procedure.procedureCode} does not contain ${action.code}`);
+        }
+      }
+
       // ---- Playbook / Runbook --------------------------------------------------------------------
-      if (playbook && step.playbook !== playbook.code) {
-        flag("PLAYBOOK_MISMATCH", `${label}: playbook "${step.playbook}" does not match the playbook selected for this ${playbook.incidentType} incident (${playbook.code})`);
+      if (playbook && a.playbook !== playbook.code) {
+        flag("PLAYBOOK_MISMATCH", `${label}: playbook "${a.playbook}" does not match the playbook selected for this ${playbook.incidentType} incident (${playbook.code})`);
       }
       const runbook = action.runbookId ? await this.runbookRepository.findById(action.runbookId, tenantId) : null;
       if (!runbook || !runbook.isActive) {
         flag("RUNBOOK_MISMATCH", `${label}: action has no ACTIVE action-level runbook, so it cannot be expanded`);
-      } else if (step.runbook !== runbook.code) {
-        flag("RUNBOOK_MISMATCH", `${label}: runbook "${step.runbook}" is not the runbook of ${action.code} (${runbook.code})`);
+      } else if (a.runbook !== runbook.code) {
+        flag("RUNBOOK_MISMATCH", `${label}: runbook "${a.runbook}" is not the runbook of ${action.code} (${runbook.code})`);
       }
 
       // ---- Target --------------------------------------------------------------------------------
-      const targetKinds: ReadonlySet<TargetKind> | undefined = hosts.includes(step.target) ? new Set<TargetKind>(["host"]) : iocKindsByValue.get(step.target);
+      const targetKinds: ReadonlySet<TargetKind> | undefined = hosts.includes(a.target) ? new Set<TargetKind>(["host"]) : iocKindsByValue.get(a.target);
       const requiredKind = ACTION_TARGET_KIND[action.code];
+      if (targetKinds?.has("ip") && !compatibleIocRole(context, action.code, a.target)) {
+        flag("IOC_ROLE_MISMATCH", `${label}: target "${a.target}" has an incompatible, unknown or ambiguous network role for ${action.code}; use only explicitly recorded source/destination roles`);
+      }
       if (!targetKinds) {
-        flag("INVENTED_TARGET", `${label}: target "${step.target}" is not an evidence-linked/analyst-added IOC or an affected host`);
+        flag("INVENTED_TARGET", `${label}: target "${a.target}" is not an evidence-linked/analyst-added IOC or an affected host`);
       } else if (requiredKind && !targetKinds.has(requiredKind)) {
-        flag("TARGET_TYPE_MISMATCH", `${label}: target "${step.target}" is a ${[...targetKinds].join("/")}, but ${action.code} operates on a ${requiredKind}`);
+        flag("TARGET_TYPE_MISMATCH", `${label}: target "${a.target}" is a ${[...targetKinds].join("/")}, but ${action.code} operates on a ${requiredKind}`);
       }
       // Required evidence (Action knowledge + ACTION_COMPLIANCE policy). VALIDATED_IOC_TARGET is reported by the
       // INVENTED_TARGET / TARGET_TYPE_MISMATCH checks above with a more precise message.
       if (targetKinds) {
-        const compliance = procedure?.compliance;
-        const missing = missingEvidenceForTarget(context, action.code, step.target, compliance?.requiredEvidence ?? []).filter((r) => r !== "VALIDATED_IOC_TARGET");
+        const compliance = procedureOfAction?.compliance;
+        const missing = missingEvidenceForTarget(context, action.code, a.target, compliance?.requiredEvidence ?? []).filter((r) => r !== "VALIDATED_IOC_TARGET");
         if (missing.length) {
           const source = (r: string) => compliance?.rules.filter((x) => x.requiredEvidence.includes(r)).map((x) => x.policy) ?? [];
           const detail = missing.map((r) => (source(r).length ? `${r} (${source(r).join(", ")})` : r)).join(", ");
-          flag("INSUFFICIENT_EVIDENCE", `${label}: required evidence is not recorded for target "${step.target}": ${detail}`);
+          flag("INSUFFICIENT_EVIDENCE", `${label}: required evidence is not recorded for target "${a.target}": ${detail}`);
         }
       }
-      const pairKey = `${action.code}|${step.target}`;
+      const pairKey = `${action.code}|${a.target}`;
       if (seen.has(pairKey)) flag("DUPLICATE_STEP", `${label}: the same action on the same target appears more than once`);
       seen.add(pairKey);
 
       // ---- Policy (authoritative role / approval) ------------------------------------------------
-      const policy = procedure?.policy ?? null;
-      if (procedure && (!policy || !policy.responsibleRole)) {
+      const policy = procedureOfAction?.policy ?? null;
+      if (procedureOfAction && (!policy || !policy.responsibleRole)) {
         flag("POLICY_UNAVAILABLE", `${label}: no Policy result for this action — responsible role cannot be established`);
-      } else if (policy && step.responsibleRole !== policy.responsibleRole) {
-        flag("WRONG_RESPONSIBLE_ROLE", `${label}: responsibleRole "${step.responsibleRole}" differs from Policy (${policy.responsibleRole})`);
+      } else if (policy && a.responsibleRole !== policy.responsibleRole) {
+        flag("WRONG_RESPONSIBLE_ROLE", `${label}: responsibleRole "${a.responsibleRole}" differs from Policy (${policy.responsibleRole})`);
       }
-      const freeText = [step.objective, step.reason, step.expectedResult ?? "", step.verificationCriteria, ...step.instructions.flatMap((i) => [i.instruction, i.expectedResult ?? ""])];
+      const freeText = [a.objective, a.reason, a.condition ?? "", a.expectedResult ?? "", a.verificationCriteria, ...a.instructions.flatMap((i) => [i.instruction, i.expectedResult ?? ""])];
       for (const text of freeText) {
         if (BYPASS_PATTERNS.some((p) => p.test(text)) || (policy?.approvalRequired && APPROVAL_DENIAL_PATTERN.test(text))) {
           flag("POLICY_BYPASS", `${label}: text waives, skips or pre-empts approval/authorization ("${text.slice(0, 120)}")`);
           break;
         }
       }
-      if (policy?.approvalRequired && step.requiresApprovalSuggested === false) {
+      if (policy?.approvalRequired && a.requiresApprovalSuggested === false) {
         flag("POLICY_BYPASS", `${label}: candidate marks approval as not required, but Policy requires ${policy.approvalRole ?? "an"} approval`);
       }
 
       // ---- Evidence ------------------------------------------------------------------------------
-      const fabricated = step.evidenceRefs.filter((ref) => !citable.has(ref));
+      const fabricated = a.evidenceRefs.filter((ref) => !citable.has(ref));
       for (const ref of fabricated) flag("INVENTED_EVIDENCE", `${label}: evidence reference "${ref}" is not one of this cycle's evidence ids (E<n>/I<n>/MITRE technique)`);
-      const evidence = [...new Set(step.evidenceRefs.map((ref) => citable.get(ref)).filter((r): r is string => !!r))];
+      const evidence = [...new Set(a.evidenceRefs.map((ref) => citable.get(ref)).filter((r): r is string => !!r))];
       if (evidence.length === 0) flag("NO_EVIDENCE", `${label}: no traceable evidence reference`);
 
       // ---- Instructions --------------------------------------------------------------------------
-      const instructions = [...step.instructions].sort((a, b) => a.order - b.order);
+      const instructions = [...a.instructions].sort((x, y) => x.order - y.order);
       if (instructions.some((ins, i) => ins.order !== i + 1)) {
         flag("INVALID_INSTRUCTIONS", `${label}: instruction order must be 1..${instructions.length} without gaps or duplicates`);
       }
       for (const ins of instructions) {
-        if (ins.target && ins.target !== step.target && !hosts.includes(ins.target) && !iocKindsByValue.has(ins.target)) {
+        if (ins.target && ins.target !== a.target && !hosts.includes(ins.target) && !iocKindsByValue.has(ins.target)) {
           flag("INVENTED_TARGET", `${label}: instruction ${ins.order} targets "${ins.target}", which is not an evidence-linked/analyst-added IOC or an affected host`);
         }
       }
-      for (const text of [step.objective, ...instructions.map((i) => i.instruction)]) {
+      for (const text of [a.objective, ...instructions.map((i) => i.instruction)]) {
         const phase = CORE_FLOW_INSTRUCTION_PATTERNS.find((p) => p.test(text));
         if (phase) {
           flag("CORE_FLOW_REPETITION", `${label}: "${text.slice(0, 120)}" restates a VIGIX Core Flow phase instead of an operational instruction for ${action.code}`);
@@ -308,24 +502,26 @@ export class RecommendationValidator {
 
       steps.push({
         stepOrder: index + 1,
-        title: `${action.name} — ${step.target}`,
-        objective: step.objective,
+        stepType: "ACTION",
+        title: `${action.name} — ${a.target}`,
+        objective: a.objective,
         actionId: action.id,
-        target: step.target,
-        reason: step.missingEvidence.length ? `${step.reason} Missing evidence: ${step.missingEvidence.join(", ")}.` : step.reason,
+        target: a.target,
+        reason: a.missingEvidence.length ? `${a.reason} Missing evidence: ${a.missingEvidence.join(", ")}.` : a.reason,
         evidence,
         sourceRunbookId: runbook!.id,
-        precondition: null,
-        expectedResult: step.expectedResult ?? runbook!.expectedResult ?? null,
+        // The procedure's own condition is authoritative; the AI's wording is kept only when the procedure has none.
+        precondition: knowledgeCondition ?? a.condition ?? null,
+        expectedResult: a.expectedResult ?? runbook!.expectedResult ?? null,
         // Policy decides approval — the AI's advisory hint is never used here.
         requiresApproval: policy?.approvalRequired ?? false,
         instructions: instructions.map((i) => ({
           order: i.order,
           instruction: i.instruction,
-          target: i.target ?? step.target,
+          target: i.target ?? a.target,
           expectedResult: i.expectedResult ?? null,
         })),
-        verificationCriteria: step.verificationCriteria,
+        verificationCriteria: a.verificationCriteria,
       });
       snapshotRunbooks.push({
         actionCode: action.code,
@@ -337,10 +533,23 @@ export class RecommendationValidator {
       snapshotPolicy[action.code] = policy;
     }
 
-    const previous = context.previousSteps ?? [];
-    if (previous.length && ordered.length) {
+    for (const required of procedure?.steps ?? []) {
+      for (const type of required.requiredTypes ?? []) {
+        if (!ordered.some(s => s.procedureStep === required.stepOrder && s.type === type))
+          flag("PROCEDURE_REQUIREMENT_MISSING", `procedure step ${required.stepOrder} requires ${type} for the recorded evidence`);
+      }
+    }
+    // A response whose applicable procedure holds no executable step (every gated Action step was dropped for lack of
+    // evidence, or the incident is unknown) is investigation-first and needs no ACTION.
+    const procedureHasActions = !!procedure?.steps.some((s) => s.items.some((i) => i.type === "ACTION"));
+    if (ordered.length && procedureHasActions && !investigationOnly && !ordered.some((s) => s.type === "ACTION")) {
+      flag("NO_ACTION_STEP", "a containment recommendation needs at least one ACTION step (a catalog Action the evidence supports); CHECK / MANUAL steps alone contain nothing");
+    }
+    const actionSteps = ordered.filter((s) => s.type === "ACTION" && s.action && s.target);
+    const previous = noveltyHistory(context);
+    if (previous.length && actionSteps.length) {
       const proposed = new Set(previous.map((s) => stepKey(s.actionCode, s.target)));
-      if (ordered.every((s) => proposed.has(stepKey(s.action, s.target)))) {
+      if (actionSteps.every((s) => proposed.has(stepKey(s.action!, s.target!)))) {
         const options = newStepOptions(context);
         flag(
           "NO_NEW_STEP",
@@ -349,7 +558,14 @@ export class RecommendationValidator {
       }
     }
 
-    if (violations.length > 0 || steps.length === 0 || !playbook) {
+    for (const group of spreadResponseOptions(context)) {
+      if (group.options.length && !actionSteps.some(step => group.options.some(option => option.actionCode === step.action && option.target === step.target) &&
+          (step.target === group.host || step.instructions.some(instruction => instruction.instruction.includes(group.host))))) {
+        flag("SPREAD_RESPONSE_MISSING", `newly affected host "${group.host}" needs an evidence-supported action; eligible pairs: ${group.options.map(option => `${option.actionCode} -> ${JSON.stringify(option.target)}`).join(", ")}`);
+      }
+    }
+
+    if (violations.length > 0 || steps.length === 0 || (!playbook && !investigationOnly)) {
       if (steps.length === 0 && violations.length === 0) violations.push("SCHEMA: no usable steps remained after validation");
       return invalid(candidate.summary, violations);
     }
@@ -360,11 +576,21 @@ export class RecommendationValidator {
       steps,
       violations: [],
       snapshot: {
-        playbookCode: playbook.code,
-        playbookVersion: playbook.version,
+        playbookCode: playbook?.code ?? "UNKNOWN_INCIDENT",
+        playbookVersion: playbook?.version ?? "1",
         procedureCode: [...new Set(snapshotRunbooks.map((r) => r.runbookCode))].join(","),
         procedureVersion: [...new Set(snapshotRunbooks.map((r) => r.version))].join(","),
-        procedureContent: { incidentType: playbook.incidentType, matchedTechniques: playbook.matchedTechniques, strategy: playbook.strategy, runbooks: snapshotRunbooks },
+        procedureContent: {
+          incidentType: playbook?.incidentType ?? "UNKNOWN",
+          matchedTechniques: playbook?.matchedTechniques ?? context.mitreMappings.map((m) => m.techniqueId),
+          strategy: playbook?.strategy ?? procedure?.strategy ?? [],
+          runbooks: snapshotRunbooks,
+          rehunt: context.rehunt ?? null,
+          spreadResponse: context.spreadResponse ?? null,
+          containmentProcedure: procedure
+            ? { procedureCode: procedure.procedureCode, version: procedure.version, objective: procedure.objective, strategy: procedure.strategy, successCriteria: procedure.verification.successCriteria }
+            : null,
+        },
         policyResult: snapshotPolicy,
       },
     };

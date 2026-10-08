@@ -1,0 +1,36 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: SQL_INJECTION
+
+decisions:
+  - id: DEC-SQLI-002
+    stepRef: 1
+    question: "Is the alert a confirmed malicious SQL injection?"
+    context: >
+      Shown after the WAF / web / application / database logs are reviewed for
+      the injection patterns, URL, parameter, source IP, user / session and time.
+    options:
+      - value: "YES"
+        label: "Yes - confirmed malicious SQL injection"
+        leadsTo: CONTAIN_SOURCE_AND_PATTERN
+      - value: "NO"
+        label: "No - false positive / scanner"
+        leadsTo: CLOSE_AS_FALSE_POSITIVE
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-SQLI-001
+    stepRef: 6
+    question: "Did any injected request succeed (data returned or changed)?"
+    context: >
+      Shown after the database audit / query logs are reviewed.
+    options:
+      - value: "YES"
+        label: "Yes - successful injection (escalate, preserve evidence before recovery)"
+        leadsTo: DATA_EXPOSURE_INVESTIGATION
+      - value: "NO"
+        label: "No - attempts only"
+        leadsTo: CONTAIN_SOURCE_ONLY
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

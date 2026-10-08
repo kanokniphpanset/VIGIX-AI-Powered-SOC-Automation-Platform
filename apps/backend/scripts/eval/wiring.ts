@@ -45,6 +45,8 @@ import { CreateVerificationUseCase } from "../../src/application/verification/us
 import { RunRehuntVerificationUseCase } from "../../src/application/verification/use-cases/RunRehuntVerification.usecase";
 import { CreateIocUseCase } from "../../src/application/investigation/use-cases/CreateIoc.usecase";
 import { INotificationDispatcherPort } from "../../src/application/notification/ports/INotificationDispatcherPort";
+import { ContainmentProcedureLoader } from "../../src/infrastructure/knowledge/ContainmentProcedureLoader";
+import { PrismaGenerationPlaybookCatalogReader } from "../../src/infrastructure/database/postgres/repositories/GenerationPlaybookCatalogReader.prisma";
 
 export const TENANT = "00000000-0000-0000-0000-000000000001";
 export const SOC = "eval-soc";
@@ -73,7 +75,9 @@ export function buildEvalContext(prisma: PrismaClient, aiUrl: string) {
   // (evidence each Action requires). The earlier evaluation scripts omitted both, so their recommendations were
   // built on a different code path than the running product (Real-Wazuh Clean Run #1 finding).
   const responseSetup = new IncidentResponseSetupService(new PrismaIncidentResponseSetupStore(prisma), ctxRepo, incidents, playbookRepo, actions, policy, audit);
-  const contextBuilder = new RecommendationContextBuilder(ctxRepo, actions, runbooks, playbookRepo, approvalService, undefined, { resolve: (i: string, t: string) => responseSetup.resolve(i, t) }, policy);
+  // Production parity (container.ts): the generation catalog reader pins the exact published playbook revision (Phase 1D); without it generation fails with PLAYBOOK_PROVENANCE_NOT_FOUND.
+  // The attack-specific containment procedure (YAML knowledge) is part of the production context as well.
+  const contextBuilder = new RecommendationContextBuilder(ctxRepo, actions, runbooks, playbookRepo, approvalService, undefined, { resolve: (i: string, t: string) => responseSetup.resolve(i, t) }, policy, new PrismaGenerationPlaybookCatalogReader(prisma), new ContainmentProcedureLoader());
   const generate = new GenerateRecommendationUseCase(contextBuilder, new LlmRecommendationAgent(aiUrl), "LlmRecommendationAgent/v2.0.0", new RecommendationValidator(actions, runbooks), recs, audit);
   const createPlan = new CreateResponsePlanUseCase(recs, actions, runbooks, approvalService, plans, audit, noNotify, "http://localhost");
   const decide = new DecideApprovalUseCase(approvals, audit, recs, ctxRepo, plans, noNotify, "http://localhost");

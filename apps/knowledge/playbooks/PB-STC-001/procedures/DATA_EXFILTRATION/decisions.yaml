@@ -1,0 +1,35 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: DATA_EXFILTRATION
+
+decisions:
+  - id: DEC-EXF-001
+    stepRef: 1
+    question: "Is the transfer authorized (sanctioned backup / cloud service)?"
+    context: >
+      Shown after Step 1 once destination and account are known.
+    options:
+      - value: "YES"
+        label: "Yes - authorized"
+        leadsTo: CLOSE_AS_BENIGN
+      - value: "NO"
+        label: "No - unauthorized"
+        leadsTo: CONTAIN_CHANNEL
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-EXF-002
+    stepRef: 3
+    question: "Did the transferred data include personal or regulated data?"
+    context: >
+      Shown after Step 3 (Data Impact).
+    options:
+      - value: "YES"
+        label: "Yes - regulated / personal data"
+        leadsTo: ESCALATE_PRIVACY_LEGAL
+      - value: "NO"
+        label: "No - internal data only"
+        leadsTo: CONTINUE_HUNTING
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

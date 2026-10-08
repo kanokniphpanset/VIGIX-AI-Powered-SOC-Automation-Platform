@@ -1,0 +1,42 @@
+id: PROC-EXF-001
+code: DATA_EXFILTRATION
+name: Data Exfiltration Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-DATA-EXFIL (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-DATA-EXFIL
+
+objective: >
+  Stop unauthorized outbound transfer and contain the source of the exfiltration.
+
+strategy: >
+  Block the confirmed unauthorized destination, isolate the source when the transfer continues, contain the
+  account or session responsible, and confirm the transfer stopped.
+
+
+appliesWhen:
+  incidentTypes: [DATA_EXFILTRATION]
+  mitreTechniques: [T1048, T1041, T1567]
+  description: >
+    Unusually large or unusual outbound transfers from an internal host -
+    volume far above baseline, archives of sensitive data, uploads to
+    unknown or personal cloud destinations.
+
+primaryEvidence:
+  - "Outbound transfer events (destination IP, domain, URL, bytes)"
+  - "Baseline transfer volume of the host"
+  - "Files / archives created before the transfer"
+  - "Account and process that performed it"
+  - "Destination reputation"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-09, resources/mock-attacks-tc/TC-09-data-exfiltration.json):
+#   TC-09: FILESRV-01 (10.0.2.50) uploaded ~2.48 GB to 45.61.136.77:443
+#   (https://vigix-mock-exfil.net/upload) after archiving HR / Finance files
+#   into data.7z; Wazuh rule 100340.

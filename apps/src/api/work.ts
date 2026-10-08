@@ -130,6 +130,22 @@ export interface AuditEntry {
   metadata: Record<string, unknown> | null
 }
 
+/** A closed incident similar to the current one (GET /incidents/:id/similar) — deterministic match, no AI. */
+export interface SimilarCase {
+  id: string
+  title: string
+  status: string
+  priority: string
+  openedAt: string
+  closedAt: string | null
+  investigationNumber: number
+  lastVerification: string | null
+  actions: { code: string | null; name: string | null; target: string | null; status: string }[]
+  closeNote: string | null
+  score: number
+  reasons: { kind: 'SAME_IOC' | 'SAME_RULE' | 'SAME_TECHNIQUE' | 'SAME_HOST'; values: string[] }[]
+}
+
 export interface AiJob {
   id: string
   status: string
@@ -169,6 +185,7 @@ export const workApi = {
   iocs: (limit = 500) => api<{ total: number; items: IocLibraryItem[] }>('/api/v1/work/iocs', { query: { limit } }),
   audit: (incidentId: string) => api<{ items: AuditEntry[] }>(`/api/v1/incidents/${incidentId}/audit`),
   aiJobs: (incidentId: string) => api<{ items: AiJob[] }>(`/api/v1/incidents/${incidentId}/ai-jobs`),
+  similarCases: (incidentId: string, limit = 5) => api<{ items: SimilarCase[] }>(`/api/v1/incidents/${incidentId}/similar`, { query: { limit } }),
 }
 
 export type EmailRecipientRole = 'SOC' | 'IR_TEAM' | 'ADMIN'

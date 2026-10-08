@@ -1,6 +1,7 @@
 import { RecommendationContextDto, targetableIocValues } from "../dto/RecommendationContextDto";
 import { findActionKnowledge } from "../../../domain/knowledge/actionKnowledge";
 import { EvidenceRequirementId, TargetKind, iocKind } from "../../../domain/knowledge/knowledgeTypes";
+import { compatibleIocRole } from "./IocRole";
 
 type EvidenceContext = Pick<RecommendationContextDto, "iocs" | "evidence" | "affectedHosts">;
 
@@ -81,7 +82,9 @@ export function checkRequirement(context: EvidenceContext, requirement: Evidence
 /** Requirements the given target does not satisfy for this Action. */
 export function missingEvidenceForTarget(context: EvidenceContext, actionCode: string, target: string, policyRequired: string[] = []): EvidenceRequirementId[] {
   const kind = targetKindOf(actionCode);
-  return requirementsFor(actionCode, policyRequired).filter((r) => !checkRequirement(context, r, target, kind));
+  const missing = requirementsFor(actionCode, policyRequired).filter((r) => !checkRequirement(context, r, target, kind));
+  if (!compatibleIocRole(context, actionCode, target) && !missing.includes("VALIDATED_IOC_TARGET")) missing.push("VALIDATED_IOC_TARGET");
+  return missing;
 }
 
 /** Is there at least one recorded target for which every requirement of the Action holds? */
@@ -93,7 +96,7 @@ export function evaluateActionEvidence(context: EvidenceContext, actionCode: str
   const targets: string[] = [];
   let fewestMissing: EvidenceRequirementId[] | null = null;
   for (const candidate of candidates) {
-    const missing = requirements.filter((r) => !checkRequirement(context, r, candidate, kind));
+    const missing = missingEvidenceForTarget(context, actionCode, candidate, policyRequired);
     if (missing.length === 0) targets.push(candidate);
     else if (!fewestMissing || missing.length < fewestMissing.length) fewestMissing = missing;
   }

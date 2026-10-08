@@ -1,0 +1,34 @@
+# containment.yaml - CATALOG of candidate containment Actions for SQL_INJECTION, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-SQL-INJECTION. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: SQL_INJECTION
+candidateActions:
+- actionCode: ACT-BLOCK-SOURCE-IP
+  name: Block Source IP
+  condition: The source sending the injection payloads is confirmed malicious (not a known scanner / partner). Blocking one IP does not end the incident; the attacker can change IP.
+  runbookRef: RB-BLOCK-SOURCE-IP
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RATE-LIMIT-SOURCE
+  name: Rate-Limit Source
+  condition: Repeated malicious requests from the source continue.
+  runbookRef: RB-RATE-LIMIT-SOURCE
+  impactLevel: LOW
+  approvalRequired: false
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: The injection ran through an authenticated session or token of a named account recorded in the evidence.
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RESET-CREDENTIAL
+  name: Reset User Credentials
+  condition: Evidence shows credential compromise (credentials read or exposed), limited to the affected accounts.
+  runbookRef: RB-RESET-CREDENTIAL
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

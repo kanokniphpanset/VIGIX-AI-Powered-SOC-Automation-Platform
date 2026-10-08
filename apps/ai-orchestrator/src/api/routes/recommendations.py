@@ -28,10 +28,10 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from resources.prompt_loader import PromptLoader
 from src.agents.rag_agent.retriever import RagRetriever
@@ -74,27 +74,40 @@ class CandidateInstruction(_Strict):
 
 
 class CandidateStep(_Strict):
-    """Mirrors apps/backend RecommendationCandidateDto's candidateStepSchema v2 (strict).
+    """Mirrors apps/backend RecommendationCandidateDto's candidateStepSchema (strict).
 
-    One step = ONE response Action on ONE target, expanded into concrete instructions.
-    Never a VIGIX Core Flow phase (validate / monitor / re-hunt / approval ...).
+    type ACTION (the default when absent): ONE response Action on ONE target — action, target and runbook required.
+    type CHECK / MANUAL: a step of the attack-specific containment procedure that is not an executable Action
+    (investigation / decision step, or a control VIGIX cannot execute). The backend RecommendationValidator decides
+    whether every step is grounded; this is only the shape check.
     """
 
     stepOrder: int = Field(ge=1)
-    action: str = Field(min_length=1)
+    type: Literal["ACTION", "CHECK", "MANUAL"] | None = None
+    action: str | None = Field(default=None, min_length=1)
+    condition: str | None = Field(default=None, min_length=1)
+    procedureStep: int | None = Field(default=None, ge=1)
     objective: str = Field(min_length=1)
     responsibleRole: str = Field(min_length=1)
-    target: str = Field(min_length=1)
+    target: str | None = Field(default=None, min_length=1)
     reason: str = Field(min_length=1)
     evidenceRefs: list[str] = Field(default_factory=list)
     instructions: list[CandidateInstruction] = Field(min_length=1)
-    playbook: str = Field(min_length=1)
-    runbook: str = Field(min_length=1)
+    playbook: str | None = Field(default=None, min_length=1)
+    runbook: str | None = Field(default=None, min_length=1)
     verificationCriteria: str = Field(min_length=1)
     expectedResult: str | None = None
     missingEvidence: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     requiresApprovalSuggested: bool | None = None
+
+    @model_validator(mode="after")
+    def _action_step_is_complete(self) -> "CandidateStep":
+        if (self.type or "ACTION") == "ACTION":
+            missing = [k for k in ("action", "target", "runbook", "playbook") if not getattr(self, k)]
+            if missing:
+                raise ValueError(f"an ACTION step needs {', '.join(missing)}")
+        return self
 
 
 class Candidate(_Strict):

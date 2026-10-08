@@ -3,12 +3,13 @@ import { IIncidentRepository } from "../../../domain/incident/repositories/IInci
 import { EvidenceRecord, SYSTEM_ONLY_EVIDENCE_TYPES } from "../../../domain/investigation/Investigation.types";
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 import { Result } from "../../../shared/result/Result";
-import { CreateEvidenceDto } from "../dto/InvestigationDtos";
+import { CreateEvidenceDto, subtypeFactsSchema } from "../dto/InvestigationDtos";
 
 export type CreateEvidenceFailure =
   | { code: "INVESTIGATION_NOT_FOUND" }
   | { code: "INVESTIGATION_NOT_ACTIVE" }
   | { code: "SYSTEM_EVIDENCE_TYPE"; type: string }
+  | { code: "INVALID_ASSERTION"; issues: string[] }
   | { code: "ALERT_NOT_IN_INCIDENT"; alertId: string }
   | { code: "IOC_NOT_IN_INVESTIGATION"; iocIds: string[] };
 
@@ -33,6 +34,11 @@ export class CreateEvidenceUseCase {
 
     const b = input.body;
     if (SYSTEM_ONLY_EVIDENCE_TYPES.includes(b.type)) return Result.fail({ code: "SYSTEM_EVIDENCE_TYPE", type: b.type });
+
+    if (b.type === "ANALYST_ASSERTION") {
+      const facts = subtypeFactsSchema.safeParse((b.structuredData as Record<string, unknown> | null | undefined)?.subtypeFacts);
+      if (!facts.success) return Result.fail({ code: "INVALID_ASSERTION", issues: facts.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) });
+    }
 
     if (b.alertId) {
       const linked = await this.incidents.findLinkedIncidents([b.alertId], input.tenantId);

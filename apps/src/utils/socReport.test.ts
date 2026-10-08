@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { DashboardSummary } from '../api/vigix.ts'
-import { REPORT_WINDOWS, buildSocReport, isSocReport, pct, severityFill, thaiDate, thaiDuration, thaiMonthYear, windowLabel, windowStart, type TableBlock } from './socReport.ts'
+import { REPORT_WINDOWS, buildSocReport, isDraftCurrent, isSocReport, pct, severityFill, thaiDate, thaiDuration, thaiMonthYear, windowLabel, windowStart, type TableBlock } from './socReport.ts'
 
 const summary = {
   generatedAt: '2026-09-30T10:00:00+07:00',
@@ -110,4 +110,15 @@ test('drafts of an older shape are rejected', () => {
   assert.equal(isSocReport({ ...report, period: '7d' }), false)
   assert.equal(isSocReport({ title: 'x', sections: [] }), false)
   assert.equal(isSocReport(null), false)
+})
+
+test('a saved draft is reused only while its window is current', () => {
+  const now = new Date(2026, 9, 7, 10, 0)
+  const at = (d: Date, period: 'daily' | 'weekly' | '1m' | '3m') => ({ ...report, period, preparedAt: d.toISOString() })
+  assert.equal(report.preparedAt, new Date(2026, 8, 30, 15, 30).toISOString())
+  assert.equal(isDraftCurrent(at(new Date(2026, 9, 7, 8, 0), 'daily'), now), true)
+  assert.equal(isDraftCurrent(at(new Date(2026, 9, 6, 23, 0), 'daily'), now), false) // yesterday's daily window
+  assert.equal(isDraftCurrent(at(new Date(2026, 9, 6, 23, 0), 'weekly'), now), true)
+  assert.equal(isDraftCurrent(at(new Date(2026, 9, 5, 9, 0), '1m'), now), false)
+  assert.equal(isDraftCurrent({ ...report, preparedAt: undefined }, now), false)
 })

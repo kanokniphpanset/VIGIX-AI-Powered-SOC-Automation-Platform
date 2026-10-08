@@ -1,0 +1,236 @@
+# _global.yaml — rules that apply to EVERY family + the two shared (non-reference) actions.
+#
+# ADD (derived, not in REFERENCE_PATTERN): ACT-QUARANTINE-FILE-OBJECT / RB-QUARANTINE-FILE-OBJECT and
+# ACT-INVESTIGATE-MISSING-EVIDENCE / RB-INVESTIGATE-MISSING-EVIDENCE. Reason: the reference mentions "quarantine
+# payload/file" inside several runbooks and requires an investigation fallback when evidence/targets are missing
+# (prompt §7); a single shared definition keeps the quarantine gate (MAL-P2) in one place.
+
+family: GLOBAL
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level. Do not invent menus/commands/APIs."}
+
+evidence:
+  - id: payload_linked_malicious_execution
+    description: "File/object is linked to confirmed malicious execution or behavior (not merely found on disk)."
+    confirm: "ยืนยันว่ามี process/execution/event ที่โหลดหรือรันไฟล์นี้จริง และพฤติกรรมนั้นเป็นอันตราย ไม่ใช่เพียงพบไฟล์"
+    may_be_authorized: false
+  - id: activity_authorization_record
+    description: "Change/automation record that makes the observed activity approved (approved task change, approved automation, approved tool)."
+    confirm: "ตรวจ change record / รายการ approved automation / security tool inventory เทียบกับกิจกรรมที่พบ"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-QUARANTINE-FILE-OBJECT
+    action_name: Quarantine identified file/object
+    label_th: "กักไฟล์/object ที่ระบุตัวตนได้"
+    objective: "นำไฟล์/object ที่ระบุ identity ได้และผูกกับ malicious execution ออกจากการใช้งาน โดยเก็บต้นฉบับไว้"
+    phase: CONTAINMENT
+    containment_stage: CLEANUP_OBJECT
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    origin: DERIVED_ADDITION
+    supported_target_types: [file_object]
+    evidence_requirements: [payload_linked_malicious_execution]
+    target_requirements: [file_object]
+    runbook_refs: [RB-QUARANTINE-FILE-OBJECT]
+    legacy_action_refs: [ACT-QUARANTINE-FILE]
+    execution_constraints: ["ไม่ลบไฟล์", "ต้องมี file/object identity (MAL-P2)", "ไม่ quarantine legitimate OS binary"]
+  - action_id: ACT-INVESTIGATE-MISSING-EVIDENCE
+    action_name: Confirm missing evidence / resolve missing targets
+    label_th: "ยืนยันหลักฐานที่ขาดและระบุเป้าหมายที่ยังไม่ชัด"
+    objective: "ตรวจสอบเฉพาะหลักฐาน/target ที่ยังขาด เพื่อให้ policy ประเมินใหม่ได้ (ไม่ใช่ containment)"
+    phase: INVESTIGATION
+    containment_stage: NONE
+    impact_level: LOW
+    review_status: IR_REVIEW_PENDING
+    origin: DERIVED_ADDITION
+    supported_target_types: []
+    evidence_requirements: []
+    target_requirements: []
+    runbook_refs: [RB-INVESTIGATE-MISSING-EVIDENCE]
+    legacy_action_refs: []
+    execution_constraints: ["ไม่ execute suspicious script/binary เพื่อวิเคราะห์ (PS-P2)", "ใช้ log/telemetry ที่มีอยู่เท่านั้น"]
+
+policies:
+  # ---- action gates for the two shared actions ----
+  - policy_id: POL-GL-QUAR-001
+    rule_type: ACTION_GATE
+    action_id: ACT-QUARANTINE-FILE-OBJECT
+    applicable_subtypes: ["*"]
+    covers: [MAL-P1, MAL-P2, PROC-P2]
+    required_evidence:
+      all_of:
+        - {field: evidence.payload_linked_malicious_execution.status, operator: equals, value: PRESENT}
+    required_targets:
+      all_of:
+        - {field: targets.file_object.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-GL-QUAR-1, reason: "ไฟล์เป็น legitimate OS binary หรือ approved tool — ห้าม quarantine/ block แบบเหมารวม (PROC-P2)", when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}}
+      - {id: PRH-GL-QUAR-2, reason: "ไฟล์อยู่ใน approved automation/security tool list (PROC-P4)", when: {field: scope.is_approved_automation, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.file_quarantine]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ไม่มี file/object identity หรือยังไม่ผูกกับ execution"}
+    reason: "พบไฟล์ไม่เท่ากับยืนยัน execution/infection; quarantine ต้องมี file/object identity ที่ผูกกับ malicious execution"
+    provenance: {reference: [MAL-P1, MAL-P2, PROC-P2], derived: true}
+
+  - policy_id: POL-GL-INV-001
+    rule_type: ACTION_GATE
+    action_id: ACT-INVESTIGATE-MISSING-EVIDENCE
+    applicable_subtypes: ["*"]
+    covers: []
+    required_evidence: {all_of: []}
+    required_targets: {all_of: []}
+    prohibitions:
+      - {id: PRH-GL-INV-1, reason: "ห้ามให้ขั้นตอนตรวจสอบต้อง execute suspicious script/binary (PS-P2)", when: {field: scope.requires_executing_suspect_script, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: []
+    criticality_constraints: []
+    fallback: null
+    reason: "ใช้เมื่อไม่มี containment action ใดผ่าน หรือเพื่อปิดช่องว่างของหลักฐาน/target"
+    provenance: {reference: [PS-P2], derived: true}
+
+  # ---- GLOBAL PROHIBITIONS: evaluated for EVERY action, any family ----
+  - policy_id: POL-GL-PROHIBIT-001
+    rule_type: GLOBAL_PROHIBITION
+    applies_to: ALL_ACTIONS
+    covers: [GL-5, GL-9, GL-10, BF-P3, C2-P3, PE-P5, BF-P2, PE-P2, PS-P3, PS-P5, MAL-P3, PROC-P2, EXF-P3, PH-P2]
+    prohibitions:
+      - {id: PRH-GL-1, reason: "agent.ip / observer ถูกใช้เป็น attacker IP (GL-5, BF-P3)", when: {field: scope.uses_agent_ip_as_attacker, operator: equals, value: true}}
+      - {id: PRH-GL-2, reason: "agent.ip / observer ถูกใช้เป็น destination (C2-P3)", when: {field: scope.uses_agent_ip_as_destination, operator: equals, value: true}}
+      - {id: PRH-GL-3, reason: "มาตรการจะตัด approved management / recovery / trusted IR access (GL-9, PE-P5)", when: {field: scope.cuts_approved_access, operator: equals, value: true}}
+      - {id: PRH-GL-4, reason: "scope กว้างกว่าหลักฐานที่รองรับ (GL-11)", when: {field: scope.exceeds_evidence, operator: equals, value: true}}
+      - {id: PRH-GL-5, reason: "mass lockout — ตัดผู้ใช้จริงนอกชุดบัญชีที่มีหลักฐาน (BF-P2)", when: {field: scope.mass_lockout, operator: equals, value: true}}
+      - {id: PRH-GL-6, reason: "ลบ/ปิด services หรือ autoruns ทั้งชุด หรือ tasks ที่ไม่เกี่ยวข้อง (MAL-P3, PS-P5)", when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}}
+      - {id: PRH-GL-7, reason: "ปิด PowerShell/remote management ทั้งองค์กรจาก event เดียว (PS-P3)", when: {field: scope.disables_org_wide_capability, operator: equals, value: true}}
+      - {id: PRH-GL-8, reason: "remove administrators/elevation ทั้งระบบ (PE-P2)", when: {field: scope.removes_all_admins, operator: equals, value: true}}
+      - {id: PRH-GL-9, reason: "ลบ source data เพื่อหยุด exfiltration (EXF-P3)", when: {field: scope.deletes_source_data, operator: equals, value: true}}
+      - {id: PRH-GL-10, reason: "isolate/ลงโทษผู้รับทุกคนที่ได้รับข้อความ (PH-P2)", when: {field: scope.targets_all_recipients, operator: equals, value: true}}
+      - {id: PRH-GL-11, reason: "block hash ของ legitimate OS binary แบบเหมารวม (PROC-P2)", when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}}
+      - {id: PRH-GL-12, reason: "target อยู่ใน approved automation/security tool list (PROC-P4)", when: {field: scope.is_approved_automation, operator: equals, value: true}}
+    reason: "ข้อห้ามที่ต้องตรวจกับทุก action ก่อนเสนอ"
+    provenance: {reference: [GL-5, GL-9, GL-10]}
+
+  # ---- OUTPUT CONSTRAINTS: enforced by the recommendation output validator (runtime) ----
+  - policy_id: POL-GL-OUTPUT-001
+    rule_type: OUTPUT_CONSTRAINT
+    covers: [GL-1, GL-2, GL-3, GL-4, GL-6, GL-7, GL-8, GL-11, GL-12, AC-P2, EXF-P4, EXF-P5, SQ-P6]
+    checks:
+      - {check_id: OC-NO-EXECUTED-CLAIM, rule: "ไม่ใช้ถ้อยคำว่าดำเนินการแล้ว/สำเร็จ/ปิด incident/หยุด attack แล้ว เว้นแต่มี execution_result และ verification_result (GL-7)"}
+      - {check_id: OC-NO-PLACEHOLDER, rule: "ไม่มี '{{...}}' หรือค่า TBD ในขั้นตอนที่แสดงเป็นพร้อมลงมือ (§7)"}
+      - {check_id: OC-NO-SECRET, rule: "ไม่มี raw secret/token/password/cookie value; อ้าง credential_id/grant_id/session_id เท่านั้น (GL-8, AC-P2)"}
+      - {check_id: OC-NO-INTERNAL-IDS, rule: "ไม่แสดง family/subtype/Playbook-Policy-Runbook ID, JSON/YAML, confidence, retrieval detail ต่อผู้ใช้ (GL-12)"}
+      - {check_id: OC-NO-UNBOUND-TARGET, rule: "ทุก target ที่ปรากฏต้อง trace ถึง evidence_ref ใน audit record (GL-6)"}
+      - {check_id: OC-NO-RB-ONLY-STEP, rule: "ห้ามจบด้วย 'ดำเนินการตาม RB-…' ต้องมีขั้นตอนจริง (§7)"}
+      - {check_id: OC-STATE-NOT-CONFLATED, rule: "ไม่ใช้ attempted/delivered/clicked/submitted/executed/unauthorized_success/active_damage/confirmed_transfer แทนกัน (GL-2)"}
+      - {check_id: OC-NO-WIDER-DEDUP, rule: "deduplicate แล้ว scope ต้องไม่กว้างกว่า scope ของ action ใดๆ ที่ถูกรวม (GL-11)"}
+      - {check_id: OC-NO-LOSS-OVERCLAIM, rule: "ไม่รายงานปริมาณ/ผลกระทบข้อมูลเกิน evidence และไม่รับประกันเรียกคืนข้อมูลที่ส่งแล้ว (EXF-P4, EXF-P5)"}
+      - {check_id: OC-REMEDIATION-SEPARATE, rule: "remediation (เช่น parameterized queries/code fix/patch) แยกจากขั้นตอน containment และระบุเป็น follow-up (SQ-P6)"}
+      - {check_id: OC-RESET-NOT-REVOCATION, rule: "password reset ไม่ถูกเสนอแทน session/grant/token revocation (PH-P5, AC-P3, PE-P3)"}
+      - {check_id: OC-NO-CONFIDENCE-AS-EVIDENCE, rule: "confidence/semantic similarity ไม่ถูกใช้เป็นเหตุผลอนุญาต action (GL-4)"}
+    reason: "ตรวจ output ขั้นสุดท้ายก่อนแสดงผู้ใช้"
+    provenance: {reference: [GL-1, GL-2, GL-3, GL-4, GL-6, GL-7, GL-8, GL-11, GL-12]}
+
+  - policy_id: POL-GL-CLASSIFY-001
+    rule_type: CLASSIFICATION_RULE
+    covers: [GL-1, GL-2, GL-3]
+    statements:
+      - "การเลือก subtype/scenario ใช้ classification_evidence เท่านั้น; ผลการจัดกลุ่มไม่ให้สิทธิ์ใช้ action ใดโดยอัตโนมัติ"
+      - "เหตุการณ์สถานะ attempted < delivered < clicked < submitted < executed < unauthorized_success; แต่ละสถานะต้องมี evidence ของตัวเอง ไม่อนุมานจากสถานะที่ต่ำกว่า"
+      - "UNKNOWN/ไม่มีข้อมูล ถือว่าเงื่อนไขไม่ผ่าน; การไม่พบหลักฐานไม่ยืนยันว่าเหตุการณ์ไม่เกิด"
+      - "เมื่อมีหลาย subtype/family ในเหตุการณ์เดียว แต่ละ branch ต้องมีหลักฐานของตัวเอง"
+    reason: "นิยามหลักการประเมินที่ evaluator ใช้ (ดู contracts/field-dictionary.yaml)"
+    provenance: {reference: [GL-1, GL-2, GL-3]}
+
+  - policy_id: POL-GL-AUTHZ-001
+    rule_type: CLASSIFICATION_RULE
+    covers: [GL-10, GL-4]
+    statements:
+      - "ถ้า evidence ที่เปิด action มี authorization_status == AUTHORIZED action นั้น PROHIBITED (approved task change / approved automation)"
+      - "ถ้า authorization_status == UNKNOWN action อยู่ที่ NEEDS_EVIDENCE"
+      - "confidence score และ retrieval score ไม่ใช่ field ใน dictionary — predicate ใดอ้างถึงต้องถูก validator ปฏิเสธ"
+    reason: "ป้องกัน malicious containment กับกิจกรรมที่อนุมัติ และกัน confidence แทน evidence"
+    provenance: {reference: [GL-10, GL-4]}
+
+runbooks:
+  - runbook_id: RB-QUARANTINE-FILE-OBJECT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-QUARANTINE-FILE-OBJECT]
+    supported_subtypes: ["*"]
+    objective: "Quarantine เฉพาะไฟล์/object ที่ระบุ identity ได้และผูกกับ execution"
+    prerequisites: ["process ที่ใช้ไฟล์ถูกหยุดแล้ว หรือไฟล์ไม่ถูก lock", "เก็บ metadata ก่อนย้าย"]
+    required_evidence: [payload_linked_malicious_execution]
+    required_targets: [file_object]
+    required_capabilities: [cap.file_quarantine]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ไฟล์ที่ถูก quarantine จะใช้งานไม่ได้ หากเป็นไฟล์ที่แอปพลิเคชันจริงใช้ ต้องตรวจ dependency ก่อน"
+    ordered_steps:
+      - step_id: Q1
+        origin: DERIVED_ADDITION
+        fold: true
+        instruction: "ยืนยันว่า {{file_object.object_locator}} บน {{file_object.host_id}} เป็นไฟล์เดียวกับที่ผูกกับ execution ใน evidence (เทียบ path/object id และ hash หากมีในหลักฐาน) และไม่ใช่ไฟล์ระบบของ OS"
+        condition: {all_of: [{field: targets.file_object.validated, operator: equals, value: true}]}
+        expected_result: "identity ของไฟล์ตรงกับ evidence"
+        verify: "locator/hash ตรงกับ evidence ref"
+        on_failure: "หยุดขั้นตอน quarantine และกลับไปตรวจ file identity (ACT-INVESTIGATE-MISSING-EVIDENCE)"
+      - step_id: Q2
+        origin: DERIVED_ADDITION
+        fold: true
+        instruction: "บันทึก metadata ของ {{file_object.object_locator}} (path, owner, เวลาแก้ไข, hash ถ้ามี) ลง incident record ก่อนย้าย"
+        condition: {all_of: [{field: targets.file_object.validated, operator: equals, value: true}]}
+        expected_result: "มีสำเนา metadata สำหรับ audit/restore"
+        verify: "มี metadata ใน incident record"
+        on_failure: "ไม่ย้ายไฟล์จนกว่าจะบันทึก metadata ได้"
+      - step_id: Q3
+        title: "Quarantine {{file_object.object_locator}} บน {{file_object.host_id}}"
+        origin: DERIVED_ADDITION
+        instruction: "Quarantine {{file_object.object_locator}} บน {{file_object.host_id}} ด้วย quarantine function ของเครื่องมือ endpoint (ย้ายเข้าที่เก็บ quarantine ไม่ลบ)"
+        method_basis: EXISTING
+        condition: {all_of: [{field: targets.file_object.validated, operator: equals, value: true}, {field: capability.cap.file_quarantine.supported, operator: equals, value: true}]}
+        expected_result: "ไฟล์ถูกย้ายออกจาก path เดิมและเก็บต้นฉบับไว้"
+        method: "ใช้ quarantine function ของเครื่องมือ endpoint ย้าย {{file_object.object_locator}} บน {{file_object.host_id}} เข้าที่เก็บ quarantine (ย้ายเท่านั้น ไม่ลบ) หลังยืนยันว่าเป็นไฟล์เดียวกับในหลักฐาน"
+        verify: "ไม่พบไฟล์ที่ path เดิม และมี record ใน quarantine store"
+        on_failure: "ถ้าไฟล์ถูก lock ให้ตรวจ process ที่ถือไฟล์ (เฉพาะที่ validated) แล้วลองใหม่; ไม่สำเร็จให้ escalate IR"
+        rollback: "restore จาก quarantine store หลัง IR อนุมัติ"
+    verification: ["ไฟล์ไม่ถูกโหลด/รันซ้ำบน host ตาม endpoint telemetry ในช่วงเฝ้าระวัง"]
+    failure_handling: ["ถ้า quarantine ไม่ได้ ให้คง process/trigger containment ที่ทำแล้ว และ escalate IR"]
+    rollback: ["restore จาก quarantine store ตาม IR approval"]
+
+  - runbook_id: RB-INVESTIGATE-MISSING-EVIDENCE
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+    supported_subtypes: ["*"]
+    objective: "ปิดช่องว่างหลักฐาน/target เพื่อให้ policy ประเมินใหม่"
+    prerequisites: ["รายการ missing_evidence / missing_targets จาก policy decision"]
+    required_evidence: []
+    required_targets: []
+    required_capabilities: []
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ไม่มีผลต่อระบบ (read-only)"
+    ordered_steps:
+      - step_id: I1
+        title: "ตรวจสอบหลักฐานที่ขาดตามวิธียืนยัน"
+        origin: DERIVED_ADDITION
+        instruction: "ตรวจเฉพาะรายการต่อไปนี้ตามวิธียืนยันของแต่ละหลักฐานที่ขาด: {{missing.confirm_list}}"
+        expected_result: "สถานะของหลักฐานเปลี่ยนเป็น PRESENT หรือ ABSENT พร้อม source ref"
+        verify: "evidence record มี source_event_refs"
+        on_failure: "ระบุว่ายังไม่ทราบ (UNKNOWN) และ escalate ให้เจ้าของข้อมูล"
+      - step_id: I2
+        title: "ระบุ target ที่ขาดจาก event/asset inventory"
+        origin: DERIVED_ADDITION
+        instruction: "ระบุ target ที่ขาด: {{missing.target_list}} จาก event/asset inventory โดยไม่เดาค่า"
+        method: "ค้นหา target ที่ขาด ({{missing.target_list}}) จาก event และ asset inventory ที่อ้างอิงได้ โดยบันทึกแหล่งที่มาต่อค่า ไม่เดาหรือเติมค่าที่ไม่มีหลักฐาน แล้วส่งค่าที่ยืนยันกลับเข้าการประเมิน"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "target มี required_identity_fields ครบ หรือบันทึกว่ายังขาด"
+        verify: "target resolver ผ่าน validation"
+        on_failure: "คงสถานะ NEEDS_TARGET"
+    verification: ["ประเมิน policy ใหม่หลังได้ข้อมูล"]
+    failure_handling: ["ไม่เปลี่ยนสถานะ action เป็น ELIGIBLE จนกว่า evidence/target จะครบ"]
+    rollback: []
+
+playbooks: []

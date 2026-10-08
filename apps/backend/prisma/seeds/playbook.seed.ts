@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { spreadPolicyCode } from "../../src/domain/knowledge/spreadResponse";
 
 /**
  * playbook.seed.ts — seeds STC-001 "Short-Term Containment" v1.0 and the
@@ -65,7 +66,7 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     description: "Response strategy for repeated failed SSH authentication from an external source against a host.",
     incidentType: "SSH_BRUTE_FORCE",
     mitreTechniques: ["T1110", "T1110.001"],
-    allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-DISABLE-ACCOUNT"],
+    allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-RATE-LIMIT-SOURCE", "ACT-DISABLE-ACCOUNT", "ACT-REVOKE-SESSION", "ACT-RESET-CREDENTIAL"],
     steps: [
       { stepOrder: 1, title: "Stop the attacking source", description: "Block the source IP recorded in the authentication evidence (ACT-BLOCK-SOURCE-IP)." },
       { stepOrder: 2, title: "Protect the targeted account", description: "Only if evidence shows a successful logon for the targeted account, disable it (ACT-DISABLE-ACCOUNT)." },
@@ -100,9 +101,10 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     description: "Response strategy for SQL injection attempts against a public-facing web application.",
     incidentType: "SQL_INJECTION",
     mitreTechniques: ["T1190"],
-    allowedActions: ["ACT-BLOCK-SOURCE-IP"],
+    allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-RATE-LIMIT-SOURCE", "ACT-REVOKE-SESSION", "ACT-RESET-CREDENTIAL"],
     steps: [
       { stepOrder: 1, title: "Stop the attacking source", description: "Block the source IP of the injection requests at the WAF/firewall protecting the web tier (ACT-BLOCK-SOURCE-IP)." },
+      { stepOrder: 2, title: "Contain the affected session / account", description: "Only if the attack ran through an authenticated session, revoke that session and, on credential compromise, reset the credential (ACT-REVOKE-SESSION / ACT-RESET-CREDENTIAL)." },
     ],
   },
   {
@@ -154,8 +156,10 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     mitreTechniques: ["T1566", "T1566.001", "T1566.002"],
     allowedActions: [
       "ACT-QUARANTINE-EMAIL",
+      "ACT-BLOCK-SENDER",
       "ACT-BLOCK-URL",
       "ACT-BLOCK-DOMAIN",
+      "ACT-BLOCK-HASH",
       "ACT-RESET-CREDENTIAL",
       "ACT-REVOKE-SESSION",
       "ACT-DISABLE-ACCOUNT",
@@ -174,7 +178,7 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     description: "Response strategy for an endpoint communicating with attacker command-and-control infrastructure.",
     incidentType: "COMMAND_AND_CONTROL",
     mitreTechniques: ["T1071", "T1573", "T1571"],
-    allowedActions: ["ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-ISOLATE-ENDPOINT"],
+    allowedActions: ["ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-ISOLATE-ENDPOINT", "ACT-BLOCK-HASH"],
     steps: [
       { stepOrder: 1, title: "Cut the C2 channel", description: "Block the C2 destination IP / domain / URL recorded in the network evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL)." },
       { stepOrder: 2, title: "Contain the beaconing endpoint", description: "Isolate the endpoint that communicated with the C2 destination (ACT-ISOLATE-ENDPOINT)." },
@@ -186,7 +190,7 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     description: "Response strategy for data leaving the environment over a C2 channel, an alternative protocol or a web service.",
     incidentType: "DATA_EXFILTRATION",
     mitreTechniques: ["T1041", "T1048", "T1567"],
-    allowedActions: ["ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-ISOLATE-ENDPOINT"],
+    allowedActions: ["ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-ISOLATE-ENDPOINT", "ACT-REVOKE-SESSION", "ACT-DISABLE-ACCOUNT"],
     steps: [
       { stepOrder: 1, title: "Stop the transfer", description: "Block the exfiltration destination IP / domain / URL recorded in the transfer evidence (ACT-BLOCK-DESTINATION-IP / ACT-BLOCK-DOMAIN / ACT-BLOCK-URL)." },
       { stepOrder: 2, title: "Contain the source endpoint", description: "Isolate the endpoint the data left from (ACT-ISOLATE-ENDPOINT)." },
@@ -198,7 +202,7 @@ export const INCIDENT_PLAYBOOKS: SeedIncidentPlaybook[] = [
     description: "Response strategy for a user or process gaining higher privileges through an exploit or an abused elevation mechanism.",
     incidentType: "PRIVILEGE_ESCALATION",
     mitreTechniques: ["T1068", "T1548"],
-    allowedActions: ["ACT-KILL-PROCESS", "ACT-DISABLE-ACCOUNT", "ACT-ISOLATE-ENDPOINT"],
+    allowedActions: ["ACT-REMOVE-PRIVILEGE", "ACT-REVOKE-SESSION", "ACT-DISABLE-ACCOUNT", "ACT-KILL-PROCESS", "ACT-ISOLATE-ENDPOINT"],
     steps: [
       { stepOrder: 1, title: "Stop the elevated process", description: "Terminate the process running with escalated privileges (ACT-KILL-PROCESS)." },
       { stepOrder: 2, title: "Revoke the abusing identity", description: "Disable the account that escalated its privileges (ACT-DISABLE-ACCOUNT)." },
@@ -282,7 +286,7 @@ export function playbookSeedDefinitions(): PlaybookSeedDefinition[] {
       code: pb.code,
       name: pb.name,
       description: pb.description,
-      triggerConditions: { scope: "INCIDENT", incidentType: pb.incidentType, mitreTechniques: pb.mitreTechniques, allowedActions: pb.allowedActions },
+      triggerConditions: { scope: "INCIDENT", incidentType: pb.incidentType, mitreTechniques: pb.mitreTechniques, allowedActions: pb.allowedActions, spreadResponsePolicyCode: spreadPolicyCode(pb.incidentType) },
       steps: pb.steps,
     })),
   ];

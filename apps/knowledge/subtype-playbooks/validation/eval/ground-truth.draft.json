@@ -1,0 +1,202 @@
+{
+  "_meta": {
+    "status": "DRAFT",
+    "ir_reviewed": false,
+    "authored_by": "VIGIX engineering",
+    "authored_from": "The reference rules in this knowledge folder (principles BF-P1, AC-P1, C2-P1, SQ-P1, PS-P1/PS-P4, PROC-P1/PROC-P4 and the policy text) and the Re-hunt semantics stated in the task. NOT derived by running the system.",
+    "limitations": [
+      "Not reviewed or accepted by IR: every score computed against this file is a score against a DRAFT reference.",
+      "The author had seen runtime output for several early scenarios while building the system; cases GT-R1-05, 06, 10, 11 (recorded alerts 40112, 5503, 100330) were written before any output for them existed.",
+      "The Re-hunt cases (GT-R2-*) encode the decision rules stated in the task; they mirror the unit-test scenarios and therefore test consistency with the stated rules, not independent judgement.",
+      "Targets are matched by identity parts (all parts must appear in the target); scope by required / forbidden substrings of the rendered step text."
+    ],
+    "change_log": [
+      "GT-R1-13 (after the first run): removed scope_forbidden ['ทั้ง provider']. Authoring error - a substring check cannot tell the instruction 'ห้าม block ทั้ง provider' (a warning) from an instruction to block the whole provider. The expected scope itself (URL path + the evidenced flow) is unchanged."
+    ],
+    "known_gap_reported_not_fixed": "GT-R1-05 (recorded 40112) is a Wazuh correlation alert ('several failures followed by a success') that carries no per-event counts; the runtime derives brute-force evidence only from counted failures (VIGIX default thresholds), so it proposes nothing. The reference expects a scoped source restriction. This is reported as a false negative, not edited away.",
+    "action_universe": "all CONTAINMENT actions of the 2.0.0 knowledge (49); an unexpected ready action counts against precision; an action in prohibited_actions additionally counts as a Prohibited-Action violation"
+  },
+  "common": {
+    "P_ACCOUNT_SESSION": ["ACT-IDENTITY-CREDENTIAL-CONTAIN", "ACT-SESSION-REVOKE", "ACT-MFA-RECOVERY-CONTAIN", "ACT-SERVICE-SECRET-CONTAIN"],
+    "P_HOST": ["ACT-ACTIVE-DAMAGE-CONTAIN", "ACT-BACKDOOR-CONTAIN", "ACT-STEALER-CONTAIN", "ACT-MEMORY-EXECUTION-CONTAIN", "ACT-INJECTED-PROCESS-CONTAIN", "ACT-IMPOSTOR-PROCESS-CONTAIN", "ACT-TRUSTED-BINARY-ABUSE-CONTAIN", "ACT-EXECUTION-CHAIN-CONTAIN"],
+    "P_FILE_PERSIST": ["ACT-QUARANTINE-FILE-OBJECT", "ACT-PERSISTENCE-TRIGGER-DISABLE", "ACT-SCRIPT-EXECUTION-CONTAIN", "ACT-DOWNLOAD-EXECUTION-CONTAIN"],
+    "P_NETWORK_C2": ["ACT-WEB-C2-CONTAIN", "ACT-DNS-CHANNEL-CONTAIN", "ACT-CUSTOM-CHANNEL-CONTAIN", "ACT-RMM-ACCESS-CONTAIN", "ACT-WEB-TRANSFER-CONTAIN"],
+    "P_SQLI": ["ACT-WEB-REQUEST-RESTRICT", "ACT-DB-ERROR-EXPOSURE-CONTAIN", "ACT-SQLI-PROBING-RESTRICT", "ACT-SQLI-TIMING-CONTAIN", "ACT-DB-EGRESS-CONTAIN", "ACT-STORED-PAYLOAD-CONTAIN", "ACT-BATCH-QUERY-CONTAIN"]
+  },
+  "cases": [
+    {
+      "case_id": "GT-R1-01", "round": 1, "title": "sshd brute force from one source; enforcement point known; tools not named",
+      "basis": ["BF-P1: failed logins alone do not open account actions", "RB scope: that source -> that service at the named enforcement point, never a global block"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)", "attack-endpoint"], "scope_forbidden": ["/24", "0.0.0.0", "172.19.0.*"] }],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2", "ACT-AUTH-CAMPAIGN-RESTRICT"],
+      "process": { "must_not_be_ready": ["ตัด session/connection"], "must_be_in_missing": ["ตัด session/connection"] }
+    },
+    {
+      "case_id": "GT-R1-02", "round": 1, "title": "sshd brute force; organization has not named an enforcement point (the repository's real organization context)",
+      "basis": ["Organization context missing is not an evidence gap: no executable step may be invented"],
+      "expected_actions": [],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2", "ACT-AUTH-SOURCE-RESTRICT"],
+      "process": { "must_be_in_missing": ["จุดควบคุมการเข้าถึง"] }
+    },
+    {
+      "case_id": "GT-R1-03", "round": 1, "title": "sshd brute force; enforcement point AND connection-termination tool confirmed",
+      "basis": ["BF-P1", "A deny rule is followed by cutting the established connections of the same flow only"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)", "attack-endpoint", "ตัวระบุ session/connection"], "scope_forbidden": ["/24", "0.0.0.0"] }],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2"],
+      "process": { "ordered_pairs": [["ตั้ง deny/rate-limit", "ตัด session/connection"]] }
+    },
+    {
+      "case_id": "GT-R1-04", "round": 1, "title": "sshd brute force from two different sources",
+      "basis": ["One instance per source; a range is never substituted for two evidenced addresses"],
+      "expected_actions": [
+        { "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)"], "scope_forbidden": ["172.19.0.0/", "172.19.0.*"] },
+        { "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.9"], "scope_required": ["172.19.0.9", "SSH (22/TCP)"], "scope_forbidden": ["172.19.0.0/", "172.19.0.*"] }
+      ],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-05", "round": 1, "title": "recorded 40112: several failures followed by a success; enforcement point known",
+      "basis": ["BF-P1 / AC-P1: a success after failures is not a confirmed UNAUTHORIZED authentication; account actions need that confirmation"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)"], "scope_forbidden": ["/24"] }],
+      "prohibited_actions": ["ACT-IDENTITY-CREDENTIAL-CONTAIN", "ACT-SESSION-REVOKE", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-06", "round": 1, "title": "recorded 5503: a single PAM login failure",
+      "basis": ["BF-P1: one failure is not a correlated attempt pattern"],
+      "expected_actions": [],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2", "ACT-AUTH-SOURCE-RESTRICT"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-07", "round": 1, "title": "recorded 100320: outbound connection only",
+      "basis": ["C2-P1: periodic/outbound traffic alone is not C2"],
+      "expected_actions": [],
+      "prohibited_actions": ["@P_NETWORK_C2", "@P_HOST", "@P_ACCOUNT_SESSION"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-08", "round": 1, "title": "recorded 31103: web request containing SQL keywords",
+      "basis": ["SQ-P1: SQL keywords prove neither query execution nor data loss"],
+      "expected_actions": [],
+      "prohibited_actions": ["@P_SQLI", "@P_HOST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-09", "round": 1, "title": "recorded 92027: encoded PowerShell command",
+      "basis": ["PS-P1: an encoded command or powershell.exe alone never opens termination"],
+      "expected_actions": [],
+      "prohibited_actions": ["ACT-SCRIPT-EXECUTION-CONTAIN", "ACT-DOWNLOAD-EXECUTION-CONTAIN", "ACT-MEMORY-EXECUTION-CONTAIN", "ACT-PERSISTENCE-TRIGGER-DISABLE", "@P_HOST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-10", "round": 1, "title": "recorded 100330: process executed from a world-writable path, no analyst confirmation",
+      "basis": ["PROC-P1: name / path alone does not confirm malice"],
+      "expected_actions": [],
+      "prohibited_actions": ["@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-11", "round": 1, "title": "recorded 100330 + analyst-confirmed execution chain, process known only by PID",
+      "basis": ["PS-P4: a bare PID is not an identity; no termination step may be offered"],
+      "expected_actions": [],
+      "prohibited_actions": ["ACT-EXECUTION-CHAIN-CONTAIN", "ACT-QUARANTINE-FILE-OBJECT", "@P_NETWORK_C2"],
+      "process": { "must_not_be_ready": ["ยุติ"] }
+    },
+    {
+      "case_id": "GT-R1-12", "round": 1, "title": "Scheduled Task Hijack: task + payload process (GUID) evidenced; no C2, no file identity",
+      "basis": ["PS-P5: only the evidenced task", "Disable does not stop a running instance", "PS-P4: terminate by process identity", "no file identity -> no quarantine; outbound alone is not C2"],
+      "expected_actions": [{ "action": "ACT-PERSISTENCE-TRIGGER-DISABLE", "target_parts": ["WKS-FIN-07", "SyncReport"], "scope_required": ["SyncReport", "WKS-FIN-07", "ตัวระบุ Process: GUID {7f3a21aa-0001-6700-0000-001000000200}"], "scope_forbidden": ["ทุก task", "all tasks"] }],
+      "prohibited_actions": ["ACT-QUARANTINE-FILE-OBJECT", "@P_NETWORK_C2", "ACT-ACTIVE-DAMAGE-CONTAIN", "@P_ACCOUNT_SESSION"],
+      "process": { "ordered_pairs": [["Disable", "หยุด instance"], ["หยุด instance", "ยุติ payload process"]], "must_not_be_ready": ["Quarantine", "ตัดการติดต่อ"], "must_be_in_missing": ["ไฟล์/object ที่จะ quarantine"] }
+    },
+    {
+      "case_id": "GT-R1-13", "round": 1, "title": "Scheduled Task Hijack with C2 channel + file identity; connection-termination tool confirmed",
+      "basis": ["trigger -> instance -> payload -> channel -> established connections -> quarantine; each once"],
+      "expected_actions": [
+        { "action": "ACT-PERSISTENCE-TRIGGER-DISABLE", "target_parts": ["WKS-FIN-07", "SyncReport"], "scope_required": ["SyncReport", "WKS-FIN-07"], "scope_forbidden": [] },
+        { "action": "ACT-WEB-C2-CONTAIN", "target_parts": ["update-cdn.example-bad.test"], "scope_required": ["update-cdn.example-bad.test/api/v2/poll", "URL path", "203.0.113.45"], "scope_forbidden": [] },
+        { "action": "ACT-QUARANTINE-FILE-OBJECT", "target_parts": ["WKS-FIN-07", "upd.exe"], "scope_required": ["upd.exe", "WKS-FIN-07"], "scope_forbidden": [] }
+      ],
+      "prohibited_actions": ["ACT-ACTIVE-DAMAGE-CONTAIN", "@P_ACCOUNT_SESSION", "ACT-DNS-CHANNEL-CONTAIN"],
+      "process": { "ordered_pairs": [["Disable", "หยุด instance"], ["หยุด instance", "ยุติ payload process"], ["ยุติ payload process", "ตัดการติดต่อไปยัง"], ["ตัดการติดต่อไปยัง", "ตัด connection ที่ established"], ["ตัด connection ที่ established", "Quarantine"]] }
+    },
+    {
+      "case_id": "GT-R1-14", "round": 1, "title": "Scheduled Task Hijack with C2 + file identity; connection-termination tool NOT confirmed",
+      "basis": ["a step that needs a confirmed tool is information needed, not a ready step"],
+      "expected_actions": [
+        { "action": "ACT-PERSISTENCE-TRIGGER-DISABLE", "target_parts": ["WKS-FIN-07", "SyncReport"], "scope_required": ["SyncReport", "WKS-FIN-07"], "scope_forbidden": [] },
+        { "action": "ACT-WEB-C2-CONTAIN", "target_parts": ["update-cdn.example-bad.test"], "scope_required": ["update-cdn.example-bad.test/api/v2/poll", "URL path"], "scope_forbidden": [] },
+        { "action": "ACT-QUARANTINE-FILE-OBJECT", "target_parts": ["WKS-FIN-07", "upd.exe"], "scope_required": ["upd.exe"], "scope_forbidden": [] }
+      ],
+      "prohibited_actions": ["ACT-ACTIVE-DAMAGE-CONTAIN", "@P_ACCOUNT_SESSION"],
+      "process": { "must_not_be_ready": ["ตัด connection ที่ established"], "must_be_in_missing": ["ตัด connection ที่ established"] }
+    },
+    {
+      "case_id": "GT-R1-15", "round": 1, "title": "Scheduled Task change that is an AUTHORIZED / approved change",
+      "basis": ["approved task change -> no malicious containment"],
+      "expected_actions": [],
+      "prohibited_actions": ["ACT-PERSISTENCE-TRIGGER-DISABLE", "ACT-QUARANTINE-FILE-OBJECT", "@P_HOST", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-16", "round": 1, "title": "two subtypes in one incident: sshd brute force + Scheduled Task Hijack",
+      "basis": ["each subtype is evaluated on its own evidence; neither widens the other"],
+      "expected_actions": [
+        { "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)"], "scope_forbidden": ["/24"] },
+        { "action": "ACT-PERSISTENCE-TRIGGER-DISABLE", "target_parts": ["WKS-FIN-07", "SyncReport"], "scope_required": ["SyncReport"], "scope_forbidden": [] }
+      ],
+      "prohibited_actions": ["ACT-QUARANTINE-FILE-OBJECT", "@P_ACCOUNT_SESSION", "@P_NETWORK_C2"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-17", "round": 1, "title": "unauthorized password authentication confirmed on a CRITICAL asset",
+      "basis": ["criticality constraint: CRITICAL asset requires the asset owner's authority before account containment"],
+      "expected_actions": [],
+      "expected_approval": [{ "action": "ACT-IDENTITY-CREDENTIAL-CONTAIN", "authority_label": "เจ้าของ asset" }],
+      "prohibited_actions": ["@P_HOST", "@P_FILE_PERSIST", "@P_NETWORK_C2"],
+      "process": { "must_not_be_ready": ["ตัดการเข้าถึงของ identity"] }
+    },
+    {
+      "case_id": "GT-R1-18", "round": 1, "title": "IR execution authority explicitly denied in the organization context",
+      "basis": ["an action whose authority is not granted is an approval request, never a ready step"],
+      "expected_actions": [],
+      "expected_approval": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "authority_label": "IR" }],
+      "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"],
+      "process": {}
+    },
+    {
+      "case_id": "GT-R1-19", "round": 1, "title": "required control capability explicitly NOT supported",
+      "basis": ["a capability marked unsupported cannot back a ready step"],
+      "expected_actions": [],
+      "prohibited_actions": ["ACT-AUTH-SOURCE-RESTRICT", "@P_ACCOUNT_SESSION", "@P_HOST"],
+      "process": { "must_be_in_missing": ["ยังไม่รองรับหรือยังไม่ได้ระบุ"] }
+    },
+    { "case_id": "GT-R2-01", "round": 2, "title": "executed; covered re-hunt newer than execution and evidence found no recurrence", "basis": ["no new alert alone is not enough; here the re-hunt is newer than both the execution and the target's evidence, with full coverage"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "NO_NEW_ACTION" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-02", "round": 2, "title": "executed; no re-hunt for this cycle", "basis": ["unknown is not effective"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-03", "round": 2, "title": "executed; the only re-hunt is older than the execution", "basis": ["a re-hunt that predates the execution cannot verify it"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-04", "round": 2, "title": "executed; re-hunt coverage incomplete (agent offline / stale telemetry)", "basis": ["absence in incomplete data is not absence"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-05", "round": 2, "title": "executed; the target has evidence newer than the re-hunt", "basis": ["the re-hunt does not cover the newest evidence"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-06", "round": 2, "title": "re-hunt reports activity in scope, but this target's own evidence is older than the execution", "basis": ["uncorroborated recurrence is not proof the measure failed"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-07", "round": 2, "title": "corroborated recurrence; the IR left no record of the control state", "basis": ["new activity is not a reason to repeat automatically; check the control state first"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "INVESTIGATE" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    { "case_id": "GT-R2-08", "round": 2, "title": "corroborated recurrence although the IR attested the control was applied", "basis": ["the same control already applied -> repeating it is pointless; re-examine path / scope"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "ADJUST" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    {
+      "case_id": "GT-R2-09", "round": 2, "title": "corroborated recurrence; the IR recorded the control as only PARTIALLY applied", "basis": ["control not (fully) in place -> repeat, with the reason"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)"], "scope_forbidden": ["/24"] }],
+      "expected_rehunt": { "172.19.0.3": "REPEAT" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {}
+    },
+    {
+      "case_id": "GT-R2-10", "round": 2, "title": "the earlier execution FAILED", "basis": ["a failed execution is not an applied control"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.3"], "scope_required": ["172.19.0.3", "SSH (22/TCP)"], "scope_forbidden": ["/24"] }],
+      "expected_rehunt": { "172.19.0.3": "REPEAT" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {}
+    },
+    { "case_id": "GT-R2-11", "round": 2, "title": "the earlier Response Ticket is still open", "basis": ["a created ticket is not an executed action"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "NO_NEW_ACTION" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} },
+    {
+      "case_id": "GT-R2-12", "round": 2, "title": "a second attacker address appears while the first measure is still effective", "basis": ["a new target is a new instance; the handled target is left alone"],
+      "expected_actions": [{ "action": "ACT-AUTH-SOURCE-RESTRICT", "target_parts": ["172.19.0.9"], "scope_required": ["172.19.0.9", "SSH (22/TCP)"], "scope_forbidden": ["/24", "172.19.0.*"] }],
+      "expected_rehunt": { "172.19.0.3": "NO_NEW_ACTION", "172.19.0.9": "ADD" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {}
+    },
+    { "case_id": "GT-R2-13", "round": 2, "title": "activity returns on a DIFFERENT host", "basis": ["a recurrence elsewhere does not invalidate this target's measure"], "expected_actions": [], "expected_rehunt": { "172.19.0.3": "NO_NEW_ACTION" }, "prohibited_actions": ["@P_ACCOUNT_SESSION", "@P_HOST"], "process": {} }
+  ]
+}

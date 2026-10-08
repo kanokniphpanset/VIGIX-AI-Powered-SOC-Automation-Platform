@@ -1,0 +1,103 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for COMMAND_AND_CONTROL, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: COMMAND_AND_CONTROL
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Confirm C2 Destination
+  objective: Identify the host and the C2 destination, and confirm it is malicious.
+  recommendedAction:
+  - Identify the internal host making the connection and the destination IP / domain / URL
+  - Check the destination reputation and the beacon pattern (interval, size, protocol)
+  reason: A legitimate cloud service can look like beaconing; the destination must be confirmed before blocking.
+  evidenceRequired:
+  - Affected host
+  - Destination IP / domain / URL
+  - Threat intelligence verdict
+  expectedResult: The destination is confirmed malicious or ruled benign.
+  decisionRef: DEC-C2-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Cut the C2 Channel
+  objective: Block the confirmed C2 destination.
+  recommendedAction:
+  - 'Block the confirmed C2 destination IP at the firewall (see containment.yaml: ACT-BLOCK-DESTINATION-IP)'
+  - 'Block the confirmed C2 domain at DNS / proxy (see containment.yaml: ACT-BLOCK-DOMAIN)'
+  - 'Block the confirmed C2 URL at the proxy (see containment.yaml: ACT-BLOCK-URL)'
+  reason: Blocking the channel stops the attacker sending commands or receiving data.
+  evidenceRequired:
+  - Destination IP / domain / URL
+  expectedResult: No traffic from the host reaches the C2 destination.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: false
+- stepOrder: 3
+  phase: ASSESS
+  title: Continued Communication
+  objective: Check whether the host keeps trying to reach attacker infrastructure.
+  recommendedAction:
+  - Check for continued or alternate C2 attempts from the host after the block
+  - Identify the process that created the C2 connection
+  reason: Implants fall back to alternate destinations when the primary is blocked.
+  evidenceRequired:
+  - Network events
+  - Process / network evidence
+  expectedResult: Continued C2 activity and the implant process identified or ruled out.
+  decisionRef: DEC-C2-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain the Host
+  objective: Isolate the host and block the implant when C2 continues.
+  recommendedAction:
+  - 'Isolate the host (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  - 'Block the identified implant hash (see containment.yaml: ACT-BLOCK-HASH)'
+  reason: A host that keeps beaconing is still under attacker control.
+  evidenceRequired:
+  - Affected host
+  - Implant hash
+  expectedResult: The host cannot communicate and the implant cannot run elsewhere.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Scope Check
+  objective: Find other hosts talking to the same infrastructure.
+  recommendedAction:
+  - Hunt the C2 IP, domain and URL across DNS, proxy and firewall logs, and the implant hash on other endpoints
+  reason: One campaign usually infects several hosts.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: List of every host contacting the C2 infrastructure.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm C2 communication stopped.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Confirm no beacon to the C2 and no alternate malicious destination
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

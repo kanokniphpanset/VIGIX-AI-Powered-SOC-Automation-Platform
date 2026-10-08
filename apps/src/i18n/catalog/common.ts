@@ -377,6 +377,8 @@ export const common = {
   'err.RESPONSE_NOT_COMPLETED': ['Re-hunt ได้หลังลงมือเสร็จ (Mark eradicated) แล้วเท่านั้น', 'Re-hunt needs a completed (eradicated) response.'],
   'err.ALREADY_VERIFIED': ['การลงมือนี้ Re-hunt ไปแล้ว', 'This response has already been re-hunted.'],
   'err.REHUNT_TIMEOUT': ['Re-hunt หมดเวลา ไม่มีการบันทึกผล — ลองใหม่', 'The re-hunt timed out; no verdict was recorded. Try again.'],
+  'err.REHUNT_INCOMPLETE': ['Re-hunt ครอบคลุมไม่ครบ จึงสรุปว่า "ไม่พบ" ไม่ได้ ไม่มีการบันทึกผล — ตรวจ agent/ช่วงเวลา แล้วลองใหม่ หรือบันทึกผลด้วยตนเอง', 'The re-hunt could not see everything it needed, so "not found" cannot be claimed; no verdict was recorded. Check the agents and time window and retry, or record the result manually.'],
+  'err.REHUNT_UNCONFIRMED': ['พบค่า IOC ตรงกัน แต่ยังไม่มีหลักฐานว่าเกี่ยวข้องกับเหตุการณ์นี้ ไม่มีการบันทึกผล — SOC ต้องตรวจสอบเอง', 'IOC values matched, but nothing ties them to this incident; no verdict was recorded. The SOC must review the matches.'],
   'err.REHUNT_QUERY_FAILED': ['คำค้นของ Re-hunt ล้มเหลว ไม่มีการบันทึกผล', 'The re-hunt query failed; no verdict was recorded.'],
   'err.REHUNT_UNREACHABLE': ['เชื่อมต่อ SIEM index ไม่ได้ ไม่มีการบันทึกผล', 'The SIEM index is unreachable; no verdict was recorded.'],
   'err.REHUNT_NOT_CONFIGURED': ['ยังไม่ได้ตั้งค่าแหล่งข้อมูล Re-hunt ไม่มีการบันทึกผล', 'The re-hunt source is not configured; no verdict was recorded.'],
@@ -397,6 +399,7 @@ export const common = {
   'ai.done.first': ['AI Analysis เสร็จแล้ว', 'AI analysis complete'],
   'ai.done.partial': [' (บาง agent รายงานข้อผิดพลาด)', ' (some agents reported errors)'],
   // Recommendation generation
+  'err.rec.PLAYBOOK_PROVENANCE_NOT_FOUND': ['ไม่พบ Playbook ฉบับเผยแพร่ที่ตรงกับหลักฐาน — กรุณาสืบสวนเพิ่มเติมหรือตรวจสอบ Playbook ก่อนสร้าง Recommendation อีกครั้ง', 'No matching published playbook revision is available. Investigate further or review the playbook catalog before generating again.'],
   'err.rec.AI_UNAVAILABLE': ['บริการ AI ใช้งานไม่ได้ ไม่มีอะไรถูกบันทึก — ลองใหม่เมื่อระบบกลับมา', 'The AI service is unavailable; nothing was saved. Try again when it is running.'],
   'err.rec.NO_NEW_RECOMMENDATION': ['ไม่มี Action + Target ใหม่ที่หลักฐานรองรับ — ทุกคู่เคยอยู่ใน Recommendation ก่อนหน้าแล้ว จึงไม่สร้างซ้ำ กรุณาเพิ่มหลักฐาน/IOC ใหม่ หรือ Escalate', 'No new Action + target pair is supported by the evidence — every pair was in an earlier Recommendation, so none was created. Add new evidence / IOCs, or escalate.'],
   'err.rec.DUPLICATE_RECOMMENDATION': ['AI เสนอเฉพาะ Action + Target ที่เคยเสนอแล้ว จึงไม่บันทึก — ลองสร้างใหม่อีกครั้ง', 'The AI only repeated Action + target pairs from earlier Recommendations, so nothing was saved. Try generating again.'],

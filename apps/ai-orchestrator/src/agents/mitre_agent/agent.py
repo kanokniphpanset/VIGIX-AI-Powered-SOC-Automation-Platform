@@ -50,7 +50,15 @@ async def run(state: AgentState) -> AgentState:
             threat_intel_report=threat_intel_report,
         )
 
-        mapped = await mapper.map_signals(signals)
+        # Wazuh's own rule.mitre.id is authoritative: when the alert carries it, only those
+        # techniques are mapped. Keyword inference is a fallback for alerts without Wazuh MITRE.
+        native = [s for s in signals if s.category.startswith("NATIVE_MITRE:")]
+        mapped = await mapper.map_signals(native) if native else []
+        mitre_source = "WAZUH"
+        # No Wazuh tag, or one the MITRE catalog rejected: fall back to inference from the alert text.
+        if not mapped:
+            mapped = await mapper.map_signals([s for s in signals if s not in native])
+            mitre_source = "AI_INFERRED" if mapped else "NONE"
 
         techniques = [technique.to_dict() for technique in mapped]
 
@@ -58,6 +66,7 @@ async def run(state: AgentState) -> AgentState:
 
         report = {
             "result": result,
+            "mitreSource": mitre_source,
             "techniques": techniques,
             "signalCount": len(signals),
             "techniqueCount": len(techniques),

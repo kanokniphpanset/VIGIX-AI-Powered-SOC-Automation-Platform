@@ -1,134 +1,114 @@
-# steps.yaml — ORDERED STEP TEMPLATE, not a runtime instance.
-#
-# Nothing here has a "status" field: this is what AI Recommendation reads
-# to build a case-specific Response Plan's steps. The actual plan (with
-# per-step status, actualResult, completedBy/At, decision taken, etc.)
-# lives in the Response Plan / ResponsePlan step records, not here.
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for BRUTE_FORCE, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
 
 procedureCode: BRUTE_FORCE
-
 steps:
-  - stepOrder: 1
-    phase: VALIDATE
-    title: Confirm & Scope
-    objective: Confirm attack scope and identify affected account/host.
-    recommendedAction:
-      - Review authentication events ±30 minutes around the detection time
-      - Identify any successful logins among the failed attempts
-      - Check source IP reputation
-      - Check whether the source IP belongs to trusted infrastructure
-    reason: >
-      Multiple failed authentication attempts followed by a successful
-      login may indicate account compromise rather than a blocked
-      brute-force attempt.
-    evidenceRequired:
-      - Authentication logs
-      - Source IP
-      - Target account
-      - Wazuh alerts
-    expectedResult: Attack scope and potentially compromised account are identified.
-    decisionRef: DEC-BF-001
-    responsibleRole: IR_TEAM      # policy-engine ResponsibleRole (SOC|IR_TEAM)
-    responsibleDuty: IR Analyst   # finer-grained UI label, not a policy-engine field
-    approvalRequired: false
-
-  - stepOrder: 2
-    phase: SELECT_ACTION
-    title: Containment
-    objective: Prevent further unauthorized access.
-    recommendedAction:
-      - "Block the source IP (see containment.yaml: BLOCK_SOURCE_IP)"
-      - "Restrict/disable the affected account if compromise is confirmed (see containment.yaml: DISABLE_ACCOUNT)"
-
-    reason: >
-      The source IP generated repeated authentication attempts and
-      subsequently achieved successful authentication.
-    evidenceRequired:
-      - Source IP
-      - Authentication logs
-      - Account activity
-    expectedResult: No further unauthorized authentication attempts from the source IP.
-    responsibleRole: IR_TEAM
-    responsibleDuty: IR Engineer
-    approvalRequired: true
-    approvalRole: IR_TEAM   # "IR Review" — see approval-and-review policy, RULE-014
-
-  - stepOrder: 3
-    phase: PREPARE_PLAN
-    title: Investigation
-    objective: Determine the full extent of account/host impact.
-    recommendedAction:
-      - Review account activity since the successful login (file access,
-        privilege changes, new sessions)
-      - Check for password/MFA changes made by the account
-      - Check for lateral authentication attempts from the same account
-        to other hosts
-    reason: >
-      A successful login is the start of the investigation, not the end
-      of it — containment stops new access, it doesn't tell you what the
-      attacker already did.
-    evidenceRequired:
-      - Account activity log
-      - Session history
-      - Privilege/role change log
-    expectedResult: Clear picture of what the compromised session did, if anything.
-    responsibleRole: IR_TEAM
-    responsibleDuty: IR Analyst
-    approvalRequired: false
-
-  - stepOrder: 4
-    phase: PREPARE_PLAN
-    title: Threat Hunting
-    objective: Determine whether the same source IP or technique appears elsewhere.
-    recommendedAction:
-      - Re-hunt the source IP across all hosts, not just the originally
-        affected one
-      - Check for the same failed-then-successful login pattern against
-        other accounts
-    reason: >
-      Brute force campaigns are rarely single-host; confirming scope
-      before eradication avoids re-opening the same incident later.
-    evidenceRequired:
-      - Wazuh cross-host search results
-      - Authentication logs (fleet-wide)
-    expectedResult: Confirmed list of hosts/accounts touched by the same source IP.
-    responsibleRole: IR_TEAM
-    responsibleDuty: IR Analyst
-    approvalRequired: false
-
-  - stepOrder: 5
-    phase: EXECUTE
-    title: Eradication
-    objective: Remove any residual attacker access.
-    recommendedAction:
-      - Force password reset on the affected account
-      - Revoke any sessions/tokens issued after the successful login
-      - Re-enable the account only once reset is confirmed
-    reason: >
-      Blocking the source IP stops that specific access path; it doesn't
-      revoke a session the attacker may already hold.
-    evidenceRequired:
-      - Password reset confirmation
-      - Session/token revocation log
-    expectedResult: No attacker-controlled sessions remain on the affected account.
-    responsibleRole: IR_TEAM
-    responsibleDuty: IR Engineer
-    approvalRequired: false
-
-  - stepOrder: 6
-    phase: VERIFY
-    title: Verification
-    objective: Confirm the containment actually stopped the activity.
-    recommendedAction:
-      - Run the re-hunt query defined in verification.yaml
-      - Compare before/after event counts for the source IP
-      - Check for spread to other hosts since containment
-    reason: >
-      See PB-STC-001 playbook.md — verification is what closes the loop;
-      without it there's no evidence containment actually worked.
-    evidenceRequired:
-      - Wazuh re-hunt results (before/after)
-    expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
-    responsibleRole: IR_TEAM
-    responsibleDuty: IR Analyst
-    approvalRequired: false
+- stepOrder: 1
+  phase: VALIDATE
+  title: Identify Source & Target
+  objective: Identify the attacking source and every targeted account from the authentication logs.
+  recommendedAction:
+  - Review failed authentication events and identify the source IP and every targeted account
+  - Confirm the pattern is brute force (many failures from one source in a short window), not ordinary failed logins
+  - Check the source IP reputation and whether it belongs to trusted infrastructure
+  reason: Containment must target the right source and accounts; a trusted scanner or shared address must not be blocked by
+    mistake.
+  evidenceRequired:
+  - Authentication logs
+  - Source IP
+  - Target account
+  expectedResult: Source IP and targeted account(s) identified; brute-force pattern confirmed or ruled out.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Restrict Authentication Abuse
+  objective: Stop further authentication attempts from the confirmed malicious source.
+  recommendedAction:
+  - 'Add the confirmed malicious source IP to a temporary block list of the firewall / WAF / IdP (see containment.yaml: ACT-BLOCK-SOURCE-IP)'
+  - 'Apply a rate limit / account lockout threshold according to policy while attempts continue (see containment.yaml: ACT-RATE-LIMIT-SOURCE)'
+  reason: Restricting the source stops the guessing while the outcome of the attempts is checked.
+  evidenceRequired:
+  - Source IP
+  - Authentication logs
+  expectedResult: Further attempts from the source are blocked or throttled.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 3
+  phase: ASSESS
+  title: Successful Authentication Check
+  objective: Determine whether any attempt succeeded after the failures.
+  recommendedAction:
+  - Check for a successful login after the failed attempts for each targeted account
+  - Review the activity of any session that succeeded (new sessions, password / MFA changes)
+  reason: A successful login after many failures turns the incident into a possible account takeover.
+  evidenceRequired:
+  - Authentication logs
+  - Session history
+  expectedResult: Each targeted account is classified as compromised or not compromised.
+  decisionRef: DEC-BF-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Protect Targeted Account
+  objective: Remove attacker access from an account that was logged into.
+  # Evidence-gated: failed logins alone never reach this step. It opens only when the evidence records a successful
+  # login, and then also starts the Account Compromise response (escalatesTo).
+  appliesWhenSignals: [SUCCESSFUL_LOGIN]
+  escalatesTo: ACCOUNT_COMPROMISE
+  conditionalActions: true
+  recommendedAction:
+  - Treat the incident as a possible Account Compromise and continue with that response - post-login activity, MFA / recovery changes and privilege changes of the account
+  - 'Revoke the account''s active sessions / tokens (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'Reset the account''s credential (see containment.yaml: ACT-RESET-CREDENTIAL)'
+  - 'Disable the account until the reset is confirmed (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+  reason: Blocking the source does not revoke a session or a password the attacker already holds.
+  evidenceRequired:
+  - Target account
+  - Successful authentication event
+  expectedResult: No attacker session or valid credential remains for the account.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Scope Check
+  objective: Find continued attempts and other targeted accounts or hosts.
+  recommendedAction:
+  - Search for continued attempts from the source and from new sources against the same accounts
+  - Check whether other accounts or hosts were targeted by the same source or pattern
+  reason: Brute-force campaigns rotate sources and accounts; scope decides whether a new response plan is needed.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: Confirmed list of sources, accounts and hosts involved.
+  decisionRef: DEC-BF-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm unauthorized authentication has stopped and the account stays protected.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Monitor authentication of the targeted account(s) and the source IP
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

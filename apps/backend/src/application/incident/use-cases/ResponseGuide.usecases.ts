@@ -17,7 +17,7 @@ export interface ResponseGuideStep {
   action: string;
   target: string | null;
   reason: string;
-  instructions: { order: number; instruction: string; expectedResult: string | null }[];
+  instructions: { order: number; instruction: string; expectedResult: string | null; impact?: string | null; verify?: string | null; method?: string | null; methodKind?: "method" | "detail"; preconditions?: string[]; rollback?: string | null; note?: string | null }[];
   verificationCriteria: string | null;
   runbook: { code: string; name: string } | null;
 }
@@ -97,7 +97,7 @@ export class GetResponseGuideUseCase {
         action: s.title,
         target: s.target,
         reason: s.reason,
-        instructions: [...s.instructions].sort((a, b) => a.order - b.order).map((i) => ({ order: i.order, instruction: i.instruction, expectedResult: i.expectedResult })),
+        instructions: [...s.instructions].sort((a, b) => a.order - b.order).map((i) => ({ order: i.order, instruction: i.instruction, expectedResult: i.expectedResult, ...(i.impact ? { impact: i.impact } : {}), ...(i.verify ? { verify: i.verify } : {}), ...(i.method ? { method: i.method, methodKind: i.methodKind } : {}), ...(i.preconditions?.length ? { preconditions: i.preconditions } : {}), ...(i.rollback ? { rollback: i.rollback } : {}), ...(i.note ? { note: i.note } : {}) })),
         verificationCriteria: s.verificationCriteria,
         runbook: s.sourceRunbookId ? runbooks.get(s.sourceRunbookId) ?? null : null,
       })),
@@ -114,7 +114,7 @@ export function renderResponseGuideEmail(g: ResponseGuide, baseUrl: string): Ema
         `   Why: ${s.reason}`,
         `   Source runbook: ${s.runbook ? `${s.runbook.code} — ${s.runbook.name}` : "—"}`,
         "   Instructions:",
-        ...s.instructions.map((i) => `     ${i.order}) ${i.instruction}${i.expectedResult ? ` [expected: ${i.expectedResult}]` : ""}`),
+        ...s.instructions.map((i) => `     ${i.order}) ${i.instruction}${i.expectedResult ? ` [expected: ${i.expectedResult}]` : ""}${i.impact ? ` [impact: ${i.impact}]` : ""}${i.verify ? ` [verify: ${i.verify}]` : ""}${i.preconditions?.length ? ` [before: ${i.preconditions.join(" / ")}]` : ""}${i.rollback ? ` [rollback: ${i.rollback}]` : ""}`),
         ...(s.verificationCriteria ? [`   Verify: ${s.verificationCriteria}`] : []),
         "",
       ])

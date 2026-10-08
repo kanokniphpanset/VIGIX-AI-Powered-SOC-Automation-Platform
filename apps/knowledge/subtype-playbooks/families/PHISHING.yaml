@@ -1,0 +1,630 @@
+# PHISHING — family file. Reference: reference-registry.yaml#PHISHING
+# Owns the SHARED action ACT-OAUTH-GRANT-CONTAIN / RB-OAUTH-GRANT-CONTAIN (also used by AC-OAUTH).
+# Scenario discipline (PH-P1): delivery, click, submission and execution are separate scenarios with separate evidence.
+
+family: PHISHING
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: PHISHING, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+  exec_branch_open: &exec_branch_open
+    - {subtype_id: MAL-RANSOM,   open_when: {all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, {field: evidence.mal_active_damage.status, operator: equals, value: PRESENT}]}, gate_policy: POL-PH-006}
+    - {subtype_id: MAL-BACKDOOR, open_when: {all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, {field: evidence.mal_remote_access_or_persistence.status, operator: equals, value: PRESENT}]}, gate_policy: POL-PH-006}
+    - {subtype_id: MAL-STEALER,  open_when: {all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, {field: evidence.mal_collection_or_transfer.status, operator: equals, value: PRESENT}]}, gate_policy: POL-PH-006}
+    - {subtype_id: MAL-MEMORY,   open_when: {all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, {field: evidence.mal_memory_execution.status, operator: equals, value: PRESENT}]}, gate_policy: POL-PH-006}
+    - {subtype_id: PROC-CHAIN,   open_when: {all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, {field: evidence.proc_app_to_interpreter_chain.status, operator: equals, value: PRESENT}]}, gate_policy: POL-PH-006}
+
+evidence:
+  - id: ph_malicious_attachment_delivered
+    description: "Malicious attachment confirmed and bound to message(s)/recipients (DELIVERY state only)."
+    confirm: "ยืนยันว่า attachment เป็นอันตราย (verdict/sandbox/analyst) และผูกกับ message id + ผู้รับ"
+    may_be_authorized: false
+  - id: ph_attachment_executed
+    description: "Execution of the attachment (or its dropped payload) on an endpoint — separate from delivery."
+    confirm: "หา process/endpoint event ที่เปิด/รัน attachment บน host ของผู้รับ (ไม่อนุมานจากการส่งถึง)"
+    may_be_authorized: false
+  - id: ph_malicious_link_chain
+    description: "Message -> link chain confirmed malicious (DELIVERY of the link)."
+    confirm: "ยืนยัน chain message→URL→redirect→page ว่าเป็นอันตราย (verdict/analyst)"
+    may_be_authorized: false
+  - id: ph_link_clicked
+    description: "User click on the malicious link (CLICK state; not submission)."
+    confirm: "หา proxy/web log ที่ผู้รับเข้า URL ใน chain"
+    may_be_authorized: false
+  - id: ph_credential_submission
+    description: "Credential submission to the harvesting page, or identity abuse correlated to the page (SUBMISSION state)."
+    confirm: "หา POST/submission ไปยัง page หรือ sign-in ที่สัมพันธ์กับหน้านั้น ระบุ identities"
+    may_be_authorized: false
+  - id: ph_unauthorized_oauth_consent
+    description: "OAuth app consent/grant that was not approved."
+    confirm: "ตรวจ consent audit: client, principal, scopes และยืนยันว่าไม่ได้รับอนุมัติ"
+    may_be_authorized: true
+  - id: ph_bec_fraudulent_instruction
+    description: "Fraudulent business instruction (payment/bank-detail change/request) tied to a business item."
+    confirm: "ยืนยันกับผู้มีอำนาจของ business item ผ่านช่องทางอื่นว่าคำสั่งนี้ไม่ใช่ของจริง"
+    may_be_authorized: false
+  - id: ph_bec_mailbox_abuse
+    description: "Mailbox abuse in a BEC case: unauthorized session / forwarding rule / delegate."
+    confirm: "ตรวจ mailbox audit: sign-in, rule, delegate ที่ไม่ได้รับอนุญาต"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-MAIL-CAMPAIGN-QUARANTINE
+    action_name: Quarantine phishing-attachment campaign messages
+    label_th: "กักอีเมลแคมเปญฟิชชิงที่มีไฟล์แนบ"
+    objective: "หยุดการเข้าถึง attachment ต่อ messages/mailboxes ที่สัมพันธ์กับ campaign"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [message_set]
+    evidence_requirements: [ph_malicious_attachment_delivered]
+    target_requirements: [message_set]
+    runbook_refs: [RB-MAIL-CAMPAIGN-QUARANTINE]
+    legacy_action_refs: [ACT-QUARANTINE-EMAIL, ACT-BLOCK-SENDER]
+    execution_constraints: ["จำกัดเฉพาะ messages ของ campaign", "ไม่ isolate ผู้รับทุกคน", "delivery ไม่เท่ากับ execution"]
+  - action_id: ACT-PHISHING-LINK-RESTRICT
+    action_name: Restrict phishing link delivery
+    label_th: "จำกัดการส่งถึงของลิงก์ฟิชชิง"
+    objective: "ตัด delivery ต่อ URL/domain/path และ related messages"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [url_object, message_set]
+    evidence_requirements: [ph_malicious_link_chain]
+    target_requirements: [url_object]
+    runbook_refs: [RB-PHISHING-LINK-RESTRICT]
+    legacy_action_refs: [ACT-BLOCK-URL, ACT-BLOCK-DOMAIN, ACT-QUARANTINE-EMAIL]
+    execution_constraints: ["granular ที่สุดที่ control รองรับ", "click ≠ submission"]
+  - action_id: ACT-HARVESTING-CONTAIN
+    action_name: Contain credential-harvesting page and affected identities
+    label_th: "จำกัดหน้าเก็บ credential และ identity ที่ได้รับผลกระทบ"
+    objective: "ตัด harvesting และ identity access ต่อ page, accounts, sessions"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [url_object, message_set, account_identity, session]
+    evidence_requirements: [ph_credential_submission]
+    target_requirements: [url_object]
+    runbook_refs: [RB-HARVESTING-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-URL, ACT-REVOKE-SESSION, ACT-RESET-CREDENTIAL]
+    execution_constraints: ["จัดการเฉพาะ identities ที่ submit/ถูกใช้", "password reset ไม่แทน session revocation"]
+  - action_id: ACT-OAUTH-GRANT-CONTAIN
+    action_name: Contain unauthorized OAuth grant
+    label_th: "เพิกถอน OAuth grant ที่ไม่ได้รับอนุญาต"
+    objective: "ตัด app access ต่อ client/principal/grant/scopes และ resources ที่เข้าถึง"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [oauth_grant]
+    evidence_requirements: [ph_unauthorized_oauth_consent, ac_oauth_unauthorized_api_calls]
+    target_requirements: [oauth_grant]
+    runbook_refs: [RB-OAUTH-GRANT-CONTAIN]
+    legacy_action_refs: [ACT-REVOKE-SESSION]
+    execution_constraints: ["password reset ไม่แทน grant/token revocation", "ไม่แสดง token value"]
+  - action_id: ACT-BEC-CONTAIN
+    action_name: Contain BEC (business hold by authority, mailbox access by IR)
+    label_th: "จำกัด BEC (ระงับธุรกรรมโดยผู้มีอำนาจ และจำกัดการเข้าถึงกล่องจดหมายโดย IR)"
+    objective: "หยุดธุรกรรมโดยผู้มีอำนาจ และตัด mailbox session/rule/delegate ที่ไม่ได้รับอนุญาตโดย IR"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [business_item, mailbox_access]
+    evidence_requirements: [ph_bec_fraudulent_instruction, ph_bec_mailbox_abuse]
+    target_requirements: [business_item]
+    runbook_refs: [RB-BEC-CONTAIN]
+    legacy_action_refs: []
+    execution_constraints: ["business actions เป็น MANUAL ของผู้มีอำนาจ (PH-P4)", "IR ไม่ hold ธุรกรรมแทน"]
+
+playbooks:
+  - playbook_id: PBK-PH-ATTACH
+    attack_family: PHISHING
+    subtype_id: PH-ATTACH
+    subtype_name: Attachment
+    classification_evidence:
+      all_of: [{field: evidence.ph_malicious_attachment_delivered.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["attachment ถูกส่งถึงแต่ยังไม่ยืนยันว่าอันตราย", "การส่งถึง (delivery) ไม่ใช่ execution"]
+    scenarios:
+      - scenario_id: SC-PH-ATTACH-DELIVERED
+        description: "Delivery: มี attachment อันตรายผูกกับ message/ผู้รับ (ใช้ได้เสมอเมื่อ delivery ยืนยัน; execution ไม่ถูกอนุมานจาก delivery — scenario ถัดไปเปิดเฉพาะเมื่อมี execution evidence)"
+        ordered_action_refs:
+          - {action_id: ACT-MAIL-CAMPAIGN-QUARANTINE, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัดการเข้าถึง attachment ในทุก mailbox ของ campaign ก่อนมีผู้เปิดเพิ่ม", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+      - scenario_id: SC-PH-ATTACH-EXECUTED
+        description: "Execution: มีหลักฐานว่า attachment/payload ถูกรันบน endpoint — เพิ่ม Malware/Process branch ตามหลักฐานของ branch นั้น"
+        when: {field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}
+        ordered_action_refs:
+          - {action_id: ACT-MAIL-CAMPAIGN-QUARANTINE, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ยังต้องตัด attachment ใน mailbox อื่นของ campaign ควบคู่กับการจัดการ endpoint ที่รันแล้ว", parallel_allowed: true, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PH-001, POL-PH-006]
+    related_branches: *exec_branch_open
+    stop_escalation:
+      - {when: {field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}, then: ESCALATE_IR, note: "มี execution — แจ้ง IR เพื่อประเมิน endpoint ที่เกี่ยวข้อง"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PH-LINK
+    attack_family: PHISHING
+    subtype_id: PH-LINK
+    subtype_name: Malicious Link
+    classification_evidence:
+      all_of: [{field: evidence.ph_malicious_link_chain.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["URL เพียงแต่ดูแปลกโดยไม่ยืนยัน chain อันตราย", "click ไม่เท่ากับ credential submission"]
+    scenarios:
+      - scenario_id: SC-PH-LINK-DELIVERED
+        description: "Delivery/click: chain ลิงก์อันตรายถูกยืนยัน (อาจมีผู้คลิก) แต่ยังไม่มีหลักฐาน submission"
+        ordered_action_refs:
+          - {action_id: ACT-PHISHING-LINK-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด delivery ของลิงก์ที่ mail/web control และ quarantine messages ตาม campaign", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PH-002]
+    related_branches:
+      - {subtype_id: PH-CREDS, open_when: {field: evidence.ph_credential_submission.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: evidence.ph_credential_submission.status, operator: equals, value: PRESENT}, then: ESCALATE_IR, note: "มี submission — เปิด branch Credential Harvesting"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PH-CREDS
+    attack_family: PHISHING
+    subtype_id: PH-CREDS
+    subtype_name: Credential Harvesting
+    classification_evidence:
+      all_of: [{field: evidence.ph_credential_submission.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["ผู้ใช้เพียงคลิกลิงก์ (click ≠ submission)", "ไม่ทราบ identity ที่ submit"]
+    scenarios:
+      - scenario_id: SC-PH-CREDS-SUBMITTED
+        description: "Submission: มี credential submission หรือ identity abuse ที่สัมพันธ์กับ page"
+        ordered_action_refs:
+          - {action_id: ACT-HARVESTING-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ปิด page/messages เพื่อหยุด harvesting แล้ว revoke sessions ก่อนจัดการ credential (reset ไม่ทำให้ session เดิมหมด)", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PH-003]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.treats_delivery_as_execution, operator: equals, value: true}, then: STOP, note: "ห้ามอนุมาน submission จาก delivery/click"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PH-CONSENT
+    attack_family: PHISHING
+    subtype_id: PH-CONSENT
+    subtype_name: OAuth Consent
+    classification_evidence:
+      all_of:
+        - {field: evidence.ph_unauthorized_oauth_consent.status, operator: equals, value: PRESENT}
+        - {field: evidence.ph_unauthorized_oauth_consent.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["app ขอ scope สูงแต่ยังไม่ยืนยันว่า consent ไม่ได้รับอนุมัติ", "app อยู่ใน approved list"]
+    scenarios:
+      - scenario_id: SC-PH-CONSENT-UNAUTHORIZED
+        description: "มี consent/grant ที่ไม่ได้รับอนุมัติ ต้องตัด app access ที่ grant/scopes"
+        ordered_action_refs:
+          - {action_id: ACT-OAUTH-GRANT-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ถอน grant ก่อน; password reset ไม่ยกเลิก grant/token", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PH-004]
+    related_branches:
+      - {subtype_id: AC-OAUTH, open_when: {all_of: [{field: evidence.ac_oauth_unauthorized_api_calls.status, operator: equals, value: PRESENT}, {field: evidence.ac_oauth_unauthorized_api_calls.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.is_approved_automation, operator: equals, value: true}, then: STOP, note: "application อยู่ใน approved list"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PH-BEC
+    attack_family: PHISHING
+    subtype_id: PH-BEC
+    subtype_name: BEC
+    classification_evidence:
+      all_of: [{field: evidence.ph_bec_fraudulent_instruction.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["อีเมลคำขอที่ผิดปกติแต่ยังไม่ยืนยันว่าเป็นคำสั่งปลอม", "ไม่ทราบ business item / ผู้มีอำนาจ"]
+    scenarios:
+      - scenario_id: SC-PH-BEC-INSTRUCTION
+        description: "มีคำสั่งธุรกิจที่ฉ้อฉล; mailbox abuse เป็นส่วนเสริมหากมีหลักฐาน"
+        ordered_action_refs:
+          - {action_id: ACT-BEC-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ธุรกรรมอาจจ่ายเงินทันที จึงขอให้ผู้มีอำนาจ hold ก่อนเป็นขั้นแรก ขณะที่ IR ตัด mailbox access", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PH-005]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+      - {subtype_id: AC-SESSION, open_when: {all_of: [{field: evidence.ac_session_replay_unauthorized.status, operator: equals, value: PRESENT}, {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: evidence.ph_bec_fraudulent_instruction.status, operator: equals, value: PRESENT}, then: MANUAL_OWNER, note: "ธุรกรรมต้องได้รับการ hold โดยผู้มีอำนาจของ business item"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-PH-001
+    rule_type: ACTION_GATE
+    action_id: ACT-MAIL-CAMPAIGN-QUARANTINE
+    applicable_subtypes: [PH-ATTACH]
+    covers: [PH-P1, PH-P2]
+    required_evidence:
+      all_of: [{field: evidence.ph_malicious_attachment_delivered.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.message_set.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PH-1, reason: "ห้าม isolate/ลงโทษผู้รับทุกคนที่ได้รับข้อความ (PH-P2)", when: {field: scope.targets_all_recipients, operator: equals, value: true}}
+      - {id: PRH-PH-2, reason: "delivery ไม่เท่ากับ execution — ห้ามอนุมานสถานะ execution (PH-P1)", when: {field: scope.treats_delivery_as_execution, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.mail_quarantine]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยันว่า attachment อันตรายหรือระบุ message set ไม่ได้"}
+    reason: "ระดับ delivery: quarantine messages ของ campaign เท่านั้น"
+    provenance: {reference: [PH-ATTACH, PH-P1, PH-P2]}
+
+  - policy_id: POL-PH-002
+    rule_type: ACTION_GATE
+    action_id: ACT-PHISHING-LINK-RESTRICT
+    applicable_subtypes: [PH-LINK]
+    covers: [PH-P1, C2-P2]
+    required_evidence:
+      all_of: [{field: evidence.ph_malicious_link_chain.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.url_object.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PH-3, reason: "ห้าม block ทั้ง CDN/provider เมื่อ control ระดับ path/domain ทำได้", when: {field: scope.shared_infra_coarse_block, operator: equals, value: true}}
+      - {id: PRH-PH-4, reason: "click ไม่เท่ากับ submission/execution — ห้ามอนุมานสถานะที่สูงกว่า (PH-P1)", when: {field: scope.treats_delivery_as_execution, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.mail_web_link_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยัน chain หรือ granularity ของ URL"}
+    reason: "ตัด delivery ต่อ URL/domain/path ที่ยืนยันและ quarantine messages ที่เกี่ยวข้อง"
+    provenance: {reference: [PH-LINK, PH-P1]}
+
+  - policy_id: POL-PH-003
+    rule_type: ACTION_GATE
+    action_id: ACT-HARVESTING-CONTAIN
+    applicable_subtypes: [PH-CREDS]
+    covers: [PH-P1, PH-P5, PH-P2]
+    required_evidence:
+      all_of: [{field: evidence.ph_credential_submission.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.url_object.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PH-5, reason: "ห้ามอนุมาน submission จาก delivery/click (PH-P1)", when: {field: scope.treats_delivery_as_execution, operator: equals, value: true}}
+      - {id: PRH-PH-6, reason: "password reset ไม่แทน session/token revocation (PH-P5)", when: {field: scope.password_reset_as_only_revocation, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.mail_web_link_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ page หรือ identities ที่ submit ไม่ได้"}
+    reason: "Submission: ปิด page แล้ว revoke sessions และจัดการ credential เฉพาะ identities ที่เกี่ยวข้อง"
+    provenance: {reference: [PH-CREDS, PH-P1, PH-P5]}
+
+  - policy_id: POL-PH-004
+    rule_type: ACTION_GATE
+    action_id: ACT-OAUTH-GRANT-CONTAIN
+    applicable_subtypes: [PH-CONSENT]
+    covers: [PH-P5]
+    required_evidence:
+      all_of: [{field: evidence.ph_unauthorized_oauth_consent.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.oauth_grant.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PH-7, reason: "password reset ไม่ใช่ทางแทน OAuth grant revocation (PH-P5)", when: {field: scope.password_reset_as_only_revocation, operator: equals, value: true}}
+    authorization_gate: [ph_unauthorized_oauth_consent]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.oauth_grant_revocation]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ client/principal/grant ไม่ได้"}
+    reason: "ถอน grant ที่ไม่ได้รับอนุมัติ จำกัด principal/resource access และจัดการ tokens ตาม platform capability"
+    provenance: {reference: [PH-CONSENT, PH-P5]}
+
+  - policy_id: POL-PH-005
+    rule_type: ACTION_GATE
+    action_id: ACT-BEC-CONTAIN
+    applicable_subtypes: [PH-BEC]
+    covers: [PH-P4]
+    required_evidence:
+      all_of: [{field: evidence.ph_bec_fraudulent_instruction.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.business_item.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PH-8, reason: "business action ต้องเป็น MANUAL ของผู้มีอำนาจ ไม่ใช่ IR/ผู้ใช้ทั่วไป (PH-P4)", when: {field: scope.business_action_not_by_authority, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: []
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ business item หรือผู้มีอำนาจ"}
+    reason: "BEC: ผู้มีอำนาจ hold business item (MANUAL); IR ตัด mailbox access เมื่อมีหลักฐาน"
+    provenance: {reference: [PH-BEC, PH-P4]}
+
+  - policy_id: POL-PH-006
+    rule_type: BRANCH_GATE
+    branch_subtypes: [MAL-RANSOM, MAL-BACKDOOR, MAL-STEALER, MAL-MEMORY, PROC-CHAIN]
+    applicable_subtypes: [PH-ATTACH]
+    covers: [PH-P1, PH-P3, MAL-P1]
+    required_evidence:
+      all_of: [{field: evidence.ph_attachment_executed.status, operator: equals, value: PRESENT}]
+    prohibitions:
+      - {id: PRH-PH-9, reason: "ห้ามเปิด Malware/Process branch จาก delivery อย่างเดียว (PH-P1, PH-P3)", when: {field: scope.treats_delivery_as_execution, operator: equals, value: true}}
+    reason: "เพิ่ม Malware/Process branch เมื่อมี execution จริง และ branch นั้นมีหลักฐานของตัวเอง"
+    provenance: {reference: [PH-P1, PH-P3]}
+
+runbooks:
+  - runbook_id: RB-MAIL-CAMPAIGN-QUARANTINE
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-MAIL-CAMPAIGN-QUARANTINE]
+    supported_subtypes: [PH-ATTACH]
+    objective: "Quarantine messages ของ campaign และจำกัด attachment ที่ระบุ"
+    prerequisites: ["campaign match (sender/subject/attachment id) ที่ยืนยันแล้ว", "รู้ว่า mail platform ดึงข้อความที่ส่งถึง inbox แล้วกลับได้หรือไม่"]
+    required_evidence: [ph_malicious_attachment_delivered]
+    required_targets: [message_set]
+    required_capabilities: [cap.mail_quarantine]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ข้อความของ campaign หายจาก mailbox ผู้รับ; ข้อความถูกต้องที่ match เกณฑ์อาจถูกดึงด้วย — ตรวจเกณฑ์ก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันเกณฑ์ match ของ campaign {{message_set.message_ids_or_campaign_id}} บน {{message_set.provider}} (tenant {{message_set.tenant_id}}) ให้ครอบคลุมเฉพาะข้อความของ campaign ใน {{message_set.mailbox_scope}}"
+        expected_result: "set ของข้อความถูกจำกัดที่ campaign"
+        verify: "ตัวอย่างข้อความที่ match เป็นของ campaign ทั้งหมด"
+        on_failure: "แคบเกณฑ์ลง ห้ามขยายเกินหลักฐาน"
+      - step_id: S2
+        title: "Quarantine ข้อความของ campaign {{message_set.message_ids_or_campaign_id}} ใน {{message_set.mailbox_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Quarantine ข้อความของ campaign {{message_set.message_ids_or_campaign_id}} ออกจาก mailboxes ใน {{message_set.mailbox_scope}} (รวมข้อความที่ส่งถึง inbox แล้ว)"
+        method: "ใน mail system ค้นหาข้อความด้วยเกณฑ์ของ {{message_set.message_ids_or_campaign_id}} ในขอบเขต {{message_set.mailbox_scope}} (รวมข้อความที่ถึง inbox แล้ว) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการข้อความที่ย้ายไว้ใน incident record และค้นหาซ้ำด้วยเกณฑ์เดิมเพื่อตรวจว่าไม่เหลือข้อความ active"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ข้อความไม่อยู่ใน inbox ผู้รับ"
+        verify: "ค้นหาซ้ำด้วยเกณฑ์เดิมไม่พบข้อความ active ใน mailbox"
+        on_failure: "ถ้า purge หลังส่งไม่ได้ ให้แจ้งผู้รับที่ระบุผ่านช่องทางที่อนุมัติและ escalate IR"
+        rollback: "release จาก quarantine เฉพาะข้อความที่ IR ยืนยันว่า false positive"
+        impact: "ข้อความที่ match จะถูกดึงจากผู้รับทั้งหมดใน scope"
+      - step_id: S3
+        title: "จำกัด attachment {{message_set.attachment_ref}} ที่ mail gateway/endpoint control"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด attachment {{message_set.attachment_ref}} ที่ mail gateway/endpoint control (block ตาม attachment identity) หากเครื่องมือรองรับ"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ความสามารถของ mail gateway/endpoint control ในการ block ตามตัวตนของ attachment (เช่น hash ชื่อ หรือชนิด) และข้อมูลที่ใช้ระบุ attachment"
+        condition: {all_of: [{field: capability.cap.mail_web_link_control.supported, operator: equals, value: true}]}
+        expected_result: "attachment ที่ระบุถูกบล็อกไม่ให้ส่ง/เปิดซ้ำ"
+        verify: "ข้อความใหม่ที่มี attachment เดียวกันถูกบล็อก"
+        on_failure: "ใช้ quarantine ตามรอบแทน"
+      - step_id: S4
+        title: "ระบุผู้รับที่เปิด/ดาวน์โหลด/รัน attachment เพื่อประเมินเป็นรายเครื่อง"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ระบุผู้รับที่เปิด/ดาวน์โหลด/รัน attachment จาก telemetry แล้วประเมินแยกเป็นรายเครื่อง (ไม่ isolate ผู้รับทุกคน)"
+        method: "ใช้ telemetry ที่มี (เช่น mail log และ endpoint log) ของ campaign {{message_set.message_ids_or_campaign_id}} หาผู้รับที่เปิด ดาวน์โหลด หรือรัน attachment แล้วประเมินแยกเป็นรายเครื่อง โดยอ้างอิงหลักฐานต่อรายการ ไม่ isolate ผู้รับทุกคน ผลคือรายชื่อพร้อม source ref เพื่อส่งต่อขั้นตอนของเครื่องหรือบัญชีที่ validated"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "รู้รายชื่อผู้รับที่มี open/execute evidence"
+        verify: "รายชื่อมี source ref ต่อรายการ"
+        on_failure: "คงสถานะ UNKNOWN และไม่อนุมานว่ารัน"
+    verification: ["ไม่พบข้อความ/attachment ของ campaign ใน mailbox scope", "รายชื่อผู้รับที่เปิดไฟล์ผูกกับหลักฐาน"]
+    failure_handling: ["ข้อความใหม่ในรูปแบบเดียวกัน → ปรับเกณฑ์ตามหลักฐานใหม่"]
+    rollback: ["release จาก quarantine ตาม IR approval"]
+
+  - runbook_id: RB-PHISHING-LINK-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-PHISHING-LINK-RESTRICT]
+    supported_subtypes: [PH-LINK]
+    objective: "จำกัดลิงก์ที่ mail/web control และ quarantine messages ตาม campaign scope"
+    prerequisites: ["chain ที่ยืนยัน (message→URL→page)", "รู้ granularity ที่ control รองรับ (path/domain/IP)"]
+    required_evidence: [ph_malicious_link_chain]
+    required_targets: [url_object]
+    required_capabilities: [cap.mail_web_link_control, cap.mail_quarantine, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้เข้าลิงก์/โดเมนที่ระบุไม่ได้; ถ้าเป็น shared hosting จะกระทบเว็บอื่นเมื่อ block กว้าง"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{url_object.url_or_domain}} (granularity: {{url_object.granularity}}) อยู่ใน chain อันตรายและไม่ใช่ shared infrastructure ที่ต้อง block แบบ granular"
+        expected_result: "รู้ระดับที่ควร block"
+        verify: "เทียบกับ evidence chain และ provider ของโฮสต์"
+        on_failure: "ใช้ granularity ละเอียดที่สุดที่รองรับ หรือ escalate IR"
+      - step_id: S2
+        title: "Block {{url_object.url_or_domain}} ที่ระดับ {{url_object.granularity}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Block {{url_object.url_or_domain}} ที่ mail/web control ตามระดับ {{url_object.granularity}} (ไม่ block ทั้ง provider/CDN เมื่อทำเป็นรายเส้นทางได้)"
+        method: "ตั้ง block ที่ mail/web control ตามระดับ {{url_object.granularity}} ของ {{url_object.url_or_domain}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ path ต้องใช้เครื่องมือที่เห็น path และ DNS ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วทดสอบด้วย URL ว่าถูกบล็อกตาม log"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ผู้ใช้เข้า URL ที่ระบุไม่ได้"
+        verify: "ทดสอบ URL ถูกบล็อกตาม log ของ control"
+        on_failure: "ถ้า control ไม่รองรับ granular ให้ใช้ระดับ domain ที่ IR อนุมัติ"
+        rollback: "ถอน rule ตาม snapshot"
+        impact: "เว็บอื่นบน domain เดียวกันอาจเข้าไม่ได้เมื่อ block ระดับ domain"
+      - step_id: S3
+        title: "Quarantine ข้อความที่มี link นี้ใน {{message_set.mailbox_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Quarantine messages ที่มี link นี้ใน {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}})"
+        method: "ใน mail system ค้นหาข้อความที่มี link นี้ในขอบเขต {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}}) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการข้อความที่ย้ายไว้ใน incident record และค้นหาซ้ำเพื่อตรวจว่าไม่เหลือข้อความ active"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.message_set.validated, operator: equals, value: true}, {field: capability.cap.mail_quarantine.supported, operator: equals, value: true}]}
+        expected_result: "ข้อความ campaign ไม่อยู่ใน inbox"
+        verify: "ค้นหาซ้ำไม่พบ"
+        on_failure: "escalate IR"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ web/proxy log หา request ใหม่ไปยัง {{url_object.url_or_domain}} และรายชื่อผู้ที่คลิก (click ≠ submission — ถ้ามี submission ให้ประเมิน Credential Harvesting)"
+        expected_result: "ไม่มี request ใหม่ผ่าน control"
+        verify: "re-hunt URL ใน proxy log"
+        on_failure: "ตรวจ redirect/mirror domain ใหม่ของ campaign"
+    verification: ["ไม่มี request ใหม่ไปยัง URL ที่ block", "ข้อความ campaign ถูก quarantine ใน scope"]
+    failure_handling: ["ผู้โจมตีเปลี่ยน domain → เพิ่ม URL ตามหลักฐาน ไม่ block กว้างล่วงหน้า"]
+    rollback: ["ถอน block rule ตาม snapshot"]
+
+  - runbook_id: RB-HARVESTING-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-HARVESTING-CONTAIN]
+    supported_subtypes: [PH-CREDS]
+    objective: "จำกัด page/messages แล้ว revoke sessions และจัดการ credentials ของ identities ที่ submit"
+    prerequisites: ["page URL ที่ยืนยัน", "รายชื่อ identities ที่ submit/ถูกใช้พร้อมหลักฐาน"]
+    required_evidence: [ph_credential_submission]
+    required_targets: [url_object]
+    required_capabilities: [cap.mail_web_link_control, cap.session_revocation, cap.identity_restriction]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้ที่ submit ต้องเปลี่ยน credential และ sign-in ใหม่"
+    ordered_steps:
+      - step_id: S1
+        title: "Block หน้า {{url_object.url_or_domain}} ที่ระดับ {{url_object.granularity}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Block page {{url_object.url_or_domain}} ที่ mail/web control ตามระดับ {{url_object.granularity}} เพื่อหยุดการเก็บ credential เพิ่ม"
+        method: "ตั้ง block ที่ mail/web control ตามระดับ {{url_object.granularity}} ของ {{url_object.url_or_domain}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ path ต้องใช้เครื่องมือที่เห็น path และ DNS ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วทดสอบด้วย URL ว่าถูกบล็อกตาม log"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ผู้ใช้เข้า page ไม่ได้"
+        verify: "ทดสอบ URL ถูกบล็อกตาม log"
+        on_failure: "ใช้ระดับ domain ที่รองรับและ escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+      - step_id: S2
+        title: "Quarantine ข้อความที่นำไปสู่หน้าดังกล่าวใน {{message_set.mailbox_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Quarantine messages ที่นำไปสู่ page ใน {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}})"
+        method: "ใน mail system ค้นหาข้อความที่นำไปสู่หน้านี้ในขอบเขต {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}}) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการที่ย้ายไว้ใน incident record และค้นหาซ้ำเพื่อตรวจว่าไม่เหลือข้อความ active"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.message_set.validated, operator: equals, value: true}, {field: capability.cap.mail_quarantine.supported, operator: equals, value: true}]}
+        expected_result: "ข้อความไม่อยู่ใน inbox"
+        verify: "ค้นหาซ้ำไม่พบ"
+        on_failure: "escalate IR"
+      - step_id: S3
+        title: "Revoke sessions ของบัญชี {{account_identity.account_id}} ที่ {{account_identity.provider}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke sessions ของ {{account_identity.account_id}} ที่ {{account_identity.provider}} ก่อนเปลี่ยน credential (reset อย่างเดียวไม่ทำให้ session เดิมหมด)"
+        method: "ใช้เครื่องมือจัดการ identity ของ {{account_identity.provider}} แสดงรายการ session และ refresh token ของ {{account_identity.account_id}} แล้ว revoke ทุกรายการ บันทึกรายการก่อน revoke เพื่อใช้เทียบ และทำก่อนการเปลี่ยน credential เสมอ (session ใหม่ของเจ้าของที่ยืนยันตัวตนแล้วหลังขั้นตอนนี้ไม่ต้อง revoke)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.account_identity.validated, operator: equals, value: true}, {field: capability.cap.session_revocation.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี session active ของ identity ที่ submit"
+        verify: "รายการ session ว่างหรือมีเฉพาะ session ใหม่ของเจ้าของ"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S4
+        title: "บังคับเปลี่ยน credential ของบัญชี {{account_identity.account_id}} ที่ submit"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "บังคับเปลี่ยน credential ของ {{account_identity.account_id}} ผ่านช่องทางยืนยันตัวตนเจ้าของ (เฉพาะ identity ที่ submit ตาม evidence)"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ขั้นตอนยืนยันตัวตนเจ้าของบัญชีและช่องทางส่ง credential ใหม่ที่องค์กรอนุมัติ"
+        condition: {all_of: [{field: targets.account_identity.validated, operator: equals, value: true}]}
+        expected_result: "credential ใหม่ถูกตั้งโดยเจ้าของ"
+        verify: "authentication ด้วย credential เดิมถูกปฏิเสธ"
+        on_failure: "restrict บัญชีชั่วคราวและ escalate IR"
+        impact: "เจ้าของบัญชีต้อง sign-in ใหม่"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ sign-in ของ identity ที่ submit หลังเหตุการณ์: ถ้าพบ authentication สำเร็จที่ไม่ได้รับอนุญาต ให้เปิดขั้นตอน Account Compromise สำหรับบัญชีนั้น"
+        condition: {all_of: [{field: targets.account_identity.validated, operator: equals, value: true}]}
+        expected_result: "รู้ว่ามี/ไม่มี unauthorized success"
+        verify: "re-hunt sign-in ช่วงหลังเวลา submission"
+        on_failure: "ถือว่า UNKNOWN และไม่สรุปว่าไม่ถูกใช้"
+    verification: ["page ถูกบล็อก", "identity ที่ submit ไม่มี session/credential เดิมเหลือ"]
+    failure_handling: ["พบ login ผิดปกติ → AC-PASSWORD/AC-SESSION branch"]
+    rollback: ["ถอน block ตาม snapshot; คืนบัญชีตามที่ IR อนุมัติ"]
+
+  - runbook_id: RB-OAUTH-GRANT-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-OAUTH-GRANT-CONTAIN]
+    supported_subtypes: [PH-CONSENT, AC-OAUTH]
+    objective: "ถอน grant ที่ไม่ได้รับอนุมัติ จำกัด principal/resource access และจัดการ tokens ตาม platform capability"
+    prerequisites: ["client_id, principal_id, grant_id, scopes, resources", "รู้ provider runbook สำหรับ revoke grant/token"]
+    required_evidence: [ph_unauthorized_oauth_consent, ac_oauth_unauthorized_api_calls]
+    required_targets: [oauth_grant]
+    required_capabilities: [cap.oauth_grant_revocation]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "แอปที่ถือ grant นี้เข้าถึง resource ไม่ได้; ผู้ใช้อาจต้อง consent ใหม่หากเป็นแอปที่ถูกต้อง"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจ client {{oauth_grant.client_id}} / principal {{oauth_grant.principal_id}} / grant {{oauth_grant.grant_id}} ที่ {{oauth_grant.provider}} ({{oauth_grant.tenant_or_scope}}) ว่าไม่ใช่แอปที่ได้รับอนุมัติ"
+        expected_result: "ยืนยัน grant ที่ไม่ได้รับอนุมัติ"
+        verify: "เทียบกับรายการ approved applications และ consent audit"
+        on_failure: "ไม่ revoke จนกว่าจะแยกจากแอปที่ถูกต้อง"
+      - step_id: S2
+        title: "ถอน grant {{oauth_grant.grant_id}} ของ client {{oauth_grant.client_id}} (principal {{oauth_grant.principal_id}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ถอน grant {{oauth_grant.grant_id}} ของ client {{oauth_grant.client_id}} สำหรับ principal {{oauth_grant.principal_id}} ที่ {{oauth_grant.provider}}"
+        method: "ในส่วนจัดการของ {{oauth_grant.provider}} หา grant {{oauth_grant.grant_id}} ของ client {{oauth_grant.client_id}} สำหรับ principal {{oauth_grant.principal_id}} แล้วถอนเฉพาะ grant นั้น (ไม่ถอน grant อื่นของ client หรือ principal) บันทึก grant ก่อนถอน แล้วตรวจว่าไม่อยู่ในรายการ consent ของ principal"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.oauth_grant_revocation.supported, operator: equals, value: true}]}
+        expected_result: "grant ไม่ active"
+        verify: "grant ไม่ปรากฏในรายการ consent ของ principal"
+        on_failure: "ใช้ขั้นตอน restrict resource access (S4)"
+        rollback: "ให้ consent ใหม่ผ่านกระบวนการอนุมัติหากพบว่าเป็นแอปที่ถูกต้อง"
+      - step_id: S3
+        title: "Revoke access/refresh tokens ของ grant {{oauth_grant.grant_id}} (token family {{oauth_grant.token_family_id}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke access/refresh tokens ที่ออกภายใต้ grant {{oauth_grant.grant_id}} (token family {{oauth_grant.token_family_id}}) ตามความสามารถของ {{oauth_grant.provider}} — การ revoke grant อาจไม่ invalidate token ที่ออกแล้วทันที"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ความสามารถของ provider ในการ revoke access/refresh token ที่ออกแล้วและวิธี invalidate token family"
+        condition: {all_of: [{field: capability.cap.oauth_grant_revocation.supported, operator: equals, value: true}]}
+        expected_result: "token ใช้เรียก API ไม่ได้"
+        verify: "API call ด้วย token family นั้นถูกปฏิเสธตาม log"
+        on_failure: "restrict resource access ใน S4"
+      - step_id: S4
+        title: "จำกัดการเข้าถึง {{oauth_grant.resources}} ของ principal {{oauth_grant.principal_id}} สำหรับ client {{oauth_grant.client_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดการเข้าถึง {{oauth_grant.resources}} ของ principal {{oauth_grant.principal_id}} สำหรับ client {{oauth_grant.client_id}} ด้วย access restriction ที่ {{oauth_grant.provider}} รองรับ จนกว่า token จะหมดอายุ"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "access restriction ที่ provider รองรับสำหรับ resource/principal/client นี้ จนกว่า token จะหมดอายุ"
+        condition: {all_of: [{field: capability.cap.oauth_grant_revocation.supported, operator: equals, value: false}]}
+        expected_result: "API access ต่อ resources ถูกตัด"
+        verify: "API call ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ audit log ว่าไม่มี API call ใหม่จาก client {{oauth_grant.client_id}} และไม่ใช้ password reset แทนการ revoke grant"
+        expected_result: "ไม่มี API call ใหม่"
+        verify: "re-hunt client_id/grant_id ใน audit log"
+        on_failure: "ตรวจ grant อื่นของ client เดียวกันและ principal อื่น"
+    verification: ["ไม่มี API call ใหม่จาก grant/token ที่ถอน"]
+    failure_handling: ["พบ grant อื่นของ client → ประเมินแยกเป็น grant ต่อ grant ไม่ revoke ทั้งแอปโดยไม่มีหลักฐาน"]
+    rollback: ["ให้ consent ใหม่ผ่านการอนุมัติ"]
+
+  - runbook_id: RB-BEC-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-BEC-CONTAIN]
+    supported_subtypes: [PH-BEC]
+    objective: "ผู้มีอำนาจ hold business item; IR revoke mailbox access ที่ไม่ได้รับอนุญาตและ disable rules ที่เกี่ยวข้อง"
+    prerequisites: ["ผู้มีอำนาจของ business item ที่ระบุตัวได้", "ช่องทางยืนยันนอก email ที่ผู้มีอำนาจใช้"]
+    required_evidence: [ph_bec_fraudulent_instruction]
+    required_targets: [business_item]
+    required_capabilities: [cap.session_revocation, cap.mail_rule_management]
+    tool_variants: *neutral
+    required_authority: [ir_execute, business_authority]
+    operational_impact: "ธุรกรรมที่ถูก hold จะล่าช้าจนกว่าผู้มีอำนาจยืนยัน"
+    ordered_steps:
+      - step_id: S1
+        title: "ให้ {{business_item.owning_authority}} hold รายการ {{business_item.item_reference}}"
+        origin: EXPANDED_FROM_REFERENCE
+        manual_owner: business_authority
+        instruction: "ขอให้ {{business_item.owning_authority}} (ผู้มีอำนาจ) hold รายการ {{business_item.item_reference}} และยืนยันกับคู่ค้าผ่านช่องทางที่ทราบอยู่แล้ว ไม่ใช้ข้อมูลติดต่อจากอีเมลคำสั่ง — IR ไม่ hold ธุรกรรมแทน"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ผู้มีอำนาจของรายการธุรกิจและช่องทางติดต่อคู่ค้าที่องค์กรยืนยันแล้ว"
+        expected_result: "ธุรกรรมถูก hold โดยผู้มีอำนาจ"
+        verify: "ผู้มีอำนาจแจ้งกลับว่า hold แล้ว (บันทึกใน incident record)"
+        on_failure: "escalate หัวหน้าของผู้มีอำนาจตามสายอนุมัติขององค์กร"
+        impact: "ธุรกรรมล่าช้าจนกว่าจะยืนยันได้"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke sessions ที่ไม่ได้รับอนุญาตของ mailbox {{mailbox_access.mailbox_id}} ({{mailbox_access.tenant_id}})"
+        include_runbook: RB-SESSION-REVOKE
+        condition: {all_of: [{field: targets.mailbox_access.validated, operator: equals, value: true}, {field: targets.session.validated, operator: equals, value: true}, {field: evidence.ph_bec_mailbox_abuse.status, operator: equals, value: PRESENT}]}
+        expected_result: "sessions ที่ไม่ได้รับอนุญาตถูกยกเลิก"
+        verify: "ไม่มี session ที่ไม่รู้จักใน mailbox"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S3
+        title: "Disable {{mailbox_access.abused_objects}} ใน mailbox {{mailbox_access.mailbox_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Disable forwarding rule/delegate ที่ไม่ได้รับอนุญาตใน {{mailbox_access.mailbox_id}}: {{mailbox_access.abused_objects}} (เฉพาะรายการที่ยืนยัน)"
+        method: "ใน mailbox {{mailbox_access.mailbox_id}} ปิด (disable) เฉพาะ {{mailbox_access.abused_objects}} ที่ยืนยันแล้วว่าไม่ได้รับอนุญาต (forwarding rule/delegate) บันทึกรายการก่อนแก้ แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.mailbox_access.validated, operator: equals, value: true}, {field: evidence.ph_bec_mailbox_abuse.status, operator: equals, value: PRESENT}, {field: capability.cap.mail_rule_management.supported, operator: equals, value: true}]}
+        expected_result: "rule/delegate ที่ระบุไม่ทำงาน"
+        verify: "รายการ rule/delegate ของ mailbox ไม่มีรายการดังกล่าว"
+        on_failure: "ปิด forwarding ภายนอกชั่วคราวระดับ mailbox ตามที่รองรับและ escalate IR"
+        rollback: "คืน rule ที่ถูกต้องซึ่งเจ้าของยืนยัน"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ mailbox audit ของ {{mailbox_access.mailbox_id}} หลังดำเนินการ: ไม่มี rule/delegate/sign-in ใหม่ที่ไม่ได้รับอนุญาต"
+        condition: {all_of: [{field: targets.mailbox_access.validated, operator: equals, value: true}]}
+        expected_result: "ไม่พบ abuse ใหม่"
+        verify: "re-hunt mailbox audit ช่วงเฝ้าระวัง"
+        on_failure: "เปิด branch Account Compromise ตามหลักฐานใหม่"
+    verification: ["ผู้มีอำนาจยืนยัน hold", "mailbox ไม่มี session/rule/delegate ที่ไม่ได้รับอนุญาต"]
+    failure_handling: ["พบ abuse ต่อ → Account Compromise branch; ธุรกรรมอื่นที่เกี่ยวข้องส่งให้ผู้มีอำนาจตรวจ"]
+    rollback: ["คืน rule ที่ถูกต้อง; hold ถูกปล่อยโดยผู้มีอำนาจเท่านั้น"]

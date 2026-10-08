@@ -1,0 +1,44 @@
+id: PROC-PS-001
+code: POWERSHELL
+name: Malicious PowerShell Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-POWERSHELL (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-POWERSHELL
+
+objective: >
+  Stop malicious PowerShell execution and contain the affected endpoint.
+
+strategy: >
+  Confirm the PowerShell execution is malicious, stop the process and block its artifact, then check persistence
+  and child processes and isolate the endpoint only when active compromise, persistence or lateral-movement risk
+  is evidenced.
+
+
+appliesWhen:
+  incidentTypes: [POWERSHELL]
+  mitreTechniques: [T1059.001, T1547.001]
+  description: >
+    PowerShell runs hidden, with an encoded / obfuscated command or a
+    download cradle, often spawned by an Office application or a script
+    host.
+
+primaryEvidence:
+  - "Process creation event with full command line"
+  - "Decoded command"
+  - "Parent process chain"
+  - "User and host"
+  - "Download URL / domain and file"
+  - "Registry Run keys / scheduled tasks"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-05, resources/mock-attacks-tc/TC-05-powershell.json):
+#   TC-05: Sysmon event 1 on WKS-HR-03 - powershell.exe -nop -w hidden -enc
+#   ... spawned by WINWORD.EXE, downloading
+#   http://vigix-mock-stager.net/a.ps1; Wazuh rule 100300.

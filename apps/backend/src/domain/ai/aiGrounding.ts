@@ -16,7 +16,9 @@ export interface GroundingResult {
 const IPV4 = /(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?!\d|\.\d)/g;
 const IPV6 = /(?<![0-9a-f:])[0-9a-f:]*:[0-9a-f:.]+(?![0-9a-f:])/gi;
 const HASH = /(?<![0-9a-f])(?:[0-9a-f]{64}|[0-9a-f]{40}|[0-9a-f]{32})(?![0-9a-f])/gi;
-const URL = /\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>)\]]+/gi;
+// A backtick ends a URL: LLM Markdown wraps values in code spans (`https://x/y`), and the closing backtick is not part
+// of the URL (a literal backtick in a real URL is percent-encoded as %60).
+const URL = /\b[a-z][a-z0-9+.-]*:\/\/[^\s"'`<>)\]]+/gi;
 const EMAIL = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,63}\b/gi;
 const MAC = /\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b/gi;
 // Ambiguous dotted names are checked conservatively against source evidence.
@@ -33,7 +35,11 @@ const COMMAND = /(?:\b(?:powershell(?:\.exe)?|cmd(?:\.exe)?|bash|curl|wget|certu
  */
 const KNOWN_BINARY = /^(?:powershell(?:\.exe)?|cmd(?:\.exe)?|bash|sh|curl|wget|certutil|netsh|iptables|whoami|rm|chmod|net(?:\.exe)?|reg(?:\.exe)?|sc(?:\.exe)?|schtasks(?:\.exe)?|mshta|rundll32(?:\.exe)?)$/i;
 function looksLikeCommand(match: string): boolean {
-  if (!match.startsWith("`")) return true; // the explicit "<binary> <args>" alternative
+  if (!match.startsWith("`")) {
+    // Narrative descriptions and missing-evidence statements are not executable command lines.
+    // Concrete arguments (including switches, paths and URLs) still require source evidence.
+    return !/^(?:powershell(?:\.exe)?|cmd(?:\.exe)?|bash|curl|wget|certutil|netsh|iptables|whoami|rm|chmod)\s+(?:process|execution|command|script|activity|was|is)\b/i.test(match);
+  }
   const inner = match.replace(/^`|`$/g, "").trim();
   return /\s|[|;&<>]/.test(inner) || KNOWN_BINARY.test(inner);
 }

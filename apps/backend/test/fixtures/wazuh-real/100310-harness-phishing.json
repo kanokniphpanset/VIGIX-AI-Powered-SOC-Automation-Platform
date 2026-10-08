@@ -1,0 +1,62 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "srcip": "203.0.113.45",
+    "vigix": {
+      "event_type": "phishing_url_delivered"
+    },
+    "dns": {
+      "question": {
+        "name": "vigix-eval-phish.net"
+      }
+    },
+    "message": "Phishing link from it-support@vigix-eval-phish.net (sending MTA 203.0.113.45, RFC 5737 documentation address) delivered to hr.clerk@corp.local; SPF=fail DKIM=none",
+    "url": "http://vigix-eval-phish.net/o365/verify?id=hr.clerk",
+    "email": {
+      "subject": "[Action Required] Your mailbox will be deactivated in 24 hours",
+      "from": "it-support@vigix-eval-phish.net",
+      "to": "hr.clerk@corp.local"
+    }
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 10,
+    "description": "VIGIX-EVAL: phishing email with a credential-harvesting link delivered to a user mailbox",
+    "groups": [
+      "vigix_eval",
+      "email",
+      "phishing",
+      "vigix_eval"
+    ],
+    "mitre": {
+      "technique": [
+        "Spearphishing Link"
+      ],
+      "id": [
+        "T1566.002"
+      ],
+      "tactic": [
+        "Initial Access"
+      ]
+    },
+    "id": "100310"
+  },
+  "decoder": {
+    "name": "json"
+  },
+  "full_log": "{\"vigix\":{\"event_type\":\"phishing_url_delivered\"},\"srcip\":\"203.0.113.45\",\"url\":\"http://vigix-eval-phish.net/o365/verify?id=hr.clerk\",\"dns\":{\"question\":{\"name\":\"vigix-eval-phish.net\"}},\"email\":{\"from\":\"it-support@vigix-eval-phish.net\",\"to\":\"hr.clerk@corp.local\",\"subject\":\"[Action Required] Your mailbox will be deactivated in 24 hours\"},\"message\":\"Phishing link from it-support@vigix-eval-phish.net (sending MTA 203.0.113.45, RFC 5737 documentation address) delivered to hr.clerk@corp.local; SPF=fail DKIM=none\"}",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/vigix-eval/events.json",
+  "id": "1791027701.1907149",
+  "timestamp": "2026-10-03T11:41:41.013+0000"
+}

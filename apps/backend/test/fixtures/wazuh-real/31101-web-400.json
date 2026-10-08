@@ -1,0 +1,58 @@
+{
+  "agent": {
+    "ip": "172.19.0.5",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "protocol": "GET",
+    "srcip": "172.19.0.6",
+    "id": "404",
+    "url": "/missing-24.php"
+  },
+  "rule": {
+    "firedtimes": 73,
+    "mail": false,
+    "level": 5,
+    "pci_dss": [
+      "6.5",
+      "11.4"
+    ],
+    "tsc": [
+      "CC6.6",
+      "CC7.1",
+      "CC8.1",
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "Web server 400 error code.",
+    "groups": [
+      "web",
+      "accesslog",
+      "attack"
+    ],
+    "id": "31101",
+    "nist_800_53": [
+      "SA.11",
+      "SI.4"
+    ],
+    "gdpr": [
+      "IV_35.7.d"
+    ]
+  },
+  "decoder": {
+    "name": "web-accesslog"
+  },
+  "full_log": "172.19.0.6 - - [01/Oct/2026:05:22:26 +0000] \"GET /missing-24.php HTTP/1.1\" 404 162 \"-\" \"SiteCrawler/2.1\"",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/nginx/access.log",
+  "id": "1790832147.146091",
+  "timestamp": "2026-10-01T05:22:27.059+0000"
+}

@@ -1,0 +1,89 @@
+{
+  "agent": {
+    "ip": "192.168.239.129",
+    "name": "vigix-win10-ps",
+    "id": "010"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "win": {
+      "eventdata": {
+        "originalFileName": "PowerShell.EXE",
+        "image": "C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe",
+        "product": "Microsoft® Windows® Operating System",
+        "parentProcessGuid": "{74c33ace-bfa5-6ac0-8602-000000000200}",
+        "description": "Windows PowerShell",
+        "logonGuid": "{74c33ace-b1cb-6ac0-5d03-0a0000000000}",
+        "parentCommandLine": "\\\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\\\"",
+        "processGuid": "{74c33ace-ebc6-6ac0-6b07-000000000200}",
+        "logonId": "0xa035d",
+        "parentProcessId": "6864",
+        "processId": "7468",
+        "currentDirectory": "C:\\\\Windows\\\\system32\\\\",
+        "utcTime": "2026-10-03 11:49:26.419",
+        "hashes": "SHA256=9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3",
+        "parentImage": "C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe",
+        "ruleName": "ps-process",
+        "company": "Microsoft Corporation",
+        "commandLine": "\\\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\\\" -NoProfile -Command \\\"try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }\\\"",
+        "integrityLevel": "High",
+        "fileVersion": "10.0.19041.3996 (WinBuild.160101.0800)",
+        "user": "WIN-LAB01\\\\labuser",
+        "terminalSessionId": "1",
+        "parentUser": "WIN-LAB01\\\\labuser"
+      },
+      "system": {
+        "eventID": "1",
+        "keywords": "0x8000000000000000",
+        "providerGuid": "{5770385f-c22a-43e0-bf4c-06f5698ffbd9}",
+        "level": "4",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "opcode": "0",
+        "message": "\"Process Create:\r\nRuleName: ps-process\r\nUtcTime: 2026-10-03 11:49:26.419\r\nProcessGuid: {74c33ace-ebc6-6ac0-6b07-000000000200}\r\nProcessId: 7468\r\nImage: C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\nFileVersion: 10.0.19041.3996 (WinBuild.160101.0800)\r\nDescription: Windows PowerShell\r\nProduct: Microsoft® Windows® Operating System\r\nCompany: Microsoft Corporation\r\nOriginalFileName: PowerShell.EXE\r\nCommandLine: \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -Command \"try { [System.Net.Dns]::GetHostAddresses('vigix-eval-ps-stager.test') } catch { 'lookup failed (expected)' }\"\r\nCurrentDirectory: C:\\Windows\\system32\\\r\nUser: WIN-LAB01\\labuser\r\nLogonGuid: {74c33ace-b1cb-6ac0-5d03-0a0000000000}\r\nLogonId: 0xA035D\r\nTerminalSessionId: 1\r\nIntegrityLevel: High\r\nHashes: SHA256=9785001B0DCF755EDDB8AF294A373C0B87B2498660F724E76C4D53F9C217C7A3\r\nParentProcessGuid: {74c33ace-bfa5-6ac0-8602-000000000200}\r\nParentProcessId: 6864\r\nParentImage: C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\r\nParentCommandLine: \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" \r\nParentUser: WIN-LAB01\\labuser\"",
+        "version": "5",
+        "systemTime": "2026-10-03T11:49:26.4226383Z",
+        "eventRecordID": "303",
+        "threadID": "4248",
+        "computer": "WIN-LAB01",
+        "task": "1",
+        "processID": "7236",
+        "severityValue": "INFORMATION",
+        "providerName": "Microsoft-Windows-Sysmon"
+      }
+    }
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 4,
+    "description": "Powershell process spawned powershell instance",
+    "groups": [
+      "sysmon",
+      "sysmon_eid1_detections",
+      "windows"
+    ],
+    "mitre": {
+      "technique": [
+        "PowerShell"
+      ],
+      "id": [
+        "T1059.001"
+      ],
+      "tactic": [
+        "Execution"
+      ]
+    },
+    "id": "92027"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "EventChannel",
+  "id": "1791028167.1929718",
+  "timestamp": "2026-10-03T11:49:27.423+0000"
+}

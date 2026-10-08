@@ -1,0 +1,42 @@
+id: PROC-AC-001
+code: ACCOUNT_COMPROMISE
+name: Account Compromise Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-ACCOUNT-COMPROMISE (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-ACCOUNT-COMPROMISE
+
+objective: >
+  Regain control of the affected account and invalidate attacker access.
+
+strategy: >
+  Confirm the sign-in was not the user's, cut the attacker's sessions, tokens and credentials, restore MFA, then
+  check what the attacker changed and where else they went.
+
+
+appliesWhen:
+  incidentTypes: [ACCOUNT_COMPROMISE]
+  mitreTechniques: [T1078, T1098]
+  description: >
+    A valid account is used by someone other than its owner - anomalous
+    sign-in (location, time, logon type, source IP) usually after failed
+    attempts, or account changes the owner did not make.
+
+primaryEvidence:
+  - "Successful sign-in event (logon type, source IP, workstation)"
+  - "Preceding failed sign-ins"
+  - "Geo-location / known locations of the user"
+  - "Account activity after the sign-in"
+  - "Privilege / group / MFA changes"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-04, resources/mock-attacks-tc/TC-04-account-compromise.json):
+#   TC-04: Windows 4624 logon type 10 (RDP) for CORP\j.smith on FILESRV-01
+#   from 91.219.236.14 after repeated failures, from an anomalous location;
+#   Wazuh rule 100200.

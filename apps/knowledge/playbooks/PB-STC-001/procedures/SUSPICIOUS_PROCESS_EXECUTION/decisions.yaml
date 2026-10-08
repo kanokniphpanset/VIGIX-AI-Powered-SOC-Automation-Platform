@@ -1,0 +1,35 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: SUSPICIOUS_PROCESS_EXECUTION
+
+decisions:
+  - id: DEC-SP-001
+    stepRef: 1
+    question: "Is the process legitimate software or an approved task?"
+    context: >
+      Shown after Step 1 once path, hash and parent chain are reviewed.
+    options:
+      - value: "YES"
+        label: "Yes - legitimate"
+        leadsTo: CLOSE_AS_BENIGN
+      - value: "NO"
+        label: "No - malicious"
+        leadsTo: CONTAIN_PROCESS
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-SP-002
+    stepRef: 3
+    question: "Is there evidence of further compromise beyond this process (open entry point, persistence, lateral activity)?"
+    context: >
+      Shown after Step 3 (Initial Access).
+    options:
+      - value: "YES"
+        label: "Yes - host compromised"
+        leadsTo: ISOLATE_HOST
+      - value: "NO"
+        label: "No - contained to this process"
+        leadsTo: CONTINUE_HUNTING
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

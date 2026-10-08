@@ -14,6 +14,8 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "runbooks:index": "ts-node scripts/indexRunbooksToQdrant.ts",
+    "subtype:seed": "ts-node scripts/seedSubtypeKnowledge.ts",
+    "policies:spread:seed": "ts-node scripts/seedSpreadResponsePolicies.ts",
     "e2e:mock-attacks": "ts-node --transpile-only scripts/e2e-mock-attacks.ts",
     "test": "jest"
   },

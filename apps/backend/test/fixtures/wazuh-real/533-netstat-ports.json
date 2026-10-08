@@ -1,0 +1,54 @@
+{
+  "agent": {
+    "ip": "172.19.0.5",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "previous_output": "Previous output:\nossec: output: 'netstat listening ports':\ntcp6       0      0 :::22                   :::*                    LISTEN      -                   \ntcp6       0      0 :::80                   :::*                    LISTEN      -                   \ntcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 127.0.0.11:44825        0.0.0.0:*               LISTEN      -                   \nudp        0      0 127.0.0.11:60480        0.0.0.0:*                           -                   ",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 7,
+    "pci_dss": [
+      "10.2.7",
+      "10.6.1"
+    ],
+    "hipaa": [
+      "164.312.b"
+    ],
+    "tsc": [
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "Listened ports status (netstat) changed (new port opened or closed).",
+    "groups": [
+      "ossec"
+    ],
+    "id": "533",
+    "nist_800_53": [
+      "AU.14",
+      "AU.6"
+    ],
+    "gpg13": [
+      "10.1"
+    ],
+    "gdpr": [
+      "IV_35.7.d"
+    ]
+  },
+  "decoder": {
+    "name": "ossec"
+  },
+  "full_log": "ossec: output: 'netstat listening ports':\ntcp6       0      0 :::22                   :::*                    LISTEN      -                   \ntcp6       0      0 :::80                   :::*                    LISTEN      -                   \ntcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 127.0.0.11:46573        0.0.0.0:*               LISTEN      -                   \nudp        0      0 127.0.0.11:49190        0.0.0.0:*                           -                   ",
+  "previous_log": "ossec: output: 'netstat listening ports':\ntcp6       0      0 :::22                   :::*                    LISTEN      -                   \ntcp6       0      0 :::80                   :::*                    LISTEN      -                   \ntcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   \ntcp        0      0 127.0.0.11:44825        0.0.0.0:*               LISTEN      -                   \nudp        0      0 127.0.0.11:60480        0.0.0.0:*                           -                   ",
+  "input": {
+    "type": "log"
+  },
+  "location": "netstat listening ports",
+  "id": "1791366486.1360",
+  "timestamp": "2026-10-07T09:48:06.166+0000"
+}

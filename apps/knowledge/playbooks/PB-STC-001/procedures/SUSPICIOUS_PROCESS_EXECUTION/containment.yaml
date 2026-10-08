@@ -1,0 +1,34 @@
+# containment.yaml - CATALOG of candidate containment Actions for SUSPICIOUS_PROCESS_EXECUTION, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-SUSPICIOUS-PROCESS. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: SUSPICIOUS_PROCESS_EXECUTION
+candidateActions:
+- actionCode: ACT-KILL-PROCESS
+  name: Terminate Malicious Process
+  condition: Evidence supports malicious / suspicious execution (not legitimate software or an approved task).
+  runbookRef: RB-KILL-MALICIOUS-PROCESS
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-HASH
+  name: Block File Hash
+  condition: The binary / script hash is confirmed malicious.
+  runbookRef: RB-BLOCK-HASH
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-QUARANTINE-FILE
+  name: Quarantine File
+  condition: The executed binary / script is identified on disk and confirmed malicious.
+  runbookRef: RB-QUARANTINE-FILE
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: Active compromise or propagation risk is evidenced (open entry point, persistence, lateral activity).
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

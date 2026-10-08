@@ -1,0 +1,584 @@
+# SUSPICIOUS_PROCESS — family file. Reference: reference-registry.yaml#SUSPICIOUS_PROCESS
+# (existing runtime procedure code: SUSPICIOUS_PROCESS_EXECUTION — see migration-map.yaml)
+# Principles: name/path/signer alone does not confirm malice (PROC-P1); never block the hash of a legitimate OS binary (PROC-P2);
+# critical processes need alternative containment when termination would hurt the system (PROC-P3); approved automation/security tools are separated from abuse (PROC-P4);
+# OS command injection (request->application->shell) opens PROC-CHAIN + web request-path restriction, NOT SQLi, and adds C2/persistence/credential branches only with evidence (PROC-P5).
+
+family: SUSPICIOUS_PROCESS
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: SUSPICIOUS_PROCESS, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: proc_identity_only
+    description: "Process name / path / signer ONLY (indicator; no abusive behavior)."
+    confirm: "หา arguments, parent, child, network/file effects ที่เป็นอันตรายจริง"
+    may_be_authorized: true
+  - id: proc_lolbin_abuse
+    description: "Trusted (signed/system) binary with abusive arguments or effects."
+    confirm: "ยืนยัน arguments/effects ที่ผิดปกติของ binary เทียบ baseline และ approved automation"
+    may_be_authorized: true
+  - id: proc_impostor_behavior
+    description: "Impostor executable (masquerading name/path/signer) together with malicious behavior."
+    confirm: "ยืนยันว่าไฟล์ไม่ใช่ binary จริง (path/signer/hash เทียบ) และมี behavior อันตราย"
+    may_be_authorized: false
+  - id: proc_injection_effects
+    description: "Source and target process plus injection effects (hollowing/remote thread/memory write)."
+    confirm: "ระบุ source/target process, API/event ของ injection และ effects"
+    may_be_authorized: true
+  - id: proc_app_to_interpreter_chain
+    requires_lineage: true
+    description: "Application -> interpreter/payload chain with unauthorized effects (request->application->shell for OS command injection)."
+    confirm: "ผูก request/feature/job → application process → shell/interpreter child และ effects ที่ไม่ได้รับอนุญาต"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-TRUSTED-BINARY-ABUSE-CONTAIN
+    action_name: Contain LOLBin abuse instance
+    label_th: "จำกัด instance ที่ใช้ binary ที่เชื่อถือในทางที่ผิด (LOLBin)"
+    objective: "หยุด instance ต่อ process/child/effect targets และใช้ scoped behavior control โดยไม่ลบ system binary"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [process, process_children, network_flow]
+    evidence_requirements: [proc_lolbin_abuse]
+    target_requirements: [process]
+    runbook_refs: [RB-TRUSTED-BINARY-ABUSE-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS]
+    execution_constraints: ["ไม่ลบหรือ block hash ของ system binary", "process identity ไม่ใช่ PID อย่างเดียว"]
+  - action_id: ACT-IMPOSTOR-PROCESS-CONTAIN
+    action_name: Contain impostor process
+    label_th: "จำกัด process ที่ปลอมตัว"
+    objective: "หยุด instance, quarantine identified file และจำกัด launcher ที่มี evidence"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [process, file_object, persistence_artifact]
+    evidence_requirements: [proc_impostor_behavior]
+    target_requirements: [process, file_object]
+    runbook_refs: [RB-IMPOSTOR-PROCESS-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-QUARANTINE-FILE, ACT-BLOCK-HASH]
+    execution_constraints: ["quarantine ต้องมี file identity", "ไม่ block hash ของ legitimate OS binary"]
+  - action_id: ACT-INJECTED-PROCESS-CONTAIN
+    action_name: Contain injected execution
+    label_th: "จำกัดการรันที่ถูก inject"
+    objective: "restrict host/channel แล้ว terminate source/target ที่ได้รับอนุมัติตาม criticality"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [process, host_workload, network_flow]
+    evidence_requirements: [proc_injection_effects]
+    target_requirements: [process]
+    runbook_refs: [RB-INJECTED-PROCESS-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-ISOLATE-ENDPOINT]
+    execution_constraints: ["critical process ต้องมี alternative containment", "ยุติได้ต่อเมื่อได้รับอนุมัติตาม criticality"]
+  - action_id: ACT-EXECUTION-CHAIN-CONTAIN
+    action_name: Break application->interpreter execution chain
+    label_th: "ตัดห่วงโซ่ application → interpreter"
+    objective: "หยุด malicious child จำกัด identified trigger/input path โดยไม่ปิด applications ทั้งชุด"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [process, process_children, web_route]
+    evidence_requirements: [proc_app_to_interpreter_chain]
+    target_requirements: [process]
+    runbook_refs: [RB-EXECUTION-CHAIN-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["ไม่ปิด application ทั้งชุด", "ไม่จัดเป็น SQLi อัตโนมัติ", "เปิด C2/persistence/credential branch เมื่อมีหลักฐานเท่านั้น"]
+
+playbooks:
+  - playbook_id: PBK-PROC-LOLBIN
+    attack_family: SUSPICIOUS_PROCESS
+    subtype_id: PROC-LOLBIN
+    subtype_name: LOLBin Abuse
+    classification_evidence:
+      all_of: [{field: evidence.proc_lolbin_abuse.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["ชื่อ/path/signer ของ binary อย่างเดียว (PROC-P1)", "arguments ที่เป็น approved automation/security tool (PROC-P4)"]
+    scenarios:
+      - scenario_id: SC-PROC-LOLBIN-ABUSE
+        description: "Trusted binary มี arguments/effects ที่เป็นการใช้ในทางที่ผิด"
+        ordered_action_refs:
+          - {action_id: ACT-TRUSTED-BINARY-ABUSE-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุดเฉพาะ instance ที่ abuse โดยไม่แตะ binary จริงของระบบ", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PROC-001, POL-PROC-005]
+    related_branches:
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+      - {subtype_id: PS-DOWNLOAD, open_when: {field: evidence.ps_download_execute_chain.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}, then: STOP, note: "ห้าม block/ลบ OS binary ที่ถูกต้อง"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PROC-MASK
+    attack_family: SUSPICIOUS_PROCESS
+    subtype_id: PROC-MASK
+    subtype_name: Masquerading
+    classification_evidence:
+      all_of: [{field: evidence.proc_impostor_behavior.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["ชื่อ process คล้าย binary ระบบแต่ไม่ยืนยัน identity/behavior (PROC-P1)", "ไฟล์ที่ signer/hash ตรงกับ binary จริง"]
+    scenarios:
+      - scenario_id: SC-PROC-MASK-IMPOSTOR
+        description: "Impostor executable พร้อม malicious behavior"
+        ordered_action_refs:
+          - {action_id: ACT-IMPOSTOR-PROCESS-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด instance, quarantine ไฟล์ที่มี identity และจำกัด launcher ตามหลักฐาน", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PROC-002, POL-PROC-005]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.object_is_legitimate_os_binary, operator: equals, value: true}, then: STOP, note: "ไฟล์เป็น binary ที่ถูกต้อง"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PROC-INJECT
+    attack_family: SUSPICIOUS_PROCESS
+    subtype_id: PROC-INJECT
+    subtype_name: Injection/Hollowing
+    classification_evidence:
+      all_of: [{field: evidence.proc_injection_effects.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["process access event เดี่ยวโดยไม่มี injection effects", "security tool/debugger ที่อนุมัติ (PROC-P4)"]
+    scenarios:
+      - scenario_id: SC-PROC-INJECT-EFFECTS
+        description: "Source/target process และ injection effects"
+        ordered_action_refs:
+          - {action_id: ACT-INJECTED-PROCESS-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัด host/channel ก่อน แล้ว terminate source/target ตามอนุมัติและ criticality", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PROC-003, POL-PROC-005]
+    related_branches:
+      - {subtype_id: MAL-MEMORY, open_when: {field: evidence.mal_memory_execution.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.critical_process_termination_unsafe, operator: equals, value: true}, then: ESCALATE_IR, note: "critical process — ใช้ containment ทางเลือก"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-PROC-CHAIN
+    attack_family: SUSPICIOUS_PROCESS
+    subtype_id: PROC-CHAIN
+    subtype_name: Unexpected Chain
+    classification_evidence:
+      all_of: [{field: evidence.proc_app_to_interpreter_chain.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["application spawn child ตามปกติ (baseline)", "interpreter ถูกเรียกโดย job/automation ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-PROC-CHAIN-APP-TO-SHELL
+        description: "Application→interpreter/payload พร้อม unauthorized effects (รวม OS command injection: request→application→shell)"
+        ordered_action_refs:
+          - {action_id: ACT-EXECUTION-CHAIN-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด child ที่ malicious แล้วจำกัด entry feature/route/job; web request-path restriction ทำใน runbook เมื่อมี route ที่ validate", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-PROC-004, POL-PROC-005]
+    related_branches:
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-CUSTOM, open_when: {field: evidence.c2_custom_channel_identified.status, operator: equals, value: PRESENT}}
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}, then: STOP, note: "ห้ามปิด applications ทั้งชุด"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-PROC-001
+    rule_type: ACTION_GATE
+    action_id: ACT-TRUSTED-BINARY-ABUSE-CONTAIN
+    applicable_subtypes: [PROC-LOLBIN]
+    covers: [PROC-P1, PROC-P2, PROC-P4]
+    required_evidence:
+      all_of: [{field: evidence.proc_lolbin_abuse.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.process.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PROC-1, reason: "ชื่อ/path/signer อย่างเดียวไม่ยืนยัน malicious behavior (PROC-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+      - {id: PRH-PROC-2, reason: "ห้าม block hash ของ legitimate OS binary แบบเหมารวม (PROC-P2)", when: {field: scope.os_binary_hash_block, operator: equals, value: true}}
+      - {id: PRH-PROC-3, reason: "critical process — การยุติกระทบระบบ ต้องใช้ containment ทางเลือก (PROC-P3)", when: {field: scope.critical_process_termination_unsafe, operator: equals, value: true}}
+    authorization_gate: [proc_lolbin_abuse]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.behavior_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: equals, value: CRITICAL}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี abusive arguments/effects ที่ยืนยัน หรือ process identity ไม่พอ"}
+    reason: "หยุดเฉพาะ instance ที่ abuse; ไม่แตะ system binary; แยก approved automation ออก"
+    provenance: {reference: [PROC-LOLBIN, PROC-P1, PROC-P2, PROC-P4]}
+
+  - policy_id: POL-PROC-002
+    rule_type: ACTION_GATE
+    action_id: ACT-IMPOSTOR-PROCESS-CONTAIN
+    applicable_subtypes: [PROC-MASK]
+    covers: [PROC-P1, PROC-P2]
+    required_evidence:
+      all_of: [{field: evidence.proc_impostor_behavior.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of:
+        - {field: targets.process.validated, operator: equals, value: true}
+        - {field: targets.file_object.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-PROC-4, reason: "ชื่อ/path/signer อย่างเดียวไม่ยืนยัน masquerading (PROC-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+      - {id: PRH-PROC-5, reason: "ห้าม block/quarantine hash ของ legitimate OS binary (PROC-P2)", when: {field: scope.os_binary_hash_block, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.process_termination, cap.file_quarantine]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี process identity และ file identity ที่ validate"}
+    reason: "ตัด execution ต่อ process และ file identity ที่ยืนยันว่าเป็น impostor"
+    provenance: {reference: [PROC-MASK, PROC-P1, PROC-P2]}
+
+  - policy_id: POL-PROC-003
+    rule_type: ACTION_GATE
+    action_id: ACT-INJECTED-PROCESS-CONTAIN
+    applicable_subtypes: [PROC-INJECT]
+    covers: [PROC-P3, PROC-P4]
+    required_evidence:
+      all_of: [{field: evidence.proc_injection_effects.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.process.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PROC-6, reason: "critical process — ต้องใช้ alternative containment เมื่อการยุติกระทบระบบ (PROC-P3)", when: {field: scope.critical_process_termination_unsafe, operator: equals, value: true}}
+    authorization_gate: [proc_injection_effects]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.workload_isolation, cap.scoped_network_enforcement]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+      - {when: {field: context.asset_criticality, operator: equals, value: CRITICAL}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ source/target process หรือ effects"}
+    reason: "restrict host/channel และ terminate source/target ที่ได้รับอนุมัติตาม criticality"
+    provenance: {reference: [PROC-INJECT, PROC-P3, PROC-P4]}
+
+  - policy_id: POL-PROC-004
+    rule_type: ACTION_GATE
+    action_id: ACT-EXECUTION-CHAIN-CONTAIN
+    applicable_subtypes: [PROC-CHAIN]
+    covers: [PROC-P4, PROC-P5, SQ-P1]
+    required_evidence:
+      all_of: [{field: evidence.proc_app_to_interpreter_chain.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.process.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-PROC-7, reason: "ห้ามปิด applications ทั้งชุด (PROC-P5)", when: {field: scope.touches_unrelated_artifacts, operator: equals, value: true}}
+      - {id: PRH-PROC-8, reason: "app spawn child ปกติ/automation ที่อนุมัติ ไม่ใช่ abuse (PROC-P4)", when: {field: scope.is_approved_automation, operator: equals, value: true}}
+    authorization_gate: [proc_app_to_interpreter_chain]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.process_termination, cap.waf_targeted_rule]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก request/feature/job → application → shell/payload"}
+    reason: "หยุด malicious child และจำกัด entry route/feature/job; OS command injection เป็น PROC-CHAIN ไม่ใช่ SQLi"
+    provenance: {reference: [PROC-CHAIN, PROC-P4, PROC-P5]}
+
+  - policy_id: POL-PROC-005
+    rule_type: CLASSIFICATION_RULE
+    covers: [PROC-P1, PROC-P4, PROC-P5]
+    statements:
+      - "proc_identity_only (ชื่อ/path/signer) เป็น indicator ไม่ใช่ classification_evidence ของ subtype ใด"
+      - "approved automation / security tools (authorization_status AUTHORIZED หรือ scope.is_approved_automation) ถูกแยกออกจาก abuse ก่อนเปิดมาตรการ"
+      - "OS command injection: request→application→shell execution ที่มี evidence → PROC-CHAIN (+ web request-path restriction ใน RB-EXECUTION-CHAIN-CONTAIN) ไม่จัดเป็น SQLi อัตโนมัติ (sq_* evidence ต้องมีของ SQLi เอง)"
+      - "C2 / persistence / credential-abuse branches เปิดเพิ่มเมื่อมี evidence ของ branch นั้นเท่านั้น (related_branches.open_when)"
+    reason: "คุม classification ของ Suspicious Process และกรณี OS Command Injection"
+    provenance: {reference: [PROC-P1, PROC-P4, PROC-P5]}
+
+runbooks:
+  - runbook_id: RB-TRUSTED-BINARY-ABUSE-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-TRUSTED-BINARY-ABUSE-CONTAIN]
+    supported_subtypes: [PROC-LOLBIN]
+    objective: "Terminate identified invocation และใช้ scoped behavior control โดยไม่ลบ system binary"
+    prerequisites: ["process instance + arguments ที่ผิดปกติ", "รู้ baseline/approved automation ของ binary นี้"]
+    required_evidence: [proc_lolbin_abuse]
+    required_targets: [process]
+    required_capabilities: [cap.process_termination, cap.behavior_control]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การยุติ instance อาจหยุดงานที่ผู้ใช้กำลังรัน — binary ของระบบยังอยู่และใช้งานได้ตามปกติ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (image {{process.image_path}}) ใช้ binary ที่ถูกต้องในทางที่ผิดตาม arguments/effects ใน evidence และไม่ใช่ automation หรือ security tool ที่อนุมัติ"
+        expected_result: "เป็น abuse ของ instance นี้ ไม่ใช่การใช้งานปกติ"
+        verify: "เทียบ arguments กับ baseline และ approved automation"
+        on_failure: "ไม่ยุติ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "ยุติ instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว) — ไม่ลบหรือ block hash ของ binary ระบบ"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (ไม่ลบหรือ block hash ของ binary ระบบ)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "instance หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "ใช้ behavior control ใน S4 และ escalate IR"
+      - step_id: S2c
+        title: "จำกัด effects ของ instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} และขออนุมัติ asset owner ก่อนยุติ"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: จำกัด effects ของ instance (ตัวระบุ Process: {{process.process_identity}}) ด้วย behavior control/channel restriction ก่อน และขออนุมัติ asset owner ก่อนยุติ"
+        method: "จำกัดผลของ instance ตามตัวระบุ Process ข้างต้นบน {{process.host_id}} ด้วย behavior control หรือ channel restriction ก่อน แล้วส่งคำขออนุมัติ asset owner ก่อนยุติ ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "effects ถูกจำกัดโดยระบบหลักยังทำงาน"
+        verify: "ไม่มี effects ใหม่ตาม log"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S3
+        title: "ยุติ child process (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage กับ (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุด"
+        verify: "children ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่ม"
+      - step_id: S4
+        title: "ใช้ scoped behavior control กับ pattern การใช้ {{process.image_path}} ที่เป็น abuse"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ใช้ scoped behavior control กับ pattern arguments/effects ของ {{process.image_path}} บน {{process.host_id}} (เฉพาะ pattern ที่เป็น abuse ไม่ block binary)"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ความสามารถ behavior control ขององค์กรและรูปแบบ arguments/effects ที่เป็น abuse ซึ่งระบุได้จากหลักฐาน"
+        condition: {all_of: [{field: capability.cap.behavior_control.supported, operator: equals, value: true}]}
+        expected_result: "การเรียกด้วย pattern นี้ถูกจำกัด"
+        verify: "attempt ที่ตรง pattern ถูกปฏิเสธตาม log; การใช้งานปกติของ binary ยังได้"
+        on_failure: "เฝ้าระวังและ escalate IR"
+        rollback: "ถอน control ตาม snapshot"
+      - step_id: S5
+        title: "จำกัด effect channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด effect channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่ผูกกับ instance"
+        method: "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ (flow ที่ผูกกับ instance นี้)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.network_flow.validated, operator: equals, value: true}]}
+        expected_result: "effect channel ถูกตัด"
+        verify: "connection ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า instance แบบเดิมไม่ถูกสร้างใหม่บน {{process.host_id}}"
+        expected_result: "ไม่มีการกลับมา"
+        verify: "re-hunt arguments pattern ในช่วงเฝ้าระวัง"
+        on_failure: "หา launcher/persistence ตามหลักฐาน"
+    verification: ["ไม่มี instance abuse ใหม่", "binary ระบบยังอยู่และใช้งานตามปกติได้"]
+    failure_handling: ["กลับมา → หา launcher (PS-PERSIST/PROC-CHAIN) ตามหลักฐาน"]
+    rollback: ["ถอน behavior control ตาม snapshot"]
+    variants: [{variant_id: critical_workload, description: "จำกัด effects ก่อนและขออนุมัติ asset owner ก่อนยุติ instance"}]
+
+  - runbook_id: RB-IMPOSTOR-PROCESS-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-IMPOSTOR-PROCESS-CONTAIN]
+    supported_subtypes: [PROC-MASK]
+    objective: "หยุด instance, quarantine identified file และจำกัด launcher ที่มี evidence"
+    prerequisites: ["process identity และ file identity ของ impostor", "ยืนยันว่าไม่ใช่ binary จริงของระบบ"]
+    required_evidence: [proc_impostor_behavior]
+    required_targets: [process, file_object]
+    required_capabilities: [cap.process_termination, cap.file_quarantine, cap.persistence_trigger_disable]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ไฟล์ที่ถูก quarantine ใช้งานไม่ได้; ไม่กระทบ binary จริงของระบบ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{file_object.object_locator}} บน {{file_object.host_id}} ไม่ใช่ binary จริง (เทียบ path/signer/hash กับของจริง) และ process (ตัวระบุ Process: {{process.process_identity}}) มาจากไฟล์นี้"
+        expected_result: "impostor ถูกยืนยัน"
+        verify: "เทียบกับ baseline ของ binary จริง"
+        on_failure: "ไม่ยุติ/quarantine; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "ยุติ instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ instance (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "instance หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict host ตาม scope และ escalate IR"
+      - step_id: S3
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Quarantine impostor {{file_object.object_locator}} บน {{file_object.host_id}} (ไม่ลบ)"
+        include_runbook: RB-QUARANTINE-FILE-OBJECT
+        condition: {all_of: [{field: targets.file_object.validated, operator: equals, value: true}, {field: evidence.payload_linked_malicious_execution.status, operator: equals, value: PRESENT}]}
+        expected_result: "ไฟล์ถูก quarantine"
+        verify: "ไฟล์ไม่อยู่ที่ path เดิม"
+        on_failure: "ตามขั้นตอน quarantine"
+      - step_id: S4
+        title: "จำกัด launcher {{persistence_artifact.artifact_locator}} ที่เรียก impostor นี้"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด launcher {{persistence_artifact.artifact_locator}} ({{persistence_artifact.artifact_type}}) ที่เรียก impostor นี้"
+        include_runbook: RB-PERSISTENCE-TRIGGER-DISABLE
+        condition: {all_of: [{field: targets.persistence_artifact.validated, operator: equals, value: true}]}
+        expected_result: "launcher ไม่เรียก impostor"
+        verify: "ไม่มี relaunch"
+        on_failure: "ตามขั้นตอน disable trigger"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า process/ไฟล์ impostor ไม่ปรากฏอีกบน {{process.host_id}}"
+        expected_result: "ไม่มีการกลับมา"
+        verify: "re-hunt process identity/file locator ในช่วงเฝ้าระวัง"
+        on_failure: "หา launcher ตามหลักฐาน"
+    verification: ["impostor ไม่รันและไม่ปรากฏอีก"]
+    failure_handling: ["กลับมา → หา launcher และไฟล์สำรอง ตามหลักฐาน"]
+    rollback: ["restore จาก quarantine ตาม IR approval"]
+
+  - runbook_id: RB-INJECTED-PROCESS-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-INJECTED-PROCESS-CONTAIN]
+    supported_subtypes: [PROC-INJECT]
+    objective: "Restrict host/channel แล้ว terminate source/target ที่ได้รับอนุมัติตาม criticality"
+    prerequisites: ["source และ target process identity", "criticality ของ target process/host", "approval สำหรับยุติ target ที่เป็น critical"]
+    required_evidence: [proc_injection_effects]
+    required_targets: [process]
+    required_capabilities: [cap.process_termination, cap.workload_isolation, cap.scoped_network_enforcement]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การยุติ target process ที่เป็น process ของระบบ/แอปอาจกระทบบริการ จึงต้องได้รับอนุมัติตาม criticality"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน source (ตัวระบุ Process: {{process.process_identity}}) และ target process บน {{process.host_id}} พร้อม injection effects ตาม evidence และไม่ใช่ security tool/debugger ที่อนุมัติ"
+        expected_result: "ระบุ source/target ถูกต้อง"
+        verify: "เทียบ evidence ref และรายการ approved tools"
+        on_failure: "ไม่ยุติ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "Restrict {{host_workload.host_id}} จาก network (คงช่องทาง IR)"
+        origin: EXPANDED_FROM_REFERENCE
+        variant: standard
+        instruction: "Restrict {{host_workload.host_id}} จาก network (คงช่องทาง IR) เพื่อตัด channel ของ injected execution"
+        method: "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้ เพื่อตัด channel ของ injected execution"
+        method_basis: NEUTRAL_DERIVED
+        requires_org: [approved_access]
+        condition: {all_of: [{field: targets.host_workload.validated, operator: equals, value: true}, {field: capability.cap.workload_isolation.supported, operator: equals, value: true}]}
+        expected_result: "host ติดต่อได้เฉพาะ IR path"
+        verify: "outbound ถูกจำกัด"
+        on_failure: "จำกัดที่ segment และ escalate IR"
+        rollback: "ปลดหลัง IR ยืนยัน"
+        impact: "workload หยุดให้บริการ network"
+      - step_id: S2c
+        title: "จำกัดเฉพาะ channel ของ injected process บน {{process.host_id}} (workload สำคัญ — ไม่ isolate ทั้งเครื่อง)"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: จำกัดเฉพาะ channel ที่ผูกกับ injected process ({{network_flow.destination}}) แทน isolate ทั้งเครื่อง"
+        method: "จำกัดเฉพาะ channel ที่ผูกกับ injected process ไปยัง {{network_flow.destination}} บน {{process.host_id}} ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ตรวจว่าไม่มี connection ไปยังปลายทางเดิม"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.network_flow.validated, operator: equals, value: true}]}
+        expected_result: "channel ถูกตัดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี connection ไปปลายทางเดิม"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S3
+        title: "ตัด channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด channel {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่ injected process ใช้"
+        method: "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.network_flow.validated, operator: equals, value: true}, {field: capability.cap.scoped_network_enforcement.supported, operator: equals, value: true}]}
+        expected_result: "channel ใช้ไม่ได้"
+        verify: "connection ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+      - step_id: S4
+        title: "ยุติ source process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} และ target ที่ถูก inject (หลังได้รับอนุมัติ)"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ source process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity) และ target process ที่ถูก inject หลังได้รับอนุมัติตาม criticality ของ target"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ ส่วน target process ที่ถูก inject ให้ยุติหลังได้รับอนุมัติตาม criticality ของ target เท่านั้น"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "injected execution หยุด"
+        verify: "source/target ไม่อยู่ใน process list หรือถูกสร้างใหม่แบบสะอาด"
+        on_failure: "คง restriction และ escalate IR/asset owner"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี injection effects ซ้ำบน {{process.host_id}}"
+        expected_result: "ไม่มีการกลับมา"
+        verify: "re-hunt injection events ในช่วงเฝ้าระวัง"
+        on_failure: "หา launcher/persistence ตามหลักฐาน"
+    verification: ["ไม่มี injection effects ซ้ำ", "channel ที่ตัดไม่กลับมา"]
+    failure_handling: ["กลับมา → หา launcher และ persistence ตามหลักฐาน"]
+    rollback: ["ปลด restriction ตาม IR approval"]
+    variants: [{variant_id: critical_workload, description: "ตัดเฉพาะ channel และขออนุมัติ asset owner ก่อนยุติ target ที่สำคัญ"}]
+
+  - runbook_id: RB-EXECUTION-CHAIN-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-EXECUTION-CHAIN-CONTAIN]
+    supported_subtypes: [PROC-CHAIN]
+    objective: "หยุด malicious child จำกัด identified trigger/input path โดยไม่ปิด applications ทั้งชุด"
+    prerequisites: ["ห่วงโซ่ request/feature/job → application → shell/payload", "child process identity", "route/feature/job ที่เป็น entry"]
+    required_evidence: [proc_app_to_interpreter_chain]
+    required_targets: [process]
+    required_capabilities: [cap.process_termination, cap.waf_targeted_rule, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "application ที่ถูกใช้เป็นช่องทางยังรันต่อ; เฉพาะ child และ entry path ที่ระบุถูกจำกัด"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน chain ที่ {{process.host_id}}: application → (ตัวระบุ Process: {{process.process_identity}}) (interpreter/payload) และ entry ที่เป็นต้นเหตุตาม evidence ไม่ใช่ job/automation ที่อนุมัติ"
+        expected_result: "รู้ child และ entry ที่ถูกต้อง"
+        verify: "แต่ละช่วงของ chain มี evidence ref"
+        on_failure: "ไม่ยุติ; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        title: "ยุติ malicious child (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ malicious child (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity) ไม่ปิด application หลัก"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (ไม่ปิด application หลัก)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "child หยุดทำงาน และ application หลักยังทำงาน"
+        verify: "child ไม่อยู่ใน process list และ application ยังตอบสนอง"
+        on_failure: "restrict ที่ entry path ใน S4 และ escalate IR"
+      - step_id: S2c
+        title: "จำกัด entry path ก่อน และขออนุมัติ asset owner ก่อนยุติ child (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: จำกัด entry path ตามขั้นตอนถัดไปก่อน และขออนุมัติ asset owner ก่อนยุติ child (ตัวระบุ Process: {{process.process_identity}})"
+        method: "จำกัด entry path ตามขั้นตอนถัดไปก่อน แล้วส่งคำขออนุมัติ asset owner ของ {{process.host_id}} ก่อนยุติ child ตามตัวระบุ Process ข้างต้น ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "entry path ถูกจำกัดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี child ใหม่จาก entry เดิม"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S3
+        title: "ยุติ child ย่อย (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_children
+        operates_on: process_children
+        instruction: "ยุติ child ย่อย (ตัวระบุ Process ลูก: {{process_children.child_process_identities}}) ที่มี lineage กับ (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process_children.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "children ที่ validate หยุด"
+        verify: "children ไม่อยู่ใน process list"
+        on_failure: "ตรวจ lineage เพิ่ม"
+      - step_id: S4
+        title: "จำกัด entry path {{web_route.route}} / {{web_route.parameter}} ของ {{web_route.application}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด entry path {{web_route.route}} / {{web_route.parameter}} ของ {{web_route.application}} ด้วย targeted rule ที่ {{web_route.control_point}} (web request-path restriction) — OS command injection จัดการที่นี่ ไม่ใช่ขั้นตอน SQLi"
+        method: "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} ของ {{web_route.application}} เพื่อจำกัดเส้นทางเข้าที่ใช้สั่งคำสั่งบนเครื่อง (OS command injection จัดการที่ขั้นตอนนี้ ไม่ใช่ขั้นตอน SQLi) เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.web_route.validated, operator: equals, value: true}, {field: capability.cap.waf_targeted_rule.supported, operator: equals, value: true}]}
+        expected_result: "requests ที่ทำให้เกิด shell execution ถูกจำกัด"
+        verify: "WAF log แสดง block และ traffic ปกติไม่กระทบ"
+        on_failure: "ทดสอบแบบ detect/log ก่อนและ escalate เจ้าของแอป"
+        rollback: "ถอน rule จาก snapshot"
+        impact: "ถ้า rule กว้างเกินไป อาจบล็อก request ปกติของ route นี้"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ log ของ application บน {{process.host_id}} ว่าไม่มี shell/interpreter child ใหม่จาก entry เดิม"
+        expected_result: "ไม่มี child ใหม่"
+        verify: "re-hunt process creation จาก application ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ entry/route อื่นที่มี evidence และ branch C2/persistence/credential ตามหลักฐาน"
+    verification: ["ไม่มี malicious child ใหม่", "application หลักยังให้บริการ"]
+    failure_handling: ["พบ entry อื่น → เพิ่มเฉพาะที่มี evidence; ไม่ปิด applications ทั้งชุด"]
+    rollback: ["ถอน rule จาก snapshot"]
+    variants: [{variant_id: critical_workload, description: "จำกัด entry path ก่อนและขออนุมัติ asset owner ก่อนยุติ child บน workload สำคัญ"}]

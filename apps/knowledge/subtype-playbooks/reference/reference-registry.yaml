@@ -1,0 +1,169 @@
+# reference-registry.yaml — REFERENCE_PATTERN (input A), transcribed 1:1 and made machine-readable.
+#
+# This is the *provenance anchor*: subtype ids, RB ids, evidence gates and the "Policy เฉพาะ" bullets are copied
+# from the reference and are NEVER edited by knowledge work. tools/validate.mjs checks that every entry here is
+# covered by a Playbook, an Action, a Runbook and (for policy_items) at least one rule — so a dropped bullet fails CI.
+#
+# Notes on transcription:
+#   - "Khôngแสดง raw secrets/tokens" in the source is a typo; transcribed as "ไม่แสดง".
+#   - Shared RB ids used by 2 subtypes in the source (RB-OAUTH-GRANT-CONTAIN, RB-MEMORY-EXECUTION-CONTAIN,
+#     RB-DNS-CHANNEL-CONTAIN) are kept as ONE runbook each.
+
+version: "ref-2026-10-08"
+source: REFERENCE_PATTERN (user-supplied, 10 attack families)
+
+families:
+
+  BRUTE_FORCE:
+    subtypes:
+      - {id: BF-GUESS,   name: Password Guessing,   evidence: "Attempts ซ้ำที่สัมพันธ์กับ source/account/service", measure: "จำกัด attempts ต่อ source และบริการจาก event", runbook: RB-AUTH-SOURCE-RESTRICT, steps: "ใช้ scoped deny/rate-limit ณ จุดรับบริการจริง โดยรักษา approved management access"}
+      - {id: BF-SPRAY,   name: Password Spraying,   evidence: "Attempts กระจายหลาย accounts เป็นแคมเปญที่สัมพันธ์กัน", measure: "จำกัด authentication campaign ต่อ application/authentication scope", runbook: RB-AUTH-CAMPAIGN-RESTRICT, steps: "ใช้ throttling/risk challenge/access restriction ที่ระบบรองรับ ครอบคลุมหลาย sources แทน block IP เดียว"}
+      - {id: BF-STUFF,   name: Credential Stuffing, evidence: "Automation ร่วมกับ credential-exposure/provider evidence", measure: "จำกัด automated login ต่อ login endpoint/client scope", runbook: RB-LOGIN-AUTOMATION-RESTRICT, steps: "ใช้ scoped bot/risk control และ session restrictions ตาม application Runbook"}
+      - {id: BF-OFFLINE, name: Offline Cracking,    evidence: "Hash extraction หรือ cracking workload ที่ยืนยัน", measure: "หยุด workload และจำกัด material ต่อ process/workload/hash-store access ที่พบ", runbook: RB-CREDENTIAL-MATERIAL-CONTAIN, steps: "ตัด access ต่อ material หยุด identified workload และใช้ credential-containment Runbook สำหรับ identities ที่เสี่ยง"}
+    policy_items:
+      - {id: BF-P1, text: "Failed login ไม่เปิด action disable/reset account โดยลำพัง"}
+      - {id: BF-P2, text: "Password spraying ไม่อนุญาต mass lockout ที่ตัดผู้ใช้จริง"}
+      - {id: BF-P3, text: "Source ต้องมีบทบาทชัดเจน ไม่ใช้ agent.ip เป็น attacker IP"}
+      - {id: BF-P4, text: "หากมี unauthorized success ที่ยืนยันแล้ว จึงเพิ่ม RB-SESSION-REVOKE และ credential containment ตาม identity scope"}
+
+  MALWARE:
+    subtypes:
+      - {id: MAL-RANSOM,   name: Ransomware,        evidence: "Active encryption/file damage ที่สัมพันธ์กับ process/share access", measure: "หยุด execution และ writes ต่อ process, host/workload และ share sessions", runbook: RB-ACTIVE-DAMAGE-CONTAIN, steps: "Isolate/restrict affected workload หยุด malicious process และตัด unauthorized write sessions ตาม approved scope"}
+      - {id: MAL-WORM,     name: Worm,              evidence: "Host-to-host activity พร้อม infection/execution ที่ปลายทาง", measure: "ตัด propagation path ต่อ source→destination service/path", runbook: RB-PROPAGATION-PATH-RESTRICT, steps: "จำกัด east-west connection/service ที่ถูกใช้ และ contain hosts ที่มี infection evidence"}
+      - {id: MAL-BACKDOOR, name: Trojan/Backdoor,   evidence: "Execution พร้อม remote access/persistence ที่สัมพันธ์", measure: "ตัด session/channel และ relaunch ต่อ process, connection, artifact", runbook: RB-BACKDOOR-CONTAIN, steps: "Terminate remote session/process จำกัด channel และ disable identified trigger"}
+      - {id: MAL-STEALER,  name: Infostealer,       evidence: "Credential/data collection หรือ transfer", measure: "หยุด collection/transfer ต่อ process, endpoint, destination และ exposed identities", runbook: RB-STEALER-CONTAIN, steps: "Contain workload ตัด transfer path และ revoke/rotate secrets ตาม exposure scope"}
+      - {id: MAL-MEMORY,   name: Memory-resident,   evidence: "Malicious memory execution/process behavior", measure: "หยุด memory workload ต่อ process/host/channel ที่สัมพันธ์", runbook: RB-MEMORY-EXECUTION-CONTAIN, steps: "Restrict/isolate workload และ terminate identified execution ตาม criticality"}
+    policy_items:
+      - {id: MAL-P1, text: "พบไฟล์ไม่เท่ากับยืนยัน execution หรือ infection"}
+      - {id: MAL-P2, text: "ไม่เสนอ quarantine หากไม่มี file/object identity"}
+      - {id: MAL-P3, text: "ไม่ลบ services/autoruns ทั้งชุด"}
+      - {id: MAL-P4, text: "Active damage ใช้มาตรการเร่งด่วนตาม IR authority; critical workloads ต้องมี containment ทางเลือก"}
+      - {id: MAL-P5, text: "Memory-resident ไม่บังคับให้มี hash/file target"}
+
+  PHISHING:
+    subtypes:
+      - {id: PH-ATTACH,  name: Attachment,          evidence: "Malicious attachment ผูกกับ message/recipients", measure: "หยุดการเข้าถึง attachment ต่อ messages/mailboxes ที่สัมพันธ์", runbook: RB-MAIL-CAMPAIGN-QUARANTINE, steps: "Quarantine campaign messages และจำกัด identified attachment หากเครื่องมือรองรับ"}
+      - {id: PH-LINK,    name: Malicious Link,      evidence: "Message/link chain ที่ยืนยันว่าเป็นอันตราย", measure: "ตัด delivery ต่อ URL/domain/path และ related messages", runbook: RB-PHISHING-LINK-RESTRICT, steps: "จำกัด link ที่ mail/web control และ quarantine messages ตาม campaign scope"}
+      - {id: PH-CREDS,   name: Credential Harvesting, evidence: "Submission หรือ identity abuse ที่สัมพันธ์กับ page", measure: "ตัด harvesting และ identity access ต่อ page, accounts, sessions", runbook: RB-HARVESTING-CONTAIN, steps: "จำกัด page/messages แล้ว revoke sessions และจัดการ credentials ของ affected identities"}
+      - {id: PH-CONSENT, name: OAuth Consent,       evidence: "Unauthorized app consent/grant", measure: "ตัด app access ต่อ client/principal/grant/scopes", runbook: RB-OAUTH-GRANT-CONTAIN, steps: "ถอน grant จำกัด principal/resource access และจัดการ tokens ตาม platform capability"}
+      - {id: PH-BEC,     name: BEC,                 evidence: "Fraudulent instruction และ mailbox abuse หากมี", measure: "หยุดธุรกรรม/การเข้าถึงต่อ business item, mailbox session/rule/delegate", runbook: RB-BEC-CONTAIN, steps: "ผู้มีอำนาจ hold affected business item; IR revoke unauthorized mailbox access และ disable rules ที่เกี่ยวข้อง"}
+    policy_items:
+      - {id: PH-P1, text: "Delivery, click, submission และ execution เป็นคนละ scenario"}
+      - {id: PH-P2, text: "ไม่ isolate ทุกคนที่ได้รับข้อความ"}
+      - {id: PH-P3, text: "Attachment execution จึงเพิ่ม Malware/Process branch"}
+      - {id: PH-P4, text: "BEC business actions เป็น MANUAL ของผู้มีอำนาจ"}
+      - {id: PH-P5, text: "Password reset ไม่แทน OAuth grant/session revocation"}
+
+  ACCOUNT_COMPROMISE:
+    subtypes:
+      - {id: AC-PASSWORD, name: Stolen Password,           evidence: "Unauthorized password authentication ที่ยืนยัน", measure: "ตัด access ต่อ account และ affected sessions", runbook: RB-IDENTITY-CREDENTIAL-CONTAIN, steps: "Revoke sessions และ restrict/disable/reset ตาม approved identity scope"}
+      - {id: AC-SESSION,  name: Cookie/Session Theft,      evidence: "Session replay/unauthorized use", measure: "Invalidate access ต่อ session identifiers และ application scope", runbook: RB-SESSION-REVOKE, steps: "Revoke ที่ IdP/application; ใช้ supported access restriction เมื่อ revoke ทันทีไม่ได้"}
+      - {id: AC-OAUTH,    name: OAuth Token Abuse,         evidence: "Token/grant ผูกกับ unauthorized API calls", measure: "ตัด API access ต่อ token/grant/principal/resources", runbook: RB-OAUTH-GRANT-CONTAIN, steps: "Revoke grant/token หรือ restrict resource access ตาม provider Runbook"}
+      - {id: AC-SECRET,   name: API Key/Secret,            evidence: "Exposure หรือ unauthorized key use", measure: "ตัด secret access ต่อ credential ID และ dependent services", runbook: RB-SERVICE-SECRET-CONTAIN, steps: "Restrict/revoke affected credential และ deploy secure replacement ผ่าน secret management"}
+      - {id: AC-MFA,      name: MFA/Recovery Abuse,        evidence: "Unauthorized factor/recovery change หรือ approved unauthorized session", measure: "ตัด recovery/authentication path ต่อ factor, recovery entry, session", runbook: RB-MFA-RECOVERY-CONTAIN, steps: "ถอน identified unauthorized factor/path และ revoke related sessions"}
+    policy_items:
+      - {id: AC-P1, text: "Anomalous location อย่างเดียวไม่ยืนยัน compromise"}
+      - {id: AC-P2, text: "ไม่แสดง raw secrets/tokens ใน recommendation"}
+      - {id: AC-P3, text: "Existing sessions อาจไม่หมดจาก password reset"}
+      - {id: AC-P4, text: "Service identities ต้องใช้ dependency-aware plan"}
+      - {id: AC-P5, text: "Replacement ไม่ใช้ compromised secret เดิม"}
+
+  POWERSHELL:
+    subtypes:
+      - {id: PS-OBFUSCATED, name: Obfuscated,            evidence: "Script/command และ malicious effects ที่รองรับ", measure: "หยุด abusive execution ต่อ process instance/effect targets", runbook: RB-SCRIPT-EXECUTION-CONTAIN, steps: "Terminate identified malicious invocation และจำกัด channel/effects ตาม evidence"}
+      - {id: PS-DOWNLOAD,   name: Download-and-execute,  evidence: "Command→download→payload execution", measure: "ตัด delivery/chain ต่อ destination, process tree, file identity", runbook: RB-DOWNLOAD-EXECUTION-CONTAIN, steps: "จำกัด download destination หยุด identified processes และ quarantine payload"}
+      - {id: PS-MEMORY,     name: In-memory,             evidence: "Memory/script execution ที่เป็นอันตราย", measure: "ตัด memory execution ต่อ process/workload/channel", runbook: RB-MEMORY-EXECUTION-CONTAIN, steps: "Contain workload และ identified execution พร้อมตัด related channel"}
+      - {id: PS-REMOTE,     name: Remote Execution,      evidence: "Unauthorized remoting ผูกกับ source/account/target/command", measure: "ตัด remote path ต่อ session และ source→destination management scope", runbook: RB-REMOTE-SESSION-CONTAIN, steps: "Terminate session จำกัด management path และ contain destination effects"}
+      - {id: PS-PERSIST,    name: Persistence Trigger,   evidence: "Script ผูกกับ task/autorun/service และ relaunch", measure: "หยุด relaunch ต่อ identified artifact และ process", runbook: RB-PERSISTENCE-TRIGGER-DISABLE, steps: "เก็บ artifact configuration แล้ว disable trigger และหยุด processes ที่มันเริ่ม"}
+    policy_items:
+      - {id: PS-P1, text: "Encoded command หรือ powershell.exe อย่างเดียวไม่เปิด termination"}
+      - {id: PS-P2, text: "ไม่ execute suspicious script เพื่อวิเคราะห์"}
+      - {id: PS-P3, text: "ไม่ปิด PowerShell/remote management ทั้งองค์กรจาก event เดียว"}
+      - {id: PS-P4, text: "Process target ต้องมี identity ที่เพียงพอ ไม่ใช้ PID อย่างเดียว"}
+      - {id: PS-P5, text: "ไม่ disable tasks ที่ไม่มีความสัมพันธ์กับเหตุการณ์"}
+
+  SQL_INJECTION:
+    subtypes:
+      - {id: SQ-UNION,   name: Union-based,        evidence: "Correlated malicious UNION requests", measure: "จำกัด injection path ต่อ route/parameter/source/session ที่เกี่ยวข้อง", runbook: RB-WEB-REQUEST-RESTRICT, steps: "ใช้ targeted WAF/virtual patch และ scoped rate-limit ตาม approved control"}
+      - {id: SQ-ERROR,   name: Error-based,        evidence: "Request สัมพันธ์กับ DB error ที่เผยภายนอก", measure: "ลด leakage และจำกัด probing ต่อ response handler/request path", runbook: RB-DB-ERROR-EXPOSURE-CONTAIN, steps: "ใช้ generic external response โดยคง internal logging แล้วจำกัด malicious requests"}
+      - {id: SQ-BOOLEAN, name: Boolean Blind,      evidence: "Request sequence และ correlated response behavior", measure: "จำกัด probing ต่อ endpoint/session/campaign scope", runbook: RB-SQLI-PROBING-RESTRICT, steps: "ใช้ tested input-path restriction และ scoped throttling ครอบคลุม distributed sources ที่พบ"}
+      - {id: SQ-TIME,    name: Time Blind,         evidence: "Timing/query correlation", measure: "จำกัด probing และ harmful workload ต่อ route, query/session ID", runbook: RB-SQLI-TIMING-CONTAIN, steps: "จำกัด request path; DBA cancel identified harmful query เมื่อเข้าเงื่อนไข"}
+      - {id: SQ-OOB,     name: Out-of-band,        evidence: "Request/query→DB workload→outbound activity", measure: "ตัด egress และ injection path ต่อ DB workload/destination/protocol/route", runbook: RB-DB-EGRESS-CONTAIN, steps: "จำกัด scoped DB egress และ existing related connections พร้อม targeted request restriction"}
+      - {id: SQ-SECOND,  name: Second-order,       evidence: "Record→consumer/job→harmful query", measure: "หยุด delayed processing ต่อ job/record/queued copies", runbook: RB-STORED-PAYLOAD-CONTAIN, steps: "Pause scoped consumer/retries และกัน identified records จาก processing โดยรักษาต้นฉบับ"}
+      - {id: SQ-STACKED, name: Stacked/Batched,    evidence: "Driver/query evidence ของ multiple statements", measure: "ตัด batch path และ effects ต่อ route/driver path/query/grant ที่พบ", runbook: RB-BATCH-QUERY-CONTAIN, steps: "Restrict source path; disable unnecessary multi-statement เมื่อรองรับและอนุมัติ; contain statement effects"}
+    policy_items:
+      - {id: SQ-P1, text: "SQL keyword/semicolon ไม่พิสูจน์ query execution หรือ data loss"}
+      - {id: SQ-P2, text: "Slow response ไม่เปิด query termination โดยลำพัง"}
+      - {id: SQ-P3, text: "OOB payload syntax ไม่พิสูจน์ outbound success"}
+      - {id: SQ-P4, text: "ไม่ kill ทุก slow query หรือ isolate DB แบบเหมารวม"}
+      - {id: SQ-P5, text: "Second-order ต้องมี lineage ไม่ใช่ suspicious text อย่างเดียว"}
+      - {id: SQ-P6, text: "Parameterized queries/code fixes เป็น remediation แยกจาก containment"}
+
+  COMMAND_AND_CONTROL:
+    subtypes:
+      - {id: C2-WEB,    name: Web C2,          evidence: "Process/network correlation พร้อม C2 evidence", measure: "ตัด channel ต่อ workload→URL/domain/destination", runbook: RB-WEB-C2-CONTAIN, steps: "จำกัด granular destination/path จัดการ related connections และ contain initiator"}
+      - {id: C2-DNS,    name: DNS C2,          evidence: "DNS/process/behavior correlation", measure: "ตัด DNS channel ต่อ domain/resolver path/affected host", runbook: RB-DNS-CHANNEL-CONTAIN, steps: "จำกัด identified domains และ evidenced resolver bypass โดยรักษา approved DNS"}
+      - {id: C2-CUSTOM, name: Custom Protocol, evidence: "Identified socket/flow/tunnel ที่สัมพันธ์กับ C2", measure: "ตัด scoped flow ต่อ source/destination/protocol/connection", runbook: RB-CUSTOM-CHANNEL-CONTAIN, steps: "ใช้ scoped network restriction ตัด connection state ตาม Runbook และ contain initiator"}
+      - {id: C2-RMM,    name: RMM Abuse,       evidence: "Unauthorized tool session/registration", measure: "ตัด remote control ต่อ tool session/registration/service", runbook: RB-RMM-ACCESS-CONTAIN, steps: "Terminate session revoke scoped registration/access และ disable identified service หากจำเป็น"}
+    policy_items:
+      - {id: C2-P1, text: "Periodic traffic, long DNS queries หรือ uncommon ports ไม่เพียงพอโดยลำพัง"}
+      - {id: C2-P2, text: "Shared cloud/CDN ต้อง granular control เมื่อทำได้"}
+      - {id: C2-P3, text: "ไม่ block agent IP เป็น destination"}
+      - {id: C2-P4, text: "Legitimate RMM ไม่เป็น malware โดยชื่อ; ต้องรักษา trusted IR access"}
+
+  SUSPICIOUS_PROCESS:
+    subtypes:
+      - {id: PROC-LOLBIN, name: LOLBin Abuse,         evidence: "Trusted binary มี abusive arguments/effects", measure: "หยุด instance ต่อ process/child/effect targets", runbook: RB-TRUSTED-BINARY-ABUSE-CONTAIN, steps: "Terminate identified invocation และใช้ scoped behavior control ไม่ลบ system binary"}
+      - {id: PROC-MASK,   name: Masquerading,         evidence: "Impostor executable พร้อม malicious behavior", measure: "ตัด execution ต่อ process/file identity", runbook: RB-IMPOSTOR-PROCESS-CONTAIN, steps: "หยุด instance quarantine identified file และจำกัด launcher ที่มี evidence"}
+      - {id: PROC-INJECT, name: Injection/Hollowing,  evidence: "Source/target process และ injection effects", measure: "ตัด injected execution ต่อ process/host/channel", runbook: RB-INJECTED-PROCESS-CONTAIN, steps: "Restrict host/channel แล้ว terminate source/target ที่ได้รับอนุมัติตาม criticality"}
+      - {id: PROC-CHAIN,  name: Unexpected Chain,     evidence: "Application→interpreter/payload พร้อม unauthorized effects", measure: "ตัด chain ต่อ child process และ entry feature/route/job", runbook: RB-EXECUTION-CHAIN-CONTAIN, steps: "หยุด malicious child จำกัด identified trigger/input path ไม่ปิด applications ทั้งชุด"}
+    policy_items:
+      - {id: PROC-P1, text: "Process name/path/signer อย่างเดียวไม่ยืนยัน malicious behavior"}
+      - {id: PROC-P2, text: "ไม่ block hash ของ legitimate OS binary แบบเหมารวม"}
+      - {id: PROC-P3, text: "Critical process ต้องใช้ alternative containment เมื่อ termination กระทบระบบ"}
+      - {id: PROC-P4, text: "แยก approved automation/security tools ออกจาก abuse"}
+      - {id: PROC-P5, text: "OS Command Injection: หาก request→application→shell execution มี evidence ให้เปิด PROC-CHAIN ร่วมกับ web request-path restriction หากพบ C2/persistence/credential abuse จึงเพิ่มแขนงเหล่านั้น ไม่จัดเป็น SQLi อัตโนมัติ"}
+
+  DATA_EXFILTRATION:
+    subtypes:
+      - {id: EXF-WEB,      name: Web Upload,          evidence: "Unauthorized transfer พร้อม source/data/direction correlation", measure: "หยุด upload ต่อ process/session/upload destination", runbook: RB-WEB-TRANSFER-CONTAIN, steps: "จำกัด scoped destination/path ตัด identified transfer session/process และ contain source เมื่อจำเป็น"}
+      - {id: EXF-CLOUD,    name: Cloud Share/Copy,    evidence: "Unauthorized object access/share/copy audit", measure: "ตัด access ต่อ object/link/ACL/grant/copy job", runbook: RB-CLOUD-DATA-ACCESS-CONTAIN, steps: "Revoke identified share/grant จำกัด principal และหยุด related copy job"}
+      - {id: EXF-DNS,      name: DNS Tunnel,          evidence: "Data-channel evidence ผ่าน DNS", measure: "ตัด transfer ต่อ domain/resolver/host/process", runbook: RB-DNS-CHANNEL-CONTAIN, steps: "จำกัด identified channel และ contain process โดยคง approved resolution"}
+      - {id: EXF-TRANSFER, name: File Transfer,       evidence: "Unauthorized transfer job/session/direction", measure: "หยุด transfer ต่อ job/session/account/destination", runbook: RB-FILE-TRANSFER-CONTAIN, steps: "Stop transfer pause retries และจำกัด credential/path ที่เกี่ยวข้อง"}
+      - {id: EXF-MAIL,     name: Email/Forwarding,    evidence: "Unauthorized sensitive-data sending/forwarding", measure: "ตัด mail path ต่อ message queue/rule/delegate/identity", runbook: RB-MAIL-EXFIL-CONTAIN, steps: "Disable scoped forwarding/delegation hold affected queue และ restrict compromised identity"}
+    policy_items:
+      - {id: EXF-P1, text: "Traffic volume, share creation หรือ DNS lookup ไม่พิสูจน์ data loss"}
+      - {id: EXF-P2, text: "ต้องรู้ transfer direction และ authorization"}
+      - {id: EXF-P3, text: "ไม่ลบ source data เพื่อหยุด exfiltration"}
+      - {id: EXF-P4, text: "ไม่รับประกันเรียกข้อมูลที่ส่งแล้วกลับคืน"}
+      - {id: EXF-P5, text: "ไม่รายงานปริมาณสูญหายเกิน evidence"}
+
+  PRIVILEGE_ESCALATION:
+    subtypes:
+      - {id: PE-EXPLOIT, name: Vulnerability Exploit,      evidence: "Exploit→privileged context/effects", measure: "ตัด execution ต่อ process/session/entry path", runbook: RB-ELEVATED-EXECUTION-CONTAIN, steps: "Contain privileged workload หยุด identified malicious context และจำกัด exploit entry ที่พบ"}
+      - {id: PE-LOCAL,   name: Sudo/SUID Abuse,            evidence: "Config/invocation/elevation ที่สัมพันธ์", measure: "ตัด elevation path ต่อ rule/permission/session", runbook: RB-LOCAL-ELEVATION-CONTAIN, steps: "เก็บ config ถอน scoped unauthorized permission และ terminate affected privileged session"}
+      - {id: PE-SERVICE, name: Service/Task Hijack,        evidence: "Artifact change→privileged execution", measure: "หยุด privileged trigger ต่อ service/task/path/ACL/process", runbook: RB-PRIVILEGED-TRIGGER-CONTAIN, steps: "Disable trigger หยุด payload จำกัด writable path และใช้ trusted approved configuration"}
+      - {id: PE-TOKEN,   name: Token/Elevation Abuse,      evidence: "Unauthorized impersonation/token context", measure: "ตัด privileged context ต่อ process/token-associated session", runbook: RB-PRIVILEGED-CONTEXT-CONTAIN, steps: "Contain identified context และ source mechanism ตาม platform capability"}
+      - {id: PE-GRANT,   name: Group/Role Manipulation,    evidence: "Unauthorized entitlement change", measure: "ถอน access ต่อ grant/membership/principal/sessions", runbook: RB-PRIVILEGED-GRANT-CONTAIN, steps: "Remove scoped entry revoke affected sessions และ contain abusing actor"}
+      - {id: PE-CLOUD,   name: Cloud IAM Abuse,            evidence: "Unauthorized trust/policy/role use", measure: "ตัด assumption/access ต่อ principal/trust/grant/resources", runbook: RB-CLOUD-PRIVILEGE-CONTAIN, steps: "Restrict evidenced trust/grant/resources และจัดการ exposed credentials ตาม dependencies"}
+    policy_items:
+      - {id: PE-P1, text: "Attempt, exposure หรือ admin change ไม่เท่ากับ successful malicious escalation"}
+      - {id: PE-P2, text: "ไม่ remove administrators หรือ elevation permissions ทั้งระบบ"}
+      - {id: PE-P3, text: "Password reset/patch ไม่ยกเลิก privileged contexts ที่ยังมีอยู่โดยอัตโนมัติ"}
+      - {id: PE-P4, text: "Entitlement/policy changes อาจไม่ invalidate issued tokens ทันที ต้องใช้ platform-supported restrictions"}
+      - {id: PE-P5, text: "รักษา approved administration/recovery access"}
+
+# Cross-cutting principles (prompt §1/§8/§7) — each must be covered by a rule in families/_global.yaml.
+global_principles:
+  - {id: GL-1, text: "แยก classification evidence ออกจาก action authorization: จัด subtype ได้ ไม่ได้แปลว่าทุก action ทำได้"}
+  - {id: GL-2, text: "แยก attempted/delivered/clicked/submitted/executed/unauthorized success/active damage/confirmed transfer — ห้ามใช้แทนกัน"}
+  - {id: GL-3, text: "UNKNOWN หรือข้อมูลไม่ครบ ไม่ถือว่าเงื่อนไขผ่าน"}
+  - {id: GL-4, text: "ไม่ใช้ confidence score / retrieval score แทน required evidence หรือ authorization"}
+  - {id: GL-5, text: "ไม่ใช้ field เช่น agent.ip เป็น attacker IP หรือ destination โดยอัตโนมัติ"}
+  - {id: GL-6, text: "ไม่สร้าง target, command, API endpoint หรือผลลัพธ์ที่ไม่มีข้อมูลรองรับ"}
+  - {id: GL-7, text: "Recommendation เป็นข้อเสนอ ไม่อ้างว่า execute/สำเร็จ/ปิด incident หากไม่มี execution result และ verification"}
+  - {id: GL-8, text: "ไม่แสดง raw secrets/tokens/passwords"}
+  - {id: GL-9, text: "รักษา approved administration, recovery และ trusted IR access; ใช้ scope แคบ"}
+  - {id: GL-10, text: "Activity ที่ AUTHORIZED/benign (approved task change, approved automation) ไม่เปิด malicious containment"}
+  - {id: GL-11, text: "Deduplicate actions ห้ามรวม scope กว้างขึ้น; ห้ามใช้ password reset แทน session/grant revocation"}
+  - {id: GL-12, text: "Output ต่อผู้ใช้ไม่แสดง family/subtype/Playbook-Policy-Runbook ID/JSON/confidence — เก็บใน audit record"}

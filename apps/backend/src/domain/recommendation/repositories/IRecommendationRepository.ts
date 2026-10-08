@@ -1,8 +1,10 @@
 import { PlaybookRevisionProvenance } from "../../playbook/PlaybookRevisionProvenance";
-import { Recommendation, RecommendationInstruction, RecommendationStatus, RecommendationStepProps } from "../entities/Recommendation.entity";
+import { Recommendation, RecommendationInstruction, RecommendationStatus, RecommendationStepProps, RecommendationStepType } from "../entities/Recommendation.entity";
 
 export interface CreateRecommendationStepData {
   stepOrder: number;
+  /** Persisted in recommendation_steps.phase. Absent -> ACTION (v2 action-level step). */
+  stepType?: RecommendationStepType;
   title: string;
   objective: string | null;
   actionId: string | null;

@@ -1,0 +1,589 @@
+# COMMAND_AND_CONTROL — family file. Reference: reference-registry.yaml#COMMAND_AND_CONTROL
+# Owns the SHARED action ACT-DNS-CHANNEL-CONTAIN / RB-DNS-CHANNEL-CONTAIN (also used by EXF-DNS).
+# Principles: periodic traffic / long DNS / uncommon port alone are not C2 (C2-P1); granular control for shared cloud/CDN (C2-P2);
+# never block agent.ip as a destination (C2-P3); a legitimate RMM tool is not malware by name — abuse evidence is required and trusted IR access is preserved (C2-P4).
+
+family: COMMAND_AND_CONTROL
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: COMMAND_AND_CONTROL, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: c2_indicator_only
+    description: "Periodic traffic, long DNS queries or an uncommon port ONLY (indicator; no process/behavior correlation)."
+    confirm: "หา process ที่เป็นเจ้าของ connection/DNS, ปลายทาง และพฤติกรรมอื่นที่ยืนยัน C2"
+    may_be_authorized: true
+  - id: c2_web_channel_correlated
+    description: "Process/network correlation with C2 evidence over web (workload -> URL/domain/destination)."
+    confirm: "ผูก process กับ connection ไปยัง URL/domain/destination และหลักฐานว่าเป็น C2 (beacon pattern + intel/behavior)"
+    may_be_authorized: true
+  - id: c2_dns_correlated
+    description: "DNS / process / behavior correlation indicating a DNS command channel."
+    confirm: "ผูก DNS queries กับ process/host และ behavior; ระบุ domain และ resolver path"
+    may_be_authorized: true
+  - id: c2_custom_channel_identified
+    description: "Identified socket/flow/tunnel correlated to C2 over a custom protocol."
+    confirm: "ระบุ socket/flow/tunnel (source, destination, protocol/port) และผูกกับ process/behavior ที่เป็น C2"
+    may_be_authorized: true
+  - id: c2_rmm_unauthorized
+    description: "Unauthorized remote-management tool session/registration (not in the approved RMM inventory / no change record)."
+    confirm: "เทียบ tool/registration กับ inventory ของ RMM ที่อนุมัติ, ผู้ลงทะเบียน และที่มา"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-WEB-C2-CONTAIN
+    action_name: Cut web C2 channel
+    label_th: "ตัดช่องทาง web C2"
+    objective: "ตัด channel ต่อ workload→URL/domain/destination แบบ granular จัดการ related connections และ contain initiator"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [destination_endpoint, network_flow, process, host_workload]
+    evidence_requirements: [c2_web_channel_correlated]
+    target_requirements: [destination_endpoint]
+    runbook_refs: [RB-WEB-C2-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DESTINATION-IP, ACT-BLOCK-DOMAIN, ACT-BLOCK-URL, ACT-ISOLATE-ENDPOINT]
+    execution_constraints: ["ไม่ block agent IP เป็น destination", "shared cloud/CDN ต้อง granular", "periodic/port อย่างเดียวไม่พอ"]
+  - action_id: ACT-DNS-CHANNEL-CONTAIN
+    action_name: Cut DNS channel
+    label_th: "ตัดช่องทาง DNS ที่ใช้ลักลอบสื่อสาร"
+    objective: "จำกัด identified domains และ evidenced resolver bypass โดยรักษา approved DNS และ contain process"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [dns_channel, process]
+    evidence_requirements: [c2_dns_correlated, exf_dns_tunnel_data, exf_direction_outbound_confirmed]
+    target_requirements: [dns_channel]
+    runbook_refs: [RB-DNS-CHANNEL-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DOMAIN]
+    execution_constraints: ["ไม่ปิด approved DNS resolution", "domain ที่ระบุเท่านั้น", "long DNS query อย่างเดียวไม่พอ"]
+  - action_id: ACT-CUSTOM-CHANNEL-CONTAIN
+    action_name: Cut custom-protocol C2 flow
+    label_th: "ตัด flow C2 แบบ custom protocol"
+    objective: "ตัด scoped flow ต่อ source/destination/protocol/connection ตัด connection state และ contain initiator"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [network_flow, process, host_workload]
+    evidence_requirements: [c2_custom_channel_identified]
+    target_requirements: [network_flow]
+    runbook_refs: [RB-CUSTOM-CHANNEL-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DESTINATION-IP, ACT-ISOLATE-ENDPOINT]
+    execution_constraints: ["deny rule อาจไม่ตัด existing connection — ตัด connection state เมื่อรองรับ", "uncommon port อย่างเดียวไม่พอ"]
+  - action_id: ACT-RMM-ACCESS-CONTAIN
+    action_name: Contain unauthorized RMM access
+    label_th: "จำกัดการเข้าถึง RMM ที่ไม่ได้รับอนุญาต"
+    objective: "ตัด remote control ต่อ tool session/registration/service โดยรักษา trusted IR access"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [rmm_registration]
+    evidence_requirements: [c2_rmm_unauthorized]
+    target_requirements: [rmm_registration]
+    runbook_refs: [RB-RMM-ACCESS-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS]
+    execution_constraints: ["RMM ที่ถูกต้องไม่ใช่ malware โดยชื่อ", "รักษา trusted IR access"]
+
+playbooks:
+  - playbook_id: PBK-C2-WEB
+    attack_family: COMMAND_AND_CONTROL
+    subtype_id: C2-WEB
+    subtype_name: Web C2
+    classification_evidence:
+      all_of: [{field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["connection แบบ periodic เพียงอย่างเดียว (C2-P1)", "ปลายทางเป็น agent.ip", "ไม่ผูกกับ process"]
+    scenarios:
+      - scenario_id: SC-C2-WEB-CORRELATED
+        description: "process↔network correlation พร้อมหลักฐาน C2 ไปยัง URL/domain/destination"
+        ordered_action_refs:
+          - {action_id: ACT-WEB-C2-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด channel แบบ granular ก่อน แล้วจัดการ connection เดิมและ initiator", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-C2-001, POL-C2-005]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+      - {subtype_id: MAL-BACKDOOR, open_when: {field: evidence.mal_remote_access_or_persistence.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.uses_agent_ip_as_destination, operator: equals, value: true}, then: STOP, note: "ห้าม block agent IP เป็น destination"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-C2-DNS
+    attack_family: COMMAND_AND_CONTROL
+    subtype_id: C2-DNS
+    subtype_name: DNS C2
+    classification_evidence:
+      all_of: [{field: evidence.c2_dns_correlated.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["DNS query ยาวอย่างเดียว (C2-P1)", "periodic query โดยไม่มี process/behavior correlation"]
+    scenarios:
+      - scenario_id: SC-C2-DNS-CORRELATED
+        description: "DNS/process/behavior correlation ชี้ว่าเป็น DNS command channel"
+        ordered_action_refs:
+          - {action_id: ACT-DNS-CHANNEL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด domain ที่ระบุและ resolver bypass ที่มีหลักฐาน โดยรักษา approved DNS แล้ว contain process", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-C2-002, POL-C2-005]
+    related_branches:
+      - {subtype_id: EXF-DNS, open_when: {field: evidence.exf_dns_tunnel_data.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.cuts_approved_access, operator: equals, value: true}, then: STOP, note: "ต้องรักษา approved DNS"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-C2-CUSTOM
+    attack_family: COMMAND_AND_CONTROL
+    subtype_id: C2-CUSTOM
+    subtype_name: Custom Protocol
+    classification_evidence:
+      all_of: [{field: evidence.c2_custom_channel_identified.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["port ที่ไม่พบบ่อยอย่างเดียว (C2-P1)", "flow ที่ไม่ผูกกับ process/behavior"]
+    scenarios:
+      - scenario_id: SC-C2-CUSTOM-FLOW
+        description: "ระบุ socket/flow/tunnel ที่สัมพันธ์กับ C2"
+        ordered_action_refs:
+          - {action_id: ACT-CUSTOM-CHANNEL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด flow เฉพาะ scope พร้อมตัด connection state แล้ว contain initiator", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-C2-003, POL-C2-005]
+    related_branches:
+      - {subtype_id: PS-PERSIST, open_when: {field: evidence.ps_persistence_relaunch.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.uses_agent_ip_as_destination, operator: equals, value: true}, then: STOP, note: "ห้าม block agent IP เป็น destination"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-C2-RMM
+    attack_family: COMMAND_AND_CONTROL
+    subtype_id: C2-RMM
+    subtype_name: RMM Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.c2_rmm_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.c2_rmm_unauthorized.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["พบชื่อ RMM tool โดยไม่ยืนยันว่าไม่ได้รับอนุญาต (C2-P4)", "tool ใน inventory ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-C2-RMM-UNAUTHORIZED
+        description: "Tool session/registration ที่ไม่ได้รับอนุญาต"
+        ordered_action_refs:
+          - {action_id: ACT-RMM-ACCESS-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ผู้โจมตีควบคุมเครื่องได้โดยตรง จึงตัด session ก่อนแล้ว revoke registration/service", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-C2-004]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: evidence.c2_rmm_unauthorized.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "RMM ที่ได้รับอนุมัติ ไม่ใช่ malware"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-C2-001
+    rule_type: ACTION_GATE
+    action_id: ACT-WEB-C2-CONTAIN
+    applicable_subtypes: [C2-WEB]
+    covers: [C2-P1, C2-P2, C2-P3]
+    required_evidence:
+      all_of: [{field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.destination_endpoint.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-C2-1, reason: "periodic traffic/port อย่างเดียวไม่เพียงพอ (C2-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+      - {id: PRH-C2-2, reason: "shared cloud/CDN ต้อง granular control เมื่อทำได้ (C2-P2)", when: {field: scope.shared_infra_coarse_block, operator: equals, value: true}}
+    authorization_gate: [c2_web_channel_correlated]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.mail_web_link_control, cap.egress_control, cap.dns_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยันว่า connection เป็น C2 หรือ destination ยังไม่ granular/validate"}
+    reason: "ตัด channel เฉพาะ destination ที่ยืนยัน ที่ระดับละเอียดที่สุดที่รองรับ"
+    provenance: {reference: [C2-WEB, C2-P1, C2-P2, C2-P3]}
+
+  - policy_id: POL-C2-002
+    rule_type: ACTION_GATE
+    action_id: ACT-DNS-CHANNEL-CONTAIN
+    applicable_subtypes: [C2-DNS]
+    covers: [C2-P1]
+    required_evidence:
+      all_of: [{field: evidence.c2_dns_correlated.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.dns_channel.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-C2-3, reason: "DNS query ยาว/periodic อย่างเดียวไม่เพียงพอ (C2-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+    authorization_gate: [c2_dns_correlated]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.dns_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก DNS กับ process/behavior"}
+    reason: "จำกัดเฉพาะ domains ที่ระบุและ resolver bypass ที่มีหลักฐาน โดยรักษา approved DNS"
+    provenance: {reference: [C2-DNS, C2-P1]}
+
+  - policy_id: POL-C2-003
+    rule_type: ACTION_GATE
+    action_id: ACT-CUSTOM-CHANNEL-CONTAIN
+    applicable_subtypes: [C2-CUSTOM]
+    covers: [C2-P1, C2-P3]
+    required_evidence:
+      all_of: [{field: evidence.c2_custom_channel_identified.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.network_flow.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-C2-4, reason: "uncommon port/periodic อย่างเดียวไม่เพียงพอ (C2-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+    authorization_gate: [c2_custom_channel_identified]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.scoped_network_enforcement]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "flow ยังไม่ validate หรือยังไม่ผูกกับ C2"}
+    reason: "ตัด scoped flow พร้อม connection state ของ flow ที่ระบุ"
+    provenance: {reference: [C2-CUSTOM, C2-P1, C2-P3]}
+
+  - policy_id: POL-C2-004
+    rule_type: ACTION_GATE
+    action_id: ACT-RMM-ACCESS-CONTAIN
+    applicable_subtypes: [C2-RMM]
+    covers: [C2-P4]
+    required_evidence:
+      all_of: [{field: evidence.c2_rmm_unauthorized.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.rmm_registration.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-C2-5, reason: "RMM ที่ถูกต้องไม่เป็น malware โดยชื่อ ต้องมี evidence of abuse (C2-P4)", when: {field: scope.rmm_judged_by_name_only, operator: equals, value: true}}
+      - {id: PRH-C2-6, reason: "ต้องรักษา trusted IR access (C2-P4)", when: {field: scope.cuts_approved_access, operator: equals, value: true}}
+    authorization_gate: [c2_rmm_unauthorized]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.rmm_console_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังเทียบกับ approved RMM inventory ไม่ได้"}
+    reason: "ตัด session/registration/service ที่ไม่ได้รับอนุญาตโดยรักษา RMM/IR access ที่ได้รับอนุมัติ"
+    provenance: {reference: [C2-RMM, C2-P4]}
+
+  - policy_id: POL-C2-005
+    rule_type: CLASSIFICATION_RULE
+    covers: [C2-P1, C2-P3]
+    statements:
+      - "c2_indicator_only (periodic traffic, long DNS, uncommon port) ไม่ใช่ classification_evidence ของ subtype ใด ต้องมี process/behavior correlation"
+      - "outbound connection อย่างเดียวไม่ยืนยัน C2; ต้องมีหลักฐานว่าเป็น channel ที่ต้องจำกัด"
+      - "ห้ามใช้ agent.ip / observer เป็น destination ใน target ของ action ใด"
+    reason: "คุม classification ของ C2"
+    provenance: {reference: [C2-P1, C2-P3]}
+
+runbooks:
+  - runbook_id: RB-WEB-C2-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-WEB-C2-CONTAIN]
+    supported_subtypes: [C2-WEB]
+    objective: "จำกัด destination/path แบบ granular จัดการ related connections และ contain initiator"
+    prerequisites: ["destination ที่ผูกกับ process และหลักฐาน C2", "รู้ระดับ granularity ที่ control รองรับ (URL path / domain / IP:port)"]
+    required_evidence: [c2_web_channel_correlated]
+    required_targets: [destination_endpoint]
+    required_capabilities: [cap.mail_web_link_control, cap.egress_control, cap.dns_control, cap.connection_state_termination, cap.process_termination, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้อื่นที่เข้า destination เดียวกันอาจได้รับผลหาก block กว้าง — ใช้ระดับ path/domain ก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{destination_endpoint.destination}} เป็นปลายทางที่ process เรียกจริงตาม evidence (ไม่ใช่ agent.ip) และไม่ใช่ approved destination (update/management/IR)"
+        expected_result: "destination ถูกต้องและไม่ชนปลายทางที่อนุมัติ"
+        verify: "เทียบกับ evidence ref และรายการ approved destinations"
+        on_failure: "ไม่ block; ไป investigation"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก rule ปัจจุบันของ egress/web/DNS control ที่เกี่ยวข้องก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "ตัดการติดต่อไปยัง {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}} ด้วย egress control หรือ web proxy ที่ตัดได้ตามระดับนั้น (หากเป็น shared cloud/CDN ห้าม block ทั้ง provider; การตัดระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path ได้ — DNS control ตัดได้ระดับ domain เท่านั้น จึงใช้แทนไม่ได้)"
+        method_basis: EXISTING
+        expected_result: "workload ติดต่อ destination นี้ไม่ได้"
+        verify: "connection attempt ถูกปฏิเสธตาม log"
+        method: "ตั้งการตัดที่ egress control หรือ web proxy ที่ตัดได้ตรงระดับ {{destination_endpoint.granularity}} สำหรับ {{destination_endpoint.destination}} (หากเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path ได้ — DNS control ตัดได้ระดับ domain เท่านั้น จึงใช้แทนไม่ได้) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า connection attempt ไปยังปลายทางนี้ถูกปฏิเสธ ถ้าตัดได้เพียงระดับกว้างกว่าให้แจ้ง IR ก่อนลงมือ"
+        on_failure: "ถ้าเครื่องมือตัดได้เพียงระดับ domain/IP ให้ escalate IR เพื่อประเมินผลกระทบก่อน ไม่ลดระดับเอง"
+        rollback: "ถอน rule ที่เพิ่ม และคืนค่าเดิมที่บันทึกไว้ก่อนแก้"
+        impact: "ผู้ใช้อื่นที่ใช้ปลายทางเดียวกันอาจเข้าไม่ได้ หากเครื่องมือตัดได้เพียงระดับ domain หรือ IP"
+      - step_id: S4
+        title: "ตัด connection ที่ established ของ {{network_flow.source_host_id}} → {{network_flow.destination}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด connections เดิมของ {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่ยัง established อยู่ (deny rule ใหม่อาจไม่ตัด connection เดิม ขึ้นกับเครื่องมือ)"
+        method_basis: EXISTING
+        needs_prior: [S3]
+        requires_confirmed_tool: true
+        method: "ใช้ความสามารถตัด connection state ของเครื่องมือ โดยระบุ flow จากต้นทาง {{network_flow.source_host_id}} ไปยัง {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) แล้วใช้ตัวระบุ connection ตามที่เครื่องมือแสดง ตัดเฉพาะ flow นี้ โดยตรวจรายการ connection ที่ค้างก่อนตัด บันทึกตัวระบุที่ตัด แล้วตรวจรายการซ้ำว่า flow นี้ไม่เหลือและ flow อื่นไม่ถูกตัด"
+        condition: {all_of: [{field: targets.network_flow.validated, operator: equals, value: true}, {field: capability.cap.connection_state_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี connection ค้าง"
+        verify: "connection table ไม่แสดง flow {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}})"
+        on_failure: "เฝ้าระวัง connection ที่ค้างและ escalate IR"
+      - step_id: S5
+        title: "ยุติ initiator process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ initiator process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process ที่ beacon หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict workload ตาม scope และ escalate IR"
+      - step_id: S5c
+        title: "คง channel ที่ตัดไว้ และขออนุมัติ asset owner ก่อนยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: คง channel ที่ตัดไว้แล้ว และขออนุมัติ asset owner ก่อนยุติ process (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}]}
+        expected_result: "channel ถูกตัดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี connection ไปปลายทางเดิม"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี connection ใหม่ไป {{destination_endpoint.destination}} และ process ไม่กลับมา"
+        expected_result: "ไม่มี beacon ใหม่"
+        verify: "re-hunt destination/process ในช่วงเฝ้าระวัง"
+        on_failure: "หา destination สำรอง/persistence ตามหลักฐาน"
+    verification: ["ไม่มี connection ใหม่ไปปลายทาง", "initiator ไม่กลับมา"]
+    failure_handling: ["พบ destination ใหม่ → เพิ่มเฉพาะที่ผูกกับ process เดียวกัน"]
+    rollback: ["ถอน rule จาก snapshot"]
+    variants: [{variant_id: critical_workload, description: "ตัด channel ก่อนและขออนุมัติ asset owner ก่อนยุติ process บน workload สำคัญ"}]
+
+  - runbook_id: RB-DNS-CHANNEL-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-DNS-CHANNEL-CONTAIN]
+    supported_subtypes: [C2-DNS, EXF-DNS]
+    objective: "จำกัด identified domains และ evidenced resolver bypass โดยคง approved DNS resolution และ contain process"
+    prerequisites: ["domains ที่ระบุ + host/process ต้นทาง", "รู้ approved resolvers/zones"]
+    required_evidence: [c2_dns_correlated, exf_dns_tunnel_data, exf_direction_outbound_confirmed]
+    required_targets: [dns_channel]
+    required_capabilities: [cap.dns_control, cap.egress_control, cap.process_termination, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "domain ที่ถูกบล็อกจะ resolve ไม่ได้; ไม่กระทบ approved DNS"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน domains {{dns_channel.domains}} จาก {{dns_channel.source_host_id}} เป็นช่องทางที่ evidence ชี้ (ไม่ใช่ทั้ง TLD และไม่ใช่ approved zone)"
+        expected_result: "รายการ domain ถูกต้อง"
+        verify: "เทียบกับ evidence ref และ approved zones"
+        on_failure: "ไม่ block; ไป investigation"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกค่า DNS policy ปัจจุบันก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "บล็อก/sinkhole domains {{dns_channel.domains}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "บล็อก/sinkhole domains {{dns_channel.domains}} ที่ DNS control เฉพาะรายการที่ระบุ"
+        method: "ตั้งการบล็อกหรือ sinkhole ที่ DNS control เฉพาะ domain ใน {{dns_channel.domains}} (ไม่บล็อก zone ทั้งหมดและคง approved DNS) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก DNS log ว่า query ไปยัง domain เหล่านั้นถูกปฏิเสธหรือ sinkhole"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "domain ที่ระบุ resolve ไม่ได้"
+        verify: "query ไปยัง domain ถูกปฏิเสธ/sinkhole ตาม DNS log"
+        on_failure: "ใช้ egress control บล็อกปลายทางของ authoritative server ที่มีหลักฐาน"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S4
+        title: "บังคับให้ {{dns_channel.source_host_id}} ใช้ approved resolver (ตัด resolver bypass ที่มีหลักฐาน)"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด resolver bypass ที่มีหลักฐาน ({{dns_channel.evidenced_resolver_bypass}}) จาก {{dns_channel.source_host_id}} โดยบังคับใช้ approved resolver เท่านั้น"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "รายการ approved resolver ขององค์กรและจุดบังคับ DNS egress ของเครื่องต้นทาง"
+        condition: {all_of: [{field: capability.cap.egress_control.supported, operator: equals, value: true}]}
+        expected_result: "host ใช้ DNS ผ่าน approved resolver เท่านั้น"
+        verify: "DNS egress ตรงไป external resolver ถูก deny และ approved resolution ยังใช้ได้"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule จาก snapshot"
+        impact: "อุปกรณ์ที่ตั้ง resolver เองจะ resolve ไม่ได้ หากไม่ใช้ approved resolver"
+      - step_id: S5c
+        title: "คง DNS rule ที่ตั้งไว้ และขออนุมัติ asset owner ก่อนยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: คง DNS rule ที่ตั้งไว้แล้ว และขออนุมัติ asset owner ก่อนยุติ process (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}]}
+        expected_result: "DNS channel ถูกตัดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี query ใหม่ไป domain ที่ระบุ"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S5
+        title: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ส่ง DNS"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ส่ง DNS ดังกล่าว (ระบุด้วย process identity)"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process หยุดทำงาน"
+        verify: "process identity ไม่อยู่ใน list และไม่มี query ใหม่"
+        on_failure: "restrict host ตาม scope และ escalate IR"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ DNS log ว่าไม่มี query ใหม่ไป {{dns_channel.domains}} และ approved DNS ทำงานปกติ"
+        expected_result: "ไม่มี DNS channel ใหม่"
+        verify: "re-hunt domain/host ในช่วงเฝ้าระวัง"
+        on_failure: "เพิ่ม domain ใหม่เฉพาะที่มี evidence"
+    verification: ["ไม่มี query ไป domain ที่ระบุ", "approved DNS ใช้ได้ตามปกติ"]
+    failure_handling: ["domain ใหม่ → เพิ่มเฉพาะที่ผูกกับ process/host เดียวกัน"]
+    rollback: ["ถอน rule จาก snapshot"]
+    variants: [{variant_id: critical_workload, description: "ตัดเฉพาะ DNS channel และขออนุมัติ asset owner ก่อนยุติ process บน workload สำคัญ"}]
+
+  - runbook_id: RB-CUSTOM-CHANNEL-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-CUSTOM-CHANNEL-CONTAIN]
+    supported_subtypes: [C2-CUSTOM]
+    objective: "ใช้ scoped network restriction ตัด connection state ตาม Runbook และ contain initiator"
+    prerequisites: ["flow source→destination protocol/port ที่ผูกกับ C2", "initiator process/host ถ้ามี"]
+    required_evidence: [c2_custom_channel_identified]
+    required_targets: [network_flow]
+    required_capabilities: [cap.scoped_network_enforcement, cap.connection_state_termination, cap.process_termination, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "flow ที่ระบุเท่านั้นถูกตัด"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน flow {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ผูกกับ process/behavior ที่เป็น C2 และปลายทางไม่ใช่ agent.ip"
+        expected_result: "flow ถูกต้อง"
+        verify: "เทียบ evidence ref"
+        on_failure: "ไม่ block; ไป investigation"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก rule ปัจจุบันของ control ที่เกี่ยวข้องก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "ตั้ง scoped deny จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตั้ง scoped deny จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) เฉพาะ flow นี้"
+        method: "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "flow ใหม่ไม่เกิด"
+        verify: "attempt ใหม่ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S4
+        title: "ตัด connection ที่ established ของ {{network_flow.source_host_id}} → {{network_flow.destination}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด connection state ที่ established แล้วของ flow {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) (deny rule ใหม่อาจไม่ตัด connection เดิม ขึ้นกับเครื่องมือ)"
+        method_basis: EXISTING
+        needs_prior: [S3]
+        requires_confirmed_tool: true
+        method: "ใช้ความสามารถตัด connection state ของเครื่องมือ โดยระบุ flow จากต้นทาง {{network_flow.source_host_id}} ไปยัง {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) แล้วใช้ตัวระบุ connection ตามที่เครื่องมือแสดง ตัดเฉพาะ flow นี้ โดยตรวจรายการ connection ที่ค้างก่อนตัด บันทึกตัวระบุที่ตัด แล้วตรวจรายการซ้ำว่า flow นี้ไม่เหลือและ flow อื่นไม่ถูกตัด"
+        condition: {all_of: [{field: capability.cap.connection_state_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี connection ค้าง"
+        verify: "connection table ไม่แสดง flow"
+        on_failure: "ยุติ initiator ใน S5 และ escalate IR"
+      - step_id: S5c
+        title: "คง flow ที่ตัดไว้ และขออนุมัติ asset owner ก่อนยุติ initiator (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{process.host_id}} เป็น workload สำคัญ: คง flow ที่ตัดไว้แล้ว และขออนุมัติ asset owner ก่อนยุติ initiator (ตัวระบุ Process: {{process.process_identity}})"
+        method: "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}]}
+        expected_result: "flow ถูกตัดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี connection ไปปลายทางเดิม"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S5
+        title: "ยุติ initiator process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ initiator process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "process หยุดทำงาน"
+        verify: "ไม่พบ Process ตามตัวระบุข้างต้นใน process list"
+        on_failure: "restrict host ตาม scope และ escalate IR"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี flow ใหม่และ process ไม่กลับมา"
+        expected_result: "ไม่มีการกลับมา"
+        verify: "re-hunt flow/process ในช่วงเฝ้าระวัง"
+        on_failure: "หา flow/persistence เพิ่มตามหลักฐาน"
+    verification: ["ไม่มี flow ใหม่ตาม scope", "ไม่มี connection ค้าง"]
+    failure_handling: ["พบ flow อื่นจาก process เดียวกัน → เพิ่มเฉพาะที่มี evidence"]
+    rollback: ["ถอน rule จาก snapshot"]
+    variants: [{variant_id: critical_workload, description: "ตัด flow ที่ระบุเท่านั้น และขออนุมัติ asset owner ก่อนยุติ process บน workload สำคัญ"}]
+
+  - runbook_id: RB-RMM-ACCESS-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-RMM-ACCESS-CONTAIN]
+    supported_subtypes: [C2-RMM]
+    objective: "Terminate session, revoke scoped registration/access และ disable identified service หากจำเป็น โดยรักษา trusted IR access"
+    prerequisites: ["inventory ของ RMM ที่อนุมัติ", "host/session/registration ที่ระบุ", "ช่องทาง IR ที่เชื่อถือได้ที่ต้องรักษา"]
+    required_evidence: [c2_rmm_unauthorized]
+    required_targets: [rmm_registration]
+    required_capabilities: [cap.rmm_console_control, cap.process_termination]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การควบคุมระยะไกลด้วยเครื่องมือนี้บน host ที่ระบุหยุด; RMM/IR access ที่ได้รับอนุมัติไม่ถูกตัด"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{rmm_registration.tool}} บน {{rmm_registration.host_id}} (registration/session {{rmm_registration.registration_or_session_id}}) ไม่อยู่ใน inventory ของ RMM ที่อนุมัติ และไม่ใช่ช่องทาง IR ที่เชื่อถือได้"
+        expected_result: "ยืนยันว่าเป็น RMM ที่ไม่ได้รับอนุญาต"
+        verify: "เทียบกับ approved RMM inventory และ change record"
+        on_failure: "ไม่ดำเนินการ; ไป investigation"
+      - step_id: S2
+        title: "Terminate session {{rmm_registration.registration_or_session_id}} ของ {{rmm_registration.tool}} บน {{rmm_registration.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Terminate session {{rmm_registration.registration_or_session_id}} ของ {{rmm_registration.tool}} บน {{rmm_registration.host_id}}"
+        method: "ใช้ console ของ {{rmm_registration.tool}} หา session {{rmm_registration.registration_or_session_id}} ของ {{rmm_registration.host_id}} แล้วสั่ง terminate เฉพาะ session นั้น (ไม่แตะ registration ที่ได้รับอนุมัติ) ตรวจจากรายการ active ว่า session หายไป"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.rmm_console_control.supported, operator: equals, value: true}]}
+        expected_result: "session หยุด"
+        verify: "session ไม่อยู่ในรายการ active ของ RMM console"
+        on_failure: "ยุติ process/service ของ tool ใน S4"
+      - step_id: S3
+        title: "Revoke registration {{rmm_registration.registration_or_session_id}} ที่ {{rmm_registration.tenant_or_console}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke registration/access {{rmm_registration.registration_or_session_id}} ที่ {{rmm_registration.tenant_or_console}} เฉพาะรายการนี้"
+        method: "ใน console ของ tenant {{rmm_registration.tenant_or_console}} เพิกถอนเฉพาะ registration หรือ access {{rmm_registration.registration_or_session_id}} (ไม่ลบ tenant หรือ registration อื่น) บันทึกสถานะก่อนถอน แล้วตรวจว่าสถานะเป็น revoked"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.rmm_console_control.supported, operator: equals, value: true}]}
+        expected_result: "agent/registration นี้ reconnect ไม่ได้"
+        verify: "registration ไม่ปรากฏใน console หรือสถานะ revoked"
+        on_failure: "disable service ของ tool ใน S4"
+        rollback: "ลงทะเบียนใหม่ผ่านกระบวนการอนุมัติหากพบว่าเป็น false positive"
+      - step_id: S4
+        title: "Disable service {{rmm_registration.service_name}} ของ {{rmm_registration.tool}} บน {{rmm_registration.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Disable service {{rmm_registration.service_name}} ของ tool บน {{rmm_registration.host_id}} เมื่อ revoke ที่ console ไม่เพียงพอ (เฉพาะ service นี้)"
+        method: "บน {{rmm_registration.host_id}} ปิด (disable) เฉพาะ service {{rmm_registration.service_name}} ของ tool ด้วยเครื่องมือจัดการ service ของเครื่อง หลังยืนยันว่าการถอน registration ที่ console ไม่เพียงพอ ตรวจว่า service เป็น disabled และไม่มี connection ไปยังเซิร์ฟเวอร์ของ tool"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "tool ไม่ทำงานบน host"
+        verify: "service เป็น disabled และไม่มี connection ไป RMM server"
+        on_failure: "restrict host ตาม scope และ escalate IR"
+        rollback: "enable service ตาม configuration snapshot ถ้า IR ยืนยัน false positive"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า {{rmm_registration.tool}} ไม่ reconnect และ trusted IR access ของ {{rmm_registration.host_id}} ยังใช้ได้"
+        expected_result: "ไม่มี reconnect และ IR access ปกติ"
+        verify: "re-hunt tool connection และทดสอบ IR access"
+        on_failure: "ตรวจ tool/registration อื่นที่มี evidence"
+    verification: ["ไม่มี session/registration ที่ไม่ได้รับอนุญาต", "trusted IR access ยังใช้ได้"]
+    failure_handling: ["พบ tool อื่น → ประเมินแยกตาม inventory ไม่ตัดทุก RMM"]
+    rollback: ["ลงทะเบียน/enable ใหม่ตามกระบวนการอนุมัติ"]

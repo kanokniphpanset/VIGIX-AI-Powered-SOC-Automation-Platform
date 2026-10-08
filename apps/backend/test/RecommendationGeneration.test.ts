@@ -84,7 +84,7 @@ function contextRepository(overrides: Partial<IRecommendationContextRepository> 
   return {
     getIncidentContext: async () => ({ incidentId: INCIDENT, investigationNumber: 1, title: TITLE, status: "investigating", priority: "medium", alertSeverity: "medium" }),
     getIocs: async () => [
-      { iocType: "IPV4", iocValue: "185.220.101.45", source: "aggregated", reputationScore: null },
+      { iocType: "IPV4", iocValue: "185.220.101.45", networkRole: "source", source: "aggregated", reputationScore: null },
       { iocType: "USERNAME", iocValue: "root", source: "ALERT", reputationScore: null },
       // Extracted by the pipeline (the victim agent's own IP) but NOT linked to any evidence: context, never a target.
       { iocType: "IPV4", iocValue: "10.0.5.44", source: "aggregated", reputationScore: null },
@@ -225,8 +225,8 @@ describe("Recommendation v2 — valid action-level recommendation (ATK-01)", () 
   it("an IOC added by an analyst (not linked to alert evidence) is a valid target", async () => {
     const repo = contextRepository({
       getIocs: async () => [
-        { iocType: "IPV4", iocValue: "185.220.101.45", source: "aggregated", reputationScore: null },
-        { iocType: "IPV4", iocValue: "185.220.101.99", source: "correlated alert", reputationScore: null, manual: true },
+        { iocType: "IPV4", iocValue: "185.220.101.45", networkRole: "source", source: "aggregated", reputationScore: null },
+        { iocType: "IPV4", iocValue: "185.220.101.99", networkRole: "source", source: "correlated alert", reputationScore: null, manual: true },
       ],
     });
     const { useCase, created } = setup(async () => candidate([BLOCK_IP_STEP, { ...BLOCK_IP_STEP, stepOrder: 2, target: "185.220.101.99", evidenceRefs: ["I2"], instructions: [{ order: 1, instruction: "Apply a deny rule for 185.220.101.99." }] }]), { repo });
@@ -307,7 +307,7 @@ describe("Recommendation v2 — validator rejects the whole candidate (nothing p
 
   it("no incident-level playbook for the incident -> nothing can be recommended", async () => {
     const { useCase, created, audit } = setup(async () => candidate([BLOCK_IP_STEP]), { repo: contextRepository({ getMitreMappings: async () => [] }) });
-    expect((await run(useCase)).error).toBe("INVALID_AI_OUTPUT");
+    expect((await run(useCase)).error).toBe("PLAYBOOK_PROVENANCE_NOT_FOUND");
     expect(created).toEqual([]);
     expect(JSON.stringify(audit[0].metadata)).toContain("NO_PLAYBOOK");
   });
@@ -343,10 +343,18 @@ describe("Recommendation v2 — context and prompt", () => {
   it("selects the incident-level playbook and attaches each allowed action's runbook and Policy result", async () => {
     const ctx = await build();
     expect(ctx.incidentType).toBe("SSH_BRUTE_FORCE");
-    expect(ctx.playbook).toMatchObject({ code: "PB-SSH-BRUTEFORCE", matchedTechniques: ["T1110"], allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-DISABLE-ACCOUNT"] });
+    // Brute-force containment procedure: restrict the source, then protect the targeted account (conditional actions).
+    expect(ctx.playbook).toMatchObject({
+      code: "PB-SSH-BRUTEFORCE",
+      matchedTechniques: ["T1110"],
+      allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-RATE-LIMIT-SOURCE", "ACT-DISABLE-ACCOUNT", "ACT-REVOKE-SESSION", "ACT-RESET-CREDENTIAL"],
+    });
     expect(ctx.actionProcedures?.map((p) => [p.actionCode, p.runbookCode, p.policy.responsibleRole, p.policy.approvalRequired])).toEqual([
       ["ACT-BLOCK-SOURCE-IP", "RB-BLOCK-SOURCE-IP", "SOC", false],
+      ["ACT-RATE-LIMIT-SOURCE", "RB-RATE-LIMIT-SOURCE", "SOC", false],
       ["ACT-DISABLE-ACCOUNT", "RB-DISABLE-ACCOUNT", "IR_TEAM", true],
+      ["ACT-REVOKE-SESSION", "RB-REVOKE-SESSION", "SOC", false],
+      ["ACT-RESET-CREDENTIAL", "RB-RESET-CREDENTIAL", "SOC", false],
     ]);
     expect(ctx.actionProcedures?.[0].procedure.length).toBeGreaterThan(0);
     expect(ctx.evidence.map((e) => e.ref)).toEqual(["E1"]);
@@ -457,8 +465,8 @@ describe("Bounded correction — at most ONE retry, carrying only the validator'
 
   it("context problems are not retried (NO_PLAYBOOK: a second answer cannot fix the context)", async () => {
     const { useCase, agent } = setup(async () => candidate([BLOCK_IP_STEP]), { repo: contextRepository({ getMitreMappings: async () => [] }) });
-    expect((await run(useCase)).error).toBe("INVALID_AI_OUTPUT");
-    expect(agent.generate).toHaveBeenCalledTimes(1);
+    expect((await run(useCase)).error).toBe("PLAYBOOK_PROVENANCE_NOT_FOUND");
+    expect(agent.generate).not.toHaveBeenCalled();
   });
 
   it("if the retry itself cannot run, the recommendation stays INVALID (first findings kept, nothing persisted)", async () => {
@@ -523,8 +531,8 @@ describe("New round / regenerate — at least one Action + target pair not propo
   it("the same Action on a target not proposed before counts as new", async () => {
     const repo = withPrevious([BLOCK_45], {
       getIocs: async () => [
-        { iocType: "IPV4", iocValue: "185.220.101.45", source: "aggregated", reputationScore: null },
-        { iocType: "IPV4", iocValue: "185.220.101.99", source: "correlated alert", reputationScore: null, manual: true },
+        { iocType: "IPV4", iocValue: "185.220.101.45", networkRole: "source", source: "aggregated", reputationScore: null },
+        { iocType: "IPV4", iocValue: "185.220.101.99", networkRole: "source", source: "correlated alert", reputationScore: null, manual: true },
       ],
     });
     const NEW_IP_STEP = { ...BLOCK_IP_STEP, target: "185.220.101.99", evidenceRefs: ["I2"], instructions: [{ order: 1, instruction: "Apply a deny rule for 185.220.101.99." }] };
@@ -557,6 +565,46 @@ describe("New round / regenerate — at least one Action + target pair not propo
     const { useCase, created } = setup((ctx) => new FakeRecommendationAgent().generate(ctx), { nextNumber: 2, repo: withPrevious([BLOCK_45]) });
     expect((await run(useCase)).isSuccess).toBe(true);
     expect(created[0].steps.some((s) => !(s.actionId === "action-ACT-BLOCK-SOURCE-IP" && s.target === "185.220.101.45"))).toBe(true);
+  });
+});
+
+describe("Re-hunt spread response validation", () => {
+  it("builder intersects spread guidance with the published playbook and records the current re-hunt scope", async () => {
+    const original = contextRepository();
+    const incident = (await original.getIncidentContext(INCIDENT, TENANT))!;
+    const evidence = await original.getEvidence(INCIDENT, 1);
+    const rehunt = { verificationId: "v", verifiedInvestigationNumber: 1, source: "WAZUH_INDEXER" as const, result: "NOT_RESOLVED" as const, spreadDetected: true, originalHosts: ["WKS-DEV-12"], affectedHosts: ["WKS-NEW-01"], newHosts: ["WKS-NEW-01"], matchingEvents: 1, truncated: false };
+    const repo = contextRepository({ getIncidentContext: async () => ({ ...incident, investigationNumber: 2 }), getEvidence: async () => [{ ...evidence[0], host: "WKS-NEW-01" }], getRehuntContext: async () => rehunt });
+    const guidance = jest.fn().mockResolvedValue({ policies: ["SPREAD-SSH-BRUTE-FORCE"], notes: ["Stop the evidenced source."], allowedActions: ["ACT-BLOCK-SOURCE-IP", "ACT-ISOLATE-ENDPOINT"] });
+    const b = new RecommendationContextBuilder(repo, actionRepository, runbookRepository, playbookRepository, policyService,
+      undefined, undefined, { actionCompliance: async () => ({ policies: [], requiredEvidence: [], rules: [] }), responseGuidance: guidance },
+      { read: async () => fixtureCatalog(playbooks) });
+    const context = (await b.buildForGeneration(INCIDENT, TENANT)).value.context;
+    expect(context.playbook?.allowedActions).toEqual(["ACT-BLOCK-SOURCE-IP"]);
+    expect(context.actionProcedures?.map(p => p.actionCode)).toEqual(["ACT-BLOCK-SOURCE-IP"]);
+    expect(context.spreadResponse).toMatchObject({ policies: ["SPREAD-SSH-BRUTE-FORCE"], newHosts: ["WKS-NEW-01"], uncoveredHosts: [] });
+    expect(guidance).toHaveBeenCalledWith(TENANT, { incidentType: "SSH_BRUTE_FORCE", severity: "MEDIUM", spreadDetected: true, verificationResult: "NOT_RESOLVED" });
+  });
+
+  it("rejects an original-host-only recommendation and accepts a shared IOC control explicitly scoped to the newly affected host", async () => {
+    const context = (await builder().build(INCIDENT, TENANT)).value;
+    context.investigationNumber = 2;
+    context.evidence.push({ ...context.evidence[0], host: "WKS-NEW-01", ref: "E2" });
+    context.affectedHosts.push("WKS-NEW-01");
+    context.rehunt = { verificationId: "v", verifiedInvestigationNumber: 1, source: "WAZUH_INDEXER", result: "NOT_RESOLVED", spreadDetected: true, originalHosts: ["WKS-DEV-12"], affectedHosts: ["WKS-DEV-12", "WKS-NEW-01"], newHosts: ["WKS-NEW-01"], matchingEvents: 2, truncated: false };
+    context.spreadResponse = { policies: ["SPREAD-SSH_BRUTE_FORCE"], instructions: ["Block the recorded source at newly affected services."], allowedActions: ["ACT-BLOCK-SOURCE-IP"], newHosts: ["WKS-NEW-01"], uncoveredHosts: [] };
+    context.previousSteps = [{ investigationNumber: 1, recommendationNumber: 1, actionCode: "ACT-BLOCK-SOURCE-IP", target: "185.220.101.45" }];
+    const validator = new RecommendationValidator(actionRepository, runbookRepository);
+    const rejected = await validator.validate(candidate([BLOCK_IP_STEP]), context, TENANT);
+    expect(rejected.status).toBe("INVALID");
+    expect(rejected.violations).toEqual(expect.arrayContaining([expect.stringContaining("SPREAD_RESPONSE_MISSING")]));
+    const scoped = { ...BLOCK_IP_STEP, evidenceRefs: ["E2", "I1"], instructions: BLOCK_IP_STEP.instructions.map(i => ({ ...i, instruction: i.instruction.replaceAll("WKS-DEV-12", "WKS-NEW-01") })) };
+    const result = await validator.validate(candidate([scoped]), context, TENANT);
+    expect(result.status).toBe("VALIDATED");
+    expect(result.snapshot?.procedureContent).toMatchObject({ rehunt: { verificationId: "v", newHosts: ["WKS-NEW-01"] }, spreadResponse: { policies: ["SPREAD-SSH_BRUTE_FORCE"] } });
+    const prompt = new RecommendationPromptBuilder().build(context);
+    expect(prompt).toContain("SPREAD-SSH_BRUTE_FORCE");
+    expect(prompt).toContain("WKS-NEW-01");
   });
 });
 

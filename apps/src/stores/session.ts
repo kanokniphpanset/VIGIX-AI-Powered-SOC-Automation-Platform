@@ -28,10 +28,17 @@ export const useSessionStore = defineStore('session', () => {
     setSession(session.value)
   }
 
+  /** After a successful self-service email change: the token carries no email, so only the stored session label changes. */
+  function setEmail(email: string) {
+    if (!session.value) return
+    session.value = { ...session.value, email }
+    setSession(session.value)
+  }
+
   function logout() {
     session.value = null
     setSession(null)
   }
 
-  return { session, userId, isAuthenticated, role, canTriage, canExecuteResponse, canSendToIr, canEditRecipients, canRunAiAnalysis, login, logout }
+  return { session, userId, isAuthenticated, role, canTriage, canExecuteResponse, canSendToIr, canEditRecipients, canRunAiAnalysis, login, setEmail, logout }
 })

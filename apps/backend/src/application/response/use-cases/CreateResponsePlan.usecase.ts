@@ -82,6 +82,10 @@ export class CreateResponsePlanUseCase {
       entityId: responsePlan.id,
       metadata: {
         recommendationId: recommendation.id,
+        // The ticket cites the exact recommendation version it came from (createdBy carries the subtype knowledge version when used).
+        recommendationNumber: recommendation.recommendationNumber,
+        recommendationCreatedBy: recommendation.createdBy,
+        recommendationStatus: recommendation.status,
         stepId: step.id,
         decisionRole: "IR_TEAM",
         policyApprovalRequired: policyResult.approvalRequired,

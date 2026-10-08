@@ -64,7 +64,7 @@ export class GetDashboardSummaryUseCase {
     const since = input.period ? windowStart(input.period, now) : input.since ?? null;
     const [counts, open, rehuntHealth, ai, dbLatency, probed] = await Promise.all([
       this.repo.counts(input.tenantId, input.days ?? 14, since),
-      this.repo.openIncidents(input.tenantId, SLA_WATCH_LIMIT),
+      this.repo.openIncidents(input.tenantId, SLA_WATCH_LIMIT, since), // SLA: only incidents opened in the window
       this.rehunt.health().catch((e: unknown) => ({ configured: false, reachable: false, indexPattern: "", error: e instanceof Error ? e.message : String(e) })) as Promise<RehuntHealth>,
       this.aiHealth().catch(() => ({ reachable: false, latencyMs: null })),
       this.repo.ping().catch(() => null),

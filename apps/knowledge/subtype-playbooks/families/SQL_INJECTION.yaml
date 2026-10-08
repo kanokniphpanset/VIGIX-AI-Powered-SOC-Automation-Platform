@@ -1,0 +1,865 @@
+# SQL_INJECTION — family file. Reference: reference-registry.yaml#SQL_INJECTION
+# Principles: SQL keyword/semicolon proves neither query execution nor data loss (SQ-P1); slow response alone never opens query termination (SQ-P2);
+# OOB payload syntax does not prove outbound success (SQ-P3); never kill all slow queries / isolate the DB blanket (SQ-P4);
+# second-order needs record->consumer/job->query lineage (SQ-P5); parameterized queries / code fixes are REMEDIATION, separate from containment (SQ-P6).
+# OS command injection (request->app->shell) is NOT SQLi: it is handled by PROC-CHAIN (see SUSPICIOUS_PROCESS.yaml, PROC-P5).
+
+family: SQL_INJECTION
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level. WAF/DB product names, rule syntax and APIs are intentionally not invented."}
+  prov: &prov {reference: SQL_INJECTION, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+  change_gate: &change_gate {all_of: [{field: authority.change_approval.granted, operator: equals, value: true}]}
+
+evidence:
+  - id: sq_keyword_or_syntax_only
+    description: "SQL keyword / semicolon / payload syntax / slow response ONLY (indicator; no correlated request effect)."
+    confirm: "หา request ที่ correlated กับ response/DB behavior จริง (error, ข้อมูลเพิ่ม, timing, query log)"
+    may_be_authorized: false
+  - id: sq_union_requests_correlated
+    description: "Correlated malicious UNION-based requests on a route/parameter (same route/param/source/session pattern)."
+    confirm: "ผูก request หลายรายการกับ route/parameter เดียวกันและดู response ที่ผิดปกติ (ไม่ใช่เห็นแค่คำว่า UNION)"
+    may_be_authorized: false
+  - id: sq_db_error_exposed
+    description: "Request correlated with a database error exposed in the EXTERNAL response."
+    confirm: "ตรวจ response ภายนอกที่มี DB error text และผูกกับ request/handler"
+    may_be_authorized: false
+  - id: sq_boolean_sequence_correlated
+    description: "Request sequence with correlated response differences consistent with boolean-blind probing."
+    confirm: "ตรวจลำดับ request (true/false condition) และความต่างของ response ที่สอดคล้องกัน ต่อ endpoint/session/campaign"
+    may_be_authorized: false
+  - id: sq_time_query_correlation
+    description: "Timing correlation between requests and harmful DB query/session (not just a slow response)."
+    confirm: "ผูก request กับ query/session id ใน DB log และดู duration/ผลต่อ workload"
+    may_be_authorized: false
+  - id: sq_request_query_egress_chain
+    requires_lineage: true
+    description: "Lineage request/query -> DB workload -> outbound activity (OOB)."
+    confirm: "ผูก request/query กับ outbound connection/DNS จาก DB workload (ต้องมี outbound จริง ไม่ใช่เห็น syntax)"
+    may_be_authorized: false
+  - id: sq_second_order_lineage
+    requires_lineage: true
+    description: "Lineage record -> consumer/job -> harmful query (second-order)."
+    confirm: "ระบุ record ที่ถูกเก็บ, consumer/job ที่อ่าน และ query อันตรายที่เกิด"
+    may_be_authorized: false
+  - id: sq_multi_statement_evidence
+    description: "Driver/query evidence that multiple statements were accepted (stacked/batched)."
+    confirm: "ตรวจ driver/DB log ว่า statement มากกว่าหนึ่งชุดถูก execute ผ่าน route นั้น"
+    may_be_authorized: false
+
+actions:
+  - action_id: ACT-WEB-REQUEST-RESTRICT
+    action_name: Restrict union-injection request path
+    label_th: "จำกัดเส้นทาง request แบบ union injection"
+    objective: "จำกัด injection path ต่อ route/parameter/source/session ที่เกี่ยวข้อง ด้วย targeted WAF/virtual patch และ scoped rate-limit ตาม approved control"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [web_route]
+    evidence_requirements: [sq_union_requests_correlated]
+    target_requirements: [web_route]
+    runbook_refs: [RB-WEB-REQUEST-RESTRICT]
+    legacy_action_refs: [ACT-BLOCK-SOURCE-IP, ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["targeted rule ทดสอบกับ traffic ปกติก่อน", "ไม่ global block", "code fix เป็น remediation แยก"]
+  - action_id: ACT-DB-ERROR-EXPOSURE-CONTAIN
+    action_name: Stop DB error leakage and limit probing
+    label_th: "หยุดการรั่วของ DB error และจำกัดการสำรวจ"
+    objective: "ใช้ generic external response โดยคง internal logging แล้วจำกัด malicious requests"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [response_handler, web_route]
+    evidence_requirements: [sq_db_error_exposed]
+    target_requirements: [response_handler, web_route]
+    runbook_refs: [RB-DB-ERROR-EXPOSURE-CONTAIN]
+    legacy_action_refs: [ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["ไม่ปิด internal logging", "code fix เป็น remediation แยก"]
+  - action_id: ACT-SQLI-PROBING-RESTRICT
+    action_name: Restrict boolean-blind probing
+    label_th: "จำกัดการสำรวจแบบ boolean-blind"
+    objective: "จำกัด probing ต่อ endpoint/session/campaign scope ด้วย tested input-path restriction และ scoped throttling ครอบคลุม distributed sources"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [web_route]
+    evidence_requirements: [sq_boolean_sequence_correlated]
+    target_requirements: [web_route]
+    runbook_refs: [RB-SQLI-PROBING-RESTRICT]
+    legacy_action_refs: [ACT-BLOCK-SOURCE-IP, ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["ครอบคลุม distributed sources ที่พบ ไม่ block IP เดียว", "tested input-path restriction"]
+  - action_id: ACT-SQLI-TIMING-CONTAIN
+    action_name: Contain time-blind probing and harmful query
+    label_th: "จำกัดการสำรวจแบบ time-blind และ query ที่เป็นอันตราย"
+    objective: "จำกัด request path และให้ DBA cancel query/session ที่ระบุเมื่อเข้าเงื่อนไข"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [web_route, db_query_job]
+    evidence_requirements: [sq_time_query_correlation]
+    target_requirements: [web_route, db_query_job]
+    runbook_refs: [RB-SQLI-TIMING-CONTAIN]
+    legacy_action_refs: [ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["slow response อย่างเดียวไม่เปิด cancel query", "cancel เฉพาะ query/session ที่ระบุ โดย DBA", "ห้าม kill ทุก slow query"]
+  - action_id: ACT-DB-EGRESS-CONTAIN
+    action_name: Cut DB out-of-band egress and injection path
+    label_th: "ตัดช่องทางออกนอกของ DB และเส้นทาง injection"
+    objective: "ตัด egress ของ DB workload ไปยัง destination/protocol ที่พบ และ connection เดิมที่เกี่ยวข้อง พร้อมจำกัด request path"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [db_egress, web_route]
+    evidence_requirements: [sq_request_query_egress_chain]
+    target_requirements: [db_egress, web_route]
+    runbook_refs: [RB-DB-EGRESS-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DESTINATION-IP]
+    execution_constraints: ["จำกัด egress เฉพาะ destination/protocol ที่พบ", "ไม่ isolate DB ทั้งเครื่อง", "payload syntax อย่างเดียวไม่พิสูจน์ outbound"]
+  - action_id: ACT-STORED-PAYLOAD-CONTAIN
+    action_name: Contain second-order stored payload processing
+    label_th: "จำกัดการประมวลผล payload ที่ถูกเก็บไว้ (second-order)"
+    objective: "หยุด delayed processing ต่อ job/record/queued copies โดยรักษาต้นฉบับ"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [stored_record_pipeline]
+    evidence_requirements: [sq_second_order_lineage]
+    target_requirements: [stored_record_pipeline]
+    runbook_refs: [RB-STORED-PAYLOAD-CONTAIN]
+    legacy_action_refs: []
+    execution_constraints: ["ต้องมี lineage record→consumer/job→query", "ไม่ลบ records ต้นฉบับ", "pause เฉพาะ consumer/retries ที่ระบุ"]
+  - action_id: ACT-BATCH-QUERY-CONTAIN
+    action_name: Contain stacked/batched query path
+    label_th: "จำกัดเส้นทาง stacked/batched query"
+    objective: "จำกัด source path ปิด multi-statement ที่ไม่จำเป็น (เมื่อรองรับและอนุมัติ) และ contain effects ของ statements"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [db_driver_path, web_route]
+    evidence_requirements: [sq_multi_statement_evidence]
+    target_requirements: [db_driver_path]
+    runbook_refs: [RB-BATCH-QUERY-CONTAIN]
+    legacy_action_refs: [ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["ปิด multi-statement เมื่อรองรับและอนุมัติเท่านั้น", "semicolon อย่างเดียวไม่พิสูจน์ execution"]
+
+playbooks:
+  - playbook_id: PBK-SQ-UNION
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-UNION
+    subtype_name: Union-based
+    classification_evidence:
+      all_of: [{field: evidence.sq_union_requests_correlated.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["พบคำว่า UNION/SELECT หรือ semicolon ใน request เท่านั้น (SQ-P1)", "request ถูก WAF บล็อกแล้วโดยไม่มีผลต่อ response/DB"]
+    scenarios:
+      - scenario_id: SC-SQ-UNION-CORRELATED
+        description: "Correlated malicious UNION requests ที่ route/parameter ที่ระบุ"
+        ordered_action_refs:
+          - {action_id: ACT-WEB-REQUEST-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ปิด injection path ที่ route/parameter ที่ยืนยัน ก่อนที่ผู้โจมตีจะดึงข้อมูลเพิ่ม", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-001, POL-SQ-008]
+    related_branches:
+      - {subtype_id: SQ-ERROR, open_when: {field: evidence.sq_db_error_exposed.status, operator: equals, value: PRESENT}}
+      - {subtype_id: SQ-OOB, open_when: {field: evidence.sq_request_query_egress_chain.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.keyword_only_basis, operator: equals, value: true}, then: STOP, note: "keyword/semicolon ไม่พิสูจน์ execution หรือ data loss"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-ERROR
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-ERROR
+    subtype_name: Error-based
+    classification_evidence:
+      all_of: [{field: evidence.sq_db_error_exposed.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["DB error ใน log ภายในเท่านั้น ไม่เผยภายนอก", "error ทั่วไปที่ไม่ผูกกับ request ที่เป็นอันตราย"]
+    scenarios:
+      - scenario_id: SC-SQ-ERROR-EXPOSED
+        description: "Request สัมพันธ์กับ DB error ที่เผยภายนอก"
+        ordered_action_refs:
+          - {action_id: ACT-DB-ERROR-EXPOSURE-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด information leakage ที่ handler ก่อน แล้วจำกัด requests ที่ probing", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-002, POL-SQ-008]
+    related_branches:
+      - {subtype_id: SQ-UNION, open_when: {field: evidence.sq_union_requests_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.keyword_only_basis, operator: equals, value: true}, then: STOP, note: "keyword อย่างเดียวไม่พิสูจน์ execution"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-BOOLEAN
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-BOOLEAN
+    subtype_name: Boolean Blind
+    classification_evidence:
+      all_of: [{field: evidence.sq_boolean_sequence_correlated.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["request ที่มี condition true/false เพียงรายการเดียว", "ไม่มีความต่างของ response ที่สอดคล้อง"]
+    scenarios:
+      - scenario_id: SC-SQ-BOOLEAN-CAMPAIGN
+        description: "ลำดับ request และ response behavior ที่สัมพันธ์ (อาจกระจายหลาย sources)"
+        ordered_action_refs:
+          - {action_id: ACT-SQLI-PROBING-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัด probing ที่ endpoint/session/campaign scope ครอบคลุม distributed sources", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-003, POL-SQ-008]
+    related_branches:
+      - {subtype_id: SQ-TIME, open_when: {field: evidence.sq_time_query_correlation.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.single_source_only_for_campaign, operator: equals, value: true}, then: STOP, note: "campaign กระจายหลาย sources ห้าม block IP เดียวแทน"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-TIME
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-TIME
+    subtype_name: Time Blind
+    classification_evidence:
+      all_of: [{field: evidence.sq_time_query_correlation.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["response ช้าอย่างเดียว (SQ-P2)", "query ช้าที่ไม่ผูกกับ request ที่เป็นอันตราย"]
+    scenarios:
+      - scenario_id: SC-SQ-TIME-CORRELATED
+        description: "Timing/query correlation ระหว่าง request กับ query/session ที่ระบุ"
+        ordered_action_refs:
+          - {action_id: ACT-SQLI-TIMING-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัด request path เพื่อหยุด query ใหม่ แล้วขอให้ DBA cancel เฉพาะ query ที่ระบุ", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-004, POL-SQ-008]
+    related_branches: []
+    stop_escalation:
+      - {when: {field: scope.kills_all_slow_queries, operator: equals, value: true}, then: STOP, note: "ห้าม kill ทุก slow query"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-OOB
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-OOB
+    subtype_name: Out-of-band
+    classification_evidence:
+      all_of: [{field: evidence.sq_request_query_egress_chain.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["payload มี syntax OOB (เช่น คำสั่งที่เรียก network) แต่ไม่พบ outbound จริง (SQ-P3)", "outbound จาก DB ที่เป็น replication/backup ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-SQ-OOB-EGRESS
+        description: "request/query → DB workload → outbound activity มี correlation ครบ"
+        ordered_action_refs:
+          - {action_id: ACT-DB-EGRESS-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด egress ที่กำลังส่งข้อมูลออกก่อน แล้วจำกัด injection path", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-005, POL-SQ-008]
+    related_branches:
+      - {subtype_id: EXF-DNS, open_when: {field: evidence.exf_dns_tunnel_data.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-DNS, open_when: {field: evidence.c2_dns_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.isolates_database_blanket, operator: equals, value: true}, then: STOP, note: "ห้าม isolate DB แบบเหมารวม"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-SECOND
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-SECOND
+    subtype_name: Second-order
+    classification_evidence:
+      all_of: [{field: evidence.sq_second_order_lineage.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["ข้อความที่ดูน่าสงสัยใน record โดยไม่มี lineage ไปยัง consumer/job และ query (SQ-P5)"]
+    scenarios:
+      - scenario_id: SC-SQ-SECOND-LINEAGE
+        description: "record → consumer/job → harmful query มี lineage ครบ"
+        ordered_action_refs:
+          - {action_id: ACT-STORED-PAYLOAD-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุดการประมวลผลที่เลื่อนเวลาเพื่อไม่ให้ query อันตรายรันซ้ำ โดยรักษา records ต้นฉบับ", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-006, POL-SQ-008]
+    related_branches: []
+    stop_escalation:
+      - {when: {field: scope.destroys_original_records, operator: equals, value: true}, then: STOP, note: "ต้องรักษา records ต้นฉบับ"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-SQ-STACKED
+    attack_family: SQL_INJECTION
+    subtype_id: SQ-STACKED
+    subtype_name: Stacked/Batched
+    classification_evidence:
+      all_of: [{field: evidence.sq_multi_statement_evidence.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["semicolon/หลาย statement ใน payload เท่านั้นโดยไม่มี driver/query evidence (SQ-P1)"]
+    scenarios:
+      - scenario_id: SC-SQ-STACKED-MULTI
+        description: "Driver/query evidence ว่า multiple statements ถูกรับ/ประมวลผล"
+        ordered_action_refs:
+          - {action_id: ACT-BATCH-QUERY-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัด source path ก่อน แล้วปิด multi-statement ที่ไม่จำเป็นและ contain effects", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-SQ-007, POL-SQ-008]
+    related_branches:
+      - {subtype_id: PE-GRANT, open_when: {field: evidence.pe_unauthorized_entitlement_change.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.keyword_only_basis, operator: equals, value: true}, then: STOP, note: "semicolon ไม่พิสูจน์ execution"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-SQ-001
+    rule_type: ACTION_GATE
+    action_id: ACT-WEB-REQUEST-RESTRICT
+    applicable_subtypes: [SQ-UNION]
+    covers: [SQ-P1, SQ-P6]
+    required_evidence:
+      all_of: [{field: evidence.sq_union_requests_correlated.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.web_route.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-1, reason: "SQL keyword/semicolon ไม่พิสูจน์ query execution หรือ data loss (SQ-P1)", when: {field: scope.keyword_only_basis, operator: equals, value: true}}
+      - {id: PRH-SQ-2, reason: "code fix/parameterized query เป็น remediation แยกจาก containment (SQ-P6)", when: {field: scope.code_fix_in_containment, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: *change_gate
+    tool_capability_requirements: [cap.waf_targeted_rule]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "route/parameter ยังไม่ validate หรือ keyword อย่างเดียว"}
+    reason: "จำกัด injection path ด้วย targeted rule ตาม approved control"
+    provenance: {reference: [SQ-UNION, SQ-P1, SQ-P6]}
+
+  - policy_id: POL-SQ-002
+    rule_type: ACTION_GATE
+    action_id: ACT-DB-ERROR-EXPOSURE-CONTAIN
+    applicable_subtypes: [SQ-ERROR]
+    covers: [SQ-P1, SQ-P6]
+    required_evidence:
+      all_of: [{field: evidence.sq_db_error_exposed.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.response_handler.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-3, reason: "SQL keyword อย่างเดียวไม่พิสูจน์ execution/data loss (SQ-P1)", when: {field: scope.keyword_only_basis, operator: equals, value: true}}
+      - {id: PRH-SQ-4, reason: "code fix เป็น remediation แยกจาก containment (SQ-P6)", when: {field: scope.code_fix_in_containment, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: *change_gate
+    tool_capability_requirements: [cap.generic_error_response]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยัน error ที่เผยภายนอกหรือ handler"}
+    reason: "ลด leakage ด้วย generic external response โดยคง internal logging"
+    provenance: {reference: [SQ-ERROR, SQ-P1, SQ-P6]}
+
+  - policy_id: POL-SQ-003
+    rule_type: ACTION_GATE
+    action_id: ACT-SQLI-PROBING-RESTRICT
+    applicable_subtypes: [SQ-BOOLEAN]
+    covers: [SQ-P1]
+    required_evidence:
+      all_of: [{field: evidence.sq_boolean_sequence_correlated.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.web_route.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-5, reason: "keyword อย่างเดียวไม่พิสูจน์ execution (SQ-P1)", when: {field: scope.keyword_only_basis, operator: equals, value: true}}
+      - {id: PRH-SQ-6, reason: "campaign กระจายหลาย sources ห้ามแทนด้วย block IP เดียว", when: {field: scope.single_source_only_for_campaign, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: *change_gate
+    tool_capability_requirements: [cap.waf_targeted_rule]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "endpoint/session/campaign scope ยังไม่ validate"}
+    reason: "จำกัด probing ที่ scope ของ campaign ด้วย tested restriction และ scoped throttling"
+    provenance: {reference: [SQ-BOOLEAN, SQ-P1]}
+
+  - policy_id: POL-SQ-004
+    rule_type: ACTION_GATE
+    action_id: ACT-SQLI-TIMING-CONTAIN
+    applicable_subtypes: [SQ-TIME]
+    covers: [SQ-P2, SQ-P4]
+    required_evidence:
+      all_of: [{field: evidence.sq_time_query_correlation.status, operator: equals, value: PRESENT}]
+    required_targets:
+      any_of:
+        - {field: targets.web_route.validated, operator: equals, value: true}
+        - {field: targets.db_query_job.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-SQ-7, reason: "response ช้าอย่างเดียวไม่เปิด query termination (SQ-P2)", when: {field: scope.slow_response_only_basis, operator: equals, value: true}}
+      - {id: PRH-SQ-8, reason: "ห้าม kill ทุก slow query (SQ-P4)", when: {field: scope.kills_all_slow_queries, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.waf_targeted_rule, cap.db_query_cancel]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี correlation ระหว่าง request กับ query/session"}
+    reason: "จำกัด request path; DBA cancel เฉพาะ query/session ที่ validate"
+    provenance: {reference: [SQ-TIME, SQ-P2, SQ-P4]}
+
+  - policy_id: POL-SQ-005
+    rule_type: ACTION_GATE
+    action_id: ACT-DB-EGRESS-CONTAIN
+    applicable_subtypes: [SQ-OOB]
+    covers: [SQ-P3, SQ-P4]
+    required_evidence:
+      all_of: [{field: evidence.sq_request_query_egress_chain.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.db_egress.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-9, reason: "OOB payload syntax ไม่พิสูจน์ outbound success (SQ-P3)", when: {field: scope.oob_syntax_only_basis, operator: equals, value: true}}
+      - {id: PRH-SQ-10, reason: "ห้าม isolate DB แบบเหมารวม (SQ-P4)", when: {field: scope.isolates_database_blanket, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.egress_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยัน outbound activity ที่สัมพันธ์กับ request/query"}
+    reason: "ตัด egress เฉพาะ DB workload→destination/protocol ที่พบ และ connection เดิมที่เกี่ยวข้อง"
+    provenance: {reference: [SQ-OOB, SQ-P3, SQ-P4]}
+
+  - policy_id: POL-SQ-006
+    rule_type: ACTION_GATE
+    action_id: ACT-STORED-PAYLOAD-CONTAIN
+    applicable_subtypes: [SQ-SECOND]
+    covers: [SQ-P5]
+    required_evidence:
+      all_of: [{field: evidence.sq_second_order_lineage.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.stored_record_pipeline.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-11, reason: "second-order ต้องมี lineage ไม่ใช่ suspicious text อย่างเดียว (SQ-P5)", when: {field: scope.second_order_without_lineage, operator: equals, value: true}}
+      - {id: PRH-SQ-12, reason: "ห้ามลบ records ต้นฉบับ", when: {field: scope.destroys_original_records, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.queue_consumer_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี lineage record→consumer/job→query"}
+    reason: "หยุด consumer/retries ที่ระบุและกัน records ที่ระบุ โดยรักษาต้นฉบับ"
+    provenance: {reference: [SQ-SECOND, SQ-P5]}
+
+  - policy_id: POL-SQ-007
+    rule_type: ACTION_GATE
+    action_id: ACT-BATCH-QUERY-CONTAIN
+    applicable_subtypes: [SQ-STACKED]
+    covers: [SQ-P1]
+    required_evidence:
+      all_of: [{field: evidence.sq_multi_statement_evidence.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.db_driver_path.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-SQ-13, reason: "semicolon/keyword อย่างเดียวไม่พิสูจน์ execution (SQ-P1)", when: {field: scope.keyword_only_basis, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.waf_targeted_rule, cap.driver_config_change]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี driver/query evidence ของ multiple statements"}
+    reason: "ตัด batch path และ effects เฉพาะ route/driver/query/grant ที่พบ"
+    provenance: {reference: [SQ-STACKED, SQ-P1]}
+
+  - policy_id: POL-SQ-008
+    rule_type: CLASSIFICATION_RULE
+    covers: [SQ-P1, SQ-P2, SQ-P3, SQ-P5, SQ-P6]
+    statements:
+      - "sq_keyword_or_syntax_only เป็น indicator ไม่ใช่ classification_evidence ของ subtype ใด; ต้องมี correlated request/DB/response evidence ของ subtype นั้น"
+      - "request ที่ดูเป็น SQLi ไม่พิสูจน์ว่า query ถูก execute หรือข้อมูลสูญหาย — ห้ามระบุว่าข้อมูลรั่วหากไม่มี evidence"
+      - "OS command injection (request→application→shell execution) ไม่จัดเป็น SQLi อัตโนมัติ ให้ใช้ PROC-CHAIN"
+      - "remediation (parameterized queries, input validation, code fix, patch) แสดงเป็น follow-up แยกจากขั้นตอน containment เสมอ"
+    reason: "คุม classification ของ SQLi และแยก remediation"
+    provenance: {reference: [SQ-P1, SQ-P2, SQ-P3, SQ-P5, SQ-P6, PROC-P5]}
+
+runbooks:
+  - runbook_id: RB-WEB-REQUEST-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-WEB-REQUEST-RESTRICT]
+    supported_subtypes: [SQ-UNION]
+    objective: "จำกัด injection path ต่อ route/parameter/source/session ด้วย targeted WAF/virtual patch และ scoped rate-limit ตาม approved control"
+    prerequisites: ["route/parameter ที่ correlated กับ requests อันตราย", "ตัวอย่าง traffic ปกติของ route เพื่อทดสอบ rule", "approved change สำหรับ rule"]
+    required_evidence: [sq_union_requests_correlated]
+    required_targets: [web_route]
+    required_capabilities: [cap.waf_targeted_rule, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute, change_approval]
+    operational_impact: "rule ที่แคบเกินไปอาจพลาด, กว้างไปอาจบล็อก traffic ปกติ — ต้องทดสอบก่อนบล็อกจริง"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{web_route.route}} / พารามิเตอร์ {{web_route.parameter}} ของ {{web_route.application}} ถูกใช้ใน requests ที่ correlated กับ response/DB behavior ผิดปกติ (ไม่ใช่เห็นเพียง keyword)"
+        expected_result: "route/parameter ถูกต้องตามหลักฐาน"
+        verify: "request ตัวอย่างและ response ผูกกับ evidence ref"
+        on_failure: "ไม่สร้าง rule; คงสถานะ NEEDS_EVIDENCE"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกค่า rule/rate-limit ปัจจุบันของ {{web_route.application}} ที่ {{web_route.control_point}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "เพิ่ม targeted rule ที่ {{web_route.control_point}} สำหรับ {{web_route.route}} / {{web_route.parameter}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "เพิ่ม targeted rule (virtual patch) ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} ให้ตรวจ pattern UNION injection — ทดสอบแบบ detect/log กับ traffic ปกติก่อน แล้วจึงเปลี่ยนเป็น block ตาม approved control"
+        method: "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} ให้ตรวจ pattern UNION injection เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "requests อันตรายถูกบล็อกโดย traffic ปกติไม่ถูกกระทบ"
+        verify: "WAF log แสดง block ของ pattern ที่ระบุ และอัตรา error ของ route ปกติไม่เพิ่ม"
+        on_failure: "คงโหมด detect/log และ escalate เจ้าของแอปพลิเคชัน"
+        rollback: "ถอน rule จาก snapshot"
+        impact: "ถ้า rule กว้างเกินไป อาจบล็อก request ปกติของ route นี้"
+      - step_id: S4
+        title: "ตั้ง scoped rate-limit บน {{web_route.route}} สำหรับ source scope {{web_route.source_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตั้ง scoped rate-limit บน {{web_route.route}} สำหรับ source scope {{web_route.source_scope}} (ตามที่พบใน evidence ไม่ใช่ทั้งแอป)"
+        method: "ตั้ง rate-limit เฉพาะ {{web_route.route}} สำหรับ source scope {{web_route.source_scope}} ตามที่พบในหลักฐาน (ไม่ใช่ทั้งแอป) ที่ web control ที่ใช้ได้ บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่า request rate จาก scope ลดลง"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.waf_targeted_rule.supported, operator: equals, value: true}]}
+        expected_result: "ความถี่ของ requests จาก scope ที่ระบุถูกจำกัด"
+        verify: "request rate จาก scope ลดลงตาม log"
+        on_failure: "ปรับตาม evidence ใหม่"
+        rollback: "ถอน rate-limit จาก snapshot"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ WAF/web/DB log หลังใช้ rule ว่าไม่มี UNION request ใหม่ผ่านไปถึง application และ response ไม่ผิดปกติ"
+        expected_result: "ไม่มี request อันตรายผ่าน"
+        verify: "re-hunt route/parameter ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ route/parameter อื่นที่มี evidence"
+    verification: ["requests อันตรายถูกบล็อกที่ route/parameter ที่ระบุ", "traffic ปกติไม่ถูกกระทบ"]
+    failure_handling: ["ผู้โจมตีย้าย route/parameter → เพิ่มเฉพาะที่มีหลักฐาน ไม่ global block"]
+    rollback: ["ถอน rule/rate-limit จาก snapshot"]
+    remediation_followups: ["แก้โค้ดให้ใช้ parameterized queries และ input validation ที่ route/parameter นี้ (remediation แยกจาก containment)"]
+
+  - runbook_id: RB-DB-ERROR-EXPOSURE-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-DB-ERROR-EXPOSURE-CONTAIN]
+    supported_subtypes: [SQ-ERROR]
+    objective: "ใช้ generic external response โดยคง internal logging แล้วจำกัด malicious requests"
+    prerequisites: ["handler/request path ที่เผย DB error", "ตัวอย่าง response ที่เผย error (ไม่แสดงใน recommendation)"]
+    required_evidence: [sq_db_error_exposed]
+    required_targets: [response_handler]
+    required_capabilities: [cap.generic_error_response, cap.waf_targeted_rule, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute, change_approval]
+    operational_impact: "ผู้ใช้ภายนอกเห็นข้อความ error ทั่วไป; ทีมพัฒนาต้องใช้ internal log เพื่อ debug"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า handler {{response_handler.handler_or_path}} ของ {{response_handler.application}} ส่ง DB error ออกภายนอกจริง และ error นั้นผูกกับ request ที่สงสัย"
+        expected_result: "รู้จุดที่เผย error"
+        verify: "response ตัวอย่างผูกกับ evidence ref"
+        on_failure: "ไม่เปลี่ยน; ไป investigation"
+      - step_id: S2
+        title: "เปลี่ยน external response ของ {{response_handler.handler_or_path}} เป็นข้อความทั่วไป"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "เปลี่ยน external response ของ {{response_handler.handler_or_path}} เป็นข้อความทั่วไป โดยคง internal error logging ไว้เต็มรูปแบบ"
+        method: "แก้ response handler {{response_handler.handler_or_path}} ให้ส่งข้อความผิดพลาดทั่วไปออกภายนอก โดยคง internal error logging ไว้เต็มรูปแบบ ทำผ่าน change control ขององค์กรและทดสอบก่อน แล้วทดสอบ request เดิมว่า response ภายนอกเป็นข้อความทั่วไปและ internal log ยังบันทึก error"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "response ภายนอกไม่มีรายละเอียด DB"
+        verify: "ทดสอบ request เดิม: response ภายนอกเป็นข้อความทั่วไป และ internal log ยังบันทึก error"
+        on_failure: "ใช้ response filter ที่ reverse proxy/WAF แทน และ escalate เจ้าของแอป"
+        rollback: "คืนค่าเดิมจาก snapshot (ไม่แนะนำให้คืน)"
+        impact: "การ debug จากภายนอกทำไม่ได้"
+      - step_id: S3
+        title: "จำกัด requests ที่ probing ผ่าน {{web_route.route}} / {{web_route.parameter}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด malicious requests ที่ probing ผ่าน {{web_route.route}} / {{web_route.parameter}} ด้วย targeted rule ที่ {{web_route.control_point}}"
+        method: "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อจำกัด request ที่ probing เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.web_route.validated, operator: equals, value: true}]}
+        expected_result: "probing ถูกจำกัด"
+        verify: "WAF log แสดง block และ traffic ปกติไม่กระทบ"
+        on_failure: "ทดสอบแบบ detect/log ก่อนเปิด block"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี DB error ใน external response ใหม่ และ internal log ยังได้รับ error"
+        expected_result: "ไม่มี leakage ใหม่"
+        verify: "re-hunt response ภายนอกด้วย pattern error"
+        on_failure: "ตรวจ handler อื่นที่เผย error"
+    verification: ["external response ไม่เผย DB error", "internal logging ยังทำงาน"]
+    failure_handling: ["พบ handler อื่นเผย error → เพิ่มเฉพาะ handler ที่มีหลักฐาน"]
+    rollback: ["คืน response handler จาก snapshot ตาม change approval"]
+    remediation_followups: ["จัดการ exception ที่ชั้น application อย่างถาวรและแก้โค้ดที่ทำให้ query ผิดพลาด (remediation แยกจาก containment)"]
+
+  - runbook_id: RB-SQLI-PROBING-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-SQLI-PROBING-RESTRICT]
+    supported_subtypes: [SQ-BOOLEAN]
+    objective: "จำกัด probing ต่อ endpoint/session/campaign scope ด้วย tested restriction และ scoped throttling ครอบคลุม distributed sources"
+    prerequisites: ["endpoint/parameter ที่ถูก probe", "ชุด sources/sessions ของ campaign"]
+    required_evidence: [sq_boolean_sequence_correlated]
+    required_targets: [web_route]
+    required_capabilities: [cap.waf_targeted_rule, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute, change_approval]
+    operational_impact: "throttling อาจชะลอผู้ใช้ปกติบน endpoint เดียวกัน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน scope ของ campaign บน {{web_route.route}} / {{web_route.parameter}}: ชุด sources/sessions {{web_route.source_scope}} ที่ผูกกับ request sequence เดียวกัน"
+        condition: {all_of: [{field: targets.web_route.validated, operator: equals, value: true}]}
+        expected_result: "scope ครอบคลุมทุก source ที่พบ ไม่ใช่ IP เดียว"
+        verify: "แต่ละ source/session ปรากฏใน evidence"
+        on_failure: "ไม่ขยายเกินหลักฐาน"
+      - step_id: S2
+        title: "ใช้ input-path restriction กับ {{web_route.route}} / {{web_route.parameter}} ที่ {{web_route.control_point}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ใช้ input-path restriction ที่ผ่านการทดสอบกับ {{web_route.route}} / {{web_route.parameter}} ที่ {{web_route.control_point}} (ทดสอบแบบ detect/log กับ traffic ปกติก่อนบล็อก)"
+        method: "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อจำกัด input path ที่ถูกสำรวจ เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "requests ที่เข้าข่ายถูกจำกัดโดย traffic ปกติไม่ถูกกระทบ"
+        verify: "WAF log แสดงการจำกัด; error rate ปกติไม่เพิ่ม"
+        on_failure: "คงโหมด detect/log และ escalate เจ้าของแอป"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S3
+        title: "ตั้ง scoped throttling บน {{web_route.route}} ครอบคลุม source scope {{web_route.source_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตั้ง scoped throttling บน {{web_route.route}} ครอบคลุมทุก source ใน campaign scope {{web_route.source_scope}} (ไม่ block IP เดียว)"
+        method: "ตั้ง throttling เฉพาะ {{web_route.route}} ให้ครอบคลุมทุก source ใน campaign scope {{web_route.source_scope}} (ไม่ block IP เดียว) บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่า request rate ของ scope ลดลง"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "อัตรา requests ของ campaign ลดลงทั้งชุด"
+        verify: "request rate ของ scope ลดลงตาม log"
+        on_failure: "ปรับ scope ตามหลักฐานใหม่"
+        rollback: "ถอน throttling จาก snapshot"
+        impact: "ผู้ใช้ปกติบน endpoint นี้อาจช้าลงเล็กน้อย"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่า request sequence แบบเดิมไม่ผ่านไปถึง application และไม่มี source ใหม่ใน campaign pattern เดียวกัน"
+        expected_result: "ไม่มี probing ผ่าน"
+        verify: "re-hunt sequence pattern ในช่วงเฝ้าระวัง"
+        on_failure: "เพิ่ม sources ใหม่ที่มี evidence"
+    verification: ["probing ที่ endpoint ถูกจำกัด", "ไม่มี source ใหม่ใน pattern เดิม"]
+    failure_handling: ["pattern เปลี่ยน → ปรับ rule ตามหลักฐาน ไม่ block ทั้งแอป"]
+    rollback: ["ถอน rule/throttling จาก snapshot"]
+    remediation_followups: ["แก้ query ที่ endpoint ให้ใช้ parameterized queries (remediation แยกจาก containment)"]
+
+  - runbook_id: RB-SQLI-TIMING-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-SQLI-TIMING-CONTAIN]
+    supported_subtypes: [SQ-TIME]
+    objective: "จำกัด request path และให้ DBA cancel query/session ที่ระบุเมื่อเข้าเงื่อนไข"
+    prerequisites: ["correlation request ↔ query/session id", "DBA/เจ้าของ DB platform ที่ติดต่อได้"]
+    required_evidence: [sq_time_query_correlation]
+    required_targets: []
+    required_capabilities: [cap.waf_targeted_rule, cap.db_query_cancel]
+    tool_variants: *neutral
+    required_authority: [ir_execute, dba]
+    operational_impact: "การ cancel query ที่ระบุอาจทำให้ transaction ที่เกี่ยวข้อง rollback"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า request กับ query/session {{db_query_job.query_or_session_id}} ({{db_query_job.platform}} / {{db_query_job.database}}) สัมพันธ์กันตามเวลาและ workload ที่เป็นอันตราย (response ช้าอย่างเดียวไม่พอ)"
+        condition: {all_of: [{field: targets.db_query_job.validated, operator: equals, value: true}]}
+        expected_result: "query ที่ต้อง cancel ถูกระบุเป็นรายการเดียว"
+        verify: "query id ผูกกับ request ใน evidence"
+        on_failure: "ไม่ cancel; ไป investigation"
+      - step_id: S2
+        title: "จำกัด request path {{web_route.route}} / {{web_route.parameter}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด request path {{web_route.route}} / {{web_route.parameter}} ด้วย targeted rule/rate-limit ที่ {{web_route.control_point}} เพื่อไม่ให้ query ใหม่ถูกสร้าง"
+        method: "จำกัด request path {{web_route.route}} / {{web_route.parameter}} ด้วย targeted rule หรือ rate-limit ที่ {{web_route.control_point}} เพื่อไม่ให้ query ใหม่ถูกสร้าง บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่ามีการจำกัดและไม่มี query ใหม่"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.web_route.validated, operator: equals, value: true}, {field: capability.cap.waf_targeted_rule.supported, operator: equals, value: true}]}
+        expected_result: "requests ที่ทำให้เกิด query อันตรายถูกจำกัด"
+        verify: "WAF log แสดง block/limit และ query ใหม่ไม่เกิด"
+        on_failure: "escalate เจ้าของแอป"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S3
+        title: "ให้ DBA cancel query/session {{db_query_job.query_or_session_id}} บน {{db_query_job.database}}"
+        origin: EXPANDED_FROM_REFERENCE
+        manual_owner: dba
+        instruction: "ขอให้ DBA ของ {{db_query_job.platform}} cancel เฉพาะ query/session {{db_query_job.query_or_session_id}} บนฐานข้อมูล {{db_query_job.database}} (ไม่ cancel ทุก slow query)"
+        method: "ส่งให้ DBA ของ {{db_query_job.platform}}: ตัวระบุ query/session {{db_query_job.query_or_session_id}} ฐานข้อมูล {{db_query_job.database}} เวลาที่พบ และหลักฐานอ้างอิง ให้ DBA ยืนยันว่าตัวระบุตรงกับ query ที่ผิดปกติก่อน แล้ว cancel เฉพาะรายการนั้น (ไม่ cancel slow query อื่น) และแจ้งผลกลับ IR เพื่อบันทึกใน incident record"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.db_query_job.validated, operator: equals, value: true}]}
+        expected_result: "query/session ที่ระบุถูกยกเลิก"
+        verify: "query id ไม่อยู่ในรายการ active ของ DB และ load กลับสู่ปกติ"
+        on_failure: "escalate DBA lead และเฝ้าระวัง resource"
+        impact: "transaction ที่เกี่ยวข้องกับ query นี้จะ rollback"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี query อันตรายใหม่จาก route เดิมและ DB load กลับสู่ระดับปกติ"
+        expected_result: "ไม่มี workload อันตรายใหม่"
+        verify: "re-hunt query/route ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ route/session อื่นที่มี evidence"
+    verification: ["query ที่ระบุหยุดและไม่เกิดซ้ำ", "DB load ปกติ"]
+    failure_handling: ["เกิด query ใหม่ → ระบุ query/session เพิ่มจากหลักฐาน ไม่ kill ทั้งหมด"]
+    rollback: ["ถอน rule จาก snapshot (cancel query ย้อนกลับไม่ได้)"]
+    remediation_followups: ["แก้โค้ดที่ทำให้ query ถูกสอดแทรกได้ (parameterized queries) เป็น remediation แยก"]
+
+  - runbook_id: RB-DB-EGRESS-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-DB-EGRESS-CONTAIN]
+    supported_subtypes: [SQ-OOB]
+    objective: "ตัด egress ของ DB workload เฉพาะ destination/protocol ที่พบ ตัด connection เดิมที่เกี่ยวข้อง และจำกัด request path"
+    prerequisites: ["DB host, destination, protocol, route ที่ผูกด้วย lineage", "รายการ destination ที่อนุมัติของ DB (replication/backup)"]
+    required_evidence: [sq_request_query_egress_chain]
+    required_targets: [db_egress]
+    required_capabilities: [cap.egress_control, cap.connection_state_termination, cap.waf_targeted_rule, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "จำกัดเฉพาะ egress ไป destination ที่ระบุ DB ยังให้บริการตามปกติ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า outbound จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}}) เกิดขึ้นจริงและผูกกับ request/query ผ่าน route {{db_egress.route}} และไม่ใช่ destination ที่ DB ใช้อนุมัติ"
+        expected_result: "outbound ที่ต้องตัดถูกต้องตามหลักฐาน"
+        verify: "เทียบ flow log กับ lineage และรายการ approved destinations"
+        on_failure: "ไม่ตัด; ไป investigation"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกค่า egress rule ปัจจุบันของ {{db_egress.db_host_id}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "จำกัด egress จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด egress จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}}) เท่านั้น (ไม่ isolate DB ทั้งเครื่อง)"
+        method: "ตั้ง deny เฉพาะ flow จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ isolate DB ทั้งเครื่อง) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "DB เชื่อมต่อออก destination นี้ไม่ได้"
+        verify: "flow log แสดง deny และไม่มี outbound ใหม่"
+        on_failure: "escalate IR เพื่อจำกัดที่ segment ระดับ DB tier"
+        rollback: "ถอน rule จาก snapshot"
+        impact: "DB ติดต่อ destination นี้ไม่ได้ (rule จำกัดเฉพาะ destination ที่ระบุ)"
+      - step_id: S4
+        title: "ตัด connection เดิมจาก {{db_egress.db_host_id}} ไป {{db_egress.destination}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด connections เดิมจาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}}) ที่ยังค้างอยู่"
+        method_basis: EXISTING
+        needs_prior: [S3]
+        requires_confirmed_tool: true
+        method: "ใช้ความสามารถตัด connection state ของเครื่องมือ โดยระบุ flow จากต้นทาง {{db_egress.db_host_id}} ไปยัง {{db_egress.destination}} ({{db_egress.protocol}}) แล้วใช้ตัวระบุ connection ตามที่เครื่องมือแสดง ตัดเฉพาะ flow นี้ โดยตรวจรายการ connection ที่ค้างก่อนตัด บันทึกตัวระบุที่ตัด แล้วตรวจรายการซ้ำว่า flow นี้ไม่เหลือและ flow อื่นไม่ถูกตัด"
+        condition: {all_of: [{field: capability.cap.connection_state_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี connection ค้าง"
+        verify: "connection table ไม่แสดง flow {{db_egress.db_host_id}} → {{db_egress.destination}} ({{db_egress.protocol}})"
+        on_failure: "เฝ้าระวังและ escalate IR"
+      - step_id: S5
+        title: "จำกัด request path {{web_route.route}} / {{web_route.parameter}} ที่ถูก inject"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด request path {{web_route.route}} / {{web_route.parameter}} ที่ inject ด้วย targeted rule ที่ {{web_route.control_point}}"
+        method: "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อปิดเส้นทางที่ถูก inject เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.web_route.validated, operator: equals, value: true}]}
+        expected_result: "request ที่ทำให้เกิด OOB ถูกจำกัด"
+        verify: "WAF log แสดง block"
+        on_failure: "escalate เจ้าของแอป"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี outbound ใหม่จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} และ DB service ปกติ"
+        expected_result: "ไม่มี egress ผิดปกติ"
+        verify: "re-hunt flow ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ protocol/destination อื่นที่มี evidence"
+    verification: ["ไม่มี outbound ใหม่ไป destination ที่ระบุ", "DB ให้บริการตามปกติ"]
+    failure_handling: ["พบ destination ใหม่ → เพิ่มเฉพาะที่มี lineage"]
+    rollback: ["ถอน egress rule จาก snapshot"]
+    remediation_followups: ["ปิดความสามารถของ DB ที่เรียก network จาก query และแก้ query ให้ parameterized (remediation แยก)"]
+
+  - runbook_id: RB-STORED-PAYLOAD-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-STORED-PAYLOAD-CONTAIN]
+    supported_subtypes: [SQ-SECOND]
+    objective: "หยุด delayed processing ต่อ job/record/queued copies โดยรักษาต้นฉบับ"
+    prerequisites: ["lineage record→consumer/job→query", "รู้ว่า consumer/job หยุดเฉพาะตัวได้และ records ถูก hold ได้"]
+    required_evidence: [sq_second_order_lineage]
+    required_targets: [stored_record_pipeline]
+    required_capabilities: [cap.queue_consumer_control, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "งานที่ใช้ consumer/job นี้ล่าช้าระหว่างหยุด"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน lineage ของ records {{stored_record_pipeline.record_ids}} → job {{stored_record_pipeline.consumer_or_job_id}} → query อันตราย"
+        expected_result: "lineage ครบ"
+        verify: "แต่ละช่วงมี evidence ref"
+        on_failure: "ไม่ดำเนินการ; ไป investigation"
+      - step_id: S2
+        title: "Pause consumer/job {{stored_record_pipeline.consumer_or_job_id}} และ retries"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Pause consumer/job {{stored_record_pipeline.consumer_or_job_id}} และ retries ของมัน (เฉพาะตัวนี้)"
+        method: "สั่ง pause consumer/job {{stored_record_pipeline.consumer_or_job_id}} และ retry/ตารางรันของมัน (เฉพาะตัวนี้) บันทึกสถานะก่อน แล้วตรวจว่าไม่มีการรัน"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ไม่มีการประมวลผล records ที่ระบุเพิ่ม"
+        verify: "ไม่มีการรันของ job และ retries"
+        on_failure: "escalate IR/เจ้าของระบบ"
+        rollback: "resume job หลังกัน records เสร็จ"
+        impact: "งานของ job นี้ล่าช้าจนกว่าจะ resume"
+      - step_id: S3
+        title: "กัน records {{stored_record_pipeline.record_ids}} (รวมสำเนาใน queue) ออกจากการประมวลผล"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "กัน records {{stored_record_pipeline.record_ids}} และสำเนาใน queue ({{stored_record_pipeline.queued_copies_locator}}) ออกจากการประมวลผล โดยเก็บต้นฉบับไว้เพื่อ forensic (ไม่ลบ)"
+        method: "แยก records {{stored_record_pipeline.record_ids}} และสำเนาใน queue ({{stored_record_pipeline.queued_copies_locator}}) ออกจากการประมวลผลด้วยเครื่องมือของ queue โดยเก็บต้นฉบับไว้เพื่อ forensic (ไม่ลบ) แล้วตรวจว่า queue ไม่มีสำเนา active และต้นฉบับยังอยู่"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S2]
+        condition: {all_of: [{field: capability.cap.queue_consumer_control.supported, operator: equals, value: true}]}
+        expected_result: "records ที่ระบุไม่ถูกประมวลผล และต้นฉบับยังอยู่"
+        verify: "queue ไม่มีสำเนา active และต้นฉบับยังอยู่"
+        on_failure: "คง job ที่ pause ไว้และ escalate IR"
+        rollback: "ปล่อย records กลับเมื่อ IR ยืนยัน"
+      - step_id: S4
+        title: "Resume consumer/job {{stored_record_pipeline.consumer_or_job_id}} โดยยกเว้น records ที่ถูกกัน"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Resume consumer/job {{stored_record_pipeline.consumer_or_job_id}} โดยยกเว้น records ที่ถูกกัน เพื่อให้บริการดำเนินต่อ"
+        method: "resume consumer/job {{stored_record_pipeline.consumer_or_job_id}} หลังยืนยันว่า records ที่ถูกกันถูกยกเว้นแล้ว ตรวจว่า job ทำงานและไม่ประมวลผล records ที่ hold"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S3]
+        expected_result: "งานปกติดำเนินต่อโดยไม่แตะ records ที่ถูกกัน"
+        verify: "job ทำงานและไม่ประมวลผล records ที่ hold"
+        on_failure: "คง pause ไว้จนกว่าจะยืนยันการยกเว้นได้"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ DB log ว่าไม่มี query อันตรายจาก job นี้อีก"
+        expected_result: "ไม่มี query ซ้ำ"
+        verify: "re-hunt query pattern จาก job"
+        on_failure: "ตรวจ records/queue อื่นที่มี lineage"
+    verification: ["job ไม่ก่อ query อันตรายอีก", "records ต้นฉบับครบ"]
+    failure_handling: ["พบ records อื่นที่มี lineage → กันเพิ่มเฉพาะรายการ"]
+    rollback: ["resume/ปล่อย records ตาม IR approval"]
+    remediation_followups: ["แก้ consumer ให้ใช้ parameterized queries เมื่ออ่านข้อมูลที่เก็บไว้ (remediation แยกจาก containment)"]
+
+  - runbook_id: RB-BATCH-QUERY-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-BATCH-QUERY-CONTAIN]
+    supported_subtypes: [SQ-STACKED]
+    objective: "จำกัด source path ปิด multi-statement ที่ไม่จำเป็นเมื่อรองรับและอนุมัติ และ contain effects ของ statements"
+    prerequisites: ["driver/query evidence ของ multiple statements", "รู้ว่า application ต้องการ multi-statement หรือไม่"]
+    required_evidence: [sq_multi_statement_evidence]
+    required_targets: [db_driver_path]
+    required_capabilities: [cap.waf_targeted_rule, cap.driver_config_change, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute, change_approval]
+    operational_impact: "การปิด multi-statement อาจกระทบ feature ที่ใช้หลาย statement ตามปกติ — ตรวจก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันจาก driver/DB log ว่า route {{db_driver_path.route}} ผ่าน {{db_driver_path.driver_path}} รับหลาย statement จริง (semicolon ใน payload อย่างเดียวไม่พอ)"
+        expected_result: "path ที่ต้องจำกัดถูกต้องตามหลักฐาน"
+        verify: "observed statements ผูกกับ evidence ref"
+        on_failure: "ไม่ดำเนินการ; ไป investigation"
+      - step_id: S2
+        title: "จำกัด source path {{db_driver_path.route}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด source path {{db_driver_path.route}} ด้วย targeted rule ที่ control ของแอปพลิเคชัน"
+        method: "ตั้ง targeted rule ที่ control ของแอปพลิเคชันเฉพาะ source path {{db_driver_path.route}} ให้จำกัด statement ซ้อน เริ่มในโหมด detect/log เทียบกับ traffic ปกติก่อน block บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่ามีการจำกัดและไม่มี statement ซ้อนผ่าน"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.waf_targeted_rule.supported, operator: equals, value: true}]}
+        expected_result: "requests ที่ส่ง batch ผ่าน route นี้ถูกจำกัด"
+        verify: "log แสดง block และไม่มี statement ซ้อนผ่านมา"
+        on_failure: "escalate เจ้าของแอป"
+        rollback: "ถอน rule จาก snapshot"
+      - step_id: S3
+        title: "ปิด multi-statement ใน {{db_driver_path.driver_path}} ของ {{db_driver_path.application}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ปิด multi-statement ที่ไม่จำเป็นใน {{db_driver_path.driver_path}} ของ {{db_driver_path.application}} (ทำได้เมื่อ driver รองรับและได้รับอนุมัติแล้ว)"
+        method_basis: IR_REVIEW_REQUIRED
+        method_requires: "IR ต้องยืนยันว่า driver รองรับการปิด multi-statement และได้รับอนุมัติ change ตามขั้นตอนขององค์กร"
+        condition: {all_of: [{field: capability.cap.driver_config_change.supported, operator: equals, value: true}, {field: authority.change_approval.granted, operator: equals, value: true}]}
+        expected_result: "driver ไม่รับหลาย statement ในคำสั่งเดียว"
+        verify: "คำสั่งทดสอบแบบ multi-statement ใน test environment ถูกปฏิเสธ"
+        on_failure: "คงการจำกัด path ใน S2 และ escalate เจ้าของแอป"
+        rollback: "คืนค่า driver จาก snapshot"
+        impact: "feature ที่พึ่ง multi-statement ต้องปรับ"
+      - step_id: S4
+        title: "ตรวจผลของ statements ที่ถูกรันและจำกัด DB grant ที่เกี่ยวข้อง ({{db_driver_path.observed_statements_ref}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจผลของ statements ที่ถูกรัน ({{db_driver_path.observed_statements_ref}}) ต่อข้อมูลและสิทธิ์ และจำกัด DB grant ที่ถูกใช้เฉพาะรายการที่เกี่ยวข้อง"
+        expected_result: "รู้ผลกระทบจริงและจำกัดสิทธิ์ส่วนเกินที่ถูกใช้"
+        verify: "audit DB ของ statements และ grant ที่ปรับ"
+        on_failure: "รายงานเฉพาะผลที่ยืนยัน ไม่คาดเดาความเสียหาย"
+        rollback: "คืน grant จาก snapshot ตามการอนุมัติ"
+    verification: ["ไม่มี multi-statement ใหม่ผ่าน route", "grant ส่วนเกินที่เกี่ยวข้องถูกจำกัด"]
+    failure_handling: ["ผู้โจมตีใช้ route อื่น → เพิ่มเฉพาะที่มี evidence"]
+    rollback: ["คืน driver/rule/grant จาก snapshot"]
+    remediation_followups: ["ใช้ parameterized queries และ least-privilege DB account (remediation แยกจาก containment)"]

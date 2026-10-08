@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { AiJobRow, AuditEntry, IncidentWorkFilters, IncidentWorkRow, IocLibraryRow, IWorkReadRepository } from "../../../../application/work/ports/IWorkReadRepository";
+import { AiJobRow, AuditEntry, ClosedCaseRow, IncidentWorkFilters, IncidentWorkRow, IocLibraryRow, IWorkReadRepository } from "../../../../application/work/ports/IWorkReadRepository";
 import { ApprovalQueueRow, ApprovalStepRow, TicketRow } from "../../../../application/work/WorkQueues";
 import { stripAiSeverity } from "../../../../domain/ai/aiGrounding";
+import { summarizeAlert } from "../../../../domain/alert/alertSummary";
+import { CaseFingerprint, iocKey } from "../../../../domain/incident/similarCases";
 
 type Row = Record<string, unknown>;
 const iso = (v: unknown): string | null => (v == null ? null : new Date(v as string).toISOString());
@@ -325,5 +327,99 @@ export class PrismaWorkReadRepository implements IWorkReadRepository {
       };
     });
     return { items, total: Number(countRow?.n ?? 0) };
+  }
+
+  async similarCaseFacts(
+    tenantId: string,
+    incidentId: string,
+    candidateLimit: number
+  ): Promise<{ target: CaseFingerprint & { id: string }; candidates: ClosedCaseRow[] } | null> {
+    const [target] = await this.q(`select id from incidents where tenant_id = $1 and id = $2`, tenantId, incidentId);
+    if (!target) return null;
+    const closed = await this.q(
+      `select id, title, status, priority, opened_at, closed_at, investigation_number
+         from incidents
+        where tenant_id = $1 and status in ('resolved', 'dismissed') and id <> $2
+        order by coalesce(closed_at, opened_at) desc
+        limit $3`,
+      tenantId,
+      incidentId,
+      candidateLimit
+    );
+    const ids = [incidentId, ...closed.map((r) => String(r.id))];
+    const [iocs, techniques, alerts, actions, verifs, notes] = await Promise.all([
+      this.q(`select incident_id, ioc_type, ioc_value from threat_intel_iocs where incident_id = any($1::text[]) and status = 'ACTIVE'`, ids),
+      this.q(`select incident_id, technique_id from mitre_mappings where incident_id = any($1::text[])`, ids),
+      // The incident's primary alert + every alert grouped into it; only the rule / agent parts of the payload.
+      this.q(
+        `with links as (
+           select i.id incident_id, i.alert_id from incidents i where i.tenant_id = $1 and i.id = any($2::text[]) and i.alert_id is not null
+           union
+           select ia.incident_id, ia.alert_id from incident_alerts ia where ia.incident_id = any($2::text[]))
+         select l.incident_id, jsonb_build_object('rule', a.raw_payload->'rule', 'agent', a.raw_payload->'agent') payload
+           from links l join alerts a on a.id = l.alert_id and a.tenant_id = $1`,
+        tenantId,
+        ids
+      ),
+      this.q(
+        `select p.incident_id, ac.code, ac.name, p.target, p.status
+           from response_plans p left join actions ac on ac.id = p.action_id
+          where p.tenant_id = $1 and p.incident_id = any($2::text[])
+          order by p.created_at`,
+        tenantId,
+        ids
+      ),
+      this.q(
+        `select distinct on (incident_id) incident_id, result from verifications
+          where tenant_id = $1 and incident_id = any($2::text[]) order by incident_id, verified_at desc`,
+        tenantId,
+        ids
+      ),
+      this.q(
+        `select distinct on (entity_id) entity_id, metadata->>'note' note from audit_logs
+          where tenant_id = $1 and action = 'INCIDENT_CLOSED' and entity_id = any($2::text[]) order by entity_id, created_at desc`,
+        tenantId,
+        ids
+      ),
+    ]);
+
+    const prints = new Map<string, CaseFingerprint>(ids.map((id) => [id, { iocs: [], ruleIds: [], techniques: [], hosts: [] }]));
+    for (const r of iocs) prints.get(String(r.incident_id))?.iocs.push(iocKey(String(r.ioc_type), String(r.ioc_value)));
+    for (const r of techniques) prints.get(String(r.incident_id))?.techniques.push(String(r.technique_id));
+    for (const r of alerts) {
+      const fp = prints.get(String(r.incident_id));
+      if (!fp) continue;
+      const s = summarizeAlert(typeof r.payload === "string" ? JSON.parse(r.payload) : r.payload);
+      if (s.ruleId) fp.ruleIds.push(s.ruleId);
+      if (s.host) fp.hosts.push(s.host);
+      fp.techniques.push(...s.mitreTechniques);
+    }
+    const actionsBy = new Map<string, ClosedCaseRow["actions"]>();
+    for (const r of actions) {
+      const k = String(r.incident_id);
+      actionsBy.set(k, [...(actionsBy.get(k) ?? []), { code: str(r.code), name: str(r.name), target: str(r.target), status: String(r.status) }]);
+    }
+    const verifBy = new Map(verifs.map((r) => [String(r.incident_id), String(r.result)]));
+    const noteBy = new Map(notes.map((r) => [String(r.entity_id), str(r.note)]));
+
+    return {
+      target: { id: incidentId, ...prints.get(incidentId)! },
+      candidates: closed.map((r) => {
+        const id = String(r.id);
+        return {
+          id,
+          title: String(r.title),
+          status: String(r.status),
+          priority: String(r.priority),
+          openedAt: iso(r.opened_at) ?? "",
+          closedAt: iso(r.closed_at),
+          investigationNumber: Number(r.investigation_number ?? 1),
+          lastVerification: verifBy.get(id) ?? null,
+          actions: actionsBy.get(id) ?? [],
+          closeNote: noteBy.get(id) ?? null,
+          ...prints.get(id)!,
+        };
+      }),
+    };
   }
 }

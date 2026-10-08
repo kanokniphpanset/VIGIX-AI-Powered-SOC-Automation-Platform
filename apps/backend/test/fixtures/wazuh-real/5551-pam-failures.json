@@ -1,0 +1,83 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "data": {
+    "uid": "0",
+    "srcip": "172.19.0.3",
+    "euid": "0",
+    "dstuser": "backup",
+    "tty": "ssh"
+  },
+  "rule": {
+    "mail": false,
+    "level": 10,
+    "pci_dss": [
+      "10.2.4",
+      "10.2.5",
+      "11.4"
+    ],
+    "hipaa": [
+      "164.312.b"
+    ],
+    "tsc": [
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "PAM: Multiple failed logins in a small period of time.",
+    "groups": [
+      "pam",
+      "syslog",
+      "authentication_failures"
+    ],
+    "nist_800_53": [
+      "AU.14",
+      "AC.7",
+      "SI.4"
+    ],
+    "frequency": 8,
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "firedtimes": 1,
+    "mitre": {
+      "technique": [
+        "Brute Force"
+      ],
+      "id": [
+        "T1110"
+      ],
+      "tactic": [
+        "Credential Access"
+      ]
+    },
+    "id": "5551",
+    "gpg13": [
+      "7.8"
+    ]
+  },
+  "full_log": "Oct  3 12:23:58 60e9269b683a sshd[1726]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3  user=backup",
+  "id": "1791030239.2016455",
+  "timestamp": "2026-10-03T12:23:59.548+0000",
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "sshd",
+    "timestamp": "Oct  3 12:23:58"
+  },
+  "previous_output": "Oct  3 12:23:55 60e9269b683a sshd[1724]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:51 60e9269b683a sshd[1722]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:48 60e9269b683a sshd[1720]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:45 60e9269b683a sshd[1718]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:42 60e9269b683a sshd[1716]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:40 60e9269b683a sshd[1714]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 \nOct  3 12:23:37 60e9269b683a sshd[1712]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.19.0.3 ",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "decoder": {
+    "name": "pam"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log"
+}

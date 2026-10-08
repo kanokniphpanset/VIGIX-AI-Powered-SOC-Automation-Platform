@@ -1,0 +1,106 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for PRIVILEGE_ESCALATION, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: PRIVILEGE_ESCALATION
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Confirm Unauthorized Change
+  objective: Identify the account, host and privilege, and whether the change was authorized.
+  recommendedAction:
+  - Identify the account and host and the privilege that was added or used
+  - Check whether the change was approved through change management
+  reason: Administrators grant privileges routinely; only an unauthorized change needs containment.
+  evidenceRequired:
+  - Account
+  - Host
+  - Privilege change event
+  - Change ticket
+  expectedResult: The change is classified as authorized or unauthorized.
+  decisionRef: DEC-PE-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Remove Unauthorized Privilege
+  objective: Take the unauthorized privilege away from the attacker.
+  recommendedAction:
+  - 'Remove the unauthorized privilege / group membership (see containment.yaml: ACT-REMOVE-PRIVILEGE)'
+  - 'Revoke the account''s suspicious privileged sessions (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'Disable the account that was abused (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+  reason: Elevated privileges let the attacker create accounts and persistence within minutes.
+  evidenceRequired:
+  - Account
+  - Privilege change event
+  - Session list
+  expectedResult: No attacker-held account or session keeps the elevated privilege.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 3
+  phase: ASSESS
+  title: Use of Privileges
+  objective: Find what the attacker did with the privileges.
+  recommendedAction:
+  - Check for new admin accounts, group changes, services / scheduled tasks and credential access
+  reason: The use of the privileges shows how far the attacker got.
+  evidenceRequired:
+  - Account / group change log
+  - Service / task creation events
+  expectedResult: Persistence and credential access identified or ruled out.
+  decisionRef: DEC-PE-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain Process & Endpoint
+  objective: Stop the exploit process and contain the endpoint when compromise is evidenced.
+  recommendedAction:
+  - 'Terminate the exploit / elevated process (see containment.yaml: ACT-KILL-PROCESS)'
+  - 'Isolate the endpoint the escalation came from (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  reason: An exploit process or compromised endpoint can re-escalate.
+  evidenceRequired:
+  - Process
+  - Affected endpoint
+  expectedResult: The exploit process is stopped and the endpoint contained.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Lateral Movement Check
+  objective: Find lateral movement and persistence on other hosts.
+  recommendedAction:
+  - Hunt logons of the elevated account on other hosts and the same persistence elsewhere
+  reason: Elevated accounts are typically used to move to other systems.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: List of every host and account involved.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm the privilege is removed and abuse stopped.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Confirm the account's privileges match the approved baseline and no new privileged activity occurs
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

@@ -95,6 +95,8 @@ export function buildWorkRoutes(queries: WorkQueries): Router {
  *   GET /:incidentId/audit    — the incident's audit trail (audit_logs of the incident and its alerts, recommendations,
  *                               tickets, approvals, verifications) merged with its timeline; credentials never included.
  *   GET /:incidentId/ai-jobs  — the incident's AI analysis jobs (DB queue rows: status, trigger, attempt, error).
+ *   GET /:incidentId/similar  — closed incidents similar to it (shared IOC / rule / technique / host), with the reasons
+ *                               and how each was handled; deterministic, no AI.
  */
 export function buildIncidentWorkRoutes(queries: WorkQueries): Router {
   const router = Router();
@@ -108,6 +110,14 @@ export function buildIncidentWorkRoutes(queries: WorkQueries): Router {
   }));
   router.get("/:incidentId/ai-jobs", authenticate, safe(async (req: Request, res: Response) => {
     const items = await queries.incidentAiJobs({ tenantId: req.user!.tenantId ?? DEFAULT_TENANT_ID, incidentId: req.params.incidentId });
+    if (!items) {
+      res.status(404).json({ error: "INCIDENT_NOT_FOUND" });
+      return;
+    }
+    res.json({ items });
+  }));
+  router.get("/:incidentId/similar", authenticate, safe(async (req: Request, res: Response) => {
+    const items = await queries.similarCases({ tenantId: req.user!.tenantId ?? DEFAULT_TENANT_ID, incidentId: req.params.incidentId, limit: int(req.query.limit, 5, 20) });
     if (!items) {
       res.status(404).json({ error: "INCIDENT_NOT_FOUND" });
       return;

@@ -1,0 +1,168 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for SQL_INJECTION, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: SQL_INJECTION
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Confirm the Alert
+  objective: Confirm from WAF / web / application / database logs that the alert is a real SQL injection before containing anything.
+  recommendedAction:
+  - Review WAF, web, application and database logs for requests with SQL injection patterns such as ' OR 1=1, UNION SELECT, SLEEP() and information_schema
+  - Record the targeted URL, the injected parameter, the source IP, the user / session and the time of the events
+  - Search the same pattern on other endpoints and from other sources to find the scope
+  reason: Containment has to target the exact source, endpoint and request pattern, and most SQL injection alerts are failed attempts.
+  evidenceRequired:
+  - WAF / web access logs
+  - Source IP
+  - Vulnerable URL / parameter
+  - User / session and event time
+  expectedResult: Alert confirmed or ruled out, with URL, parameter, source IP, user / session and time identified.
+  decisionRef: DEC-SQLI-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Block the Source Immediately
+  objective: Stop the confirmed malicious source from reaching the application. This is not the end of the response - the attacker can change IP.
+  recommendedAction:
+  - 'Block the confirmed malicious source IP at the WAF / firewall / reverse proxy, and any other related IOC (see containment.yaml: ACT-BLOCK-SOURCE-IP)'
+  - 'Rate-limit the source while repeated malicious requests continue (see containment.yaml: ACT-RATE-LIMIT-SOURCE)'
+  reason: Blocking the source stops this campaign immediately, but a new IP bypasses it, so the steps that follow are still required.
+  evidenceRequired:
+  - Source IP
+  - Confirmed malicious request pattern
+  expectedResult: Requests from the confirmed source no longer reach the application.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 3
+  phase: SELECT_ACTION
+  title: Block the SQL Injection Pattern at the WAF
+  objective: Stop the same payload from any source.
+  recommendedAction:
+  - Enable or add a WAF rule for the confirmed SQL injection pattern with action BLOCK, watching for false positives on normal traffic (manual - outside the VIGIX Action Catalog; requires application owner approval)
+  reason: A WAF rule stops the payload regardless of the source IP.
+  evidenceRequired:
+  - Confirmed malicious request pattern
+  - Sample of normal traffic for the endpoint
+  expectedResult: The confirmed pattern is blocked and normal traffic is not affected.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain the Affected Session / Account
+  objective: Cut off an authenticated session used in the attack and protect credentials that were exposed.
+  recommendedAction:
+  - 'If the attack ran through an authenticated session, revoke the session / token of that account (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'If credential compromise is found, reset the password / rotate the credential of the affected accounts only (see containment.yaml: ACT-RESET-CREDENTIAL)'
+  reason: A session or credential taken through the injection stays valid after the source is blocked.
+  evidenceRequired:
+  - User / session in the logs
+  - Evidence of credential exposure
+  expectedResult: Affected sessions are revoked and compromised credentials are reset, within the affected scope.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: SELECT_ACTION
+  title: Restrict the Vulnerable Endpoint
+  objective: Limit exposure of the injectable endpoint until the code is fixed.
+  recommendedAction:
+  - Temporarily restrict the affected endpoint (for example POST /api/login or GET /products?id=) when the code cannot be fixed immediately - take it offline, limit access or apply a virtual patch (manual - outside the VIGIX Action Catalog; requires application owner approval)
+  reason: Until the root cause is fixed the endpoint stays injectable by any new source or payload.
+  evidenceRequired:
+  - Vulnerable endpoint and parameter
+  - Application owner confirmation
+  expectedResult: The endpoint is no longer reachable by the attacker, or is virtually patched.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 6
+  phase: ASSESS
+  title: Check the Database
+  objective: Determine from logs whether any injected query succeeded - never assume it from the alert alone.
+  recommendedAction:
+  - Review database audit / query logs for abnormal queries such as bulk reads of user tables, schema enumeration, UPDATE / DELETE modification, account creation or data export
+  - If the database was modified, escalate to an incident with confirmed impact and preserve evidence before any recovery
+  reason: Only log evidence shows data access or modification; evidence must be preserved before recovery overwrites it.
+  evidenceRequired:
+  - Application logs
+  - Database audit log
+  expectedResult: Database impact confirmed or ruled out from evidence, and evidence preserved if confirmed.
+  decisionRef: DEC-SQLI-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 7
+  phase: PREPARE_PLAN
+  title: Fix the Root Cause in the Application
+  objective: Remove the injection flaw from the code.
+  recommendedAction:
+  - Replace queries built by string concatenation of input with parameterized queries / prepared statements (bind parameters from the database library or ORM) instead of WHERE id = + userInput (manual - outside the VIGIX Action Catalog; requires application owner approval)
+  reason: Parameterized queries remove the flaw, while blocking and WAF rules only reduce exposure.
+  evidenceRequired:
+  - Vulnerable code location
+  expectedResult: The vulnerable query uses bind parameters.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 8
+  phase: PREPARE_PLAN
+  title: Validate Input and Reduce Database Privileges
+  objective: Limit what injected input can do.
+  recommendedAction:
+  - Add server-side allowlist validation by data type, for example id must be an integer (manual - outside the VIGIX Action Catalog; requires application owner approval)
+  - Reduce the database account's privileges to least privilege, for example a read-only application should not hold DROP / ALTER without need (manual - outside the VIGIX Action Catalog; requires DB owner / IR_TEAM approval)
+  reason: Input validation and least privilege reduce the impact of any injection that is missed.
+  evidenceRequired:
+  - Database account privileges
+  - Application owner confirmation
+  expectedResult: Input is validated by type and the database account holds only the privileges it needs.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 9
+  phase: EXECUTE
+  title: Rotate Secrets Only on Evidence of Exposure
+  objective: Replace secrets that evidence shows may have been accessed.
+  recommendedAction:
+  - If there is evidence that a database credential, API key or token may have been accessed, rotate the related credential and revoke the old one; do not rotate every secret without exposure (manual - outside the VIGIX Action Catalog; requires DB owner / IR_TEAM approval)
+  reason: A leaked secret keeps working after the flaw is fixed, but blanket rotation without exposure only adds risk.
+  evidenceRequired:
+  - Evidence of secret exposure
+  expectedResult: Exposed secrets are rotated and the old ones revoked.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 10
+  phase: VERIFY
+  title: Test After the Fix and Monitor
+  objective: Confirm the fix works and that the attack does not return or bypass it.
+  recommendedAction:
+  - Test the affected endpoint in an authorized environment and confirm SQL injection requests are rejected while normal functionality still works
+  - Run the re-hunt query defined in verification.yaml and monitor WAF, application and database logs for repeated attacks or bypass
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Test results
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

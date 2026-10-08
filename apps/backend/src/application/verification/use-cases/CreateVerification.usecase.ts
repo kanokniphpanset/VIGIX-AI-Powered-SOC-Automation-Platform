@@ -179,6 +179,7 @@ export class CreateVerificationUseCase {
       afterState: {
         ...(input.afterState ?? {}),
         evidenceSource: input.evidenceSource ?? "MANUAL_ENTRY",
+        verifiedInvestigationNumber: incident.investigationNumber,
       },
 
       result,

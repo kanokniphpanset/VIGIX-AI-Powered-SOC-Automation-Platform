@@ -68,7 +68,7 @@ export interface ResponseProcessStep {
   objective: string | null;
   target: string | null;
   reason: string;
-  instructions: { order: number; instruction: string; target: string | null; expectedResult: string | null }[];
+  instructions: { order: number; instruction: string; target: string | null; expectedResult: string | null; impact?: string | null; verify?: string | null; manualOwner?: string | null; method?: string | null; methodKind?: "method" | "detail"; preconditions?: string[]; rollback?: string | null; note?: string | null }[];
   expectedResult: string | null;
   verificationCriteria: string | null;
 }

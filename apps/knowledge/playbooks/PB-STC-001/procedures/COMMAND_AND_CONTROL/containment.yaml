@@ -1,0 +1,40 @@
+# containment.yaml - CATALOG of candidate containment Actions for COMMAND_AND_CONTROL, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-C2. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: COMMAND_AND_CONTROL
+candidateActions:
+- actionCode: ACT-BLOCK-DESTINATION-IP
+  name: Block Destination IP
+  condition: The destination IP is confirmed malicious C2 (not a legitimate cloud service).
+  runbookRef: RB-C2-CONTAINMENT
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-DOMAIN
+  name: Block Domain
+  condition: The C2 domain is confirmed malicious.
+  runbookRef: RB-BLOCK-DOMAIN
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-URL
+  name: Block URL
+  condition: The C2 URL / gate is confirmed malicious.
+  runbookRef: RB-BLOCK-URL
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: The host is confirmed communicating with C2 and the communication continues (or hands-on activity is seen).
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-BLOCK-HASH
+  name: Block File Hash
+  condition: The implant artifact hash is identified.
+  runbookRef: RB-BLOCK-HASH
+  impactLevel: MEDIUM
+  approvalRequired: false

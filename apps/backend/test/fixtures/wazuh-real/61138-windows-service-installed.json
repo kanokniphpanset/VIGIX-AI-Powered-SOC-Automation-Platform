@@ -1,0 +1,72 @@
+{
+  "agent": {
+    "ip": "192.168.239.129",
+    "name": "vigix-win10-ps",
+    "id": "010"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "win": {
+      "eventdata": {
+        "serviceType": "user mode service",
+        "accountName": "LocalSystem",
+        "imagePath": "\\\"C:\\\\Program Files\\\\Microsoft Update Health Tools\\\\uhssvc.exe\\\"",
+        "startType": "disabled",
+        "serviceName": "Microsoft Update Health Service"
+      },
+      "system": {
+        "eventID": "7045",
+        "eventSourceName": "Service Control Manager",
+        "keywords": "0x8080000000000000",
+        "providerGuid": "{555908d1-a6d7-4695-8e1e-26931d2012f4}",
+        "level": "4",
+        "channel": "System",
+        "opcode": "0",
+        "message": "\"A service was installed in the system.\r\n\r\nService Name:  Microsoft Update Health Service\r\nService File Name:  \"C:\\Program Files\\Microsoft Update Health Tools\\uhssvc.exe\"\r\nService Type:  user mode service\r\nService Start Type:  disabled\r\nService Account:  LocalSystem\"",
+        "version": "0",
+        "systemTime": "2026-10-03T10:44:27.4557282Z",
+        "eventRecordID": "406",
+        "threadID": "6076",
+        "computer": "WIN-LAB01",
+        "task": "0",
+        "processID": "632",
+        "severityValue": "INFORMATION",
+        "providerName": "Service Control Manager"
+      }
+    }
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 5,
+    "description": "New Windows Service Created",
+    "groups": [
+      "windows",
+      "windows_system"
+    ],
+    "mitre": {
+      "technique": [
+        "Windows Service"
+      ],
+      "id": [
+        "T1543.003"
+      ],
+      "tactic": [
+        "Persistence",
+        "Privilege Escalation"
+      ]
+    },
+    "id": "61138"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "EventChannel",
+  "id": "1791024268.1777472",
+  "timestamp": "2026-10-03T10:44:28.476+0000"
+}

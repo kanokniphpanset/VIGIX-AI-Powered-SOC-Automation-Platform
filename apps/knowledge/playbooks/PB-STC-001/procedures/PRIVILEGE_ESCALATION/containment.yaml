@@ -1,0 +1,42 @@
+# containment.yaml - CATALOG of candidate containment Actions for PRIVILEGE_ESCALATION, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-PRIV-ESC. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: PRIVILEGE_ESCALATION
+candidateActions:
+- actionCode: ACT-REMOVE-PRIVILEGE
+  name: Remove Unauthorized Privilege
+  condition: The privilege assignment is confirmed unauthorized (no approved change) — never from the alert alone.
+  runbookRef: RB-REMOVE-PRIVILEGE
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: A suspicious privileged session exists for the account.
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-DISABLE-ACCOUNT
+  name: Disable User Account
+  condition: Compromise or abuse of the account is confirmed.
+  runbookRef: RB-DISABLE-ACCOUNT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-KILL-PROCESS
+  name: Terminate Malicious Process
+  condition: A malicious exploit / elevated process is involved.
+  runbookRef: RB-KILL-MALICIOUS-PROCESS
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: The escalation involved endpoint compromise (never isolate a domain controller without the IR lead's decision).
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

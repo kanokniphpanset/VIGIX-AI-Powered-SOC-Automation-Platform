@@ -1,4 +1,5 @@
 import { ApprovalQueueRow, TicketRow } from "../WorkQueues";
+import { CaseFingerprint } from "../../../domain/incident/similarCases";
 
 export interface IncidentWorkRow {
   id: string;
@@ -72,6 +73,24 @@ export interface IocLibraryRow {
   cases: { id: string; title: string; status: string; openedAt: string | null }[];
 }
 
+/** A closed incident as a similar-case candidate: its fingerprint plus how it was handled. */
+export interface ClosedCaseRow extends CaseFingerprint {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  openedAt: string;
+  closedAt: string | null;
+  /** Investigation rounds it took (1 = closed in the first round). */
+  investigationNumber: number;
+  /** Result of its most recent verification (re-hunt), null when never verified. */
+  lastVerification: string | null;
+  /** Its Response Tickets: the catalog action (code/name), target and final status. */
+  actions: { code: string | null; name: string | null; target: string | null; status: string }[];
+  /** The note recorded when it was closed (INCIDENT_CLOSED audit), e.g. why the SOC rejected the recommendation. */
+  closeNote: string | null;
+}
+
 /** Read-only projections for the role workspaces (tenant-scoped SQL). */
 export interface IWorkReadRepository {
   /** Newest tickets first, at most `limit` (queues are derived in memory from these rows). */
@@ -83,4 +102,9 @@ export interface IWorkReadRepository {
   incidentAiJobs(tenantId: string, incidentId: string): Promise<AiJobRow[] | null>;
   /** Most-sighted indicators first, at most `limit`; `total` is the number of distinct indicators. */
   iocLibrary(tenantId: string, limit: number): Promise<{ items: IocLibraryRow[]; total: number }>;
+  /**
+   * The incident's fingerprint and the most recently closed (resolved / dismissed) incidents of the same tenant, at
+   * most `candidateLimit`, each with its fingerprint and outcome. null when the incident does not exist in this tenant.
+   */
+  similarCaseFacts(tenantId: string, incidentId: string, candidateLimit: number): Promise<{ target: CaseFingerprint & { id: string }; candidates: ClosedCaseRow[] } | null>;
 }

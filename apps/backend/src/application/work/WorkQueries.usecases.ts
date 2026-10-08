@@ -1,4 +1,5 @@
 import { IWorkReadRepository, IncidentWorkFilters } from "./ports/IWorkReadRepository";
+import { rankSimilarCases } from "../../domain/incident/similarCases";
 import {
   ApprovalScope,
   ApprovalStatusFilter,
@@ -14,6 +15,8 @@ import {
 
 /** How many of the newest tickets / approvals the queues are derived from (same in-memory scope as the Alert Inbox). */
 export const WORK_WINDOW = 500;
+/** How many of the most recently closed incidents are compared for "similar past cases". */
+export const SIMILAR_CANDIDATE_WINDOW = 1000;
 
 /**
  * Read-only queries behind the role workspaces. Every value comes from the stored workflow; queue membership follows
@@ -72,5 +75,16 @@ export class WorkQueries {
 
   iocLibrary(input: { tenantId: string; limit: number }) {
     return this.repo.iocLibrary(input.tenantId, input.limit);
+  }
+
+  /**
+   * Closed incidents most similar to this one (shared IOC / Wazuh rule / MITRE technique / host — see
+   * domain/incident/similarCases), each with why it matched and how it was handled. null = incident not found.
+   */
+  async similarCases(input: { tenantId: string; incidentId: string; limit: number }) {
+    const facts = await this.repo.similarCaseFacts(input.tenantId, input.incidentId, SIMILAR_CANDIDATE_WINDOW);
+    if (!facts) return null;
+    // The fingerprints are only for scoring; the response carries the matched values in `reasons`.
+    return rankSimilarCases(facts.target, facts.candidates, input.limit).map(({ iocs: _i, ruleIds: _r, techniques: _t, hosts: _h, ...c }) => c);
   }
 }

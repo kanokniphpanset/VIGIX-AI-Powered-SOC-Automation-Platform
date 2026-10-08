@@ -1,0 +1,535 @@
+# ACCOUNT_COMPROMISE — family file. Reference: reference-registry.yaml#ACCOUNT_COMPROMISE
+# Shared: RB-OAUTH-GRANT-CONTAIN / ACT-OAUTH-GRANT-CONTAIN are defined in PHISHING.yaml (first listed in the reference) and reused by AC-OAUTH.
+
+family: ACCOUNT_COMPROMISE
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: ACCOUNT_COMPROMISE, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: ac_unauthorized_password_auth
+    description: "Confirmed UNAUTHORIZED successful password authentication for an identity (not merely failed logins, not merely an unusual location)."
+    confirm: "ยืนยันว่า authentication สำเร็จนั้นไม่ใช่เจ้าของบัญชี (เทียบอุปกรณ์/การยืนยันตัวตนจากเจ้าของ/ช่องทางที่ผู้ใช้ยืนยัน) และระบุ account + เวลา + source"
+    may_be_authorized: true
+  - id: ac_session_replay_unauthorized
+    description: "Session identifier replay or unauthorized use of a session (same session from a different device/context without re-authentication)."
+    confirm: "เทียบ session id ใน log: client/device/network ที่ต่างจากตอนออก session โดยไม่ผ่าน re-auth และผู้ใช้ไม่ยืนยัน"
+    may_be_authorized: true
+  - id: ac_oauth_unauthorized_api_calls
+    description: "OAuth token/grant tied to unauthorized API calls (resource, principal, time)."
+    confirm: "ผูก token/grant id กับ API calls ใน audit log และยืนยันว่าไม่ได้รับอนุมัติ"
+    may_be_authorized: true
+  - id: ac_secret_exposed_or_misused
+    description: "API key / service secret exposure or unauthorized use (by credential id; no raw value)."
+    confirm: "ยืนยัน exposure (repo/log/paste) หรือการใช้ key จาก source/context ที่ไม่ได้รับอนุญาต โดยอ้าง credential id เท่านั้น"
+    may_be_authorized: true
+  - id: ac_mfa_recovery_unauthorized_change
+    description: "Unauthorized MFA factor / recovery change, or an approved-but-unauthorized session established via MFA."
+    confirm: "ตรวจ audit log การเพิ่ม/เปลี่ยน factor หรือ recovery entry และยืนยันกับเจ้าของบัญชีว่าไม่ได้ทำ"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-IDENTITY-CREDENTIAL-CONTAIN
+    action_name: Cut access of a compromised identity
+    label_th: "ตัดการเข้าถึงของ identity ที่ถูกยึด"
+    objective: "ตัด access ของ account ที่ถูก compromise: revoke sessions แล้ว restrict/disable/reset ตาม approved identity scope"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [account_identity, session]
+    evidence_requirements: [ac_unauthorized_password_auth]
+    target_requirements: [account_identity]
+    runbook_refs: [RB-IDENTITY-CREDENTIAL-CONTAIN]
+    legacy_action_refs: [ACT-DISABLE-ACCOUNT, ACT-RESET-CREDENTIAL, ACT-REVOKE-SESSION]
+    execution_constraints: ["ไม่ใช้ password reset แทน session revocation", "failed login / anomalous location อย่างเดียวไม่เปิด", "service identity ใช้ dependency-aware plan", "รักษา break-glass/recovery/IR access"]
+  - action_id: ACT-SESSION-REVOKE
+    action_name: Revoke sessions
+    label_th: "เพิกถอน session"
+    objective: "Invalidate access ต่อ session identifiers และ application scope ที่ระบุ"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [session]
+    evidence_requirements: [ac_session_replay_unauthorized, ac_unauthorized_password_auth]
+    target_requirements: [session]
+    runbook_refs: [RB-SESSION-REVOKE]
+    legacy_action_refs: [ACT-REVOKE-SESSION]
+    execution_constraints: ["revoke ที่ IdP/application; ถ้า revoke ทันทีไม่ได้ใช้ access restriction ที่ระบบรองรับ", "ไม่แสดง session/token value"]
+  - action_id: ACT-SERVICE-SECRET-CONTAIN
+    action_name: Contain exposed API key / service secret
+    label_th: "จำกัดความเสี่ยงของ API key / service secret ที่รั่ว"
+    objective: "ตัด secret access ต่อ credential ID และ dependent services พร้อม replacement ผ่าน secret management"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [secret_credential]
+    evidence_requirements: [ac_secret_exposed_or_misused]
+    target_requirements: [secret_credential]
+    runbook_refs: [RB-SERVICE-SECRET-CONTAIN]
+    legacy_action_refs: [ACT-RESET-CREDENTIAL]
+    execution_constraints: ["dependency-aware plan", "replacement ห้ามใช้ secret เดิมหรือที่ derive จากเดิม", "ไม่แสดง raw secret"]
+  - action_id: ACT-MFA-RECOVERY-CONTAIN
+    action_name: Remove unauthorized MFA factor / recovery path
+    label_th: "ถอด MFA factor / ช่องทาง recovery ที่ไม่ได้รับอนุญาต"
+    objective: "ตัด recovery/authentication path ที่ไม่ได้รับอนุญาตและ revoke related sessions"
+    phase: CONTAINMENT
+    containment_stage: IDENTITY_EXPOSURE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [mfa_factor, session, account_identity]
+    evidence_requirements: [ac_mfa_recovery_unauthorized_change]
+    target_requirements: [mfa_factor]
+    runbook_refs: [RB-MFA-RECOVERY-CONTAIN]
+    legacy_action_refs: []
+    execution_constraints: ["ถอนเฉพาะ factor/recovery entry ที่ระบุ", "รักษา recovery path ของเจ้าของที่ถูกต้อง"]
+
+playbooks:
+  - playbook_id: PBK-AC-PASSWORD
+    attack_family: ACCOUNT_COMPROMISE
+    subtype_id: AC-PASSWORD
+    subtype_name: Stolen Password
+    classification_evidence:
+      all_of:
+        - {field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["failed login เท่านั้น", "anomalous location/impossible-travel เท่านั้น (AC-P1)", "login สำเร็จที่ยังไม่ทราบว่าเจ้าของบัญชีทำเองหรือไม่ (authorization UNKNOWN)"]
+    scenarios:
+      - scenario_id: SC-AC-PASSWORD-CONFIRMED
+        description: "ยืนยัน unauthorized password authentication สำเร็จ ต้องตัดทั้ง sessions และ credential ของ identity"
+        ordered_action_refs:
+          - {action_id: ACT-SESSION-REVOKE, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "password reset ไม่ทำให้ session เดิมหมด (AC-P3) จึง revoke sessions ที่ระบุได้ก่อนเพื่อไม่ให้ผู้โจมตีใช้ต่อ", parallel_allowed: false, fallback_action: null}
+          - {action_id: ACT-IDENTITY-CREDENTIAL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [ACT-SESSION-REVOKE], order_reason: "หลังตัด sessions จึง restrict/disable/reset credential ตาม identity scope", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-AC-001, POL-AC-002]
+    related_branches:
+      - {subtype_id: AC-MFA, open_when: {field: evidence.ac_mfa_recovery_unauthorized_change.status, operator: equals, value: PRESENT}}
+      - {subtype_id: PE-GRANT, open_when: {field: evidence.pe_unauthorized_entitlement_change.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, then: ESCALATE_IR, note: "บัญชีบน asset สำคัญ — แจ้ง IR/asset owner ก่อน restrict"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-AC-SESSION
+    attack_family: ACCOUNT_COMPROMISE
+    subtype_id: AC-SESSION
+    subtype_name: Cookie/Session Theft
+    classification_evidence:
+      all_of:
+        - {field: evidence.ac_session_replay_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["anomalous location อย่างเดียว (AC-P1)", "session ใหม่จาก device ใหม่ที่ผ่าน re-auth ปกติ"]
+    scenarios:
+      - scenario_id: SC-AC-SESSION-REPLAY
+        description: "Session ถูก replay/ใช้โดยไม่ได้รับอนุญาต ต้อง invalidate session identifiers ใน application scope"
+        ordered_action_refs:
+          - {action_id: ACT-SESSION-REVOKE, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ผู้โจมตีใช้ session อยู่ จึงตัด session ก่อน; password reset ไม่ทำให้หมด (AC-P3)", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-AC-002]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "เป็น session ที่ได้รับอนุมัติ (เช่น IR/admin) — ไม่ revoke"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-AC-OAUTH
+    attack_family: ACCOUNT_COMPROMISE
+    subtype_id: AC-OAUTH
+    subtype_name: OAuth Token Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.ac_oauth_unauthorized_api_calls.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_oauth_unauthorized_api_calls.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["พบ grant แต่ไม่พบ API calls ที่ไม่ได้รับอนุญาต (ใช้ PH-CONSENT ถ้ามี consent ที่ไม่ได้รับอนุมัติ)", "token ของ approved application"]
+    scenarios:
+      - scenario_id: SC-AC-OAUTH-ABUSE
+        description: "Token/grant ผูกกับ unauthorized API calls ต้องตัด API access ต่อ token/grant/principal/resources"
+        ordered_action_refs:
+          - {action_id: ACT-OAUTH-GRANT-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "password reset ไม่ยกเลิก grant/token (PH-P5) จึงต้อง revoke grant/token โดยตรงก่อน", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-AC-003]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.is_approved_automation, operator: equals, value: true}, then: STOP, note: "application อยู่ใน approved list"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-AC-SECRET
+    attack_family: ACCOUNT_COMPROMISE
+    subtype_id: AC-SECRET
+    subtype_name: API Key/Secret
+    classification_evidence:
+      all_of:
+        - {field: evidence.ac_secret_exposed_or_misused.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_secret_exposed_or_misused.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["พบ pattern ที่คล้าย key โดยไม่ยืนยันว่าเป็น credential จริง/ยังใช้งานอยู่", "การใช้ key จาก source ที่เป็น approved dependent"]
+    scenarios:
+      - scenario_id: SC-AC-SECRET-EXPOSED
+        description: "Secret ถูก expose หรือใช้โดยไม่ได้รับอนุญาต ต้องทำ dependency-aware containment และ replacement"
+        ordered_action_refs:
+          - {action_id: ACT-SERVICE-SECRET-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด access ของ credential ที่ระบุโดยคำนึง dependent services ก่อนออก replacement (AC-P4, AC-P5)", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-AC-004]
+    related_branches: []
+    stop_escalation:
+      - {when: {field: scope.service_identity_without_dependency_plan, operator: equals, value: true}, then: ESCALATE_IR, note: "ต้องมี dependency plan ก่อน restrict"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-AC-MFA
+    attack_family: ACCOUNT_COMPROMISE
+    subtype_id: AC-MFA
+    subtype_name: MFA/Recovery Abuse
+    classification_evidence:
+      all_of:
+        - {field: evidence.ac_mfa_recovery_unauthorized_change.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_mfa_recovery_unauthorized_change.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["MFA prompt fatigue เท่านั้นโดยไม่มีการเปลี่ยน factor/recovery หรือ session ที่ผ่านแล้ว", "การเปลี่ยน factor ที่เจ้าของยืนยัน"]
+    scenarios:
+      - scenario_id: SC-AC-MFA-FACTOR-ABUSE
+        description: "มี factor/recovery entry ที่ไม่ได้รับอนุญาต ต้องถอนและ revoke related sessions"
+        ordered_action_refs:
+          - {action_id: ACT-MFA-RECOVERY-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ถอนช่องทาง authentication/recovery ของผู้โจมตีก่อน เพื่อไม่ให้กลับเข้าด้วย factor เดิม", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-AC-005]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.cuts_approved_access, operator: equals, value: true}, then: STOP, note: "ห้ามตัด approved recovery access"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-AC-001
+    rule_type: ACTION_GATE
+    action_id: ACT-IDENTITY-CREDENTIAL-CONTAIN
+    applicable_subtypes: [AC-PASSWORD]
+    covers: [AC-P1, AC-P3, AC-P4, BF-P1]
+    required_evidence:
+      all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.account_identity.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-AC-1, reason: "failed login อย่างเดียวไม่เปิด disable/reset account (BF-P1)", when: {field: scope.basis_failed_login_only, operator: equals, value: true}}
+      - {id: PRH-AC-2, reason: "anomalous location อย่างเดียวไม่ยืนยัน compromise (AC-P1)", when: {field: scope.basis_location_anomaly_only, operator: equals, value: true}}
+      - {id: PRH-AC-3, reason: "service identity ต้องใช้ dependency-aware plan (AC-P4)", when: {field: scope.service_identity_without_dependency_plan, operator: equals, value: true}}
+      - {id: PRH-AC-4, reason: "password reset ห้ามเสนอแทน session revocation (AC-P3)", when: {field: scope.password_reset_as_only_revocation, operator: equals, value: true}}
+    authorization_gate: [ac_unauthorized_password_auth]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.identity_restriction]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: equals, value: CRITICAL}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยัน unauthorized authentication หรือ identity scope"}
+    reason: "Credential containment ต้องมี unauthorized success ที่ยืนยัน + identity scope; ไม่ใช้ failed login/location anomaly"
+    provenance: {reference: [AC-P1, AC-P3, AC-P4, BF-P1, AC-PASSWORD]}
+
+  - policy_id: POL-AC-002
+    rule_type: ACTION_GATE
+    action_id: ACT-SESSION-REVOKE
+    applicable_subtypes: [AC-SESSION, AC-PASSWORD]
+    covers: [AC-P1, AC-P3, PH-P5, BF-P4]
+    required_evidence:
+      any_of:
+        - all_of: [{field: evidence.ac_session_replay_unauthorized.status, operator: equals, value: PRESENT}, {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: UNAUTHORIZED}]
+        - all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]
+    required_targets:
+      all_of: [{field: targets.session.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-AC-5, reason: "anomalous location อย่างเดียวไม่ยืนยัน compromise (AC-P1)", when: {field: scope.basis_location_anomaly_only, operator: equals, value: true}}
+      - {id: PRH-AC-6, reason: "failed login อย่างเดียวไม่เปิด session revocation (BF-P1)", when: {field: scope.basis_failed_login_only, operator: equals, value: true}}
+      - {id: PRH-AC-7, reason: "session ที่ได้รับอนุมัติ (IR/admin) ไม่ถูก revoke", when: {field: evidence.ac_session_replay_unauthorized.authorization_status, operator: equals, value: AUTHORIZED}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.session_revocation]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ session identifiers/application scope ไม่ได้"}
+    reason: "Revoke sessions ที่ระบุ — password reset ไม่ทำให้ session เดิมหมด จึงไม่ใช้ reset แทน"
+    provenance: {reference: [AC-SESSION, AC-P3, PH-P5, BF-P4]}
+
+  - policy_id: POL-AC-003
+    rule_type: ACTION_GATE
+    action_id: ACT-OAUTH-GRANT-CONTAIN
+    applicable_subtypes: [AC-OAUTH]
+    covers: [PH-P5]
+    required_evidence:
+      all_of: [{field: evidence.ac_oauth_unauthorized_api_calls.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.oauth_grant.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-AC-8, reason: "password reset ไม่ใช่ทางแทน OAuth grant/token revocation", when: {field: scope.password_reset_as_only_revocation, operator: equals, value: true}}
+    authorization_gate: [ac_oauth_unauthorized_api_calls]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.oauth_grant_revocation]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ client/principal/grant หรือ API calls ที่ไม่ได้รับอนุญาตไม่ได้"}
+    reason: "Token/grant ที่ผูกกับ API calls ที่ไม่ได้รับอนุญาตต้อง revoke/restrict ตาม provider"
+    provenance: {reference: [AC-OAUTH, PH-P5]}
+
+  - policy_id: POL-AC-004
+    rule_type: ACTION_GATE
+    action_id: ACT-SERVICE-SECRET-CONTAIN
+    applicable_subtypes: [AC-SECRET]
+    covers: [AC-P4, AC-P5, AC-P2]
+    required_evidence:
+      all_of: [{field: evidence.ac_secret_exposed_or_misused.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.secret_credential.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-AC-9, reason: "replacement ห้ามใช้ compromised secret เดิมหรือที่ derive จากเดิม (AC-P5)", when: {field: scope.reuses_compromised_secret, operator: equals, value: true}}
+      - {id: PRH-AC-10, reason: "service identity ต้องมี dependency-aware plan (AC-P4)", when: {field: scope.service_identity_without_dependency_plan, operator: equals, value: true}}
+    authorization_gate: [ac_secret_exposed_or_misused]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.secret_rotation]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: REQUIRE_AUTHORITY, authority: asset_owner}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ dependent services หรือ credential id"}
+    reason: "ตัด secret ตาม credential ID โดยรู้ dependents และออก replacement ผ่าน secret management"
+    provenance: {reference: [AC-SECRET, AC-P4, AC-P5]}
+
+  - policy_id: POL-AC-005
+    rule_type: ACTION_GATE
+    action_id: ACT-MFA-RECOVERY-CONTAIN
+    applicable_subtypes: [AC-MFA]
+    covers: [GL-9]
+    required_evidence:
+      all_of: [{field: evidence.ac_mfa_recovery_unauthorized_change.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.mfa_factor.validated, operator: equals, value: true}]
+    prohibitions: []
+    authorization_gate: [ac_mfa_recovery_unauthorized_change]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.mfa_factor_management]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังระบุ factor/recovery entry ที่ไม่ได้รับอนุญาตไม่ได้"}
+    reason: "ถอนเฉพาะ factor/recovery entry ที่ยืนยันว่าไม่ได้รับอนุญาต และรักษา recovery path ของเจ้าของ"
+    provenance: {reference: [AC-MFA]}
+
+runbooks:
+  - runbook_id: RB-IDENTITY-CREDENTIAL-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-IDENTITY-CREDENTIAL-CONTAIN]
+    supported_subtypes: [AC-PASSWORD]
+    objective: "ตัด access ต่อ account และ affected sessions แล้ว restrict/disable/reset ตาม approved identity scope"
+    prerequisites: ["ยืนยันว่า authentication สำเร็จนั้นไม่ได้รับอนุญาต", "รู้ประเภท account (ผู้ใช้ / service) และ dependents หากเป็น service", "มีช่องทางยืนยันตัวตนเจ้าของบัญชีนอกบัญชีที่ถูกยึด"]
+    required_evidence: [ac_unauthorized_password_auth]
+    required_targets: [account_identity]
+    required_capabilities: [cap.identity_restriction, cap.session_revocation]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "เจ้าของบัญชีจะใช้งานไม่ได้จนกว่าจะ reset/คืนสิทธิ์ผ่านช่องทางยืนยันตัวตน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจว่า {{account_identity.account_id}} ({{account_identity.provider}} / {{account_identity.tenant_or_scope}}) เป็นบัญชีที่มี unauthorized authentication ตาม evidence และไม่ใช่ break-glass/recovery/IR account; หากเป็น service identity ให้หยุดและใช้แผนที่ตรวจ dependents ก่อน"
+        expected_result: "ยืนยัน identity scope และไม่ชนบัญชีที่ต้องรักษา"
+        verify: "เทียบ account กับ evidence ref และรายการ approved/break-glass accounts"
+        on_failure: "ไม่ดำเนินการต่อ; คงสถานะ NEEDS_TARGET"
+      - step_id: S2
+        title: "Revoke sessions ทั้งหมดของบัญชี {{account_identity.account_id}} ที่ {{account_identity.provider}}"
+        origin: EXPANDED_FROM_REFERENCE
+        skip_if_eligible: [ACT-SESSION-REVOKE]
+        instruction: "Revoke sessions และ refresh tokens ทั้งหมดของ {{account_identity.account_id}} ที่ {{account_identity.provider}} ก่อนเปลี่ยน credential (password reset อย่างเดียวไม่ทำให้ session เดิมหมด)"
+        method: "ใช้เครื่องมือจัดการ identity ของ {{account_identity.provider}} แสดงรายการ session และ refresh token ของ {{account_identity.account_id}} แล้ว revoke ทุกรายการ บันทึกรายการก่อน revoke เพื่อใช้เทียบ และทำก่อนการเปลี่ยน credential เสมอ (session ใหม่ของเจ้าของที่ยืนยันตัวตนแล้วหลังขั้นตอนนี้ไม่ต้อง revoke)"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.session_revocation.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี session active ของบัญชี"
+        verify: "รายการ session ของบัญชีว่างหรือมีเฉพาะ session ใหม่ของเจ้าของ"
+        on_failure: "ใช้ access restriction ที่รองรับ (เช่น บังคับ re-auth/จำกัด sign-in) แล้ว escalate IR"
+      - step_id: S3
+        title: "จำกัดการ sign-in ของบัญชี {{account_identity.account_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดการ sign-in ของ {{account_identity.account_id}} (restrict หรือ disable ตาม identity scope ที่อนุมัติ) เพื่อไม่ให้ผู้โจมตีกลับเข้ามา"
+        method_basis: IR_REVIEW_REQUIRED
+        method_requires: "IR ต้องกำหนดระดับการจำกัดการ sign-in (restrict หรือ disable) ตาม identity scope ที่องค์กรอนุมัติ"
+        expected_result: "บัญชีไม่สามารถ authenticate ได้จนกว่าเจ้าของยืนยันตัวตน"
+        verify: "ทดสอบด้วย sign-in log: attempt ถูกปฏิเสธ"
+        on_failure: "ใช้ conditional access / จำกัด source ที่รองรับ แล้ว escalate IR"
+        rollback: "enable กลับหลังเจ้าของยืนยันตัวตนและ credential ถูกเปลี่ยนแล้ว"
+        impact: "เจ้าของบัญชีใช้งานไม่ได้ชั่วคราว"
+      - step_id: S4
+        title: "Reset credential ของบัญชี {{account_identity.account_id}} ผ่านช่องทางที่ยืนยันตัวตนเจ้าของ"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Reset credential ของ {{account_identity.account_id}} ผ่านช่องทางที่ยืนยันตัวตนเจ้าของ (ไม่ส่ง password ทางบัญชีที่ถูกยึด) แล้วค่อยปลดการจำกัดการ sign-in ที่ตั้งไว้"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "ขั้นตอนยืนยันตัวตนเจ้าของบัญชีและช่องทางส่ง credential ใหม่ที่องค์กรอนุมัติ"
+        expected_result: "credential ใหม่ถูกตั้งโดยเจ้าของ"
+        verify: "authentication ด้วย credential เดิมถูกปฏิเสธ"
+        on_failure: "คงบัญชีที่ถูกจำกัดและ escalate IR"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ sign-in log ของ {{account_identity.account_id}} หลังดำเนินการ: ไม่มี authentication สำเร็จจาก source/อุปกรณ์ที่ไม่ได้รับอนุญาต และไม่มี session active ที่ไม่รู้จัก"
+        expected_result: "ไม่พบการใช้ซ้ำ"
+        verify: "re-hunt authentication ของบัญชีในช่วงเฝ้าระวัง"
+        on_failure: "ถ้าพบการใช้ซ้ำ ให้ตรวจ MFA/recovery factor, OAuth grant และ session ที่เหลือ"
+    verification: ["ไม่มี authentication/session ที่ไม่ได้รับอนุญาตของบัญชีหลังดำเนินการ", "credential เดิมถูกปฏิเสธ"]
+    failure_handling: ["พบการใช้ซ้ำ → ตรวจ AC-MFA/AC-OAUTH/AC-SESSION branches ตาม evidence ใหม่"]
+    rollback: ["enable บัญชีกลับตาม IR approval หลังยืนยันตัวตนเจ้าของ"]
+
+  - runbook_id: RB-SESSION-REVOKE
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-SESSION-REVOKE]
+    supported_subtypes: [AC-SESSION, AC-PASSWORD]
+    objective: "Invalidate session identifiers ที่ระบุที่ IdP/application; ใช้ access restriction เมื่อ revoke ทันทีไม่ได้"
+    prerequisites: ["ระบุ session id/token family และ application scope (อ้างด้วย id เท่านั้น)", "แยก session ของ IR/admin ที่ได้รับอนุมัติออก"]
+    required_evidence: [ac_session_replay_unauthorized, ac_unauthorized_password_auth]
+    required_targets: [session]
+    required_capabilities: [cap.session_revocation]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้เจ้าของ session ต้อง sign-in ใหม่"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจ session {{session.session_ids_or_family}} ของ {{session.account_id}} ที่ {{session.provider}} / {{session.application_scope}} ว่าตรงกับ evidence และไม่ใช่ session ของ IR/admin ที่อนุมัติ (อ้างด้วย id ไม่แสดงค่า token)"
+        expected_result: "ได้ชุด session ที่ถูกต้อง"
+        verify: "เทียบกับ evidence ref"
+        on_failure: "ไม่ revoke จนกว่าจะแยก session ที่ต้องรักษาได้"
+      - step_id: S2
+        title: "Revoke session {{session.session_ids_or_family}} ที่ {{session.provider}} ({{session.application_scope}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke session/token family {{session.session_ids_or_family}} ที่ {{session.provider}} สำหรับ {{session.application_scope}}"
+        method: "ใช้เครื่องมือของ {{session.provider}} หรือแอปที่ออก session revoke session/token family {{session.session_ids_or_family}} ใน {{session.application_scope}} เฉพาะรายการที่ระบุ ไม่ revoke session ของบัญชีอื่น บันทึกรายการก่อน revoke แล้วตรวจจาก log ว่า request ที่ใช้ session นั้นถูกปฏิเสธหรือถูกบังคับ re-authentication"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.session_revocation.supported, operator: equals, value: true}]}
+        expected_result: "session ใช้ไม่ได้แล้ว"
+        verify: "request ที่ใช้ session id นั้นถูกปฏิเสธ (401/forced re-auth) ตาม log"
+        on_failure: "ไปขั้นตอน fallback (access restriction)"
+        impact: "ผู้ใช้ต้อง sign-in ใหม่"
+      - step_id: S3
+        title: "จำกัดการใช้ session ของ {{session.account_id}} ใน {{session.application_scope}} ด้วย access restriction"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "เนื่องจาก {{session.provider}} ไม่รองรับ revoke ทันที ให้ใช้ access restriction ที่ระบบรองรับกับ {{session.account_id}} ใน {{session.application_scope}} (เช่น บังคับ re-authentication) จนกว่า session จะหมดอายุ"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "วิธี access restriction หรือการบังคับ re-authentication ที่ identity provider/แอปนี้รองรับ เมื่อ revoke ทันทีไม่ได้"
+        condition: {all_of: [{field: capability.cap.session_revocation.supported, operator: equals, value: false}]}
+        expected_result: "session เดิมไม่สามารถใช้ต่อได้ในทางปฏิบัติ"
+        verify: "access ด้วย session เดิมถูกบังคับ re-auth"
+        on_failure: "escalate IR เพื่อจำกัดที่ application"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ log ว่าไม่มี request ใหม่ที่ใช้ session id เดิมใน {{session.application_scope}}"
+        expected_result: "ไม่พบการใช้ session ซ้ำ"
+        verify: "re-hunt session id ใน log ช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ token family อื่น/refresh token และ branch Account Compromise ที่เกี่ยวข้อง"
+    verification: ["ไม่พบการใช้ session id เดิมหลัง revoke"]
+    failure_handling: ["พบการใช้ซ้ำ → ตรวจ refresh token / session ลูก / OAuth grant"]
+    rollback: ["ไม่มี (ผู้ใช้ sign-in ใหม่ได้ตามปกติ)"]
+
+  - runbook_id: RB-SERVICE-SECRET-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-SERVICE-SECRET-CONTAIN]
+    supported_subtypes: [AC-SECRET]
+    objective: "Restrict/revoke credential ที่ระบุและ deploy replacement ที่ปลอดภัยผ่าน secret management โดยรู้ dependents"
+    prerequisites: ["credential_id และรายการ dependent services", "ช่องทาง deploy replacement ผ่าน secret management", "หน้าต่างเวลา/เจ้าของ service สำหรับ dependents"]
+    required_evidence: [ac_secret_exposed_or_misused]
+    required_targets: [secret_credential]
+    required_capabilities: [cap.secret_rotation, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "dependent services อาจ authenticate ไม่ได้ชั่วคราวระหว่างสลับ credential"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยัน dependent services ของ credential {{secret_credential.credential_id}} ({{secret_credential.provider_or_vault}}): {{secret_credential.dependent_services}} และลำดับการสลับ (ไม่แสดงค่า secret)"
+        expected_result: "มีแผนที่รู้ผลกระทบต่อ dependents"
+        verify: "dependents ครบตาม inventory/secret manager"
+        on_failure: "ไม่ revoke ก่อนรู้ dependents; escalate เจ้าของ service"
+      - step_id: S2
+        title: "จำกัดการใช้ credential {{secret_credential.credential_id}} ให้เฉพาะ dependents ที่รู้จัก"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดการใช้ {{secret_credential.credential_id}} ให้ใช้ได้เฉพาะ dependents ที่รู้จัก (restrict ตาม platform) เพื่อตัดการใช้ของผู้ไม่ได้รับอนุญาตโดยยังไม่ทำให้ service ล่ม"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "กลไกจำกัดการใช้ credential ตามชนิดของ platform และรายการ dependents ที่รู้จัก"
+        condition: {all_of: [{field: capability.cap.secret_rotation.supported, operator: equals, value: true}]}
+        expected_result: "การใช้จาก source ที่ไม่รู้จักถูกปฏิเสธ"
+        verify: "log การใช้ credential จาก source ที่ไม่รู้จักถูกปฏิเสธ"
+        on_failure: "ถ้า restrict ไม่ได้ ให้ไปออก replacement ทันทีตามลำดับ dependents"
+        rollback: "คืนการจำกัดเดิมจาก snapshot"
+      - step_id: S3
+        title: "ออก credential ใหม่แทน {{secret_credential.credential_id}} ผ่าน secret management"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ออก credential ใหม่แทน {{secret_credential.credential_id}} ผ่าน secret management (สร้างใหม่ ไม่ derive จากค่าเดิม และไม่นำค่าเดิมกลับมาใช้)"
+        method: "สร้าง credential ใหม่ใน secret management ขององค์กรเป็นค่าใหม่ที่สุ่มสร้างเอง (ไม่คำนวณจากค่าเดิมและไม่นำค่าเดิมกลับมาใช้) บันทึกเฉพาะตัวระบุของ credential ใหม่ใน incident record ไม่บันทึกค่าลับ แล้วตรวจว่าตัวระบุใหม่ต่างจาก {{secret_credential.credential_id}}"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "มี credential ใหม่ที่ไม่เกี่ยวกับค่าที่ถูกเปิดเผย"
+        verify: "credential_id ใหม่ต่างจากเดิมและออกผ่าน secret manager"
+        on_failure: "หยุดและ escalate เจ้าของ secret management"
+      - step_id: S4
+        title: "Deploy credential ใหม่ให้ {{secret_credential.dependent_services}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Deploy credential ใหม่ให้ {{secret_credential.dependent_services}} ตามลำดับที่วางไว้ แล้วตรวจว่าแต่ละ service ทำงานปกติ"
+        method: "ส่งมอบ credential ใหม่ให้ {{secret_credential.dependent_services}} ทีละ service ตามลำดับที่วางไว้ผ่านช่องทางของ secret management (ไม่ส่งค่าลับทางแชตหรืออีเมล) ตรวจ health check ของแต่ละ service ก่อนไป service ถัดไป หยุดและแจ้ง IR ถ้ามี service ที่ไม่ผ่าน"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S3]
+        expected_result: "dependents ใช้ credential ใหม่ได้"
+        verify: "health check ของแต่ละ dependent ผ่าน"
+        on_failure: "คืน dependent นั้นสู่สถานะที่ restrict ไว้ใน S2 ชั่วคราวและแก้ลำดับ"
+      - step_id: S5
+        title: "Revoke credential เดิม {{secret_credential.credential_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke credential เดิม {{secret_credential.credential_id}} หลัง dependents ย้ายครบ และตรวจ log ว่าการใช้ค่าเดิมถูกปฏิเสธ"
+        method: "เมื่อ dependents ทุกตัวใช้ credential ใหม่และ health check ผ่านแล้ว จึง revoke {{secret_credential.credential_id}} เดิมใน secret management แล้วตรวจจาก log ว่าการใช้ค่าเดิมถูกปฏิเสธ (ห้ามทดสอบด้วยค่าจริง)"
+        method_basis: NEUTRAL_DERIVED
+        needs_prior: [S4]
+        expected_result: "credential เดิมใช้ไม่ได้"
+        verify: "attempt ด้วยค่าเดิมถูกปฏิเสธ (ดูจาก log ไม่ลองด้วยค่าจริงในเอกสาร)"
+        on_failure: "ตรวจ dependent ที่ยังใช้ค่าเดิม แล้ว revoke ซ้ำ"
+        rollback: "ไม่แนะนำคืนค่าเดิม (ถูก compromise); ใช้ replacement"
+    verification: ["ไม่มีการใช้ credential เดิมหลัง revoke", "dependents ทำงานปกติด้วย credential ใหม่"]
+    failure_handling: ["service ล่มระหว่างสลับ → ใช้สถานะ restrict ใน S2 แล้วทำซ้ำตามลำดับ", "ไม่เอาค่าเดิมกลับมาใช้เป็น replacement"]
+    rollback: ["คืนการจำกัด (S2) เท่านั้น ไม่คืน credential เดิม"]
+
+  - runbook_id: RB-MFA-RECOVERY-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-MFA-RECOVERY-CONTAIN]
+    supported_subtypes: [AC-MFA]
+    objective: "ถอน factor/recovery entry ที่ไม่ได้รับอนุญาตและ revoke related sessions"
+    prerequisites: ["ยืนยันกับเจ้าของบัญชีผ่านช่องทางอื่นว่าไม่ได้เพิ่ม/เปลี่ยน factor", "รู้ approved recovery path ของเจ้าของ"]
+    required_evidence: [ac_mfa_recovery_unauthorized_change]
+    required_targets: [mfa_factor]
+    required_capabilities: [cap.mfa_factor_management, cap.session_revocation]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "เจ้าของบัญชีต้องลงทะเบียน factor ใหม่ผ่านช่องทางยืนยันตัวตน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจ factor/recovery entry {{mfa_factor.factor_or_recovery_id}} ของ {{mfa_factor.account_id}} ที่ {{mfa_factor.provider}} ว่าเป็นรายการที่ไม่ได้รับอนุญาตตาม audit log และไม่ใช่ factor/recovery ของเจ้าของ"
+        expected_result: "ระบุรายการที่ต้องถอนเฉพาะรายการ"
+        verify: "เทียบ audit log การลงทะเบียนกับคำยืนยันของเจ้าของ"
+        on_failure: "ไม่ถอน factor ที่ยังไม่ยืนยัน"
+      - step_id: S2
+        title: "ถอน factor/recovery entry {{mfa_factor.factor_or_recovery_id}} ออกจากบัญชี {{mfa_factor.account_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ถอน factor/recovery entry {{mfa_factor.factor_or_recovery_id}} ออกจาก {{mfa_factor.account_id}} (เฉพาะรายการนี้ คง approved recovery path ของเจ้าของ)"
+        method: "ใช้เครื่องมือจัดการ MFA/identity ของบัญชี {{mfa_factor.account_id}} แสดงรายการ factor และ recovery entry แล้วถอนเฉพาะ {{mfa_factor.factor_or_recovery_id}} (ไม่ถอน factor หรือ recovery path ที่เจ้าของใช้อย่างถูกต้อง) บันทึกรายการก่อนถอน แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ผู้โจมตีใช้ factor นี้ไม่ได้"
+        verify: "รายการ factor/recovery ของบัญชีไม่มีรายการดังกล่าว"
+        on_failure: "ปิด factor ผ่านการ restrict บัญชีชั่วคราวแล้ว escalate IR"
+        rollback: "ไม่ต้องคืน (เป็นรายการของผู้โจมตี)"
+        impact: "หากเจ้าของใช้ factor นี้จริง ต้องลงทะเบียนใหม่"
+      - step_id: S3
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke sessions ที่เกิดหลังการลงทะเบียน/เปลี่ยน factor นี้สำหรับ {{mfa_factor.account_id}} (ใช้ขั้นตอน revoke session ที่ผ่านเกณฑ์)"
+        include_runbook: RB-SESSION-REVOKE
+        condition: {all_of: [{field: targets.session.validated, operator: equals, value: true}]}
+        expected_result: "sessions ที่เกี่ยวข้องถูกยกเลิก"
+        verify: "ไม่มี session ที่ผูกกับ factor ที่ถอน"
+        on_failure: "ใช้ access restriction ตามขั้นตอน revoke session"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ audit log ของ {{mfa_factor.account_id}} ว่าไม่มีการเพิ่ม factor/recovery ใหม่ที่ไม่ได้รับอนุญาตหลังดำเนินการ"
+        expected_result: "ไม่มีรายการใหม่"
+        verify: "re-hunt MFA/recovery events ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ password/OAuth/session branch เพิ่ม"
+    verification: ["ไม่มี factor/recovery ที่ไม่ได้รับอนุญาตเหลือในบัญชี"]
+    failure_handling: ["พบรายการใหม่ → ตรวจ AC-PASSWORD/AC-OAUTH ตาม evidence"]
+    rollback: ["ไม่มี"]

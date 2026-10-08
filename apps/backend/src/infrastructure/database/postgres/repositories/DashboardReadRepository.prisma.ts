@@ -132,7 +132,7 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
       this.q(
         `select (select count(*) from verifications v where v.tenant_id = $1 and v.spread_detected${win("v.verified_at")}) spread,
                 (select count(*) from response_plans p where p.tenant_id = $1 and p.status = 'COMPLETED'
-                    and not exists (select 1 from verifications v where v.response_id = p.id)) awaiting_rehunt,
+                    and not exists (select 1 from verifications v where v.response_id = p.id)${win("p.created_at")}) awaiting_rehunt,
                 (select count(*) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')${win("al.created_at")}) escalation_events,
                 (select count(distinct al.entity_id) from audit_logs al where al.tenant_id = $1 and al.action in ('INCIDENT_ESCALATED','INVESTIGATION_ESCALATED')${win("al.created_at")}) escalated_incidents`,
         ...p
@@ -260,9 +260,9 @@ export class PrismaDashboardReadRepository implements IDashboardReadRepository {
     return Date.now() - started;
   }
 
-  async openIncidents(tenantId: string, limit: number): Promise<OpenIncidentRow[]> {
+  async openIncidents(tenantId: string, limit: number, since?: Date | null): Promise<OpenIncidentRow[]> {
     const rows = await this.prisma.incident.findMany({
-      where: { tenantId, status: { in: ["open", "investigating", "escalated"] } },
+      where: { tenantId, status: { in: ["open", "investigating", "escalated"] }, ...(since ? { openedAt: { gte: since } } : {}) },
       orderBy: { openedAt: "desc" },
       take: limit,
       select: { id: true, title: true, status: true, priority: true, openedAt: true, closedAt: true },

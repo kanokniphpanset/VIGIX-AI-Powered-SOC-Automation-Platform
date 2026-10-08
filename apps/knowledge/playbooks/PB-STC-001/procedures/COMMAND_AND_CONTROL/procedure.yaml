@@ -1,0 +1,42 @@
+id: PROC-C2-001
+code: COMMAND_AND_CONTROL
+name: Command & Control Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-C2 (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-C2
+
+objective: >
+  Cut communication between the compromised host and attacker infrastructure.
+
+strategy: >
+  Block the confirmed C2 destination, isolate the host if C2 communication continues, block the implant
+  artifact, and look for alternate C2 destinations.
+
+
+appliesWhen:
+  incidentTypes: [COMMAND_AND_CONTROL]
+  mitreTechniques: [T1071, T1573, T1571]
+  description: >
+    A host makes repeated (beaconing) connections to a destination known or
+    behaving as command-and-control - threat-intelligence match, periodic
+    small transfers, unusual ports or domains.
+
+primaryEvidence:
+  - "Network connection events (destination IP, port, domain, URL)"
+  - "Beacon interval / periodicity"
+  - "Threat-intelligence verdict"
+  - "Process that owns the connection"
+  - "Other hosts contacting the same destination"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-07, resources/mock-attacks-tc/TC-07-command-and-control.json):
+#   TC-07: WKS-DEV-12 (10.0.5.44) beaconing to 193.142.146.212:443,
+#   https://vigix-mock-c2.net/gate.php, threat-intel match; Wazuh rule
+#   100320.

@@ -69,7 +69,7 @@ export class PolicyEvaluator {
    * allowedActions: intersection across matching rules that set it (the stricter list wins), null when none sets it;
    * notes: every matching guidanceNote. Kept apart from evaluate(): it never changes an approval / assignment result.
    */
-  async responseGuidance(tenantId: string, group: { incidentType: string; severity: PolicyEvaluationInput["severity"] }): Promise<{ allowedActions: string[] | null; notes: string[]; policies: string[] }> {
+  async responseGuidance(tenantId: string, group: { incidentType: string; severity: PolicyEvaluationInput["severity"]; spreadDetected?: boolean; verificationResult?: PolicyEvaluationInput["verificationResult"] }): Promise<{ allowedActions: string[] | null; notes: string[]; policies: string[] }> {
     const policies = (await this.policyRepository.findAllEnabled(tenantId)).filter((p: Policy) => p.type === "RESPONSE_GUIDANCE");
     let allowed: string[] | null = null;
     const notes: string[] = [];

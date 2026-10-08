@@ -1,0 +1,487 @@
+# BRUTE_FORCE — family file (evidence, actions, playbooks, policies, runbooks). Reference: reference-registry.yaml#BRUTE_FORCE
+# Authority/step conventions: see contracts/schemas.yaml. All steps are platform-neutral (TOOL_MAPPING_REQUIRED).
+
+family: BRUTE_FORCE
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: BRUTE_FORCE, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: bf_attempts_correlated
+    description: "Repeated authentication attempts correlated to one source/account/service (count + window + outcome)."
+    confirm: "นับ failed attempts ต่อ source→account→service ในช่วงเวลา และยืนยันว่าเป็นชุดเดียวกัน (ไม่ใช่ failed login เดี่ยว)"
+    may_be_authorized: false
+  - id: bf_multi_account_campaign
+    description: "Attempts spread across many accounts forming one correlated campaign (shared pattern/timing/source set)."
+    confirm: "ตรวจว่าความพยายามกระจายหลาย accounts โดยมี pattern/เวลา/ชุด source ร่วมกัน และระบุ application/authentication scope"
+    may_be_authorized: false
+  - id: bf_automation_exposure_evidence
+    description: "Automated login (rate/UA/fingerprint) together with credential-exposure or provider evidence (breach feed, provider notice, valid-credential hits)."
+    confirm: "หาหลักฐานทั้งสองส่วน: ลักษณะ automation และ credential-exposure/provider evidence (ต้องมีทั้งคู่)"
+    may_be_authorized: false
+  - id: bf_hash_extraction_or_cracking
+    description: "Confirmed hash extraction or a cracking workload (process + access to hash store)."
+    confirm: "ยืนยัน process/workload ที่ cracking หรือการ extract hash จาก store พร้อม host และ process identity"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-AUTH-SOURCE-RESTRICT
+    action_name: Restrict attempts per source at the service
+    label_th: "จำกัดความพยายามล็อกอินจาก source ที่ระบุ"
+    objective: "จำกัด authentication attempts ต่อ source และบริการ ณ จุดรับบริการจริง"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [network_source, service_endpoint]
+    evidence_requirements: [bf_attempts_correlated]
+    target_requirements: [network_source, service_endpoint]
+    runbook_refs: [RB-AUTH-SOURCE-RESTRICT]
+    legacy_action_refs: [ACT-BLOCK-SOURCE-IP, ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["scoped deny/rate-limit ต่อบริการ ไม่ใช่ global block", "รักษา approved management access"]
+  - action_id: ACT-AUTH-CAMPAIGN-RESTRICT
+    action_name: Restrict authentication campaign scope
+    label_th: "จำกัดขอบเขตแคมเปญโจมตีการยืนยันตัวตน"
+    objective: "จำกัด campaign ต่อ application/authentication scope ครอบคลุมหลาย sources"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [auth_campaign_scope]
+    evidence_requirements: [bf_multi_account_campaign]
+    target_requirements: [auth_campaign_scope]
+    runbook_refs: [RB-AUTH-CAMPAIGN-RESTRICT]
+    legacy_action_refs: [ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["ห้าม mass lockout", "ห้ามแทนด้วย block IP เดียว"]
+  - action_id: ACT-LOGIN-AUTOMATION-RESTRICT
+    action_name: Restrict automated login at the endpoint
+    label_th: "จำกัดการล็อกอินอัตโนมัติที่ endpoint"
+    objective: "จำกัด automated login ต่อ login endpoint/client scope"
+    phase: CONTAINMENT
+    containment_stage: CLOSE_PATH
+    impact_level: MEDIUM
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [login_endpoint]
+    evidence_requirements: [bf_automation_exposure_evidence]
+    target_requirements: [login_endpoint]
+    runbook_refs: [RB-LOGIN-AUTOMATION-RESTRICT]
+    legacy_action_refs: [ACT-RATE-LIMIT-SOURCE]
+    execution_constraints: ["scoped bot/risk control", "session restrictions ตาม application runbook"]
+  - action_id: ACT-CREDENTIAL-MATERIAL-CONTAIN
+    action_name: Contain credential material and cracking workload
+    label_th: "จำกัด credential material และ workload ที่ถอดรหัส"
+    objective: "หยุด workload และตัด access ต่อ hash/credential material ที่พบ"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [credential_material, process, account_identity]
+    evidence_requirements: [bf_hash_extraction_or_cracking]
+    target_requirements: [credential_material]
+    runbook_refs: [RB-CREDENTIAL-MATERIAL-CONTAIN]
+    legacy_action_refs: [ACT-KILL-PROCESS, ACT-ISOLATE-ENDPOINT]
+    execution_constraints: ["identity ที่เสี่ยงใช้ ACT-IDENTITY-CREDENTIAL-CONTAIN เป็น branch แยก"]
+
+playbooks:
+  - playbook_id: PBK-BF-GUESS
+    attack_family: BRUTE_FORCE
+    subtype_id: BF-GUESS
+    subtype_name: Password Guessing
+    classification_evidence:
+      all_of: [{field: evidence.bf_attempts_correlated.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["failed login เดี่ยวหรือไม่ผูก source/account/service", "source role ไม่ชัด (เห็นเฉพาะ agent.ip)"]
+    scenarios:
+      - scenario_id: SC-BF-GUESS-CORRELATED
+        description: "Attempts ซ้ำที่สัมพันธ์กับ source/account/service ยังดำเนินอยู่ ไม่มี unauthorized success ยืนยัน"
+        ordered_action_refs:
+          - {action_id: ACT-AUTH-SOURCE-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัดช่องทาง guessing ที่จุดรับบริการก่อน เพราะยังไม่มีหลักฐาน identity ถูกยึด", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-BF-001, POL-BF-005, POL-BF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}, gate_policy: POL-BF-005}
+      - {subtype_id: AC-SESSION, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}, {field: targets.session.validated, operator: equals, value: true}]}, gate_policy: POL-BF-006}
+    stop_escalation:
+      - {when: {field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, then: ESCALATE_IR, note: "พบ unauthorized success → เปิด branch Account Compromise และแจ้ง IR"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-BF-SPRAY
+    attack_family: BRUTE_FORCE
+    subtype_id: BF-SPRAY
+    subtype_name: Password Spraying
+    classification_evidence:
+      all_of: [{field: evidence.bf_multi_account_campaign.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["failed login หลาย account แต่ไม่พบ pattern/campaign ร่วม", "source/application scope ไม่ชัด"]
+    scenarios:
+      - scenario_id: SC-BF-SPRAY-CAMPAIGN
+        description: "แคมเปญ attempts กระจายหลาย accounts ใน application/authentication scope เดียวกัน (อาจหลาย sources)"
+        ordered_action_refs:
+          - {action_id: ACT-AUTH-CAMPAIGN-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัดทั้ง campaign ที่ scope ของ authentication ไม่ใช่รายบัญชี/รายIP เพื่อไม่ตัดผู้ใช้จริง", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-BF-002, POL-BF-005, POL-BF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}, gate_policy: POL-BF-005}
+      - {subtype_id: AC-SESSION, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}, {field: targets.session.validated, operator: equals, value: true}]}, gate_policy: POL-BF-006}
+    stop_escalation:
+      - {when: {field: scope.mass_lockout, operator: equals, value: true}, then: STOP, note: "ห้าม mass lockout — ปรับ scope กลับเป็น campaign scope"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-BF-STUFF
+    attack_family: BRUTE_FORCE
+    subtype_id: BF-STUFF
+    subtype_name: Credential Stuffing
+    classification_evidence:
+      all_of: [{field: evidence.bf_automation_exposure_evidence.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["login rate สูงโดยไม่มี credential-exposure/provider evidence", "ไม่มีหลักฐานว่าเป็น automation"]
+    scenarios:
+      - scenario_id: SC-BF-STUFF-AUTOMATED
+        description: "Automated login ร่วมกับ credential-exposure/provider evidence ที่ login endpoint"
+        ordered_action_refs:
+          - {action_id: ACT-LOGIN-AUTOMATION-RESTRICT, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "จำกัด automation ที่ endpoint ก่อนจัดการ identity ที่ถูกยึด", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-BF-003, POL-BF-005, POL-BF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}, gate_policy: POL-BF-005}
+      - {subtype_id: AC-SESSION, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}, {field: targets.session.validated, operator: equals, value: true}]}, gate_policy: POL-BF-006}
+    stop_escalation:
+      - {when: {field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, then: ESCALATE_IR, note: "พบ valid-credential login ที่ไม่ได้รับอนุญาต → Account Compromise"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-BF-OFFLINE
+    attack_family: BRUTE_FORCE
+    subtype_id: BF-OFFLINE
+    subtype_name: Offline Cracking
+    classification_evidence:
+      all_of: [{field: evidence.bf_hash_extraction_or_cracking.status, operator: equals, value: PRESENT}]
+    insufficient_evidence: ["พบไฟล์ hash/เครื่องมือ cracking โดยไม่พบ workload ที่ทำงานหรือ access ต่อ store"]
+    scenarios:
+      - scenario_id: SC-BF-OFFLINE-WORKLOAD
+        description: "ยืนยัน hash extraction หรือ cracking workload ที่ใช้ material จริง"
+        ordered_action_refs:
+          - {action_id: ACT-CREDENTIAL-MATERIAL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด workload และตัด access ต่อ material ก่อน (กำลังมี activity); identity ที่เสี่ยงจัดการต่อใน branch", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-BF-004, POL-BF-005, POL-BF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}, gate_policy: POL-BF-005}
+    stop_escalation:
+      - {when: {field: evidence.bf_hash_extraction_or_cracking.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "เป็น security testing ที่อนุมัติ — ไม่เปิด malicious containment"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-BF-001
+    rule_type: ACTION_GATE
+    action_id: ACT-AUTH-SOURCE-RESTRICT
+    applicable_subtypes: [BF-GUESS]
+    covers: [BF-P3]
+    required_evidence:
+      all_of: [{field: evidence.bf_attempts_correlated.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of:
+        - {field: targets.network_source.validated, operator: equals, value: true}
+        - {field: targets.service_endpoint.validated, operator: equals, value: true}
+    prohibitions:
+      - {id: PRH-BF-1, reason: "source role ยังไม่ชัด/เป็น agent.ip — ห้ามใช้เป็น attacker IP (BF-P3)", when: {field: scope.source_role_ambiguous, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.scoped_network_enforcement]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "source role หรือ service enforcement point ยังไม่ validate"}
+    reason: "จำกัดเฉพาะ source ที่มี role ชัดเจนและผูกกับ attempts ซ้ำ ณ บริการจริง"
+    provenance: {reference: [BF-P3, BF-GUESS]}
+
+  - policy_id: POL-BF-002
+    rule_type: ACTION_GATE
+    action_id: ACT-AUTH-CAMPAIGN-RESTRICT
+    applicable_subtypes: [BF-SPRAY]
+    covers: [BF-P2]
+    required_evidence:
+      all_of: [{field: evidence.bf_multi_account_campaign.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.auth_campaign_scope.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-BF-2, reason: "ห้าม mass lockout ที่ตัดผู้ใช้จริง (BF-P2)", when: {field: scope.mass_lockout, operator: equals, value: true}}
+      - {id: PRH-BF-3, reason: "campaign หลาย sources ต้องไม่ถูกแทนด้วย block IP เดียว", when: {field: scope.single_source_only_for_campaign, operator: equals, value: true}}
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.bot_risk_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "campaign scope ยังไม่ validate"}
+    reason: "Spraying จำกัดที่ authentication campaign scope ด้วย throttling/risk challenge/access restriction"
+    provenance: {reference: [BF-P2, BF-SPRAY]}
+
+  - policy_id: POL-BF-003
+    rule_type: ACTION_GATE
+    action_id: ACT-LOGIN-AUTOMATION-RESTRICT
+    applicable_subtypes: [BF-STUFF]
+    covers: []
+    required_evidence:
+      all_of: [{field: evidence.bf_automation_exposure_evidence.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.login_endpoint.validated, operator: equals, value: true}]
+    prohibitions: []
+    authorization_gate: []
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.bot_risk_control]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่มี credential-exposure/provider evidence หรือ client scope"}
+    reason: "Stuffing ต้องมีทั้ง automation และ credential-exposure/provider evidence"
+    provenance: {reference: [BF-STUFF]}
+
+  - policy_id: POL-BF-004
+    rule_type: ACTION_GATE
+    action_id: ACT-CREDENTIAL-MATERIAL-CONTAIN
+    applicable_subtypes: [BF-OFFLINE]
+    covers: [MAL-P4]
+    required_evidence:
+      all_of: [{field: evidence.bf_hash_extraction_or_cracking.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of:
+        - {field: targets.credential_material.validated, operator: equals, value: true}
+    prohibitions: []
+    authorization_gate: [bf_hash_extraction_or_cracking]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.process_termination]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "workload/process identity หรือ store ยังไม่ validate"}
+    reason: "หยุด workload และตัด access ต่อ material ที่พบ; workload สำคัญใช้ containment ทางเลือก"
+    provenance: {reference: [BF-OFFLINE]}
+
+  - policy_id: POL-BF-005
+    rule_type: BRANCH_GATE
+    branch_subtype: AC-PASSWORD
+    applicable_subtypes: [BF-GUESS, BF-SPRAY, BF-STUFF, BF-OFFLINE]
+    covers: [BF-P1, BF-P4]
+    required_evidence:
+      all_of:
+        - {field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}
+    prohibitions:
+      - {id: PRH-BF-4, reason: "failed login อย่างเดียวไม่เปิด disable/reset account (BF-P1)", when: {field: scope.basis_failed_login_only, operator: equals, value: true}}
+    reason: "เปิด credential containment เฉพาะเมื่อมี unauthorized success ที่ยืนยันแล้ว และ scope ตาม identity"
+    provenance: {reference: [BF-P1, BF-P4]}
+
+  - policy_id: POL-BF-006
+    rule_type: BRANCH_GATE
+    branch_subtype: AC-SESSION
+    applicable_subtypes: [BF-GUESS, BF-SPRAY, BF-STUFF, BF-OFFLINE]
+    covers: [BF-P4]
+    required_evidence:
+      all_of:
+        - {field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}
+        - {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}
+    prohibitions:
+      - {id: PRH-BF-5, reason: "failed login อย่างเดียวไม่เปิด session revocation หรือ disable account (BF-P1)", when: {field: scope.basis_failed_login_only, operator: equals, value: true}}
+    reason: "RB-SESSION-REVOKE เพิ่มเฉพาะเมื่อมี unauthorized success และระบุ session ได้ (BF-P4)"
+    provenance: {reference: [BF-P4]}
+
+runbooks:
+  - runbook_id: RB-AUTH-SOURCE-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-AUTH-SOURCE-RESTRICT]
+    supported_subtypes: [BF-GUESS]
+    objective: "จำกัด attempts จาก source ที่ระบุต่อบริการเดียว โดยรักษา approved management access"
+    prerequisites: ["รู้ enforcement point ที่เห็น client address จริง", "มีรายการ approved management access เพื่อเทียบ"]
+    required_evidence: [bf_attempts_correlated]
+    required_targets: [network_source, service_endpoint]
+    required_capabilities: [cap.scoped_network_enforcement, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้ที่ใช้ address เดียวกับ source (เช่น NAT ร่วม) อาจถูกจำกัดบริการนี้ด้วย"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจว่า {{network_source.address}} เป็นฝั่งผู้โจมตีที่เข้ามาที่ {{service_endpoint.service}} บน {{service_endpoint.host_id}} (ไม่ใช่ agent/observer และไม่อยู่ใน approved management access)"
+        expected_result: "source role เป็น attacker_source และไม่ชนกับ approved access"
+        verify: "เทียบกับ event และรายการ approved management access"
+        on_failure: "ไม่ดำเนินการต่อ; คงสถานะ NEEDS_TARGET"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกค่า rule/limit ปัจจุบันของ {{service_endpoint.service}} บน {{service_endpoint.enforcement_point}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot สำหรับ rollback"
+        verify: "snapshot เก็บใน incident record"
+        on_failure: "เก็บค่าปัจจุบันด้วยการบันทึกด้วยมือก่อนแก้"
+      - step_id: S3
+        title: "ตั้ง deny/rate-limit จาก {{network_source.address}} ไปยัง {{service_endpoint.service}} บน {{service_endpoint.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตั้ง deny หรือ rate-limit เฉพาะ {{network_source.address}} → {{service_endpoint.service}} บน {{service_endpoint.host_id}} ที่ {{service_endpoint.enforcement_point}} (ไม่ใช่ global block; คงการเข้าถึงของ approved management)"
+        method_basis: EXISTING
+        method: "ตรวจก่อนว่า {{network_source.address}} ไม่ชนกับรายการ approved management access แล้วตั้ง deny หรือ rate-limit ที่ {{service_endpoint.enforcement_point}} เฉพาะ {{network_source.address}} → {{service_endpoint.service}} บน {{service_endpoint.host_id}} (ไม่ใช่ global block) ตามที่จุดควบคุมนั้นรองรับ บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ของจุดควบคุมว่า attempt จากต้นทางถูก deny/limit และ management access ยังเข้าบริการได้"
+        expected_result: "attempts จาก source นี้ถูกจำกัดที่บริการนี้เท่านั้น"
+        verify: "เห็น attempts จาก source ถูก deny/limit ที่จุดบังคับ และ management access ยังใช้ได้"
+        on_failure: "ถ้า control ไม่ถึง client address จริง ให้ใช้ rate-limit ระดับบริการที่รองรับ หรือ escalate IR"
+        rollback: "คืนค่า rule/limit เดิมที่บันทึกไว้ก่อนแก้"
+        impact: "จำกัด {{network_source.address}} บนบริการนี้เท่านั้น; ผู้ใช้ที่ใช้ address เดียวกัน (เช่น NAT ร่วม) อาจถูกจำกัดบริการนี้ด้วย"
+      - step_id: S4
+        title: "ตัด session/connection ที่ค้างของ {{network_source.address}} บน {{service_endpoint.service}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด sessions/connections ที่ค้างของ {{network_source.address}} บน {{service_endpoint.service}} ของ {{service_endpoint.host_id}}"
+        method_basis: EXISTING
+        needs_prior: [S3]
+        requires_confirmed_tool: true
+        method: "ใช้ความสามารถตัด session/connection ของเครื่องมือที่ {{service_endpoint.enforcement_point}} โดยระบุ connection จากต้นทาง {{network_source.address}} ไปยัง {{service_endpoint.host_id}} บริการ {{service_endpoint.service}} แล้วใช้ตัวระบุ session/connection ตามที่เครื่องมือแสดง ตัดเฉพาะ flow นี้ โดยตรวจรายการ connection ที่ค้างก่อนตัด บันทึกตัวระบุที่ตัด แล้วตรวจรายการซ้ำว่า flow นี้ไม่เหลือและ flow อื่นไม่ถูกตัด"
+        condition: {all_of: [{field: capability.cap.connection_state_termination.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มี connection ค้างจาก source"
+        verify: "connection table ไม่แสดง flow จาก {{network_source.address}} ไปยัง {{service_endpoint.host_id}} {{service_endpoint.service}} (flow อื่นไม่ถูกตัด)"
+        on_failure: "คง deny rule และเฝ้าระวัง connection ที่ค้าง"
+    verification: ["ไม่พบ authentication attempts จาก source ผ่านจุดบังคับในช่วงเฝ้าระวัง", "approved management access ยังเข้าบริการได้"]
+    failure_handling: ["attempts ยังเกิดจาก source ใหม่ → ทบทวนเป็น campaign (ประเมิน BF-SPRAY) ไม่ block IP เพิ่มแบบกว้าง"]
+    rollback: ["คืน rule จาก snapshot"]
+
+  - runbook_id: RB-AUTH-CAMPAIGN-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-AUTH-CAMPAIGN-RESTRICT]
+    supported_subtypes: [BF-SPRAY]
+    objective: "จำกัด authentication campaign ที่ scope ของ application/authentication โดยไม่ตัดผู้ใช้จริง"
+    prerequisites: ["ระบุ authentication scope และชุด sources/accounts ที่สัมพันธ์กัน", "รู้ว่าระบบรองรับ throttling / risk challenge / access restriction แบบใด"]
+    required_evidence: [bf_multi_account_campaign]
+    required_targets: [auth_campaign_scope]
+    required_capabilities: [cap.bot_risk_control, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ใช้จริงอาจถูก challenge เพิ่มหรือถูก throttle ใน scope นี้"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันขอบเขต campaign ของ {{auth_campaign_scope.application}} / {{auth_campaign_scope.authentication_scope}} ช่วง {{auth_campaign_scope.campaign_window}} จากชุด sources ที่สัมพันธ์ ไม่ใช่ทั้งแอปพลิเคชัน"
+        expected_result: "scope จำกัดอยู่ที่ campaign"
+        verify: "แต่ละ source/account ใน scope ปรากฏใน evidence"
+        on_failure: "ไม่ขยาย scope เกินหลักฐาน"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึกค่า throttling/risk policy ปัจจุบันของ {{auth_campaign_scope.application}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือก่อนแก้"
+      - step_id: S3
+        title: "เปิด throttling/risk challenge ให้ {{auth_campaign_scope.authentication_scope}} ของ {{auth_campaign_scope.application}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "เปิด throttling หรือ risk challenge ที่ {{auth_campaign_scope.control_point}} เฉพาะ {{auth_campaign_scope.authentication_scope}} ให้ครอบคลุมทุก source ใน campaign (ไม่ block IP เดียว และไม่ lockout บัญชีทั้งกลุ่ม)"
+        method: "ตั้ง throttling หรือ risk challenge ที่ {{auth_campaign_scope.control_point}} ให้ครอบคลุม {{auth_campaign_scope.authentication_scope}} ของ {{auth_campaign_scope.application}} ทุก source ใน campaign (ไม่ block IP เดียวและไม่ lockout บัญชีทั้งกลุ่ม) เริ่มจากระดับ challenge/throttle ก่อน แล้วเทียบอัตรา failed attempts กับอัตรา login สำเร็จของผู้ใช้ปกติก่อนเพิ่มความเข้ม"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "attempts ของ campaign ถูกจำกัดทั้งชุด ผู้ใช้ปกติยัง login ได้ (อาจถูก challenge)"
+        verify: "อัตรา failed attempts ของ scope ลดลง และอัตรา login สำเร็จของผู้ใช้ปกติไม่ลดผิดปกติ"
+        on_failure: "ถ้า control ไม่รองรับ risk challenge ให้ใช้ throttling ระดับ scope ที่รองรับ หรือ escalate IR"
+        rollback: "คืนค่า policy จาก snapshot"
+        impact: "ผู้ใช้จริงใน scope อาจเห็น challenge/ช้าลง"
+      - step_id: S4
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ accounts ใน campaign ว่ามี login สำเร็จที่ไม่ได้รับอนุญาตหรือไม่ — หากพบ ให้เปิดขั้นตอน Account Compromise ของบัญชีนั้นเท่านั้น"
+        expected_result: "รู้ว่ามี/ไม่มี unauthorized success"
+        verify: "ผลตรวจ authentication success ต่อ account ใน scope"
+        on_failure: "ถือว่ายังไม่ทราบ (UNKNOWN) และไม่ reset/disable จนกว่าจะยืนยัน"
+    verification: ["failed attempts ต่อ scope ลดลงและไม่มี source ใหม่กลับมาใน campaign pattern เดิม"]
+    failure_handling: ["campaign เปลี่ยน source → ปรับ scope ตาม evidence ใหม่ ไม่ขยายเป็น lockout ทั้งแอป"]
+    rollback: ["คืน throttling/risk policy จาก snapshot"]
+
+  - runbook_id: RB-LOGIN-AUTOMATION-RESTRICT
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-LOGIN-AUTOMATION-RESTRICT]
+    supported_subtypes: [BF-STUFF]
+    objective: "จำกัด automated login ที่ login endpoint ตาม client scope ที่มีหลักฐาน"
+    prerequisites: ["ระบุ client scope จาก evidence (fingerprint/UA/ASN/rate)", "รู้ว่ามี bot/risk control ใดที่ endpoint"]
+    required_evidence: [bf_automation_exposure_evidence]
+    required_targets: [login_endpoint]
+    required_capabilities: [cap.bot_risk_control, cap.session_revocation, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ไคลเอนต์ที่ match client scope อาจถูก challenge/บล็อก — ตรวจไม่ให้ชนกับ approved integrations"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ตรวจ client scope {{login_endpoint.client_scope}} ของ {{login_endpoint.route}} ว่าไม่ชนกับ approved integration/monitoring clients"
+        expected_result: "client scope แคบพอและไม่ชน approved clients"
+        verify: "เทียบกับรายการ approved clients"
+        on_failure: "แคบ scope ลงตาม evidence หรือ escalate IR"
+      - step_id: S2
+        title: "ใช้ bot/risk control กับ {{login_endpoint.route}} สำหรับ client scope {{login_endpoint.client_scope}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ใช้ bot/risk control ที่ {{login_endpoint.control_point}} กับ {{login_endpoint.route}} เฉพาะ client scope {{login_endpoint.client_scope}} (challenge หรือ block ตามที่ control รองรับ)"
+        method: "ตั้ง bot/risk control ที่ {{login_endpoint.control_point}} เฉพาะ {{login_endpoint.route}} สำหรับ client scope {{login_endpoint.client_scope}} เริ่มที่ challenge ก่อน block บันทึกค่าเดิมก่อนแก้ แล้วเทียบอัตรา login ของ client scope กับผู้ใช้ปกติ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "automated login จาก client scope ถูกหยุดหรือถูก challenge"
+        verify: "อัตรา login จาก client scope ลดลง"
+        on_failure: "ถ้า control ไม่รองรับ ให้ใช้ rate-limit ต่อ client scope ที่รองรับ หรือ escalate IR"
+        rollback: "ถอน rule ที่เพิ่ม (เก็บค่าเดิมก่อนแก้)"
+      - step_id: S3
+        title: "จำกัด sessions ที่เกิดจาก client scope {{login_endpoint.client_scope}} ตาม application runbook"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ใช้ session restrictions ตาม application runbook กับ sessions ที่เกิดจาก client scope นี้ (ถ้าพบ login สำเร็จที่ไม่ได้รับอนุญาต ให้ revoke ตามบัญชีที่ validated เท่านั้น)"
+        method_basis: ORG_INPUT_REQUIRED
+        method_requires: "runbook ของแอปพลิเคชันสำหรับจำกัด session ที่เกิดจาก client scope นี้"
+        condition: {all_of: [{field: capability.cap.session_revocation.supported, operator: equals, value: true}, {field: targets.session.validated, operator: equals, value: true}]}
+        expected_result: "sessions จาก automation ไม่ยัง active"
+        verify: "ไม่มี session active จาก client scope"
+        on_failure: "escalate IR เพื่อใช้ branch Account Compromise"
+    verification: ["login จาก client scope ถูกหยุด/challenge และไม่พบ valid-credential hit ใหม่"]
+    failure_handling: ["automation เปลี่ยน fingerprint → ปรับ client scope ตาม evidence ใหม่"]
+    rollback: ["ถอน bot/risk rule ที่เพิ่ม"]
+
+  - runbook_id: RB-CREDENTIAL-MATERIAL-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-CREDENTIAL-MATERIAL-CONTAIN]
+    supported_subtypes: [BF-OFFLINE]
+    objective: "หยุด cracking/extraction workload และตัด access ต่อ hash/credential material"
+    prerequisites: ["process identity ของ workload (ถ้าเป็น process)", "รู้ store/path และ account ที่เข้าถึง material"]
+    required_evidence: [bf_hash_extraction_or_cracking]
+    required_targets: [credential_material]
+    required_capabilities: [cap.process_termination, cap.identity_restriction]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การหยุด workload/จำกัด access ต่อ store อาจกระทบงานที่ใช้ store เดียวกัน"
+    ordered_steps:
+      - step_id: S1
+        title: "ยุติ workload (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        variant: standard
+        instruction: "ยุติ workload (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} (ระบุด้วย process identity ไม่ใช้ PID อย่างเดียว) ที่ทำ cracking/extraction"
+        method: "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}]}
+        expected_result: "workload ไม่ทำงานต่อ"
+        verify: "process identity นั้นไม่อยู่ใน process list และไม่ restart"
+        on_failure: "ถ้ายุติไม่ได้ ให้ restrict network/ทรัพยากรของ workload ตาม platform แล้ว escalate IR"
+      - step_id: S1c
+        title: "จำกัด access ของ workload บน {{credential_material.host_id}} ต่อ {{credential_material.store_locator}}"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "สำหรับ {{credential_material.host_id}} ที่เป็น workload สำคัญ: จำกัด access ของ workload ต่อ {{credential_material.store_locator}} และ network egress ก่อน โดยไม่ยุติ process จนกว่า asset owner อนุมัติ"
+        method: "จำกัด access ของ workload บน {{credential_material.host_id}} ต่อ {{credential_material.store_locator}} และ network egress ก่อน (ยังไม่ยุติ process) แล้วขออนุมัติ asset owner ก่อนยุติ process ตรวจว่า access ต่อที่เก็บถูกปฏิเสธและ dependency ที่ asset owner ระบุยังทำงาน"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "workload เข้าถึง material ไม่ได้"
+        verify: "access ต่อ store ถูกปฏิเสธ"
+        on_failure: "escalate IR/asset owner เพื่อตัดสินใจยุติ"
+      - step_id: S2
+        title: "ตัด access ของ {{credential_material.accessor_identity}} ต่อ {{credential_material.store_locator}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตัด access ของ {{credential_material.accessor_identity}} ต่อ {{credential_material.store_locator}} (เฉพาะ identity/ที่เก็บนี้)"
+        method: "ถอนสิทธิ์ของ {{credential_material.accessor_identity}} ต่อ {{credential_material.store_locator}} เฉพาะคู่ identity/ที่เก็บนี้ ด้วยเครื่องมือจัดการสิทธิ์ของที่เก็บนั้น บันทึกสิทธิ์เดิมก่อนถอน แล้วทดสอบด้วย access check ว่าถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "accessor เข้าถึง store ไม่ได้"
+        verify: "access test ต่อ store ถูกปฏิเสธ"
+        on_failure: "ใช้ access restriction ระดับ store ที่รองรับ หรือ escalate IR"
+        rollback: "คืนสิทธิ์เดิมหลัง IR อนุมัติ"
+        impact: "งานที่ใช้ identity นี้เข้า store อาจหยุด"
+      - step_id: S3
+        title: "สรุปบัญชีที่เสี่ยง {{credential_material.exposed_account_set}} เพื่อประเมินต่อเป็นรายบัญชี"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "สรุป exposed accounts {{credential_material.exposed_account_set}} ที่ material ครอบคลุม แล้วส่งต่อให้ขั้นตอนจัดการ credential เฉพาะบัญชีที่มี unauthorized success หรือเสี่ยงตาม evidence (ไม่ reset ทั้งชุดอัตโนมัติ)"
+        method: "ทำรายการบัญชีที่ปรากฏใน material ({{credential_material.exposed_account_set}}) พร้อมอ้างอิงหลักฐานต่อรายการ คัดเฉพาะบัญชีที่มี unauthorized success หรือเสี่ยงตาม evidence แล้วส่งแต่ละบัญชีเข้าขั้นตอนจัดการ credential แยกกัน (ไม่ reset ทั้งชุด)"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "รู้ชุด identities ที่ต้องประเมินต่อ"
+        verify: "รายการ identities ตรงกับ material ที่ extract"
+        on_failure: "คงสถานะ NEEDS_EVIDENCE สำหรับ identity ที่ยังไม่ยืนยัน"
+    verification: ["ไม่พบ workload ซ้ำและไม่มี access ใหม่ต่อ store"]
+    failure_handling: ["workload เกิดซ้ำ → หา launcher/persistence (ประเมิน branch Malware/Process)"]
+    rollback: ["คืน access ต่อ store ตาม IR approval"]
+    variants: [{variant_id: critical_workload, description: "จำกัด access/egress แทนการยุติ process จนกว่า asset owner อนุมัติ"}]

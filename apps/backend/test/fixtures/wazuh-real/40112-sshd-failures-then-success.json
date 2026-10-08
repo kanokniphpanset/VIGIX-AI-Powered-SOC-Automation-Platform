@@ -1,0 +1,87 @@
+{
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "sshd",
+    "timestamp": "Oct  3 11:46:46"
+  },
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "srcip": "172.19.0.3",
+    "dstuser": "victim",
+    "srcport": "45544"
+  },
+  "rule": {
+    "mail": true,
+    "level": 12,
+    "pci_dss": [
+      "10.2.4",
+      "10.2.5",
+      "11.4"
+    ],
+    "hipaa": [
+      "164.312.b"
+    ],
+    "tsc": [
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "Multiple authentication failures followed by a success.",
+    "groups": [
+      "syslog",
+      "attacks"
+    ],
+    "nist_800_53": [
+      "AU.14",
+      "AC.7",
+      "SI.4"
+    ],
+    "frequency": 2,
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "firedtimes": 1,
+    "mitre": {
+      "technique": [
+        "Valid Accounts",
+        "Brute Force"
+      ],
+      "id": [
+        "T1078",
+        "T1110"
+      ],
+      "tactic": [
+        "Defense Evasion",
+        "Persistence",
+        "Privilege Escalation",
+        "Initial Access",
+        "Credential Access"
+      ]
+    },
+    "id": "40112",
+    "gpg13": [
+      "7.1",
+      "7.8"
+    ]
+  },
+  "decoder": {
+    "parent": "sshd",
+    "name": "sshd"
+  },
+  "full_log": "Oct  3 11:46:46 60e9269b683a sshd[1362]: Accepted password for victim from 172.19.0.3 port 45544 ssh2",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log",
+  "id": "1791028007.1920894",
+  "timestamp": "2026-10-03T11:46:47.357+0000"
+}

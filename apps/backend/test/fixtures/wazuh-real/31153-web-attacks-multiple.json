@@ -1,0 +1,75 @@
+{
+  "agent": {
+    "ip": "172.19.0.5",
+    "name": "attack-endpoint",
+    "id": "007"
+  },
+  "previous_output": "127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?f=../../../../etc/passwd%00.png HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?doc=../../../../var/log/auth.log HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?inc=../../../../../etc/group HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?path=../../../../root/.ssh/id_rsa HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?read=../../../../proc/self/environ HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?tpl=../../../../etc/nginx/nginx.conf HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?file=../../../../etc/shadow HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?page=../../../../etc/hosts HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"\n127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?file=../../../../etc/passwd HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "protocol": "GET",
+    "srcip": "127.0.0.1",
+    "id": "404",
+    "url": "/app/search.php?conf=../../../../etc/ssh/sshd_config"
+  },
+  "rule": {
+    "firedtimes": 4,
+    "mail": false,
+    "level": 10,
+    "pci_dss": [
+      "6.5",
+      "11.4"
+    ],
+    "tsc": [
+      "CC6.6",
+      "CC7.1",
+      "CC8.1",
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "Multiple common web attacks from same source ip.",
+    "groups": [
+      "web",
+      "accesslog",
+      "attack"
+    ],
+    "mitre": {
+      "technique": [
+        "Process Injection",
+        "File and Directory Discovery"
+      ],
+      "id": [
+        "T1055",
+        "T1083"
+      ],
+      "tactic": [
+        "Defense Evasion",
+        "Privilege Escalation",
+        "Discovery"
+      ]
+    },
+    "id": "31153",
+    "nist_800_53": [
+      "SA.11",
+      "SI.4"
+    ],
+    "frequency": 10,
+    "gdpr": [
+      "IV_35.7.d"
+    ]
+  },
+  "decoder": {
+    "name": "web-accesslog"
+  },
+  "full_log": "127.0.0.1 - - [30/Sep/2026:03:10:06 +0000] \"GET /app/search.php?conf=../../../../etc/ssh/sshd_config HTTP/1.1\" 404 162 \"-\" \"Nikto/2.5\"",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/nginx/access.log",
+  "id": "1790737806.861786",
+  "timestamp": "2026-09-30T03:10:06.342+0000"
+}

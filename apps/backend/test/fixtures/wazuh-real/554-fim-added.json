@@ -1,0 +1,73 @@
+{
+  "syscheck": {
+    "uname_after": "root",
+    "mtime_after": "2026-10-03T12:03:23",
+    "size_after": "5",
+    "gid_after": "0",
+    "mode": "realtime",
+    "path": "/etc/gshadow.lock",
+    "sha1_after": "0c65a947a29c79b7dc06d5d6fa4188523315ea10",
+    "gname_after": "root",
+    "uid_after": "0",
+    "perm_after": "rw-------",
+    "event": "added",
+    "md5_after": "42dcd029ef0d9372784039054e5f635c",
+    "sha256_after": "d4ed4919e6c216d8cca64df42702c993922850aeb8a50a98b5706f82d0f79f33",
+    "inode_after": 440680
+  },
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "rule": {
+    "firedtimes": 4,
+    "mail": false,
+    "level": 5,
+    "pci_dss": [
+      "11.5"
+    ],
+    "hipaa": [
+      "164.312.c.1",
+      "164.312.c.2"
+    ],
+    "tsc": [
+      "PI1.4",
+      "PI1.5",
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "File added to the system.",
+    "groups": [
+      "ossec",
+      "syscheck",
+      "syscheck_entry_added",
+      "syscheck_file"
+    ],
+    "id": "554",
+    "nist_800_53": [
+      "SI.7"
+    ],
+    "gpg13": [
+      "4.11"
+    ],
+    "gdpr": [
+      "II_5.1.f"
+    ]
+  },
+  "decoder": {
+    "name": "syscheck_new_entry"
+  },
+  "full_log": "File '/etc/gshadow.lock' added\nMode: realtime\n",
+  "input": {
+    "type": "log"
+  },
+  "location": "syscheck",
+  "id": "1791029003.1986226",
+  "timestamp": "2026-10-03T12:03:23.285+0000"
+}

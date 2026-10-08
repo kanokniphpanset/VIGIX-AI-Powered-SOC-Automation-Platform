@@ -1,6 +1,8 @@
 /** REJECTED: the SOC rejected it at SOC Validation and closed the incident (RejectRecommendationUseCase). */
 export type RecommendationStatus = "GENERATED" | "VALIDATED" | "INVALID" | "SUPERSEDED" | "REJECTED";
 export type RecommendationStepStatus = "PENDING" | "SUPERSEDED";
+/** ACTION: catalog Action (ticketable). CHECK: investigation / decision step. MANUAL: control VIGIX cannot execute. */
+export type RecommendationStepType = "ACTION" | "CHECK" | "MANUAL";
 
 /** One ordered operational instruction of an action-level RecommendationStep (Task 10.3). */
 export interface RecommendationInstruction {
@@ -8,11 +10,27 @@ export interface RecommendationInstruction {
   instruction: string;
   target: string | null;
   expectedResult: string | null;
+  /** Subtype-knowledge recommendations (all optional, additive): contract-format pieces of one operational instruction. */
+  title?: string;
+  impact?: string | null;
+  verify?: string | null;
+  kind?: "action" | "verify";
+  /** a named non-IR owner (e.g. DBA, business authority) who performs this instruction - IR does not do it for them. */
+  manualOwner?: string | null;
+  /** how to perform it / checks before acting / how to undo / why it is proposed again (all optional, additive). */
+  method?: string | null;
+  methodKind?: "method" | "detail";
+  preconditions?: string[];
+  rollback?: string | null;
+  note?: string | null;
 }
 
 export interface RecommendationStepProps {
   id: string;
   stepOrder: number;
+  /** Stored in recommendation_steps.phase; CHECK / MANUAL steps never have an actionId and are never ticketed.
+   * Absent on in-memory rows built before step types existed: read it through stepTypeOfStep(). */
+  stepType?: RecommendationStepType;
   title: string;
   objective: string | null;
   actionId: string | null;
@@ -20,6 +38,7 @@ export interface RecommendationStepProps {
   reason: string;
   evidence: string[];
   sourceRunbookId: string | null;
+  /** The procedure condition that must be confirmed before the step is carried out. */
   precondition: string | null;
   expectedResult: string | null;
   requiresApproval: boolean;
@@ -27,6 +46,9 @@ export interface RecommendationStepProps {
   instructions: RecommendationInstruction[];
   verificationCriteria: string | null;
 }
+
+/** A step's type; a step without one is ACTION when it carries an Action, otherwise CHECK (investigation only). */
+export const stepTypeOfStep = (s: Pick<RecommendationStepProps, "stepType" | "actionId">): RecommendationStepType => s.stepType ?? (s.actionId ? "ACTION" : "CHECK");
 
 export interface RecommendationProps {
   id: string;

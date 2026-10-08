@@ -12,6 +12,7 @@ const { t } = useI18n()
       <p>{{ t('rta.ticket') }} <strong>{{ ticketStatusLabel(ticket.status) }}</strong> · {{ t('rta.by', { role: ticket.assignedRole }) }}</p>
       <router-link :to="`/tickets/${ticket.id}`" class="font-semibold text-accent-700 underline">{{ t('rta.view') }}</router-link>
     </template>
+    <p v-else-if="!step.actionId && step.stepType === 'MANUAL'" class="text-slate-500">{{ t('rta.manualOnly') }}</p>
     <p v-else-if="!step.actionId" class="text-slate-500">{{ t('rta.investigationOnly') }}</p>
     <p v-else class="text-slate-500">{{ t('rta.notSent') }}</p>
   </div>

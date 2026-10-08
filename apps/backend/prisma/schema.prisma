@@ -80,6 +80,7 @@ model Alert {
   incidentLinks     IncidentAlert?
   incidents         Incident[]
   relatedIocs       ThreatIntelIoc[] @relation("IocSourceAlert")
+  iocObservations   IocObservation[]
   scenarioTag       AlertScenarioTag?
 
   @@index([tenantId, workflowState, receivedAt(sort: Desc)])
@@ -171,6 +172,7 @@ model Evidence {
   alert           Alert?        @relation(fields: [alertId], references: [id])
   investigation   Investigation @relation(fields: [investigationId], references: [id])
   iocLinks        EvidenceIoc[]
+  iocObservations IocObservation[]
 
   @@index([investigationId])
   @@index([alertId])
@@ -278,6 +280,7 @@ model ThreatIntelIoc {
   /// Why the SOC linked the indicator to this incident (required whenever sourceAlertId is set).
   addedReason     String?        @map("added_reason")
   evidenceLinks   EvidenceIoc[]
+  observations    IocObservation[]
   incident        Incident       @relation(fields: [incidentId], references: [id])
   investigation   Investigation? @relation(fields: [investigationId], references: [id])
   sourceAlert     Alert?         @relation("IocSourceAlert", fields: [sourceAlertId], references: [id], onDelete: SetNull)
@@ -285,6 +288,33 @@ model ThreatIntelIoc {
   @@unique([investigationId, iocType, iocValue])
   @@index([sourceAlertId])
   @@map("threat_intel_iocs")
+}
+
+/// Where and in what role an IOC was observed (Evidence Contract v2, Phase 2C). One IOC row (unique per investigation/type/value)
+/// can be observed many times: as a source in one alert and a destination in another. `source_path` is the Wazuh JSON path,
+/// `role` is set only by a stated rule (UNKNOWN otherwise). Tenant is derived through ioc -> incident, as for the IOC itself.
+/// CHECK constraints (role / provenance_class values, alert-or-evidence) are in the migration SQL; Prisma does not model them.
+model IocObservation {
+  id              String          @id @default(uuid())
+  iocId           String          @map("ioc_id")
+  alertId         String?         @map("alert_id")
+  evidenceId      String?         @map("evidence_id")
+  sourcePath      String          @map("source_path")
+  role            String          @default("UNKNOWN")
+  roleBasis       String?         @map("role_basis")
+  lastKnown       Boolean         @default(false) @map("last_known")
+  provenanceClass String          @map("provenance_class")
+  observedAt      DateTime        @map("observed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  ioc             ThreatIntelIoc  @relation(fields: [iocId], references: [id], onDelete: Cascade)
+  alert           Alert?          @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  evidence        Evidence?       @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  @@unique([iocId, alertId, evidenceId, sourcePath])
+  @@index([iocId])
+  @@index([alertId])
+  @@index([evidenceId])
+  @@map("ioc_observations")
 }
 
 model MitreTechnique {
@@ -473,6 +503,7 @@ model Recommendation {
   snapshot             PlaybookSnapshot?    @relation(fields: [snapshotId], references: [id])
   tenant               Tenant               @relation(fields: [tenantId], references: [id])
   responsePlans        ResponsePlan[]
+  audits               RecommendationAudit[]
 
   @@unique([incidentId, recommendationNumber])
   @@index([incidentId])
@@ -932,4 +963,26 @@ model checkpoints {
   metadata             Json    @default("{}")
 
   @@id([thread_id, checkpoint_ns, checkpoint_id])
+}
+
+/// Internal audit of the subtype-knowledge evaluation behind a Recommendation (never shown in the user-facing text):
+/// subtype/scenario, evidence refs, policy decisions + all reasons, resolved targets, action/runbook versions, ordering reasons,
+/// missing fields, authority/capability checks. recommendationId is NULL when no recommendation was persisted (e.g. nothing eligible).
+model RecommendationAudit {
+  id                  String          @id @default(uuid())
+  tenantId            String          @map("tenant_id")
+  incidentId          String          @map("incident_id")
+  recommendationId    String?         @map("recommendation_id")
+  investigationNumber Int             @map("investigation_number")
+  /// SHADOW (legacy output shown) | ENFORCE (subtype output shown) | ENFORCE_FALLBACK (enforce requested but not deployable)
+  mode                String
+  knowledgeVersion    String          @map("knowledge_version")
+  knowledgeStatus     String          @map("knowledge_status")
+  audit               Json
+  createdAt           DateTime        @default(now()) @map("created_at")
+  recommendation      Recommendation? @relation(fields: [recommendationId], references: [id])
+
+  @@index([incidentId])
+  @@index([recommendationId])
+  @@map("recommendation_audits")
 }

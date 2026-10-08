@@ -40,6 +40,7 @@ export class AlertController {
         attackType: q(req.query.attackType),
         scenario: q(req.query.scenario),
         agent: q(req.query.agent),
+        mock: q(req.query.mock),
         from: date(req.query.from),
         to: date(req.query.to),
         limit: req.query.limit ? Math.min(Number(req.query.limit) || 50, 200) : 50,

@@ -7,7 +7,27 @@ import { RecommendationValidator } from "../../../infrastructure/recommendation-
 import { AuditLogger } from "../../../infrastructure/database/postgres/repositories/AuditLogger";
 import { Result } from "../../../shared/result/Result";
 import { buildCorrectionPrompt, evidenceValues, MAX_RECOMMENDATION_ATTEMPTS, shouldRetry } from "../services/RecommendationCorrection";
-import { isRecommendable, newStepOptions } from "../dto/RecommendationContextDto";
+import { isRecommendable, newStepOptions, noveltyHistory, RecommendationContextDto } from "../dto/RecommendationContextDto";
+import { PlaybookRevisionProvenance } from "../../../domain/playbook/PlaybookRevisionProvenance";
+import { IRecommendationAuditRepository } from "../../../domain/recommendation/repositories/IRecommendationAuditRepository";
+import { IActionRepository } from "../../../domain/action/repositories/IActionRepository";
+import { IRunbookRepository } from "../../../domain/runbook/repositories/IRunbookRepository";
+import { SubtypeEvaluation, SubtypeRecommendationService } from "../../subtype/SubtypeRecommendationService";
+import { ISubtypeNarrator, mapEvaluationToRecommendation } from "../../subtype/SubtypeStepMapper";
+
+/**
+ * Subtype-knowledge integration (apps/knowledge/subtype-playbooks). Optional: without it the use case behaves exactly as before.
+ *   shadow  - the subtype plan is evaluated and its audit stored; the recommendation the SOC sees is still the legacy one;
+ *   enforce - (only for VALID, deployable knowledge) the recommendation steps come from the approved subtype plan; the AI may only phrase
+ *             the summary and its answer is reviewed. Never executes anything.
+ */
+export interface SubtypeIntegration {
+  service: SubtypeRecommendationService;
+  audits: IRecommendationAuditRepository;
+  actions: IActionRepository;
+  runbooks: IRunbookRepository;
+  narrator?: ISubtypeNarrator;
+}
 
 export type GenerateRecommendationError =
   | PlaybookProvenanceErrorCode
@@ -63,7 +83,8 @@ export class GenerateRecommendationUseCase {
     private readonly validator: RecommendationValidator,
     private readonly recommendationRepository: IRecommendationRepository,
     private readonly auditLogger: AuditLogger,
-    private readonly atomic?: { run<T>(scope: "recommendation", input: { tenantId: string; incidentId: string }, work: () => Promise<T>): Promise<T> }
+    private readonly atomic?: { run<T>(scope: "recommendation", input: { tenantId: string; incidentId: string }, work: () => Promise<T>): Promise<T> },
+    private readonly subtype?: SubtypeIntegration
   ) {}
 
   async execute(input: { incidentId: string; tenantId: string }): Promise<Result<Recommendation, GenerateRecommendationError>> {
@@ -81,6 +102,77 @@ export class GenerateRecommendationUseCase {
     if (contextResult.isFailure) return Result.fail("INCIDENT_NOT_FOUND");
     const { context, provenance } = contextResult.value;
 
+    // Investigation-only UNKNOWN_INCIDENT output has no published revision to pin.
+    // Report the missing playbook before asking the LLM or attempting an incomplete snapshot.
+    if (!context.playbook && !provenance) {
+      await this.auditFailure(input, context.investigationNumber, "PLAYBOOK_PROVENANCE_NOT_FOUND", ["NO_PLAYBOOK"], {
+        nextStep: "ADDITIONAL_INVESTIGATION_OR_PUBLISH_MATCHING_PLAYBOOK",
+      });
+      return Result.fail("PLAYBOOK_PROVENANCE_NOT_FOUND");
+    }
+
+    // Subtype knowledge: evaluation never breaks the legacy flow - any failure is audited and the legacy path continues.
+    let evaluation: SubtypeEvaluation | null = null;
+    if (this.subtype) {
+      try {
+        evaluation = await this.subtype.service.evaluate({ incidentId: input.incidentId, tenantId: input.tenantId, investigationNumber: context.investigationNumber, rehunt: context.rehunt ?? null });
+        if (evaluation.requestedMode === "off") evaluation = null;
+      } catch (err) {
+        await this.auditLogger.record({ tenantId: input.tenantId, actor: this.agentVersion, action: "SUBTYPE_EVALUATION_FAILED", entity: "Incident", entityId: input.incidentId, metadata: { error: err instanceof Error ? err.message : String(err) } });
+      }
+    }
+    if (evaluation && evaluation.effectiveMode === "enforce" && this.subtype) {
+      const mapped = await mapEvaluationToRecommendation(evaluation, context, { actions: this.subtype.actions, runbooks: this.subtype.runbooks, tenantId: input.tenantId, narrator: this.subtype.narrator });
+      if (mapped.ok) return this.persistSubtype(input, context, provenance, evaluation, mapped);
+      evaluation = { ...evaluation, effectiveMode: "shadow", fallbackReason: mapped.reason };
+    }
+    const result = await this.legacyPath(input, context, provenance);
+    if (evaluation && this.subtype) await this.saveAudit(input, context, evaluation, result.isSuccess ? result.value.id : null, evaluation.requestedMode === "enforce" ? "ENFORCE_FALLBACK" : "SHADOW");
+    return result;
+  }
+
+  /** Subtype recommendation: deterministic steps from the approved plan, persisted + audited atomically with the supersede. */
+  private async persistSubtype(
+    input: { incidentId: string; tenantId: string }, context: RecommendationContextDto, provenance: PlaybookRevisionProvenance | null, ev: SubtypeEvaluation,
+    mapped: Extract<Awaited<ReturnType<typeof mapEvaluationToRecommendation>>, { ok: true }>
+  ): Promise<Result<Recommendation, GenerateRecommendationError>> {
+    const persist = async (): Promise<Result<Recommendation, GenerateRecommendationError>> => {
+      const recommendationNumber = await this.recommendationRepository.getNextRecommendationNumber(input.incidentId, input.tenantId);
+      const recommendation = await this.recommendationRepository.create({
+        tenantId: input.tenantId, incidentId: input.incidentId, investigationNumber: context.investigationNumber, recommendationNumber,
+        status: "VALIDATED", summary: mapped.summary, createdBy: `${this.agentVersion}+subtype/${ev.kb.version}`, steps: mapped.steps, snapshot: mapped.snapshot, provenance,
+      });
+      if (recommendation.recommendationNumber > 1) await this.recommendationRepository.supersedePrevious(input.incidentId, input.tenantId, recommendation.id);
+      const before = new Set((context.previousSteps ?? []).map((p) => p.target));
+      const now = mapped.steps.filter((s) => s.actionId && s.target).map((s) => s.target as string);
+      await this.auditLogger.record({
+        tenantId: input.tenantId, actor: this.agentVersion, action: "RECOMMENDATION_GENERATED", entity: "Recommendation", entityId: recommendation.id,
+        metadata: {
+          incidentId: input.incidentId, recommendationNumber: recommendation.recommendationNumber, investigationNumber: context.investigationNumber, status: "VALIDATED",
+          path: "SUBTYPE_KNOWLEDGE", knowledgeVersion: ev.kb.version, stepCount: mapped.steps.length, snapshotId: recommendation.snapshotId, llm: mapped.llm,
+          steps: recommendation.steps.map((s) => ({ stepId: s.id, actionId: s.actionId, target: s.target, stepType: s.stepType ?? null, requiresApproval: s.requiresApproval })),
+          // Tickets cite THIS version; a changed recommendation after Re-hunt is a new recommendation the SOC must review again.
+          changedAfterRehunt: !!context.rehunt && now.some((t) => !before.has(t)),
+        },
+      });
+      await this.saveAudit(input, context, ev, recommendation.id, "ENFORCE", mapped.llm);
+      return Result.ok(recommendation);
+    };
+    return this.atomic ? this.atomic.run("recommendation", input, persist) : persist();
+  }
+
+  /** Best-effort: an audit-store problem must never lose the recommendation; the audit then falls back to the generic audit log. */
+  private async saveAudit(input: { incidentId: string; tenantId: string }, context: RecommendationContextDto, ev: SubtypeEvaluation, recommendationId: string | null, mode: "SHADOW" | "ENFORCE" | "ENFORCE_FALLBACK", llm?: unknown): Promise<void> {
+    if (!this.subtype) return;
+    const audit = { ...ev.audit, llm: llm ?? null, fallbackReason: ev.fallbackReason, userText: ev.composition?.userText ?? null };
+    try {
+      await this.subtype.audits.save({ tenantId: input.tenantId, incidentId: input.incidentId, recommendationId, investigationNumber: context.investigationNumber, mode, knowledgeVersion: ev.kb.version, knowledgeStatus: ev.kb.status, audit });
+    } catch (err) {
+      await this.auditLogger.record({ tenantId: input.tenantId, actor: this.agentVersion, action: "RECOMMENDATION_SUBTYPE_AUDIT", entity: "Incident", entityId: input.incidentId, metadata: { recommendationId, mode, knowledgeVersion: ev.kb.version, storeError: err instanceof Error ? err.message : String(err), audit } });
+    }
+  }
+
+  private async legacyPath(input: { incidentId: string; tenantId: string }, context: RecommendationContextDto, provenance: PlaybookRevisionProvenance | null): Promise<Result<Recommendation, GenerateRecommendationError>> {
     const procedures = context.actionProcedures ?? [];
     if (context.playbook && procedures.length > 0 && !procedures.some(isRecommendable)) {
       await this.auditFailure(input, context.investigationNumber, "INSUFFICIENT_EVIDENCE", [], {
@@ -92,7 +184,7 @@ export class GenerateRecommendationUseCase {
       return Result.fail("INSUFFICIENT_EVIDENCE");
     }
 
-    const previous = context.previousSteps ?? [];
+    const previous = noveltyHistory(context);
     const options = newStepOptions(context);
     if (context.playbook && previous.length > 0 && options?.length === 0) {
       await this.auditFailure(input, context.investigationNumber, "NO_NEW_RECOMMENDATION", [], {
@@ -192,7 +284,7 @@ export class GenerateRecommendationUseCase {
   private async auditFailure(
     input: { incidentId: string; tenantId: string },
     investigationNumber: number,
-    reason: "AI_UNAVAILABLE" | "INVALID_AI_OUTPUT" | "INSUFFICIENT_EVIDENCE" | "NO_NEW_RECOMMENDATION" | "DUPLICATE_RECOMMENDATION",
+    reason: "AI_UNAVAILABLE" | "INVALID_AI_OUTPUT" | "INSUFFICIENT_EVIDENCE" | "NO_NEW_RECOMMENDATION" | "DUPLICATE_RECOMMENDATION" | "PLAYBOOK_PROVENANCE_NOT_FOUND",
     violations: string[],
     extra?: Record<string, unknown>
   ): Promise<void> {

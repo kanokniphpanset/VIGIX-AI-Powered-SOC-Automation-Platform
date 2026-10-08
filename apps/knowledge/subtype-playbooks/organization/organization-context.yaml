@@ -1,0 +1,67 @@
+# organization-context.yaml - FILLABLE ORGANIZATION_CONTEXT read by the backend at runtime (SubtypeKnowledgeLoader).
+# Everything unknown is `null` = UNKNOWN. Nothing here is guessed. Fill a value only when it is true for this organization:
+#   authority.<id>: true -> that role is granted/available;  false -> explicitly NOT available;  null -> unknown
+#   capability.<cap>: true -> the control exists and the runbook step can be performed with it; false -> explicitly unsupported; null -> unknown
+#       (null keeps steps role-level with the TOOL_MAPPING_REQUIRED flag in platform_neutral mode, or UNSUPPORTED in strict mode)
+# Override the file location with VIGIX_ORG_CONTEXT_FILE. Repository search (2026-10-08) found NO EDR / firewall / WAF / IdP / mail /
+# database / secret-manager / RMM configuration, so all of it is unknown. Asset criticality comes from resources/assets/asset-criticality-catalog.yaml.
+
+status: PARTIAL
+authority:
+  ir_execute: true          # VIGIX workflow: IR_TEAM decides and executes every Response Ticket (SOC never executes)
+
+  ir_emergency: null
+  dba: null
+  business_authority: null
+  asset_owner: null
+  change_approval: null
+capability:
+  cap.scoped_network_enforcement: null
+  cap.connection_state_termination: null
+  cap.egress_control: null
+  cap.process_termination: null
+  cap.workload_isolation: null
+  cap.file_quarantine: null
+  cap.session_revocation: null
+  cap.identity_restriction: null
+  cap.mail_quarantine: null
+  cap.mail_web_link_control: null
+  cap.waf_targeted_rule: null
+  cap.bot_risk_control: null
+  cap.oauth_grant_revocation: null
+  cap.secret_rotation: null
+  cap.mfa_factor_management: null
+  cap.dns_control: null
+  cap.cloud_acl_management: null
+  cap.db_query_cancel: null
+  cap.generic_error_response: null
+  cap.persistence_trigger_disable: null
+  cap.queue_consumer_control: null
+  cap.mail_rule_management: null
+  cap.entitlement_management: null
+  cap.remote_session_termination: null
+  cap.rmm_console_control: null
+  cap.transfer_job_control: null
+  cap.driver_config_change: null
+  cap.writable_path_acl: null
+  cap.share_session_termination: null
+  cap.behavior_control: null
+  cap.config_snapshot: null
+
+# Addresses / hosts / accounts that must NEVER be cut (break-glass, recovery, jump hosts, trusted IR access). Matching targets raise scope.cuts_approved_access.
+approved_access: []
+#  - {match: "10.0.9.5", note: "IR jump host"}
+# Process images / tool names / scheduled-task names that are approved automation or security tooling. Matching targets raise scope.is_approved_automation.
+approved_automation: []
+# Approved RMM tools / registrations (trusted IR access). Matching C2-RMM targets are never contained.
+trusted_rmm: []
+# Where scoped network/web restrictions are enforced for a host (never inferred from Wazuh).
+enforcement_points: []
+#  - {host: "SRV-VPN-01", service: "SSH (22/TCP)", enforcement_point: "perimeter firewall FW-EDGE-1"}
+# Identity provider / tenant scope used to complete account targets (Wazuh does not carry it).
+identity: null
+#  {provider: "corp-idp", tenant_or_scope: "corp"}
+
+# Named contacts / queues for authority roles (shown to users ONLY when filled; nothing here is guessed). Example:
+#   authority_contacts: {asset_owner: "ทีมเจ้าของระบบ Finance (ช่องทาง X)", change_approval: "CAB ประจำสัปดาห์"}
+authority_contacts: {}

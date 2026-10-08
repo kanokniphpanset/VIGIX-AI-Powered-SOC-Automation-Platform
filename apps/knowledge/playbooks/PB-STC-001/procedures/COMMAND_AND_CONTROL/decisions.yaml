@@ -1,0 +1,36 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: COMMAND_AND_CONTROL
+
+decisions:
+  - id: DEC-C2-001
+    stepRef: 1
+    question: "Is the destination confirmed malicious rather than a legitimate service?"
+    context: >
+      Shown after Step 1 once threat intelligence and beacon behaviour are
+      reviewed.
+    options:
+      - value: "YES"
+        label: "Yes - confirmed C2"
+        leadsTo: CONTAIN_CHANNEL
+      - value: "NO"
+        label: "No - legitimate service"
+        leadsTo: CLOSE_AS_BENIGN
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-C2-002
+    stepRef: 3
+    question: "Is the host still trying to reach attacker infrastructure after the block?"
+    context: >
+      Shown after Step 3 once post-block connections are reviewed.
+    options:
+      - value: "YES"
+        label: "Yes - still beaconing / fallback channel"
+        leadsTo: ISOLATE_HOST
+      - value: "NO"
+        label: "No - silent after block"
+        leadsTo: CONTINUE_HUNTING
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

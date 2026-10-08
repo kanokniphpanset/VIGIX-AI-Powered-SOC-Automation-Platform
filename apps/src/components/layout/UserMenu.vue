@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronDown, LogOut } from 'lucide-vue-next'
+import { ChevronDown, LogOut, UserRound } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
 import { useI18n, type MsgKey } from '@/i18n'
 
@@ -24,6 +24,11 @@ const initials = computed(
       .join('') || '?',
 )
 const roleLabel = computed(() => (['SOC', 'IR_TEAM', 'admin'].includes(session.role ?? '') ? t(`role.${session.role}` as MsgKey) : (session.role ?? '')))
+
+function openAccount() {
+  open.value = false
+  router.push({ name: 'settings', query: { section: 'account' } })
+}
 
 function signOut() {
   open.value = false
@@ -54,6 +59,9 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
         <p class="text-[11px] text-slate-400">{{ t('user.role', { role: roleLabel }) }}</p>
       </div>
       <div class="border-t border-slate-100 px-2.5 py-2">
+        <button type="button" class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50" @click="openAccount">
+          <UserRound class="size-3.5" /> {{ t('acc.menu') }}
+        </button>
         <button type="button" class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50" @click="signOut">
           <LogOut class="size-3.5" /> {{ t('user.signOut') }}
         </button>

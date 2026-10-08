@@ -414,6 +414,12 @@ const matched = computed(() => (verification.value?.matchingEvents ?? 0) > 0)
                   <span class="min-w-0 text-sm" :class="isDone(ins.order) ? 'text-slate-500 line-through decoration-slate-300' : 'text-slate-800'">
                     <span class="mr-1 font-semibold text-slate-400">{{ ins.order }}.</span>{{ ins.instruction }}
                     <span v-if="ins.expectedResult" class="mt-0.5 block text-xs text-slate-400 no-underline">{{ t('tk.expected', { text: ins.expectedResult }) }}</span>
+                    <span v-if="ins.method" class="mt-0.5 block text-xs text-slate-600 no-underline">{{ t(ins.methodKind === 'detail' ? 'inc.detail' : 'inc.method', { text: ins.method }) }}</span>
+                    <span v-if="ins.preconditions?.length" class="mt-0.5 block text-xs text-slate-600 no-underline">{{ t('inc.before', { text: ins.preconditions.join(' / ') }) }}</span>
+                    <span v-if="ins.impact" class="mt-0.5 block text-xs italic text-amber-700 no-underline">{{ t('inc.impact', { text: ins.impact }) }}</span>
+                    <span v-if="ins.verify" class="mt-0.5 block text-xs italic text-emerald-700 no-underline">{{ t('inc.verify', { text: ins.verify }) }}</span>
+                    <span v-if="ins.rollback" class="mt-0.5 block text-xs text-slate-600 no-underline">{{ t('inc.rollback', { text: ins.rollback }) }}</span>
+                    <span v-if="ins.note" class="mt-0.5 block text-xs text-rose-700 no-underline">{{ t('inc.note', { text: ins.note }) }}</span>
                   </span>
                 </label>
               </li>

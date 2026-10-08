@@ -1,0 +1,69 @@
+{
+  "agent": {
+    "ip": "192.168.239.129",
+    "name": "vigix-win10-ps",
+    "id": "010"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "win": {
+      "eventdata": {
+        "messageNumber": "1",
+        "messageTotal": "1",
+        "scriptBlockText": "Invoke-Command -ScriptBlock { Write-Output 'VIGIX-TC05-ingestion-probe-4' }",
+        "scriptBlockId": "d10f316f-e1b0-4ddc-8586-108c966903c5"
+      },
+      "system": {
+        "eventID": "4104",
+        "keywords": "0x0",
+        "providerGuid": "{a0c1853b-5c40-4b15-8766-3cf1c58f985a}",
+        "level": "5",
+        "channel": "Microsoft-Windows-PowerShell/Operational",
+        "opcode": "15",
+        "message": "\"Creating Scriptblock text (1 of 1):\r\nInvoke-Command -ScriptBlock { Write-Output 'VIGIX-TC05-ingestion-probe-4' }\r\n\r\nScriptBlock ID: d10f316f-e1b0-4ddc-8586-108c966903c5\r\nPath: \"",
+        "version": "1",
+        "systemTime": "2026-10-03T09:40:31.9012838Z",
+        "eventRecordID": "316",
+        "threadID": "5720",
+        "computer": "WIN-LAB01",
+        "task": "2",
+        "processID": "4964",
+        "severityValue": "VERBOSE",
+        "providerName": "Microsoft-Windows-PowerShell"
+      }
+    }
+  },
+  "rule": {
+    "firedtimes": 3,
+    "mail": true,
+    "level": 12,
+    "description": "Powershell script used \"Invoke-command\" cmdlet to execute sub script",
+    "groups": [
+      "windows",
+      " powershell"
+    ],
+    "mitre": {
+      "technique": [
+        "PowerShell"
+      ],
+      "id": [
+        "T1059.001"
+      ],
+      "tactic": [
+        "Execution"
+      ]
+    },
+    "id": "91822"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "EventChannel",
+  "id": "1791020432.1567631",
+  "timestamp": "2026-10-03T09:40:32.452+0000"
+}

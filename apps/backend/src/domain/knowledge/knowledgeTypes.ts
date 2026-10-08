@@ -26,7 +26,7 @@ export type TargetKind = "ip" | "domain" | "url" | "account" | "host" | "email" 
 /** Kind of a recorded IOC, from its iocType (Wazuh / pipeline / analyst vocabulary). */
 export function iocKind(iocType: string): TargetKind {
   const t = iocType.toLowerCase();
-  if (["ipv4", "ipv6", "ip", "srcip", "src_ip", "dstip", "dst_ip"].includes(t)) return "ip";
+  if (["ipv4", "ipv6", "ip", "srcip", "src_ip", "source_ip", "dstip", "dst_ip", "destination_ip"].includes(t)) return "ip";
   if (["domain", "fqdn"].includes(t)) return "domain";
   if (t === "url") return "url";
   if (["username", "user", "account"].includes(t)) return "account";

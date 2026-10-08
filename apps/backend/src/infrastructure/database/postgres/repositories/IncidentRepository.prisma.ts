@@ -52,7 +52,7 @@ export class PrismaIncidentRepository implements IIncidentRepository {
         });
         const alerts = await tx.alert.findMany({ where: { id: { in: data.alertIds }, tenantId: data.tenantId } });
         for (const a of alerts) {
-          const d = buildAlertEvidence(a, investigation.id, "system");
+          const d = buildAlertEvidence(a, investigation.id, "system", { contractV2: process.env.EVIDENCE_CONTRACT_V2 === "true" });
           await tx.evidence.create({
             data: {
               investigationId: d.investigationId,

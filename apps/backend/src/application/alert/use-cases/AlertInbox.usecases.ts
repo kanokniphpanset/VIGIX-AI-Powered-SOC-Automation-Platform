@@ -6,6 +6,7 @@ import { extractAlertIocs } from "../../../domain/investigation/alertIocs";
 import { Result } from "../../../shared/result/Result";
 import { IAlertScenarioRepository } from "../../../domain/alert/repositories/IAlertScenarioRepository";
 import { ATTACK_SCENARIOS, AttackScenario, findAttackScenario } from "../../../domain/alert/attackScenarios";
+import { MockAlertCase, mockCaseOf, mockExternalIdMatch } from "../../../domain/alert/mockAlerts";
 import {
   AlertDisplayState,
   AlertWorkflowState,
@@ -69,6 +70,8 @@ export interface InboxAlertItem {
   scenario: AttackScenario | null;
   /** Latest SOC triage record (history), or null. */
   triage: { disposition: string; note: string | null; triagedBy: string; triagedAt: string } | null;
+  /** The mock fixture (lab test data) this alert was sent from, or null for a real SIEM alert. */
+  mock: { key: string; title: string; set: string } | null;
 }
 
 export interface AlertInboxFilters {
@@ -86,6 +89,8 @@ export interface AlertInboxFilters {
   scenario?: string;
   /** Wazuh agent (host) name (exact, case-insensitive). */
   agent?: string;
+  /** Mock fixture key (TC-01, MOCK-ATK-01, …) or "all" = only alerts sent from mock fixtures. */
+  mock?: string;
   from?: Date;
   to?: Date;
   /** urgency (default) | severity | oldest | newest */
@@ -102,7 +107,7 @@ const firedTimes = (raw: Record<string, unknown>): number | null => {
 
 export function toInboxItem(
   a: Alert,
-  ctx: { incident: InboxIncidentRef | null; scenario: AttackScenario | null; slaMinutes: SlaMinutesBySeverity; slaDue?: Date | null; now: Date }
+  ctx: { incident: InboxIncidentRef | null; scenario: AttackScenario | null; slaMinutes: SlaMinutesBySeverity; slaDue?: Date | null; now: Date; mockCases?: readonly MockAlertCase[] }
 ): InboxAlertItem {
   const due = ctx.slaDue !== undefined ? ctx.slaDue : slaDueAt({ severity: a.severity, receivedAt: a.receivedAt, reviewAt: a.reviewAt, workflowState: a.workflowState }, ctx.slaMinutes);
   return {
@@ -128,6 +133,7 @@ export function toInboxItem(
     incident: ctx.incident,
     scenario: ctx.scenario,
     triage: a.triage ? { disposition: a.triage.disposition, note: a.triage.note, triagedBy: a.triage.triagedBy, triagedAt: a.triage.triagedAt.toISOString() } : null,
+    mock: ((m) => (m ? { key: m.key, title: m.title, set: m.set } : null))(mockCaseOf(a.externalAlertId, ctx.mockCases ?? [])),
   };
 }
 
@@ -140,7 +146,9 @@ export class ListAlertInboxUseCase {
   constructor(
     private readonly inbox: IAlertInboxQuery,
     private readonly sla: ITriageSlaSource,
-    private readonly clock: () => Date = () => new Date()
+    private readonly clock: () => Date = () => new Date(),
+    /** Mock fixture catalog (lab test data): the `mock` filter and the per-alert mock label. */
+    private readonly mockCases: () => readonly MockAlertCase[] = () => []
   ) {}
 
   async execute(input: { tenantId: string; filters: AlertInboxFilters }): Promise<Result<{ items: InboxAlertItem[]; total: number; status: InboxStatus; sort: InboxSort }>> {
@@ -163,6 +171,7 @@ export class ListAlertInboxUseCase {
         f.attackType || f.scenario
           ? ATTACK_SCENARIOS.filter((s) => (!f.attackType || eq(s.attackType, f.attackType)) && (!f.scenario || eq(s.id, f.scenario) || eq(s.caseName, f.scenario))).map((s) => s.id)
           : undefined,
+      mockExternalIds: mockExternalIdMatch(f.mock?.trim() || undefined, this.mockCases()) ?? undefined,
       search: q || undefined,
       searchScenarioIds: q ? ATTACK_SCENARIOS.filter((s) => [s.id, s.attackType, s.caseName].some((v) => v.toLowerCase().includes(q))).map((s) => s.id) : undefined,
       from: f.from,
@@ -174,7 +183,7 @@ export class ListAlertInboxUseCase {
     });
     const now = this.clock();
     return Result.ok({
-      items: rows.map((r) => toInboxItem(r.alert, { incident: r.incident, scenario: findAttackScenario(r.scenarioId ?? undefined), slaMinutes, slaDue: r.slaDueAt, now })),
+      items: rows.map((r) => toInboxItem(r.alert, { incident: r.incident, scenario: findAttackScenario(r.scenarioId ?? undefined), slaMinutes, slaDue: r.slaDueAt, now, mockCases: this.mockCases() })),
       total,
       status,
       sort,

@@ -1,0 +1,35 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: POWERSHELL
+
+decisions:
+  - id: DEC-PS-001
+    stepRef: 1
+    question: "Is this PowerShell execution authorized administration or automation?"
+    context: >
+      Shown after Step 1 once the command is decoded.
+    options:
+      - value: "YES"
+        label: "Yes - sanctioned script"
+        leadsTo: CLOSE_AS_BENIGN
+      - value: "NO"
+        label: "No - malicious"
+        leadsTo: CONTAIN_PROCESS
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-PS-002
+    stepRef: 3
+    question: "Did a second-stage payload run or persistence get installed?"
+    context: >
+      Shown after Step 3 (Payload & Persistence).
+    options:
+      - value: "YES"
+        label: "Yes - host compromised beyond the script"
+        leadsTo: ISOLATE_AND_MALWARE_PROCEDURE
+      - value: "NO"
+        label: "No - stopped at the first stage"
+        leadsTo: CONTINUE_HUNTING
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

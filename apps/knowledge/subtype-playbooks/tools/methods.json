@@ -1,0 +1,609 @@
+{
+ "RB-IDENTITY-CREDENTIAL-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ identity ของ {{account_identity.provider}} แสดงรายการ session และ refresh token ของ {{account_identity.account_id}} แล้ว revoke ทุกรายการ บันทึกรายการก่อน revoke เพื่อใช้เทียบ และทำก่อนการเปลี่ยน credential เสมอ (session ใหม่ของเจ้าของที่ยืนยันตัวตนแล้วหลังขั้นตอนนี้ไม่ต้อง revoke)"
+ },
+ "RB-IDENTITY-CREDENTIAL-CONTAIN|S3": {
+  "basis": "IR_REVIEW_REQUIRED",
+  "requires": "IR ต้องกำหนดระดับการจำกัดการ sign-in (restrict หรือ disable) ตาม identity scope ที่องค์กรอนุมัติ"
+ },
+ "RB-IDENTITY-CREDENTIAL-CONTAIN|S4": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ขั้นตอนยืนยันตัวตนเจ้าของบัญชีและช่องทางส่ง credential ใหม่ที่องค์กรอนุมัติ"
+ },
+ "RB-SESSION-REVOKE|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือของ {{session.provider}} หรือแอปที่ออก session revoke session/token family {{session.session_ids_or_family}} ใน {{session.application_scope}} เฉพาะรายการที่ระบุ ไม่ revoke session ของบัญชีอื่น บันทึกรายการก่อน revoke แล้วตรวจจาก log ว่า request ที่ใช้ session นั้นถูกปฏิเสธหรือถูกบังคับ re-authentication"
+ },
+ "RB-SESSION-REVOKE|S3": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "วิธี access restriction หรือการบังคับ re-authentication ที่ identity provider/แอปนี้รองรับ เมื่อ revoke ทันทีไม่ได้"
+ },
+ "RB-SERVICE-SECRET-CONTAIN|S2": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "กลไกจำกัดการใช้ credential ตามชนิดของ platform และรายการ dependents ที่รู้จัก"
+ },
+ "RB-SERVICE-SECRET-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "สร้าง credential ใหม่ใน secret management ขององค์กรเป็นค่าใหม่ที่สุ่มสร้างเอง (ไม่คำนวณจากค่าเดิมและไม่นำค่าเดิมกลับมาใช้) บันทึกเฉพาะตัวระบุของ credential ใหม่ใน incident record ไม่บันทึกค่าลับ แล้วตรวจว่าตัวระบุใหม่ต่างจาก {{secret_credential.credential_id}}"
+ },
+ "RB-SERVICE-SECRET-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ส่งมอบ credential ใหม่ให้ {{secret_credential.dependent_services}} ทีละ service ตามลำดับที่วางไว้ผ่านช่องทางของ secret management (ไม่ส่งค่าลับทางแชตหรืออีเมล) ตรวจ health check ของแต่ละ service ก่อนไป service ถัดไป หยุดและแจ้ง IR ถ้ามี service ที่ไม่ผ่าน",
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-SERVICE-SECRET-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เมื่อ dependents ทุกตัวใช้ credential ใหม่และ health check ผ่านแล้ว จึง revoke {{secret_credential.credential_id}} เดิมใน secret management แล้วตรวจจาก log ว่าการใช้ค่าเดิมถูกปฏิเสธ (ห้ามทดสอบด้วยค่าจริง)",
+  "needs_prior": [
+   "S4"
+  ]
+ },
+ "RB-MFA-RECOVERY-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ MFA/identity ของบัญชี {{mfa_factor.account_id}} แสดงรายการ factor และ recovery entry แล้วถอนเฉพาะ {{mfa_factor.factor_or_recovery_id}} (ไม่ถอน factor หรือ recovery path ที่เจ้าของใช้อย่างถูกต้อง) บันทึกรายการก่อนถอน แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+ },
+ "RB-AUTH-CAMPAIGN-RESTRICT|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง throttling หรือ risk challenge ที่ {{auth_campaign_scope.control_point}} ให้ครอบคลุม {{auth_campaign_scope.authentication_scope}} ของ {{auth_campaign_scope.application}} ทุก source ใน campaign (ไม่ block IP เดียวและไม่ lockout บัญชีทั้งกลุ่ม) เริ่มจากระดับ challenge/throttle ก่อน แล้วเทียบอัตรา failed attempts กับอัตรา login สำเร็จของผู้ใช้ปกติก่อนเพิ่มความเข้ม"
+ },
+ "RB-LOGIN-AUTOMATION-RESTRICT|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง bot/risk control ที่ {{login_endpoint.control_point}} เฉพาะ {{login_endpoint.route}} สำหรับ client scope {{login_endpoint.client_scope}} เริ่มที่ challenge ก่อน block บันทึกค่าเดิมก่อนแก้ แล้วเทียบอัตรา login ของ client scope กับผู้ใช้ปกติ"
+ },
+ "RB-LOGIN-AUTOMATION-RESTRICT|S3": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "runbook ของแอปพลิเคชันสำหรับจำกัด session ที่เกิดจาก client scope นี้"
+ },
+ "RB-AUTH-SOURCE-RESTRICT|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-CREDENTIAL-MATERIAL-CONTAIN|S1": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-CREDENTIAL-MATERIAL-CONTAIN|S1c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด access ของ workload บน {{credential_material.host_id}} ต่อ {{credential_material.store_locator}} และ network egress ก่อน (ยังไม่ยุติ process) แล้วขออนุมัติ asset owner ก่อนยุติ process ตรวจว่า access ต่อที่เก็บถูกปฏิเสธและ dependency ที่ asset owner ระบุยังทำงาน"
+ },
+ "RB-CREDENTIAL-MATERIAL-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ถอนสิทธิ์ของ {{credential_material.accessor_identity}} ต่อ {{credential_material.store_locator}} เฉพาะคู่ identity/ที่เก็บนี้ ด้วยเครื่องมือจัดการสิทธิ์ของที่เก็บนั้น บันทึกสิทธิ์เดิมก่อนถอน แล้วทดสอบด้วย access check ว่าถูกปฏิเสธ"
+ },
+ "RB-CREDENTIAL-MATERIAL-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ทำรายการบัญชีที่ปรากฏใน material ({{credential_material.exposed_account_set}}) พร้อมอ้างอิงหลักฐานต่อรายการ คัดเฉพาะบัญชีที่มี unauthorized success หรือเสี่ยงตาม evidence แล้วส่งแต่ละบัญชีเข้าขั้นตอนจัดการ credential แยกกัน (ไม่ reset ทั้งชุด)"
+ },
+ "RB-WEB-C2-CONTAIN|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-WEB-C2-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-WEB-C2-CONTAIN|S5c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+ },
+ "RB-DNS-CHANNEL-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้งการบล็อกหรือ sinkhole ที่ DNS control เฉพาะ domain ใน {{dns_channel.domains}} (ไม่บล็อก zone ทั้งหมดและคง approved DNS) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก DNS log ว่า query ไปยัง domain เหล่านั้นถูกปฏิเสธหรือ sinkhole"
+ },
+ "RB-DNS-CHANNEL-CONTAIN|S4": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "รายการ approved resolver ขององค์กรและจุดบังคับ DNS egress ของเครื่องต้นทาง"
+ },
+ "RB-DNS-CHANNEL-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-DNS-CHANNEL-CONTAIN|S5c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+ },
+ "RB-CUSTOM-CHANNEL-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-CUSTOM-CHANNEL-CONTAIN|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-CUSTOM-CHANNEL-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-CUSTOM-CHANNEL-CONTAIN|S5c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ส่งคำขออนุมัติให้ asset owner ของ {{process.host_id}} พร้อมตัวระบุ Process ข้างต้น เหตุผล และผลกระทบต่อบริการ ห้ามยุติ process จนกว่าจะได้รับอนุมัติ ระหว่างรอให้คงการจำกัดที่ตั้งไว้แล้ว เมื่ออนุมัติแล้วจึงยุติตามขั้นยุติ process (ตรวจก่อนยุติ ไม่ยุติซ้ำ)"
+ },
+ "RB-RMM-ACCESS-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้ console ของ {{rmm_registration.tool}} หา session {{rmm_registration.registration_or_session_id}} ของ {{rmm_registration.host_id}} แล้วสั่ง terminate เฉพาะ session นั้น (ไม่แตะ registration ที่ได้รับอนุมัติ) ตรวจจากรายการ active ว่า session หายไป"
+ },
+ "RB-RMM-ACCESS-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน console ของ tenant {{rmm_registration.tenant_or_console}} เพิกถอนเฉพาะ registration หรือ access {{rmm_registration.registration_or_session_id}} (ไม่ลบ tenant หรือ registration อื่น) บันทึกสถานะก่อนถอน แล้วตรวจว่าสถานะเป็น revoked"
+ },
+ "RB-RMM-ACCESS-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "บน {{rmm_registration.host_id}} ปิด (disable) เฉพาะ service {{rmm_registration.service_name}} ของ tool ด้วยเครื่องมือจัดการ service ของเครื่อง หลังยืนยันว่าการถอน registration ที่ console ไม่เพียงพอ ตรวจว่า service เป็น disabled และไม่มี connection ไปยังเซิร์ฟเวอร์ของ tool"
+ },
+ "RB-WEB-TRANSFER-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้งการจำกัดที่ web proxy หรือ egress control ที่ตัดได้ตรงระดับ {{destination_endpoint.granularity}} สำหรับ {{destination_endpoint.destination}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path และ DNS control ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า request ถูกปฏิเสธ ถ้าตัดได้เพียงระดับกว้างกว่าให้แจ้ง IR ก่อนลงมือ"
+ },
+ "RB-WEB-TRANSFER-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "หยุด transfer session {{transfer_session.job_or_session_id}} ที่เครื่องมือหรือระบบที่รัน transfer นั้น แล้วยุติ process ที่ทำ upload โดยตรวจก่อนว่ายังรันอยู่บน {{process.host_id}} และยุติเฉพาะ process ตามตัวระบุ Process ข้างต้น (ไม่ใช้ PID อย่างเดียว) ตรวจว่าไม่มี outbound ต่อ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-WEB-TRANSFER-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้ egress control จำกัด outbound ของ {{host_workload.host_id}} ทั้งเครื่อง เว้นเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ทำต่อเมื่อการจำกัด destination และการยุติ session/process ไม่พอ ตรวจว่า outbound ถูกจำกัดและช่องทาง IR ยังใช้ได้",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-WEB-TRANSFER-CONTAIN|S4c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะ outbound ไปยัง destination ที่ระบุจากหลักฐาน ไม่จำกัด outbound ทั้งเครื่อง แล้วแจ้ง asset owner ของ {{host_workload.host_id}} พร้อมผลกระทบ ตรวจว่าไม่มี outbound ไป destination เดิมและ dependency ที่ asset owner ระบุยังใช้ได้"
+ },
+ "RB-CLOUD-DATA-ACCESS-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน console หรือเครื่องมือจัดการของ cloud account ที่เกี่ยวข้อง ยกเลิกเฉพาะ {{cloud_object_share.exposure_objects}} (link/ACL/grant) ของ {{cloud_object_share.object_id}} โดยไม่ลบ object บันทึก ACL เดิมก่อนแก้ แล้วตรวจจาก audit ว่าการเข้าถึงด้วย link/principal นั้นถูกปฏิเสธ"
+ },
+ "RB-CLOUD-DATA-ACCESS-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดสิทธิ์ของ principal {{cloud_object_share.principal_id}} ต่อ {{cloud_object_share.object_id}} เฉพาะคู่นี้ ด้วย ACL/policy ระดับ object (ไม่แก้ policy ทั้ง account) บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก audit ว่าถูกปฏิเสธ"
+ },
+ "RB-CLOUD-DATA-ACCESS-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจสถานะ copy job {{cloud_object_share.copy_job_id}} ก่อน ถ้ายังทำงานจึงสั่งหยุด (cancel) เฉพาะ job นี้ แล้วตรวจว่าเป็น stopped/cancelled และไม่มีการคัดลอกต่อ"
+ },
+ "RB-FILE-TRANSFER-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ transfer หยุด job/session {{transfer_session.job_or_session_id}} และ pause ตารางรันกับการ retry ของ job นั้น (ไม่ลบ job) บันทึกการตั้งค่าก่อน แล้วตรวจว่าสถานะ stopped และไม่มี session ใหม่"
+ },
+ "RB-FILE-TRANSFER-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดสิทธิ์ transfer ของ {{transfer_session.account_id}} เฉพาะ path/destination ที่เกี่ยวข้องตามหลักฐาน (ไม่ disable บัญชีทั้งบัญชีถ้ายังไม่มีหลักฐานว่าถูกยึด) บันทึกสิทธิ์เดิมก่อน แล้วทดสอบว่า transfer ไป destination นั้นถูกปฏิเสธ"
+ },
+ "RB-FILE-TRANSFER-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny จากต้นทางของ job ไปยัง {{transfer_session.destination}} เฉพาะ destination นี้ ที่จุดบังคับเครือข่ายซึ่งเห็นต้นทางจริง บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่าถูกปฏิเสธ"
+ },
+ "RB-MAIL-EXFIL-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน mail system ของ identity {{mail_path.identity_account_id}} ปิด (disable) เฉพาะ {{mail_path.path_objects}} ที่ไม่ได้รับอนุญาต (forwarding rule/delegate) ไม่ลบข้อความ บันทึกรายการก่อนแก้ แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+ },
+ "RB-MAIL-EXFIL-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "สั่ง hold queue {{mail_path.queue_id}} ที่รอส่งต่อ โดยไม่ลบข้อความ บันทึกจำนวนข้อความใน queue ก่อน แล้วตรวจว่าสถานะเป็น held และไม่มีข้อความออก"
+ },
+ "RB-MAIL-EXFIL-CONTAIN|S4": {
+  "basis": "IR_REVIEW_REQUIRED",
+  "requires": "IR ต้องกำหนดระดับการจำกัด identity ที่ถูกใช้ส่งต่อตาม identity scope ที่องค์กรอนุมัติ (และใช้ขั้นตอน Account Compromise หากมีหลักฐาน unauthorized authentication)"
+ },
+ "RB-ACTIVE-DAMAGE-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "บน {{share_session.file_server_host_id}} ใช้เครื่องมือจัดการ file server ตัดเฉพาะ write session {{share_session.session_ids}} ของ {{share_session.source_account_id}} ต่อ share {{share_session.share_name}} (ไม่ปิด share และไม่ตัด session อ่านของผู้อื่น) บันทึกรายการ session ก่อน แล้วตรวจว่าไม่มี write ใหม่จาก session ที่ตัด"
+ },
+ "RB-ACTIVE-DAMAGE-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-ACTIVE-DAMAGE-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้ ทำหลังยุติ session/process ที่เขียนแล้วไม่ได้ผล หรือเมื่อความเสียหายยังดำเนินอยู่",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-ACTIVE-DAMAGE-CONTAIN|S4c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะการเขียนไปยัง share ที่ถูกโจมตีและ outbound/east-west ที่ไม่จำเป็น โดยคง dependency ที่ asset owner ระบุ ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ของ {{host_workload.host_id}} ตรวจว่า file modification บน share หยุดและ dependency ยังใช้ได้"
+ },
+ "RB-ACTIVE-DAMAGE-CONTAIN|S5": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "เครื่องมือหรือขั้นตอน forensic ขององค์กรสำหรับเก็บ memory และ process list รวมถึงที่เก็บหลักฐาน"
+ },
+ "RB-PROPAGATION-PATH-RESTRICT|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง restriction เฉพาะ {{network_flow.protocol}}/{{network_flow.port}} จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ที่จุดบังคับเครือข่ายซึ่งเห็น path นี้ (ไม่ใช่ rule ทั้ง segment) โดยคง management/IR access ตาม approved access ขององค์กร (ตรวจรายการก่อน) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ผ่าน path นี้ถูกปฏิเสธ",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-PROPAGATION-PATH-RESTRICT|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-PROPAGATION-PATH-RESTRICT|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-PROPAGATION-PATH-RESTRICT|S5c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะ east-west service ที่ worm ใช้และ outbound ที่ไม่จำเป็น ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ของ {{host_workload.host_id}} ตรวจว่าไม่มี connection ผ่าน path และ dependency ที่จำเป็นยังใช้ได้"
+ },
+ "RB-BACKDOOR-CONTAIN|S3c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด outbound/channel ของ process ตามตัวระบุ Process ข้างต้นบน {{process.host_id}} ก่อน (ตัด channel ตามขั้นตอนถัดไป) แล้วส่งคำขออนุมัติ asset owner ก่อนยุติ process ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+ },
+ "RB-BACKDOOR-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ และตรวจ remote session ที่ผูกกับ process นั้น ยุติเฉพาะ session ที่ผูกกับ process นั้นเท่านั้น"
+ },
+ "RB-BACKDOOR-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow {{network_flow.source_host_id}} → {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้ บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ ถ้า flow เดิมยัง established อยู่ การตัด connection ต้องใช้เครื่องมือที่ระบุ connection ได้ ซึ่งแยกเป็นอีกขั้นตอน — ถ้ายังไม่ระบุเครื่องมือนั้น การตัดนี้ป้องกันได้เฉพาะ flow ใหม่"
+ },
+ "RB-STEALER-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-STEALER-CONTAIN|S2c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด outbound ของ process ตามตัวระบุ Process ข้างต้นและ access ต่อข้อมูลที่ถูกเก็บบน {{host_workload.host_id}} ก่อน แล้วขออนุมัติ asset owner ก่อนยุติ process ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+ },
+ "RB-STEALER-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้ เพื่อกันการส่งข้อมูลออกต่อ",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-STEALER-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-STEALER-CONTAIN|S7": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ขั้นตอนยืนยันตัวตนเจ้าของบัญชีและช่องทางส่ง credential ใหม่ที่องค์กรอนุมัติ"
+ },
+ "RB-MEMORY-EXECUTION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้ เพื่อตัด channel ของ execution นี้",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-MEMORY-EXECUTION-CONTAIN|S3c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตัดเฉพาะ channel ที่ผูกกับ execution ไปยัง {{network_flow.destination}} และจำกัด outbound ที่ไม่จำเป็น ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ของ {{host_workload.host_id}} ตรวจว่าไม่มี connection ไปยังปลายทางเดิม"
+ },
+ "RB-MEMORY-EXECUTION-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-MEMORY-EXECUTION-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-MAIL-CAMPAIGN-QUARANTINE|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน mail system ค้นหาข้อความด้วยเกณฑ์ของ {{message_set.message_ids_or_campaign_id}} ในขอบเขต {{message_set.mailbox_scope}} (รวมข้อความที่ถึง inbox แล้ว) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการข้อความที่ย้ายไว้ใน incident record และค้นหาซ้ำด้วยเกณฑ์เดิมเพื่อตรวจว่าไม่เหลือข้อความ active"
+ },
+ "RB-MAIL-CAMPAIGN-QUARANTINE|S3": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ความสามารถของ mail gateway/endpoint control ในการ block ตามตัวตนของ attachment (เช่น hash ชื่อ หรือชนิด) และข้อมูลที่ใช้ระบุ attachment"
+ },
+ "RB-MAIL-CAMPAIGN-QUARANTINE|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้ telemetry ที่มี (เช่น mail log และ endpoint log) หาผู้รับที่เปิด ดาวน์โหลด หรือรัน attachment แล้วประเมินแยกเป็นรายเครื่อง โดยอ้างอิงหลักฐานต่อรายการ ไม่ isolate ผู้รับทุกคน ผลคือรายชื่อพร้อม source ref เพื่อส่งต่อขั้นตอนของเครื่องหรือบัญชีที่ validated"
+ },
+ "RB-PHISHING-LINK-RESTRICT|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง block ที่ mail/web control ตามระดับ {{url_object.granularity}} ของ {{url_object.url_or_domain}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ path ต้องใช้เครื่องมือที่เห็น path และ DNS ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วทดสอบด้วย URL ว่าถูกบล็อกตาม log"
+ },
+ "RB-PHISHING-LINK-RESTRICT|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน mail system ค้นหาข้อความที่มี link นี้ในขอบเขต {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}}) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการข้อความที่ย้ายไว้ใน incident record และค้นหาซ้ำเพื่อตรวจว่าไม่เหลือข้อความ active"
+ },
+ "RB-HARVESTING-CONTAIN|S1": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง block ที่ mail/web control ตามระดับ {{url_object.granularity}} ของ {{url_object.url_or_domain}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ path ต้องใช้เครื่องมือที่เห็น path และ DNS ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วทดสอบด้วย URL ว่าถูกบล็อกตาม log"
+ },
+ "RB-HARVESTING-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน mail system ค้นหาข้อความที่นำไปสู่หน้านี้ในขอบเขต {{message_set.mailbox_scope}} ({{message_set.message_ids_or_campaign_id}}) แล้วย้ายเข้า quarantine โดยไม่ลบ เก็บรายการที่ย้ายไว้ใน incident record และค้นหาซ้ำเพื่อตรวจว่าไม่เหลือข้อความ active"
+ },
+ "RB-HARVESTING-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ identity ของ {{account_identity.provider}} แสดงรายการ session และ refresh token ของ {{account_identity.account_id}} แล้ว revoke ทุกรายการ บันทึกรายการก่อน revoke เพื่อใช้เทียบ และทำก่อนการเปลี่ยน credential เสมอ (session ใหม่ของเจ้าของที่ยืนยันตัวตนแล้วหลังขั้นตอนนี้ไม่ต้อง revoke)"
+ },
+ "RB-HARVESTING-CONTAIN|S4": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ขั้นตอนยืนยันตัวตนเจ้าของบัญชีและช่องทางส่ง credential ใหม่ที่องค์กรอนุมัติ"
+ },
+ "RB-OAUTH-GRANT-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ในส่วนจัดการของ {{oauth_grant.provider}} หา grant {{oauth_grant.grant_id}} ของ client {{oauth_grant.client_id}} สำหรับ principal {{oauth_grant.principal_id}} แล้วถอนเฉพาะ grant นั้น (ไม่ถอน grant อื่นของ client หรือ principal) บันทึก grant ก่อนถอน แล้วตรวจว่าไม่อยู่ในรายการ consent ของ principal"
+ },
+ "RB-OAUTH-GRANT-CONTAIN|S3": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ความสามารถของ provider ในการ revoke access/refresh token ที่ออกแล้วและวิธี invalidate token family"
+ },
+ "RB-OAUTH-GRANT-CONTAIN|S4": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "access restriction ที่ provider รองรับสำหรับ resource/principal/client นี้ จนกว่า token จะหมดอายุ"
+ },
+ "RB-BEC-CONTAIN|S1": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ผู้มีอำนาจของรายการธุรกิจและช่องทางติดต่อคู่ค้าที่องค์กรยืนยันแล้ว"
+ },
+ "RB-BEC-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใน mailbox {{mailbox_access.mailbox_id}} ปิด (disable) เฉพาะ {{mailbox_access.abused_objects}} ที่ยืนยันแล้วว่าไม่ได้รับอนุญาต (forwarding rule/delegate) บันทึกรายการก่อนแก้ แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+ },
+ "RB-SCRIPT-EXECUTION-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-SCRIPT-EXECUTION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-SCRIPT-EXECUTION-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-DOWNLOAD-EXECUTION-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้งการจำกัดที่ web/DNS/egress control ที่ตัดได้ตรงระดับ {{destination_endpoint.granularity}} สำหรับ {{destination_endpoint.destination}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path และ DNS control ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า request ถูกปฏิเสธ ถ้าตัดได้เพียงระดับกว้างกว่าให้แจ้ง IR ก่อนลงมือ"
+ },
+ "RB-DOWNLOAD-EXECUTION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-DOWNLOAD-EXECUTION-CONTAIN|S3b": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-REMOTE-SESSION-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ remote session ของ {{remote_session.destination_host_id}} หา session {{remote_session.session_id}} แล้วยุติเฉพาะ session นั้น บันทึกรายละเอียดก่อนยุติ แล้วตรวจว่าไม่อยู่ในรายการ session ที่ active"
+ },
+ "RB-REMOTE-SESSION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะ management path {{remote_session.protocol}} จาก {{remote_session.source_host_id}} ไป {{remote_session.destination_host_id}} ที่จุดบังคับเครือข่าย (ไม่ปิด remoting ทั้งองค์กร) โดยคง approved management/IR access ตามรายการขององค์กร (ตรวจรายการก่อน) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-REMOTE-SESSION-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ถูกสร้างจาก session นี้)"
+ },
+ "RB-PERSISTENCE-TRIGGER-DISABLE|S6": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-PERSISTENCE-TRIGGER-DISABLE|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-ELEVATED-EXECUTION-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก/จำกัด {{host_workload.host_id}} ผ่านเครือข่ายเพื่อหยุดการใช้ privileged context โดยคงเฉพาะช่องทาง IR และ admin ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า inbound/outbound ถูกจำกัดยกเว้นช่องทางที่คงไว้",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-ELEVATED-EXECUTION-CONTAIN|S2c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด entry path ที่ใช้ context นี้ก่อน แล้วยุติเฉพาะ privileged context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} (ตรวจก่อนว่ายัง active) ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ตรวจว่า context ไม่ active"
+ },
+ "RB-ELEVATED-EXECUTION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ทำงานใน privileged context)"
+ },
+ "RB-ELEVATED-EXECUTION-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะการเข้าถึง {{service_endpoint.service}} บน {{service_endpoint.host_id}} ที่ใช้ exploit ที่ {{service_endpoint.enforcement_point}} (ไม่ปิดบริการทั้งหมด; patch เป็น remediation แยก) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-LOCAL-ELEVATION-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ ด้วยเครื่องมือจัดการสิทธิ์ของระบบนั้น (ไม่ถอนสิทธิ์ผู้ดูแลทั้งระบบ) บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า elevation ของ principal ถูกปฏิเสธและผู้ดูแลที่อนุมัติยังใช้งานได้"
+ },
+ "RB-LOCAL-ELEVATION-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "หลังถอน entry แล้ว ตรวจว่า privileged session ของ context {{privileged_context.context_identity}} บน {{privileged_context.host_id}} ยัง active อยู่หรือไม่ ถ้ายังจึงยุติเฉพาะ session ที่ใช้ entry นั้น แล้วตรวจว่า context ไม่ active",
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ใช้เครื่องมือจัดการ task/service ของเครื่อง {{persistence_artifact.host_id}} สั่ง disable เฉพาะ {{persistence_artifact.artifact_locator}} (ไม่ลบรายการ และไม่ปิด scheduler/service manager ทั้งเครื่อง) แล้วตรวจสถานะว่าเป็น disabled"
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจสถานะของ {{persistence_artifact.artifact_locator}} ก่อน ถ้ายังเป็น running ให้ใช้เครื่องมือจัดการ task/service หยุดเฉพาะ instance นั้น (การ disable ไม่หยุด instance ที่ทำงานอยู่แล้ว)",
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S6": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S7": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "baseline ACL และรายชื่อ principal ที่องค์กรอนุมัติให้เขียนได้"
+ },
+ "RB-PRIVILEGED-TRIGGER-CONTAIN|S8": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "trusted approved configuration (baseline ที่อนุมัติ) และการยืนยันจาก IR ว่าเป็น false positive หรือพร้อมคืนค่า"
+ },
+ "RB-PRIVILEGED-CONTEXT-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (เฉพาะ process ที่ถือ privileged context)"
+ },
+ "RB-PRIVILEGED-CONTEXT-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ถอน privilege ต้นทาง {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} ที่ทำให้ impersonate ได้ เฉพาะรายการนี้ บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า impersonation ถูกปฏิเสธ"
+ },
+ "RB-PRIVILEGED-GRANT-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ถอน entry {{entitlement_grant.entitlement_entry}} ของ {{entitlement_grant.principal_id}} เฉพาะรายการนี้ ด้วยเครื่องมือจัดการสิทธิ์ของระบบนั้น (ไม่ถอนสิทธิ์ผู้ดูแลทั้งระบบ) บันทึก entry เดิมก่อนถอน แล้วทดสอบว่า elevation ของ principal ถูกปฏิเสธและผู้ดูแลที่อนุมัติยังใช้งานได้"
+ },
+ "RB-PRIVILEGED-GRANT-CONTAIN|S5": {
+  "basis": "IR_REVIEW_REQUIRED",
+  "requires": "IR ต้องกำหนดระดับการจำกัด actor ที่เปลี่ยน entitlement ตาม identity scope ที่องค์กรอนุมัติ (และใช้ขั้นตอน Account Compromise หากมีหลักฐาน unauthorized authentication)"
+ },
+ "RB-CLOUD-PRIVILEGE-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด trust/grant {{cloud_trust.trust_or_policy_ref}} เฉพาะส่วนที่มีหลักฐานต่อ {{cloud_trust.resources}} (ไม่ปรับ policy ทั้ง account) บันทึก policy เดิมก่อนแก้ แล้วตรวจจาก cloud audit ว่า assume/use ใหม่ถูกปฏิเสธ"
+ },
+ "RB-WEB-REQUEST-RESTRICT|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} ให้ตรวจ pattern UNION injection เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+ },
+ "RB-WEB-REQUEST-RESTRICT|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง rate-limit เฉพาะ {{web_route.route}} สำหรับ source scope {{web_route.source_scope}} ตามที่พบในหลักฐาน (ไม่ใช่ทั้งแอป) ที่ web control ที่ใช้ได้ บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่า request rate จาก scope ลดลง"
+ },
+ "RB-DB-ERROR-EXPOSURE-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แก้ response handler {{response_handler.handler_or_path}} ให้ส่งข้อความผิดพลาดทั่วไปออกภายนอก โดยคง internal error logging ไว้เต็มรูปแบบ ทำผ่าน change control ขององค์กรและทดสอบก่อน แล้วทดสอบ request เดิมว่า response ภายนอกเป็นข้อความทั่วไปและ internal log ยังบันทึก error"
+ },
+ "RB-DB-ERROR-EXPOSURE-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อจำกัด request ที่ probing เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+ },
+ "RB-SQLI-PROBING-RESTRICT|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อจำกัด input path ที่ถูกสำรวจ เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+ },
+ "RB-SQLI-PROBING-RESTRICT|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง throttling เฉพาะ {{web_route.route}} ให้ครอบคลุมทุก source ใน campaign scope {{web_route.source_scope}} (ไม่ block IP เดียว) บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่า request rate ของ scope ลดลง"
+ },
+ "RB-SQLI-TIMING-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด request path {{web_route.route}} / {{web_route.parameter}} ด้วย targeted rule หรือ rate-limit ที่ {{web_route.control_point}} เพื่อไม่ให้ query ใหม่ถูกสร้าง บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่ามีการจำกัดและไม่มี query ใหม่"
+ },
+ "RB-SQLI-TIMING-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ส่งให้ DBA ของ {{db_query_job.platform}}: ตัวระบุ query/session {{db_query_job.query_or_session_id}} ฐานข้อมูล {{db_query_job.database}} เวลาที่พบ และหลักฐานอ้างอิง ให้ DBA ยืนยันว่าตัวระบุตรงกับ query ที่ผิดปกติก่อน แล้ว cancel เฉพาะรายการนั้น (ไม่ cancel slow query อื่น) และแจ้งผลกลับ IR เพื่อบันทึกใน incident record"
+ },
+ "RB-DB-EGRESS-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{db_egress.db_host_id}} ไป {{db_egress.destination}} ({{db_egress.protocol}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ isolate DB ทั้งเครื่อง) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-DB-EGRESS-CONTAIN|S4": {
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-DB-EGRESS-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} เพื่อปิดเส้นทางที่ถูก inject เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+ },
+ "RB-STORED-PAYLOAD-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "สั่ง pause consumer/job {{stored_record_pipeline.consumer_or_job_id}} และ retry/ตารางรันของมัน (เฉพาะตัวนี้) บันทึกสถานะก่อน แล้วตรวจว่าไม่มีการรัน"
+ },
+ "RB-STORED-PAYLOAD-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก records {{stored_record_pipeline.record_ids}} และสำเนาใน queue ({{stored_record_pipeline.queued_copies_locator}}) ออกจากการประมวลผลด้วยเครื่องมือของ queue โดยเก็บต้นฉบับไว้เพื่อ forensic (ไม่ลบ) แล้วตรวจว่า queue ไม่มีสำเนา active และต้นฉบับยังอยู่",
+  "needs_prior": [
+   "S2"
+  ]
+ },
+ "RB-STORED-PAYLOAD-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "resume consumer/job {{stored_record_pipeline.consumer_or_job_id}} หลังยืนยันว่า records ที่ถูกกันถูกยกเว้นแล้ว ตรวจว่า job ทำงานและไม่ประมวลผล records ที่ hold",
+  "needs_prior": [
+   "S3"
+  ]
+ },
+ "RB-BATCH-QUERY-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง targeted rule ที่ control ของแอปพลิเคชันเฉพาะ source path {{db_driver_path.route}} ให้จำกัด statement ซ้อน เริ่มในโหมด detect/log เทียบกับ traffic ปกติก่อน block บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก log ว่ามีการจำกัดและไม่มี statement ซ้อนผ่าน"
+ },
+ "RB-BATCH-QUERY-CONTAIN|S3": {
+  "basis": "IR_REVIEW_REQUIRED",
+  "requires": "IR ต้องยืนยันว่า driver รองรับการปิด multi-statement และได้รับอนุมัติ change ตามขั้นตอนขององค์กร"
+ },
+ "RB-TRUSTED-BINARY-ABUSE-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (ไม่ลบหรือ block hash ของ binary ระบบ)"
+ },
+ "RB-TRUSTED-BINARY-ABUSE-CONTAIN|S2c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดผลของ instance ตามตัวระบุ Process ข้างต้นบน {{process.host_id}} ด้วย behavior control หรือ channel restriction ก่อน แล้วส่งคำขออนุมัติ asset owner ก่อนยุติ ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+ },
+ "RB-TRUSTED-BINARY-ABUSE-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-TRUSTED-BINARY-ABUSE-CONTAIN|S4": {
+  "basis": "ORG_INPUT_REQUIRED",
+  "requires": "ความสามารถ behavior control ขององค์กรและรูปแบบ arguments/effects ที่เป็น abuse ซึ่งระบุได้จากหลักฐาน"
+ },
+ "RB-TRUSTED-BINARY-ABUSE-CONTAIN|S5": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ (flow ที่ผูกกับ instance นี้)"
+ },
+ "RB-IMPOSTOR-PROCESS-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+ },
+ "RB-INJECTED-PROCESS-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "แยก {{host_workload.host_id}} ออกจากเครือข่ายด้วยเครื่องมือ isolate ของ endpoint หรือเครือข่าย โดยคงเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ตรวจว่า connection ออกถูกตัด ยกเว้นช่องทางที่คงไว้ เพื่อตัด channel ของ injected execution",
+  "requires_org": [
+   "approved_access"
+  ]
+ },
+ "RB-INJECTED-PROCESS-CONTAIN|S2c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัดเฉพาะ channel ที่ผูกกับ injected process ไปยัง {{network_flow.destination}} บน {{process.host_id}} ไม่ isolate ทั้งเครื่อง แล้วแจ้ง asset owner ตรวจว่าไม่มี connection ไปยังปลายทางเดิม"
+ },
+ "RB-INJECTED-PROCESS-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตั้ง deny เฉพาะ flow จาก {{network_flow.source_host_id}} ไป {{network_flow.destination}} ({{network_flow.protocol}}/{{network_flow.port}}) ที่จุดบังคับเครือข่ายซึ่งเห็น flow นี้จริง (ไม่ใช่ rule กว้างทั้งปลายทางหรือพอร์ต) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า attempt ใหม่ถูกปฏิเสธ"
+ },
+ "RB-INJECTED-PROCESS-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ ส่วน target process ที่ถูก inject ให้ยุติหลังได้รับอนุมัติตาม criticality ของ target เท่านั้น"
+ },
+ "RB-EXECUTION-CHAIN-CONTAIN|S2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ตรวจก่อนว่า process ตามตัวระบุ Process ข้างต้นยังรันอยู่บน {{process.host_id}} ถ้ายังรันจึงยุติเฉพาะ process นั้นด้วยตัวระบุ Process (ไม่ใช้ PID หรือชื่อ process อย่างเดียว) แล้วตรวจว่าไม่ถูกสร้างขึ้นใหม่ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ (ไม่ปิด application หลัก)"
+ },
+ "RB-EXECUTION-CHAIN-CONTAIN|S2c": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "จำกัด entry path ตามขั้นตอนถัดไปก่อน แล้วส่งคำขออนุมัติ asset owner ของ {{process.host_id}} ก่อนยุติ child ตามตัวระบุ Process ข้างต้น ห้ามยุติจนกว่าจะได้รับอนุมัติ"
+ },
+ "RB-EXECUTION-CHAIN-CONTAIN|S3": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ยุติเฉพาะ child process ตามตัวระบุ Process ลูกข้างต้นที่มีหลักฐาน lineage เชื่อมกับ process หลัก และตรวจก่อนว่ายังรันอยู่ ไม่ยุติ process อื่นที่ไม่มีหลักฐาน แล้วตรวจว่าไม่มี child ใหม่จาก process หลัก"
+ },
+ "RB-EXECUTION-CHAIN-CONTAIN|S4": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "เพิ่ม targeted rule ที่ {{web_route.control_point}} เฉพาะ {{web_route.route}} / {{web_route.parameter}} ของ {{web_route.application}} เพื่อจำกัดเส้นทางเข้าที่ใช้สั่งคำสั่งบนเครื่อง (OS command injection จัดการที่ขั้นตอนนี้ ไม่ใช่ขั้นตอน SQLi) เริ่มในโหมด detect/log เทียบกับ traffic ปกติ แล้วเปลี่ยนเป็น block หลังผ่านการตรวจและได้รับอนุมัติตามที่องค์กรกำหนด ตรวจว่า log แสดงการจำกัดตาม pattern และอัตรา error ของ route ปกติไม่เพิ่ม"
+ },
+ "RB-INVESTIGATE-MISSING-EVIDENCE|I2": {
+  "basis": "NEUTRAL_DERIVED",
+  "method": "ค้นหา target ที่ขาด ({{missing.target_list}}) จาก event และ asset inventory ที่อ้างอิงได้ โดยบันทึกแหล่งที่มาต่อค่า ไม่เดาหรือเติมค่าที่ไม่มีหลักฐาน แล้วส่งค่าที่ยืนยันกลับเข้าการประเมิน"
+ }
+}

@@ -9,7 +9,7 @@
 
 id: PB-STC-001
 name: Short-Term Containment
-version: "1.1"
+version: "1.2"
 status: ACTIVE
 owner: VIGIX Security Engineering
 
@@ -46,10 +46,12 @@ phases:
     name: Verify Containment
     output: Resolved / Not Resolved
 
-# MVP scope: 3 of 7 procedures implemented. The remaining 4 are declared
-# here as PLANNED so the Playbook Resolver can report a clear "no
-# procedure yet for this incident type" instead of silently matching
-# nothing.
+# 11 procedures implemented: the 3 MVP ones plus the 8 attack types of the
+# TC-01..TC-10 evaluation set (TC-01 -> BRUTE_FORCE, TC-02 -> MALWARE). New
+# procedure codes match the DB playbooks' incidentType so the YAML and the
+# runtime catalog name the same thing. WEB_ATTACK / LATERAL_MOVEMENT remain
+# PLANNED so the Playbook Resolver reports a clear "no procedure yet"
+# instead of silently matching nothing.
 procedures:
   - code: BRUTE_FORCE
     path: procedures/BRUTE_FORCE
@@ -62,10 +64,28 @@ procedures:
     status: ACTIVE
   - code: ACCOUNT_COMPROMISE
     path: procedures/ACCOUNT_COMPROMISE
-    status: PLANNED
+    status: ACTIVE
   - code: PHISHING
     path: procedures/PHISHING
-    status: PLANNED
+    status: ACTIVE
+  - code: POWERSHELL
+    path: procedures/POWERSHELL
+    status: ACTIVE
+  - code: SQL_INJECTION
+    path: procedures/SQL_INJECTION
+    status: ACTIVE
+  - code: COMMAND_AND_CONTROL
+    path: procedures/COMMAND_AND_CONTROL
+    status: ACTIVE
+  - code: SUSPICIOUS_PROCESS_EXECUTION
+    path: procedures/SUSPICIOUS_PROCESS_EXECUTION
+    status: ACTIVE
+  - code: DATA_EXFILTRATION
+    path: procedures/DATA_EXFILTRATION
+    status: ACTIVE
+  - code: PRIVILEGE_ESCALATION
+    path: procedures/PRIVILEGE_ESCALATION
+    status: ACTIVE
   - code: WEB_ATTACK
     path: procedures/WEB_ATTACK
     status: PLANNED
@@ -80,3 +100,11 @@ changelog:
   - version: "1.1"
     date: "2026-09-21"
     notes: Added BRUTE_FORCE, MALWARE, RANSOMWARE procedures (MVP scope).
+  - version: "1.2"
+    date: "2026-10-07"
+    notes: >
+      Added PHISHING, ACCOUNT_COMPROMISE, POWERSHELL, SQL_INJECTION,
+      COMMAND_AND_CONTROL, SUSPICIOUS_PROCESS_EXECUTION, DATA_EXFILTRATION and
+      PRIVILEGE_ESCALATION (attack types of the TC-01..TC-10 evaluation set).
+      Their containment.yaml uses the real Action Catalog codes (ACT-* / RB-*)
+      and the allowedActions of the matching DB playbook.

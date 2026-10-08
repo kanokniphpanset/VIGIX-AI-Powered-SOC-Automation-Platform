@@ -20,6 +20,7 @@ export function generateButtonLabel(state: GenerateState, hasRecommendation: boo
 export function generateErrorMessage(err: unknown): string {
   const code = typeof err === 'object' && err !== null && 'code' in err ? String((err as { code: unknown }).code) : 'UNKNOWN'
   if (code === 'AI_UNAVAILABLE') return tr('err.rec.AI_UNAVAILABLE')
+  if (code === 'PLAYBOOK_PROVENANCE_NOT_FOUND') return tr('err.rec.PLAYBOOK_PROVENANCE_NOT_FOUND')
   if (code === 'INVALID_AI_OUTPUT') return tr('err.INVALID_AI_OUTPUT')
   if (code === 'INSUFFICIENT_EVIDENCE') return tr('err.rec.INSUFFICIENT_EVIDENCE')
   if (code === 'NO_NEW_RECOMMENDATION') return tr('err.rec.NO_NEW_RECOMMENDATION')

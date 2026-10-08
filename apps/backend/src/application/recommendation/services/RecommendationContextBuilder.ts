@@ -1,6 +1,11 @@
+import { applicableProcedure, contextSignals, procedureTransitions } from "./ProcedureApplicability";
+import { spreadResponseOptions } from "./SpreadResponseCoverage";
+import { UNKNOWN_INCIDENT_PROCEDURE } from "./UnknownIncidentProcedure";
+import { IRetrievedKnowledgePort } from "../ports/IRetrievedKnowledgePort";
 import { Playbook } from "../../../domain/playbook/entities/Playbook.entity";
 import { PlaybookRevisionProvenance, PlaybookProvenanceError } from "../../../domain/playbook/PlaybookRevisionProvenance";
 import { IGenerationPlaybookCatalogReader } from "../ports/IGenerationPlaybookCatalogReader";
+import { IContainmentProcedureReader } from "../ports/IContainmentProcedureReader";
 import { incidentSeverity } from "../../../domain/incident/severity";
 import { IRecommendationContextRepository } from "../ports/IRecommendationContextRepository";
 import { IActionRepository } from "../../../domain/action/repositories/IActionRepository";
@@ -38,6 +43,10 @@ import { Result } from "../../../shared/result/Result";
  * (domain/knowledge), the ACTION_COMPLIANCE policies in force for it, and the deterministic evidence check
  * (ActionEvidence.ts) — which recorded targets satisfy every required evidence item. An Action that is not
  * applicable or whose evidence is not recorded is shown to the AI as not recommendable; the validator enforces it.
+ *
+ * Attack-specific containment procedure: the incident's attack type selects the YAML procedure (objective, strategy,
+ * ordered CHECK / ACTION / MANUAL steps, conditions, decisions, verification) through IContainmentProcedureReader. It
+ * is the AI's primary strategy source; the DB playbook still decides which Actions exist for the incident.
  */
 export class RecommendationContextBuilder {
   constructor(
@@ -50,8 +59,12 @@ export class RecommendationContextBuilder {
     /** SOC response setup: confirmed incident type (-> playbook) and the case / group guidance (-> allowed actions). */
     private readonly responseSetup?: Pick<IncidentResponseSetupService, "resolve">,
     /** ACTION_COMPLIANCE policies (evidence an Action requires). Absent -> only the Action's own knowledge applies. */
-    private readonly compliancePolicy?: Pick<PolicyEvaluator, "actionCompliance">,
-    private readonly generationCatalogReader?: IGenerationPlaybookCatalogReader
+    private readonly compliancePolicy?: Pick<PolicyEvaluator, "actionCompliance"> & Partial<Pick<PolicyEvaluator, "responseGuidance">>,
+    private readonly generationCatalogReader?: IGenerationPlaybookCatalogReader,
+    /** Attack-specific containment procedure (YAML knowledge). Absent -> the context carries no procedure. */
+    private readonly procedureReader?: IContainmentProcedureReader,
+    /** Knowledge retrieved for an incident without an attack-specific playbook (UNKNOWN_INCIDENT). Optional. */
+    private readonly knowledgeRetriever?: IRetrievedKnowledgePort
   ) {}
 
   /** Provenance stays outside the DTO supplied to both AI and the deterministic validator. */
@@ -86,7 +99,17 @@ export class RecommendationContextBuilder {
     const playbooks = setup ? [] : generationCatalog ?? (this.playbookRepository ? await this.playbookRepository.findAll(tenantId) : []);
     const selected = setup?.isSuccess ? setup.value.selected : this.playbookSelector.select(playbooks, mitreMappings.map((m) => m.techniqueId));
     const guidance = setup?.isSuccess ? setup.value.effective : null;
-    const playbook = selected && guidance ? { ...selected, allowedActions: selected.allowedActions.filter((a) => guidance.allowedActions.includes(a)) } : selected;
+    let playbook = selected && guidance ? { ...selected, allowedActions: selected.allowedActions.filter((a) => guidance.allowedActions.includes(a)) } : selected;
+    const rehunt = await this.contextRepository.getRehuntContext?.(incidentId, tenantId, incident.investigationNumber) ?? null;
+    const spread = playbook && rehunt?.spreadDetected && rehunt.result === "NOT_RESOLVED" && this.compliancePolicy?.responseGuidance
+      ? await this.compliancePolicy.responseGuidance(tenantId, {
+          incidentType: playbook.incidentType, severity: incidentSeverity(incident),
+          spreadDetected: true, verificationResult: "NOT_RESOLVED",
+        })
+      : null;
+    if (playbook && spread?.allowedActions) {
+      playbook = { ...playbook, allowedActions: playbook.allowedActions.filter(code => spread.allowedActions!.includes(code)) };
+    }
     const runbookById = new Map(runbooks.map((r) => [r.id, r]));
     const actionProcedures: RecommendationContextActionProcedure[] = [];
     for (const code of playbook?.allowedActions ?? []) {
@@ -110,6 +133,7 @@ export class RecommendationContextBuilder {
       });
     }
 
+    const attackType = attackTypeForIncidentType(playbook?.incidentType);
     const context: RecommendationContextDto = {
       incidentId: incident.incidentId,
       investigationNumber: incident.investigationNumber,
@@ -168,18 +192,40 @@ export class RecommendationContextBuilder {
           verificationCriteria: r.verificationCriteria,
         })),
       incidentType: playbook?.incidentType ?? null,
-      attackType: attackTypeForIncidentType(playbook?.incidentType),
+      attackType,
       playbook,
+      containmentProcedure: null,
       actionProcedures,
       socGuidance: guidance ? { source: guidance.source, allowedActions: playbook?.allowedActions ?? [], instructions: guidance.instructions } : null,
       previousSteps,
+      rehunt,
+      spreadResponse: spread && spread.policies.some(code => code.startsWith("SPREAD-"))
+        ? { policies: spread.policies, instructions: spread.notes, allowedActions: playbook?.allowedActions ?? [], newHosts: rehunt?.newHosts ?? [], uncoveredHosts: [] }
+        : null,
     };
+
+    // The procedure is gated by the finished context's evidence signals, so it is attached after the context exists.
+    // No attack-specific playbook -> UNKNOWN_INCIDENT: the built-in investigation-only procedure and whatever
+    // knowledge was retrieved; never a guessed containment.
+    context.signals = [...contextSignals(context)];
+    if (playbook) {
+      context.containmentProcedure = applicableProcedure(attackType && this.procedureReader ? this.procedureReader.read(attackType) : null, context);
+      context.transitions = procedureTransitions(context.containmentProcedure, context);
+    } else {
+      context.investigationOnly = true;
+      context.containmentProcedure = UNKNOWN_INCIDENT_PROCEDURE;
+      context.retrievedKnowledge = (await this.knowledgeRetriever?.retrieve(context)) ?? [];
+    }
 
     // Applicability + evidence need the finished context (this cycle's IOCs, evidence rows, affected hosts).
     for (const p of actionProcedures) {
       const knowledge = findActionKnowledge(p.actionCode);
       p.applicable = context.attackType ? !!knowledge?.applicableAttackTypes.includes(context.attackType as never) : true;
       p.evidence = { ...evaluateActionEvidence(context, p.actionCode, p.compliance?.requiredEvidence ?? []), analystConfirmed: knowledge?.analystConfirmed ?? [] };
+    }
+
+    if (context.spreadResponse) {
+      context.spreadResponse.uncoveredHosts = spreadResponseOptions(context).filter(group => group.options.length === 0).map(group => group.host);
     }
 
     return Result.ok(context);

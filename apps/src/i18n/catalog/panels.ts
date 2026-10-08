@@ -86,6 +86,7 @@ export const panels = {
   'rta.by': ['ตัดสินใจและลงมือโดย {role}', 'decided and executed by {role}'],
   'rta.view': ['ดู Response Ticket →', 'View response ticket →'],
   'rta.investigationOnly': ['ขั้นนี้เป็นการสืบสวนเท่านั้น: ไม่มีการลงมือ ไม่มี Ticket', 'Investigation-only step: no response action, no ticket.'],
+  'rta.manualOnly': ['มาตรการที่ VIGIX สั่งเองไม่ได้: ทีมผู้รับผิดชอบทำเองตามขั้นตอน ไม่มี Ticket', 'Manual control VIGIX cannot execute: carried out by the responsible team, no ticket.'],
   'rta.notSent': ['ยังไม่ได้ส่งให้ IR', 'Not sent to IR yet.'],
   // approval chain (legacy)
   'ac.approved': ['อนุมัติแล้ว', 'Approved'],

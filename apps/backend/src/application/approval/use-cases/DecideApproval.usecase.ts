@@ -164,7 +164,7 @@ export class DecideApprovalUseCase {
         objective: s.objective,
         target: plan?.target ?? s.target,
         reason: s.reason,
-        instructions: s.instructions.map((i) => ({ order: i.order, instruction: i.instruction, target: i.target, expectedResult: i.expectedResult })),
+        instructions: s.instructions.map((i) => ({ order: i.order, instruction: i.instruction, target: i.target, expectedResult: i.expectedResult, ...(i.impact ? { impact: i.impact } : {}), ...(i.verify ? { verify: i.verify } : {}), ...(i.manualOwner ? { manualOwner: i.manualOwner } : {}), ...(i.method ? { method: i.method, methodKind: i.methodKind } : {}), ...(i.preconditions?.length ? { preconditions: i.preconditions } : {}), ...(i.rollback ? { rollback: i.rollback } : {}), ...(i.note ? { note: i.note } : {}) })),
         expectedResult: s.expectedResult,
         verificationCriteria: s.verificationCriteria,
       })),

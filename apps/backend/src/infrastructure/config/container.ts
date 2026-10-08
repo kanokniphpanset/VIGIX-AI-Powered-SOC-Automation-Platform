@@ -104,6 +104,11 @@ import { SocTriageController } from "../../presentation/http/controllers/SocTria
 import { IncidentAssignmentService } from "../../application/incident/services/IncidentAssignmentService";
 import { SLAEvaluator } from "../policy-engine/SLAEvaluator";
 import { ResourceAssetCriticalityProvider } from "../assets/ResourceAssetCriticalityProvider";
+import { ContainmentProcedureLoader } from "../knowledge/ContainmentProcedureLoader";
+import { SubtypeKnowledgeLoader } from "../knowledge/SubtypeKnowledgeLoader";
+import { SubtypeRecommendationService } from "../../application/subtype/SubtypeRecommendationService";
+import { AgentSubtypeNarrator } from "../ai/AgentSubtypeNarrator";
+import { PrismaRecommendationAuditRepository } from "../database/postgres/repositories/RecommendationAuditRepository.prisma";
 
 // Recommendation AI agent + validator (infrastructure)
 import { FakeRecommendationAgent } from "../ai/FakeRecommendationAgent";
@@ -166,6 +171,8 @@ import { GetRecommendationUseCase } from "../../application/recommendation/use-c
 import { ListRecommendationsUseCase } from "../../application/recommendation/use-cases/ListRecommendations.usecase";
 import { ValidateRecommendationUseCase } from "../../application/recommendation/use-cases/ValidateRecommendation.usecase";
 import { LoginUseCase } from "../../application/identity/use-cases/Login.usecase";
+import { ChangePasswordUseCase } from "../../application/identity/use-cases/ChangePassword.usecase";
+import { ChangeEmailUseCase } from "../../application/identity/use-cases/ChangeEmail.usecase";
 import { RequestApprovalUseCase } from "../../application/approval/use-cases/RequestApproval.usecase";
 import { DecideApprovalUseCase } from "../../application/approval/use-cases/DecideApproval.usecase";
 import { ManualDecisionUseCase } from "../../application/approval/use-cases/ManualDecision.usecase";
@@ -200,6 +207,8 @@ import { KnowledgeSearchController } from "../../presentation/http/controllers/K
 import { ResponseController } from "../../presentation/http/controllers/ResponseController";
 import { VerificationController } from "../../presentation/http/controllers/VerificationController";
 import { SiemInboundWebhookController } from "../../presentation/http/webhooks/siem-inbound.webhook";
+import { FileMockAlertCatalog } from "../mock-alerts/FileMockAlertCatalog";
+import { SendMockAlertUseCase } from "../../application/alert/use-cases/SendMockAlert.usecase";
 import { OrchestratorCallbackController } from "../../presentation/http/webhooks/orchestrator-callback.webhook";
 import { PrismaInAppNotificationRepository } from "../database/postgres/repositories/InAppNotificationRepository.prisma";
 import { InAppNotifier, InAppRecordingDispatcher } from "../../application/notification/services/InAppNotifier";
@@ -231,6 +240,7 @@ const recommendationContextRepository = new PrismaRecommendationContextRepositor
 const auditLogger = new AuditLogger(prisma);
 // Analyst-set lab test-scenario labels on alerts (Alert Inbox search/filter).
 const alertScenarioRepository = new PrismaAlertScenarioRepository(prisma);
+export const mockAlertCatalog = new FileMockAlertCatalog();
 const authRepository = new PrismaAuthRepository(prisma);
 const approvalRepository = new PrismaApprovalRepository(prisma);
 const responsePlanRepository = new PrismaResponsePlanRepository(prisma);
@@ -403,7 +413,9 @@ const recommendationContextBuilder =
     { resolve: (incidentId: string, tenantId: string, catalog?: Playbook[]) => incidentResponseSetupService.resolve(incidentId, tenantId, catalog) },
     // ACTION_COMPLIANCE policies (POL-A02 / POL-A03): evidence each Action requires.
     policyEvaluator,
-    new PrismaGenerationPlaybookCatalogReader(prisma)
+    new PrismaGenerationPlaybookCatalogReader(prisma),
+    // Attack-specific containment procedure (apps/knowledge YAML): objective, strategy, CHECK / ACTION / MANUAL steps.
+    new ContainmentProcedureLoader()
   );
 
 const recommendationValidator =
@@ -590,7 +602,17 @@ const generateRecommendationUseCase =
     recommendationValidator,
     recommendationRepository,
     auditLogger,
-    atomicWorkflow
+    atomicWorkflow,
+    // Subtype knowledge (apps/knowledge/subtype-playbooks): SUBTYPE_KNOWLEDGE_MODE=off|shadow|enforce (default shadow = evaluate + audit only,
+    // legacy output unchanged). enforce additionally requires VALID, IR-reviewed knowledge (see deployability()); otherwise it falls back to shadow.
+    {
+      service: new SubtypeRecommendationService(new SubtypeKnowledgeLoader(), recommendationContextRepository, new ResourceAssetCriticalityProvider()),
+      audits: new PrismaRecommendationAuditRepository(prisma),
+      actions: actionRepository,
+      runbooks: runbookRepository,
+      // The AI may only phrase the summary of an approved plan and its answer is reviewed; off by default (no actual-LLM verification yet).
+      narrator: process.env.SUBTYPE_LLM_NARRATION === "true" ? new AgentSubtypeNarrator(recommendationAgent) : undefined,
+    }
   );
 
 const getRecommendationUseCase =
@@ -720,7 +742,7 @@ export const alertController =
     listAlertsUseCase,
     getAlertByIdUseCase,
     ingestAlertFromSiemUseCase,
-    new ListAlertInboxUseCase(alertInboxQuery, policyEvaluator),
+    new ListAlertInboxUseCase(alertInboxQuery, policyEvaluator, undefined, () => mockAlertCatalog.list()),
     new GetAlertViewUseCase(alertRepository, incidentRepository, policyEvaluator, alertScenarioRepository)
   );
 
@@ -809,11 +831,12 @@ export const recommendationController =
     listRecommendationsUseCase,
     validateRecommendationUseCase,
     sendRecommendationToIrUseCase,
-    atomicWorkflow.wrap(new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger), "recommendation")
+    atomicWorkflow.wrap(new RejectRecommendationUseCase(recommendationRepository, responsePlanRepository, incidentRepository, auditLogger), "recommendation"),
+    new PrismaRecommendationAuditRepository(prisma)
   );
 
 export const authController =
-  new AuthController(loginUseCase);
+  new AuthController(loginUseCase, new ChangePasswordUseCase(authRepository), new ChangeEmailUseCase(authRepository));
 
 export const approvalController =
   new ApprovalController(
@@ -975,6 +998,10 @@ export const runIncidentAiAnalysisUseCase = new RunIncidentAiAnalysisUseCase(
   new GetIncidentAiAnalysisUseCase(recommendationContextRepository),
   auditLogger
 );
+
+// Mock alert fixtures (resources/mock-attacks-tc, resources/mock-attacks) — lab test data sent through the same
+// Wazuh normalization + ingestion as the real webhook (see SendMockAlertUseCase / mock-alert.routes.ts).
+export const sendMockAlertUseCase = new SendMockAlertUseCase(mockAlertCatalog, siemAdapters.wazuh!, ingestAlertFromSiemUseCase, auditLogger);
 
 export const setAlertScenarioUseCase = new SetAlertScenarioUseCase(alertRepository, alertScenarioRepository, auditLogger);
 

@@ -1,10 +1,17 @@
 import { PrismaClient } from "@prisma/client";
-import { IActionRepository, NewActionInput, UpdateActionInput } from "../../../../domain/action/repositories/IActionRepository";
+import { IActionRepository, NewActionInput, UpdateActionInput, ActionRunbookRelationshipError } from "../../../../domain/action/repositories/IActionRepository";
 import { Action } from "../../../../domain/action/entities/Action.entity";
 import { ActionMapper } from "../mappers/Action.mapper";
 
 export class PrismaActionRepository implements IActionRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  private async validateRunbookOwnership(runbookId: string | null | undefined, tenantId: string): Promise<void> {
+    if (runbookId === null || runbookId === undefined) return;
+    const runbook = await this.prisma.runbook.findUnique({ where: { id: runbookId }, select: { tenantId: true } });
+    if (!runbook) throw new ActionRunbookRelationshipError("RUNBOOK_NOT_FOUND");
+    if (runbook.tenantId !== tenantId) throw new ActionRunbookRelationshipError("ACTION_RUNBOOK_TENANT_MISMATCH");
+  }
 
   async findById(id: string, tenantId: string): Promise<Action | null> {
     const raw = await this.prisma.action.findFirst({ where: { id, tenantId } });
@@ -28,7 +35,7 @@ export class PrismaActionRepository implements IActionRepository {
   }
 
   async create(input: NewActionInput): Promise<Action> {
-    if (input.runbookId) await this.prisma.runbook.findFirstOrThrow({ where: { id: input.runbookId, tenantId: input.tenantId } });
+    await this.validateRunbookOwnership(input.runbookId, input.tenantId);
     const raw = await this.prisma.action.create({
       data: {
         tenantId: input.tenantId,
@@ -45,6 +52,7 @@ export class PrismaActionRepository implements IActionRepository {
   }
 
   async update(id: string, tenantId: string, input: UpdateActionInput): Promise<Action> {
+    await this.validateRunbookOwnership(input.runbookId, tenantId);
     const raw = await this.prisma.action.update({
       where: { id, tenantId },
       data: {

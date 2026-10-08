@@ -1,0 +1,128 @@
+# schemas.yaml — shape of every record in families/*.yaml (documentation + the contract tools/validate.mjs enforces).
+
+version: "2.0.0"
+
+evidence_declaration:   # families/*.yaml -> evidence[]  (catalog entry; the INCIDENT instance is evidence_record below)
+  id: "snake_case, globally unique"
+  description: string
+  confirm: "Thai, how an analyst confirms it (used by ACT-INVESTIGATE-MISSING-EVIDENCE)"
+  may_be_authorized: "bool - true when an approved/benign explanation exists (authorization_status is meaningful)"
+
+evidence_record:        # runtime instance built per incident (§3.1) - input to the policy evaluator
+  evidence_id: "declared id"
+  evidence_type: string
+  source_event_refs: ["event/alert ids"]
+  observed_at: "ISO8601 or {from,to}"
+  entities: [{role: "attacker_source|victim_service|affected_host|process|account|...", ref: string}]
+  observed_fact: string
+  correlation_lineage: "required when the evidence is a chain (record->consumer->query, request->app->shell, command->download->payload)"
+  authorization_status: "AUTHORIZED | UNAUTHORIZED | UNKNOWN"
+  status: "PRESENT | ABSENT | UNKNOWN   (not found in supplied data != did not happen)"
+  provenance: "who/what produced it (Wazuh rule id, enrichment, analyst)"
+
+target_record:          # runtime instance (§3.2); the TYPE contract is contracts/target-types.yaml
+  target_type: "key of target_types"
+  fields: "values for required_identity_fields/optional_fields (secrets by id only)"
+  role: string
+  scope: string
+  source_evidence_refs: [evidence_id]
+  validated: bool
+  validation_findings: [string]
+
+action:                 # families/*.yaml -> actions[]
+  action_id: "ACT-<runbook suffix>; 1:1 with the Runbook of the same suffix for reference actions"
+  action_name: string
+  objective: string
+  phase: "CONTAINMENT | INVESTIGATION | REMEDIATION | RECOVERY"
+  containment_stage: "STOP_ACTIVE | CLOSE_PATH | IDENTITY_EXPOSURE | CLEANUP_OBJECT | NONE   (default ordering hint; the playbook gives the real reason)"
+  supported_target_types: [target_type]
+  evidence_requirements: [evidence_id]      # must be a superset of evidence ids used by the action's ACTION_GATE policies
+  target_requirements: [target_type]
+  runbook_refs: [runbook_id]
+  legacy_action_refs: ["old ACT-* codes this replaces/maps to (migration)"]
+  execution_constraints: [string]
+
+playbook:               # families/*.yaml -> playbooks[]  (one per reference subtype)
+  playbook_id: "PBK-<subtype id>"
+  attack_family: string
+  subtype_id: "from reference-registry"
+  subtype_name: string
+  classification_evidence: "predicate (selects the subtype; does NOT authorize any action - GL-1)"
+  insufficient_evidence: [string]
+  scenarios:
+    - scenario_id: "SC-..."
+      description: string
+      when: "optional extra predicate (e.g. delivered vs executed)"
+      ordered_action_refs:
+        - action_id: string
+          condition: "POLICY_ELIGIBLE | predicate (extra, scenario-specific)"
+          depends_on: [action_id]
+          order_reason: string
+          parallel_allowed: bool
+          fallback_action: "action_id | null"
+  policy_refs: [policy_id]
+  related_branches: [{subtype_id: string, open_when: predicate, gate_policy: "policy_id (BRANCH_GATE) optional"}]
+  stop_escalation: [{when: predicate, then: "STOP | ESCALATE_IR | MANUAL_OWNER", note: string}]
+  version: string
+  provenance: object
+
+policy:                 # families/*.yaml -> policies[]
+  common: {policy_id: string, rule_type: "ACTION_GATE | BRANCH_GATE | GLOBAL_PROHIBITION | OUTPUT_CONSTRAINT | CLASSIFICATION_RULE", covers: "[reference policy_item / global principle ids]", reason: string, provenance: object}
+  ACTION_GATE:
+    action_id: string
+    applicable_subtypes: ["subtype ids or '*'"]
+    required_evidence: predicate
+    required_targets: predicate
+    prohibitions: [{id: string, reason: string, when: predicate}]
+    authorization_gate: ["evidence ids that must be UNAUTHORIZED; AUTHORIZED => PROHIBITED; UNKNOWN => NEEDS_EVIDENCE"]
+    authority_requirements: "predicate over authority.* (ADDITIONAL to the implicit ir_execute)"
+    tool_capability_requirements: [capability ids]   # evaluated as capability.<id>.supported == true
+    criticality_constraints: [{when: predicate, effect: "USE_VARIANT | REQUIRE_AUTHORITY | PROHIBIT", variant: string, authority: string, reason: string}]
+    fallback: "{action_id, when} | null"
+  BRANCH_GATE: {branch_subtype: string, applicable_subtypes: [subtype], required_evidence: predicate, prohibitions: [...]}
+  GLOBAL_PROHIBITION: {applies_to: ALL_ACTIONS, prohibitions: [...]}
+  OUTPUT_CONSTRAINT: {checks: [{check_id: string, rule: string}]}
+  CLASSIFICATION_RULE: {statements: [string]}
+
+runbook:                # families/*.yaml -> runbooks[]
+  runbook_id: "RB-... (reference ids preserved)"
+  supported_action_ids: [action_id]
+  supported_subtypes: [subtype]
+  objective: string
+  prerequisites: [string]
+  required_evidence: [evidence_id]
+  required_targets: [target_type]
+  required_capabilities: [capability_id]
+  tool_variants: "[{variant_id, tool: TOOL_MAPPING_REQUIRED, note}]  - no invented menus/commands/APIs while ORGANIZATION_CONTEXT tool mapping is MISSING"
+  required_authority: [authority_id]
+  operational_impact: string
+  ordered_steps:
+    - step_id: string
+      fold: "optional bool - precheck/snapshot step the renderer folds into the next numbered step"
+      variant: "optional: standard | critical_workload | ... (absent = all variants)"
+      instruction: "Thai; may contain {{target_type.field}} placeholders, each must exist in target-types.yaml (plus {{missing.*}})"
+      include_runbook: "optional runbook_id composed as a sub-procedure (e.g. RB-QUARANTINE-FILE-OBJECT)"
+      condition: "optional predicate; if not TRUE the step is OMITTED and its missing inputs are listed (never rendered with placeholders)"
+      expected_result: string
+      verify: string
+      on_failure: string
+      rollback: "optional string"
+      impact: "optional - shown to the user only when it matters to the decision"
+  verification: [string]
+  failure_handling: [string]
+  rollback: [string]
+  variants: "optional [{variant_id, description}]"
+
+recommendation_audit_record:   # §7.1 - stored separately, never appended to user text unless audit details are requested
+  incident_id: string
+  selected_branches: [{subtype_id, scenario_id, evidence_refs}]
+  policy_decisions: [{action_id, policy_ids, decision, reasons, flags}]
+  resolved_targets: [target_record]
+  action_ids: [string]
+  runbook_versions: [{runbook_id, version}]
+  dependency_order: [{action_id, depends_on, reason}]
+  missing_evidence: [evidence_id]
+  missing_targets: [target_type]
+  capability_checks: object
+  authority_checks: object
+  knowledge_refs: [string]

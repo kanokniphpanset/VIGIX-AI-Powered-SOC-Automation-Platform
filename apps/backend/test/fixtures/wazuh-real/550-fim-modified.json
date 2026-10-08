@@ -1,0 +1,87 @@
+{
+  "syscheck": {
+    "uname_after": "wazuh",
+    "mtime_after": "2026-09-29T09:47:54",
+    "inode_before": 384571,
+    "size_after": "1708",
+    "gid_after": "999",
+    "mode": "scheduled",
+    "path": "/etc/ssl/filebeat.key",
+    "sha1_after": "60eec3d9cc099b4c65392077ad323e5ef7ca1466",
+    "changed_attributes": [
+      "inode"
+    ],
+    "gname_after": "wazuh",
+    "uid_after": "999",
+    "perm_after": "r--------",
+    "event": "modified",
+    "md5_after": "dbfeebfedf8718984a9debeb0e07e5be",
+    "sha256_after": "9867cf89ad9283420d16c76b19b799ed21a7c23018027b3de9fe5a769e6b5325",
+    "inode_after": 384571
+  },
+  "agent": {
+    "name": "wazuh.manager",
+    "id": "000"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "rule": {
+    "mail": false,
+    "level": 7,
+    "pci_dss": [
+      "11.5"
+    ],
+    "hipaa": [
+      "164.312.c.1",
+      "164.312.c.2"
+    ],
+    "tsc": [
+      "PI1.4",
+      "PI1.5",
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "Integrity checksum changed.",
+    "groups": [
+      "ossec",
+      "syscheck",
+      "syscheck_entry_modified",
+      "syscheck_file"
+    ],
+    "nist_800_53": [
+      "SI.7"
+    ],
+    "gdpr": [
+      "II_5.1.f"
+    ],
+    "firedtimes": 3,
+    "mitre": {
+      "technique": [
+        "Stored Data Manipulation"
+      ],
+      "id": [
+        "T1565.001"
+      ],
+      "tactic": [
+        "Impact"
+      ]
+    },
+    "id": "550",
+    "gpg13": [
+      "4.11"
+    ]
+  },
+  "decoder": {
+    "name": "syscheck_integrity_changed"
+  },
+  "full_log": "File '/etc/ssl/filebeat.key' modified\nMode: scheduled\nChanged attributes: inode\nOld inode was: '384571', now it is '2814749767491131'\n",
+  "input": {
+    "type": "log"
+  },
+  "location": "syscheck",
+  "id": "1791384195.4571",
+  "timestamp": "2026-10-07T14:43:15.252+0000"
+}

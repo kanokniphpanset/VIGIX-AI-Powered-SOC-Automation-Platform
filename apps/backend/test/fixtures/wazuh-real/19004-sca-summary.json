@@ -1,0 +1,57 @@
+{
+  "agent": {
+    "ip": "192.168.239.129",
+    "name": "vigix-win10-ps",
+    "id": "010"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "sca": {
+      "score": "32",
+      "total_checks": "394",
+      "file": "cis_win10_enterprise.yml",
+      "policy_id": "cis_win10_enterprise",
+      "invalid": "4",
+      "description": "This document provides prescriptive guidance for establishing a secure configuration posture for Microsoft Windows 10 Enterprise.",
+      "scan_id": "794429282",
+      "passed": "126",
+      "failed": "264",
+      "type": "summary",
+      "policy": "CIS Microsoft Windows 10 Enterprise Benchmark v1.12.0"
+    }
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 7,
+    "pci_dss": [
+      "2.2"
+    ],
+    "tsc": [
+      "CC7.1",
+      "CC7.2"
+    ],
+    "description": "SCA summary: CIS Microsoft Windows 10 Enterprise Benchmark v1.12.0: Score less than 50% (32)",
+    "groups": [
+      "sca"
+    ],
+    "id": "19004",
+    "nist_800_53": [
+      "CM.1"
+    ],
+    "gdpr": [
+      "IV_35.7.d"
+    ]
+  },
+  "decoder": {
+    "name": "sca"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "sca",
+  "id": "1791019304.1532642",
+  "timestamp": "2026-10-03T09:21:44.798+0000"
+}

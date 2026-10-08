@@ -1,0 +1,35 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: ACCOUNT_COMPROMISE
+
+decisions:
+  - id: DEC-AC-001
+    stepRef: 1
+    question: "Was the sign-in performed by the legitimate user?"
+    context: >
+      Shown after Step 1 once the user / manager has answered.
+    options:
+      - value: "YES"
+        label: "Yes - legitimate (travel / VPN)"
+        leadsTo: CLOSE_AS_BENIGN
+      - value: "NO"
+        label: "No - unauthorized"
+        leadsTo: CONTAIN_ACCOUNT
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-AC-002
+    stepRef: 5
+    question: "Did the attacker reach other hosts or accounts?"
+    context: >
+      Shown after Step 4 (Threat Hunting).
+    options:
+      - value: "YES"
+        label: "Yes - lateral movement found"
+        leadsTo: EXPAND_SCOPE_NEW_RESPONSE_PLAN
+      - value: "NO"
+        label: "No - single account / host"
+        leadsTo: CONTINUE_ERADICATION
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

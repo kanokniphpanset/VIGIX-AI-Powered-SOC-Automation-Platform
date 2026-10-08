@@ -1,0 +1,14 @@
+# review-register.yaml - what an IR/SOC reviewer must confirm before items can move IR_REVIEW_PENDING -> IR_REVIEWED.
+# Nothing here is reviewed yet. Do not mark an item IR_REVIEWED without a named reviewer and date.
+version: "2.0.0"
+status: NO_REVIEW_DONE
+reviewers: []                  # [{name, role, date, scope}]
+open_questions:
+  - {id: RV-01, scope: "MAL-BACKDOOR, PS-PERSIST, PE-SERVICE runbooks", question: "Is 'disable trigger BEFORE terminating the process' the right order for this organisation (prevents relaunch) when an interactive attacker session is active?"}
+  - {id: RV-02, scope: "AC-PASSWORD", question: "Session revocation before credential reset - confirm; and whether account-level revoke may be skipped when a session-scoped revoke is eligible (skip_if_eligible)."}
+  - {id: RV-03, scope: "MAL-RANSOM", question: "Cut write sessions -> terminate process -> isolate order, and the critical-workload alternative (no full isolation) - confirm authority needed (ir_emergency)."}
+  - {id: RV-04, scope: "PH-BEC", question: "Business hold by the owning authority first, IR mailbox actions second - confirm owner roles and the approval procedure."}
+  - {id: RV-05, scope: "thresholds", question: "FactBuilder defaults: >=5 authentication failures from one source within 900 s, >=5 distinct accounts for a spraying campaign. Confirm or change (not from the reference)."}
+  - {id: RV-06, scope: "ACT-QUARANTINE-FILE-OBJECT, ACT-INVESTIGATE-MISSING-EVIDENCE", question: "Both actions were added beyond the reference (origin DERIVED_ADDITION). Confirm contracts, gates and wording."}
+  - {id: RV-07, scope: "all steps with origin DERIVED_ADDITION", question: "critical_workload variants and shared-runbook steps were designed in this work; confirm."}
+  - {id: RV-08, scope: "impact_level", question: "impact_level per action is derived from containment_stage (STOP_ACTIVE/IDENTITY_EXPOSURE=HIGH, CLOSE_PATH/CLEANUP_OBJECT=MEDIUM); confirm per action."}

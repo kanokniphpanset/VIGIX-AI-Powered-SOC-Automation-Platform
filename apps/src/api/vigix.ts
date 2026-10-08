@@ -57,6 +57,22 @@ export interface InboxAlert {
   slaStatus: string | null
   ageMinutes: number
   firedTimes: number | null
+  /** The mock fixture (lab test data) this alert was sent from; null for a real SIEM alert. */
+  mock?: { key: string; title: string; set: 'TC' | 'MOCK_ATK' } | null
+}
+
+/** A mock alert fixture from resources/ (GET /alerts/mock) — lab test data, sent through normal Wazuh ingestion. */
+export interface MockAlertCase {
+  key: string
+  set: 'TC' | 'MOCK_ATK'
+  title: string
+  attackType: string
+  file: string
+  fixtureAlertId: string | null
+  ruleId: string | null
+  ruleLevel: number | null
+  ruleDescription: string | null
+  host: string | null
 }
 
 export interface AlertView {
@@ -78,6 +94,8 @@ export interface InboxFilters {
   /** Scenario id (ATK-01…) or case name. */
   scenario?: string
   agent?: string
+  /** Mock fixture key (TC-01, MOCK-ATK-01, …) or 'all' = only alerts sent from mock fixtures. */
+  mock?: string
   from?: string
   limit?: number
   offset?: number
@@ -87,6 +105,11 @@ export const alertsApi = {
   inbox: (f: InboxFilters) => api<{ items: InboxAlert[]; total: number }>('/api/v1/alerts/inbox', { query: { ...f } }),
   view: (id: string) => api<AlertView>(`/api/v1/alerts/${id}/view`),
   scenarios: () => api<{ items: AttackScenario[] }>('/api/v1/alerts/scenarios'),
+  /** Mock alert fixtures (lab test data) and whether this deployment lets the SOC send them. */
+  mockCatalog: () => api<{ sendEnabled: boolean; items: MockAlertCase[] }>('/api/v1/alerts/mock'),
+  /** Send one fixture through the normal Wazuh ingestion path (SOC; dev/lab only). */
+  sendMock: (key: string) =>
+    api<{ key: string; alertId: string; externalAlertId: string; severity: string; incidentId: string | null; triageRequired: boolean }>(`/api/v1/alerts/mock/${encodeURIComponent(key)}/send`, { method: 'POST' }),
   /** SOC review of an open alert (no claim): close it (MEDIUM, reason required) or create its incident. */
   triage: (id: string, body: { decision: 'FALSE_POSITIVE' | 'INFORMATIONAL' | 'CREATE_INCIDENT'; reason: string | null }) =>
     api<{ incidentId: string | null }>(`/api/v1/alerts/${id}/triage`, { method: 'POST', body }),
@@ -258,11 +281,28 @@ export interface RecommendationInstruction {
   instruction: string
   target: string | null
   expectedResult: string | null
+  /** Subtype-knowledge recommendations (optional, additive): contract-format pieces of one instruction. */
+  title?: string
+  impact?: string | null
+  verify?: string | null
+  kind?: 'action' | 'verify'
+  /** named non-IR owner (DBA, business authority ...) who performs this instruction. */
+  manualOwner?: string | null
+  /** how to perform it / checks before acting / how to undo / why it is proposed again (optional, additive). */
+  method?: string | null
+  methodKind?: 'method' | 'detail'
+  preconditions?: string[]
+  rollback?: string | null
+  note?: string | null
 }
 
 export interface RecommendationStep {
   id: string
   stepOrder: number
+  /** CHECK: investigation / decision step. ACTION: catalog Action (ticketable). MANUAL: control VIGIX cannot execute. */
+  stepType?: 'ACTION' | 'CHECK' | 'MANUAL'
+  /** Procedure condition that must be confirmed before the step is carried out. */
+  precondition?: string | null
   title: string
   objective: string | null
   actionId: string | null
@@ -282,6 +322,8 @@ export interface Recommendation {
   summary: string
   createdBy: string
   steps: RecommendationStep[]
+  /** The numbered "คำแนะนำเพื่อยับยั้ง Incident" text (subtype-knowledge recommendations), rendered by the backend from the stored steps. */
+  recommendationText?: string
 }
 
 export interface ResponsePlan {
@@ -394,6 +436,14 @@ export function items<T>(r: { items: T[] } | T[]): T[] {
 
 export const authApi = {
   login: (email: string, password: string) => api<{ token: string; role: string; tenantId?: string }>('/api/auth/login', { method: 'POST', body: { email, password } }),
+  /** The signed-in user's own password (identity from the JWT). Errors: 400 CURRENT_PASSWORD_INCORRECT /
+   *  PASSWORD_POLICY_VIOLATION {rules} / PASSWORD_UNCHANGED / PASSWORD_CONFIRMATION_MISMATCH. */
+  changePassword: (body: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
+    api<{ changed: true; reauthRequired: true }>('/api/auth/change-password', { method: 'POST', body }),
+  /** The signed-in user's own sign-in email; the current password is required. Errors: 400 CURRENT_PASSWORD_INCORRECT /
+   *  EMAIL_UNCHANGED / VALIDATION_ERROR, 409 EMAIL_TAKEN. The session stays valid (the token carries no email). */
+  changeEmail: (body: { newEmail: string; currentPassword: string }) =>
+    api<{ changed: true; email: string }>('/api/auth/change-email', { method: 'POST', body }),
 }
 
 // ---------------------------------------------------------------- IR handoff + Ticket (workflow actions)
@@ -639,7 +689,7 @@ export interface ResponseGuide {
     action: string
     target: string | null
     reason: string
-    instructions: { order: number; instruction: string; expectedResult: string | null }[]
+    instructions: { order: number; instruction: string; expectedResult: string | null; impact?: string | null; verify?: string | null; method?: string | null; methodKind?: 'method' | 'detail'; preconditions?: string[]; rollback?: string | null; note?: string | null }[]
     verificationCriteria: string | null
     runbook: { code: string; name: string } | null
   }[]

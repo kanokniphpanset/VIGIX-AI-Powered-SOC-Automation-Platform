@@ -1,0 +1,35 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: PRIVILEGE_ESCALATION
+
+decisions:
+  - id: DEC-PE-001
+    stepRef: 1
+    question: "Was the privilege change authorized through change management?"
+    context: >
+      Shown after Step 1 once the change record is checked.
+    options:
+      - value: "YES"
+        label: "Yes - approved change"
+        leadsTo: CLOSE_AS_BENIGN
+      - value: "NO"
+        label: "No - unauthorized"
+        leadsTo: CONTAIN_ACCOUNTS
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-PE-002
+    stepRef: 3
+    question: "Did the elevated account create persistence or reach other systems?"
+    context: >
+      Shown after Step 3 (Use of Privileges).
+    options:
+      - value: "YES"
+        label: "Yes - domain-wide impact"
+        leadsTo: EXPAND_SCOPE_NEW_RESPONSE_PLAN
+      - value: "NO"
+        label: "No - contained to the change"
+        leadsTo: CONTINUE_ERADICATION
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

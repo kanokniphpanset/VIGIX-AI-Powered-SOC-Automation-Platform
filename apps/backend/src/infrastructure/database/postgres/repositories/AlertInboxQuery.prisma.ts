@@ -3,7 +3,8 @@ import { IAlertInboxQuery, InboxQueryParams, InboxQueryRow } from "../../../../a
 import { AlertMapper } from "../mappers/Alert.mapper";
 import { OPEN_WORKFLOW_STATES, SOC_WORKFLOW_SEVERITIES } from "../../../../domain/alert/triageWorkflow";
 
-const like = (q: string) => `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`);
+const like = (q: string) => `%${escapeLike(q)}%`;
 
 /**
  * Alert Inbox in SQL. Filtering, SLA-due computation, ordering and pagination happen in Postgres, so every alert stays
@@ -41,6 +42,14 @@ export class PrismaAlertInboxQuery implements IAlertInboxQuery {
     }
     if (p.incident === "linked") where.push(Prisma.sql`i.id IS NOT NULL`);
     if (p.incident === "unlinked") where.push(Prisma.sql`i.id IS NULL`);
+    if (p.mockExternalIds) {
+      const { prefixes, exact } = p.mockExternalIds;
+      const ors = [
+        ...prefixes.map((x) => Prisma.sql`a.external_alert_id LIKE ${`${escapeLike(x)}%`}`),
+        ...(exact.length ? [Prisma.sql`a.external_alert_id IN (${Prisma.join(exact)})`] : []),
+      ];
+      where.push(ors.length ? Prisma.sql`(${Prisma.join(ors, " OR ")})` : Prisma.sql`FALSE`);
+    }
     if (p.scenarioIds) where.push(p.scenarioIds.length ? Prisma.sql`st.scenario_id IN (${Prisma.join(p.scenarioIds)})` : Prisma.sql`FALSE`);
     if (p.search?.trim()) {
       const q = like(p.search.trim());

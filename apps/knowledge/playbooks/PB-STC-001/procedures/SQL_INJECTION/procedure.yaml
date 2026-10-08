@@ -1,0 +1,43 @@
+id: PROC-SQLI-001
+code: SQL_INJECTION
+name: SQL Injection Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-SQL-INJECTION (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-SQL-INJECTION
+
+objective: >
+  Stop malicious application requests, fix the injection flaw and determine whether database impact occurred.
+
+strategy: >
+  Confirm the alert from logs first, block the source and the confirmed request pattern (a source block alone is not
+  enough because the attacker can change IP), contain affected sessions / accounts, restrict the vulnerable endpoint,
+  assess database impact from logs instead of assuming it, fix the root cause with parameterized queries, validate input
+  and apply least privilege, rotate secrets only on evidence of exposure, and test and monitor after the fix.
+
+
+appliesWhen:
+  incidentTypes: [SQL_INJECTION]
+  mitreTechniques: [T1190]
+  description: >
+    HTTP requests to a web application carry SQL syntax (UNION SELECT,
+    boolean / time-based payloads, comment sequences) in parameters, headers
+    or body.
+
+primaryEvidence:
+  - "Web access log entries (method, URI, parameters, status, response size)"
+  - "Source IP"
+  - "Target application and parameter"
+  - "Database / application error logs"
+  - "WAF events"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-06, resources/mock-attacks-tc/TC-06-sql-injection.json):
+#   TC-06: GET /app/search.php?id=1 union select username,password from
+#   users on WEB-01 from 194.87.29.10; Wazuh rule 31103.

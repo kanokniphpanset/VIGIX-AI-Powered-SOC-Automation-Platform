@@ -33,6 +33,8 @@ import {
   irEmailController,
   socTriageController,
   setAlertScenarioUseCase,
+  mockAlertCatalog,
+  sendMockAlertUseCase,
   runIncidentAiAnalysisUseCase,
   aiAnalysisWorker,
   returnDueMonitoredAlertsUseCase,
@@ -61,6 +63,7 @@ import { buildInAppNotificationRoutes } from "./presentation/http/routes/in-app-
 import { buildIrEmailRoutes } from "./presentation/http/routes/ir-email.routes";
 import { buildSocTriageRoutes } from "./presentation/http/routes/soc-triage.routes";
 import { buildAlertScenarioRoutes } from "./presentation/http/routes/alert-scenario.routes";
+import { buildMockAlertRoutes } from "./presentation/http/routes/mock-alert.routes";
 import { buildAiAnalysisRoutes } from "./presentation/http/routes/ai-analysis.routes";
 import { buildWorkRoutes, buildIncidentWorkRoutes } from "./presentation/http/routes/work.routes";
 import { buildIncidentEmailRoutes } from "./presentation/http/routes/incident-email.routes";
@@ -76,6 +79,8 @@ app.use("/api/auth", buildAuthRoutes(authController));
 app.use("/api/v1/dashboard", buildDashboardRoutes(dashboardController));
 // Before the alert router: "/scenarios" must not be read as an alert id.
 app.use("/api/v1/alerts", buildAlertScenarioRoutes(setAlertScenarioUseCase));
+// Before the alert router too: "/mock" must not be read as an alert id.
+app.use("/api/v1/alerts", buildMockAlertRoutes(mockAlertCatalog, sendMockAlertUseCase));
 app.use("/api/v1/alerts", buildAlertRoutes(alertController));
 app.use("/api/v1/incidents", buildIncidentWorkRoutes(workQueries));
 app.use("/api/v1/incidents", buildIncidentEmailRoutes(incidentContextEmailUseCase));

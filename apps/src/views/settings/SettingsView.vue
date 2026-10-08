@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { BellRing, Bot, CheckCircle2, Database, KeyRound, Loader2, Monitor, RotateCcw, Save, ShieldCheck, Users, XCircle } from 'lucide-vue-next'
+import { BellRing, Bot, CheckCircle2, Database, KeyRound, Loader2, Monitor, RotateCcw, Save, ShieldCheck, UserRound, Users, XCircle } from 'lucide-vue-next'
+import ChangePasswordForm from '@/components/settings/ChangePasswordForm.vue'
+import ChangeEmailForm from '@/components/settings/ChangeEmailForm.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import { dashboardApi, settingsApi, slaApi, systemApi, type NotificationRecipient, type RehuntHealth } from '@/api/vigix'
 import { ApiError } from '@/api/http'
@@ -11,13 +13,14 @@ import { dateLocale, useI18n, type MsgKey } from '@/i18n'
 
 /**
  * Settings — configuration overview. Everything shown is either reported by the backend's existing status endpoints or
- * taken from this browser/session. The only editable setting is the per-role notification email (SOC / IR_TEAM /
- * admin, enforced by the backend). No secret (API keys, passwords, webhook secrets, the session token) is ever
- * requested or displayed.
+ * taken from this browser/session. Editable: the signed-in user's own email and password (My account) and the per-role
+ * notification email (SOC / IR_TEAM / admin, enforced by the backend). No secret (API keys, webhook secrets, the session
+ * token) is ever displayed; the only password ever requested is the user's own, for the change-password form.
  */
-type Section = 'general' | 'security' | 'integrations'
+type Section = 'account' | 'general' | 'security' | 'integrations'
 const { locale: uiLang, t } = useI18n()
 const SECTIONS: { key: Section; icon: typeof Monitor }[] = [
+  { key: 'account', icon: UserRound },
   { key: 'general', icon: Monitor },
   { key: 'security', icon: ShieldCheck },
   { key: 'integrations', icon: Database },
@@ -29,7 +32,6 @@ const session = useSessionStore()
 const ui = useUiStore()
 const active = ref<Section>(SECTIONS.some((s) => s.key === route.query.section) ? (route.query.section as Section) : 'general')
 watch(active, (k) => router.replace({ query: { ...route.query, section: k } }))
-
 const health = ref<{ status: string; service: string; timestamp: string } | null>(null)
 const healthError = ref(false)
 const rehunt = ref<RehuntHealth | null>(null)
@@ -161,8 +163,24 @@ const rehuntProvider = computed(() => (rehunt.value?.provider === 'mock' || rehu
       </nav>
 
       <div class="min-w-0 flex-1 space-y-4">
+        <!-- ================= My account ================= -->
+        <template v-if="active === 'account'">
+          <section class="card p-5">
+            <h2 class="flex items-center gap-2 text-sm font-semibold text-slate-900"><UserRound class="size-4 text-slate-400" /> {{ t('acc.profile') }}</h2>
+            <p class="mt-1 text-xs text-slate-500">{{ t('acc.profileHint') }}</p>
+            <dl class="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <div><dt class="text-xs text-slate-400">{{ t('acc.email') }}</dt><dd class="mt-0.5 truncate text-slate-800">{{ session.session?.email ?? '—' }}</dd></div>
+              <div><dt class="text-xs text-slate-400">{{ t('set.role') }}</dt><dd class="mt-0.5 font-semibold text-slate-900">{{ role }}</dd></div>
+              <div><dt class="text-xs text-slate-400">Tenant</dt><dd class="mt-0.5 truncate font-mono text-xs text-slate-800">{{ claims?.tenantId ?? '—' }}</dd></div>
+              <div><dt class="text-xs text-slate-400">{{ t('set.expires') }}</dt><dd class="mt-0.5 text-slate-800">{{ fmt(claims?.exp) }}</dd></div>
+            </dl>
+          </section>
+          <ChangeEmailForm />
+          <ChangePasswordForm />
+        </template>
+
         <!-- ================= General ================= -->
-        <template v-if="active === 'general'">
+        <template v-else-if="active === 'general'">
           <section class="card p-5">
             <h2 class="text-sm font-semibold text-slate-900">{{ t('set.systemInfo') }}</h2>
             <dl class="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">

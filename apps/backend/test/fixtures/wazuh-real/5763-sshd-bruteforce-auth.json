@@ -1,0 +1,79 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "data": {
+    "srcip": "172.19.0.3",
+    "dstuser": "victim",
+    "srcport": "45520"
+  },
+  "rule": {
+    "mail": false,
+    "level": 10,
+    "hipaa": [
+      "164.312.b"
+    ],
+    "pci_dss": [
+      "11.4",
+      "10.2.4",
+      "10.2.5"
+    ],
+    "tsc": [
+      "CC6.1",
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "sshd: brute force trying to get access to the system. Authentication failed.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures"
+    ],
+    "nist_800_53": [
+      "SI.4",
+      "AU.14",
+      "AC.7"
+    ],
+    "frequency": 8,
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "firedtimes": 1,
+    "mitre": {
+      "technique": [
+        "Brute Force"
+      ],
+      "id": [
+        "T1110"
+      ],
+      "tactic": [
+        "Credential Access"
+      ]
+    },
+    "id": "5763"
+  },
+  "full_log": "Oct  3 11:46:42 60e9269b683a sshd[1358]: Failed password for victim from 172.19.0.3 port 45520 ssh2",
+  "id": "1791028003.1918595",
+  "timestamp": "2026-10-03T11:46:43.311+0000",
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "sshd",
+    "timestamp": "Oct  3 11:46:42"
+  },
+  "previous_output": "Oct  3 11:46:39 60e9269b683a sshd[1356]: Failed password for victim from 172.19.0.3 port 41474 ssh2\nOct  3 11:46:36 60e9269b683a sshd[1354]: Failed password for victim from 172.19.0.3 port 41466 ssh2\nOct  3 11:46:32 60e9269b683a sshd[1352]: Failed password for victim from 172.19.0.3 port 41454 ssh2\nOct  3 11:46:30 60e9269b683a sshd[1350]: Failed password for victim from 172.19.0.3 port 46346 ssh2\nOct  3 11:46:26 60e9269b683a sshd[1348]: Failed password for victim from 172.19.0.3 port 46344 ssh2\nOct  3 11:46:23 60e9269b683a sshd[1346]: Failed password for victim from 172.19.0.3 port 46336 ssh2\nOct  3 11:46:19 60e9269b683a sshd[1344]: Failed password for victim from 172.19.0.3 port 50000 ssh2",
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "decoder": {
+    "parent": "sshd",
+    "name": "sshd"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log"
+}

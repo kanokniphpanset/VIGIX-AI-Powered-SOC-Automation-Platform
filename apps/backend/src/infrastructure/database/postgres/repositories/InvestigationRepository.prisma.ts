@@ -9,10 +9,14 @@ import {
   EvidenceRecord,
   InvestigationRecord,
   InvestigationStatus,
+  IocObservationRecord,
   IocRecord,
+  IocType,
 } from "../../../../domain/investigation/Investigation.types";
 import { buildAlertEvidence } from "../../../../domain/investigation/alertEvidence";
 import { extractAlertIocs } from "../../../../domain/investigation/alertIocs";
+import { extractWazuhEvidenceV2 } from "../../../../domain/investigation/evidenceV2/extractWazuhEvidenceV2";
+import { IocRole, ProvenanceClass } from "../../../../domain/investigation/evidenceV2/types";
 import { checkIocValue } from "../../../../application/investigation/iocValidation";
 
 type EvidenceRow = Prisma.EvidenceGetPayload<{ include: { iocLinks: true } }>;
@@ -59,6 +63,7 @@ const toIoc = (r: IocRow): IocRecord => ({
 const json = (v: unknown): Prisma.InputJsonValue | undefined => (v === null || v === undefined ? undefined : (v as Prisma.InputJsonValue));
 
 export class PrismaInvestigationRepository implements IInvestigationRepository {
+  private warnedNoObservationTable = false;
   constructor(private readonly prisma: PrismaClient) {}
 
   async syncIncident(incidentId: string, tenantId: string): Promise<void> {
@@ -108,7 +113,7 @@ export class PrismaInvestigationRepository implements IInvestigationRepository {
     if (todo.length > 0) {
       const alerts = await this.prisma.alert.findMany({ where: { id: { in: todo }, tenantId } });
       for (const a of alerts) {
-        const d = buildAlertEvidence(a, first.id, "system");
+        const d = buildAlertEvidence(a, first.id, "system", { contractV2: process.env.EVIDENCE_CONTRACT_V2 === "true" });
         await this.prisma.evidence.create({
           data: {
             investigationId: d.investigationId,
@@ -145,12 +150,20 @@ export class PrismaInvestigationRepository implements IInvestigationRepository {
   private async linkAlertIocs(incidentId: string, investigationId: string, alertIds: string[], tenantId: string): Promise<void> {
     const evidence = await this.prisma.evidence.findMany({
       where: { investigationId, type: "WAZUH_ALERT", alertId: { in: alertIds } },
-      select: { id: true, alertId: true, timestamp: true, alert: { select: { rawPayload: true, tenantId: true } } },
+      select: { id: true, alertId: true, timestamp: true, alert: { select: { id: true, externalAlertId: true, rawPayload: true, tenantId: true, createdAt: true } } },
     });
+    const useV2 = process.env.EVIDENCE_CONTRACT_V2 === "true"; // same switch as the contractV2 evidence document
     for (const ev of evidence) {
       if (!ev.alert || ev.alert.tenantId !== tenantId) continue;
       const iocIds: string[] = [];
-      for (const found of extractAlertIocs(ev.alert.rawPayload)) {
+      // With the flag on, IOCs come from the Evidence Contract v2 extractor (a superset of extractAlertIocs) and each one is
+      // recorded as an observation with its Wazuh path and role. If v2 cannot read the payload the legacy extractor is used.
+      const v2 = useV2 ? extractWazuhEvidenceV2(ev.alert.rawPayload, { alertRowId: ev.alert.id, receivedAt: ev.alert.createdAt, externalAlertId: ev.alert.externalAlertId }) : null;
+      const candidates: { iocType: IocType; value: string; observation: { sourcePath: string; role: IocRole; roleBasis: string | null; lastKnown: boolean; provenanceClass: ProvenanceClass } | null }[] =
+        v2 && v2.isSuccess
+          ? v2.value.iocs.map((i) => ({ iocType: i.type, value: i.value, observation: { sourcePath: i.sourcePath, role: i.role, roleBasis: i.roleBasis, lastKnown: i.lastKnown, provenanceClass: v2.value.provenance.class } }))
+          : extractAlertIocs(ev.alert.rawPayload).map((i) => ({ iocType: i.iocType, value: i.value, observation: null }));
+      for (const found of candidates) {
         const checked = checkIocValue(found.iocType, found.value);
         if (!checked.ok) continue;
         const key = { investigationId, iocType: found.iocType, iocValue: checked.value };
@@ -161,11 +174,42 @@ export class PrismaInvestigationRepository implements IInvestigationRepository {
             select: { id: true },
           }));
         iocIds.push(ioc.id);
+        if (found.observation) await this.recordObservation(ioc.id, ev.alertId, ev.id, found.observation, ev.timestamp);
       }
       if (iocIds.length > 0) {
         await this.prisma.evidenceIoc.createMany({ data: [...new Set(iocIds)].map((iocId) => ({ evidenceId: ev.id, iocId })), skipDuplicates: true });
       }
     }
+  }
+
+  /** Idempotent: the same (ioc, alert, evidence, path) is stored once (the table's unique index is NULLS NOT DISTINCT). */
+  private async recordObservation(
+    iocId: string,
+    alertId: string | null,
+    evidenceId: string | null,
+    o: { sourcePath: string; role: IocRole; roleBasis: string | null; lastKnown: boolean; provenanceClass: ProvenanceClass },
+    observedAt: Date
+  ): Promise<void> {
+    try {
+      await this.prisma.iocObservation.create({ data: { iocId, alertId, evidenceId, sourcePath: o.sourcePath, role: o.role, roleBasis: o.roleBasis, lastKnown: o.lastKnown, provenanceClass: o.provenanceClass, observedAt } });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return; // already recorded
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2021") {
+        // Migration 20261008100000_ioc_observations not applied to this database: observations are auxiliary, the IOC itself is already saved.
+        if (!this.warnedNoObservationTable) console.warn("EVIDENCE_CONTRACT_V2 is on but table ioc_observations does not exist - apply migration 20261008100000_ioc_observations; observations are skipped.");
+        this.warnedNoObservationTable = true;
+        return;
+      }
+      throw err;
+    }
+  }
+
+  async listIocObservations(investigationId: string): Promise<IocObservationRecord[]> {
+    const rows = await this.prisma.iocObservation.findMany({ where: { ioc: { investigationId } }, orderBy: [{ observedAt: "asc" }, { createdAt: "asc" }] });
+    return rows.map((r) => ({
+      id: r.id, iocId: r.iocId, alertId: r.alertId, evidenceId: r.evidenceId, sourcePath: r.sourcePath, role: r.role as IocRole,
+      roleBasis: r.roleBasis, lastKnown: r.lastKnown, provenanceClass: r.provenanceClass as ProvenanceClass, observedAt: r.observedAt,
+    }));
   }
 
   private async toInvestigation(

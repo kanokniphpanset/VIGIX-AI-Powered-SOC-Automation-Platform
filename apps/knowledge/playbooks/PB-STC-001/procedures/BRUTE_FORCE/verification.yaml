@@ -19,6 +19,10 @@ verification:
     - affectedHosts
     - iocRecurrence
     - spreadDetected   # any NEW host matching the same source IP/pattern since containment
+  successCriteria:
+    - "No continued malicious authentication attempts from the source"
+    - "No suspicious successful authentication for the targeted account"
+    - "Targeted account remains protected (sessions revoked / credential reset where required)"
   resultValues: [RESOLVED, NOT_RESOLVED]
   onNotResolved:
     surface:

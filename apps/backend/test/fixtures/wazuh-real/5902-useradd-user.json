@@ -1,0 +1,83 @@
+{
+  "predecoder": {
+    "hostname": "60e9269b683a",
+    "program_name": "useradd",
+    "timestamp": "Oct  3 12:03:15"
+  },
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "uid": "1002",
+    "gid": "1002",
+    "shell": "/bin/bash,",
+    "dstuser": "evaluser",
+    "home": "/home/evaluser"
+  },
+  "rule": {
+    "mail": false,
+    "level": 8,
+    "pci_dss": [
+      "10.2.7",
+      "10.2.5",
+      "8.1.2"
+    ],
+    "hipaa": [
+      "164.312.b",
+      "164.312.a.2.I",
+      "164.312.a.2.II"
+    ],
+    "tsc": [
+      "CC6.8",
+      "CC7.2",
+      "CC7.3"
+    ],
+    "description": "New user added to the system.",
+    "groups": [
+      "syslog",
+      "adduser"
+    ],
+    "nist_800_53": [
+      "AU.14",
+      "AC.7",
+      "AC.2",
+      "IA.4"
+    ],
+    "gdpr": [
+      "IV_35.7.d",
+      "IV_32.2"
+    ],
+    "firedtimes": 1,
+    "mitre": {
+      "technique": [
+        "Create Account"
+      ],
+      "id": [
+        "T1136"
+      ],
+      "tactic": [
+        "Persistence"
+      ]
+    },
+    "id": "5902",
+    "gpg13": [
+      "4.13"
+    ]
+  },
+  "decoder": {
+    "parent": "useradd",
+    "name": "useradd"
+  },
+  "full_log": "Oct  3 12:03:15 60e9269b683a useradd[1561]: new user: name=evaluser, UID=1002, GID=1002, home=/home/evaluser, shell=/bin/bash, from=none",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/auth.log",
+  "id": "1791028996.1979298",
+  "timestamp": "2026-10-03T12:03:16.309+0000"
+}

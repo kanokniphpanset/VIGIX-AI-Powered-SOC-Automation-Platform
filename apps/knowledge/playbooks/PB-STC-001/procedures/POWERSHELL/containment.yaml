@@ -1,0 +1,56 @@
+procedureCode: POWERSHELL
+candidateActions:
+  - actionCode: ACT-KILL-PROCESS
+    name: Terminate Malicious Process
+    condition: >-
+      The PowerShell process is confirmed malicious (encoded / download / credential-access command not matching
+      approved automation).
+    runbookRef: RB-KILL-MALICIOUS-PROCESS
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-BLOCK-HASH
+    name: Block File Hash
+    condition: A malicious payload / artifact hash is identified.
+    runbookRef: RB-BLOCK-HASH
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-QUARANTINE-FILE
+    name: Quarantine File
+    condition: A downloaded or dropped malicious file is identified on disk.
+    runbookRef: RB-QUARANTINE-FILE
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-ISOLATE-ENDPOINT
+    name: Isolate Endpoint
+    condition: 'Execution evidence plus active compromise, persistence or lateral-movement risk on the endpoint.'
+    runbookRef: RB-ISOLATE-ENDPOINT
+    impactLevel: HIGH
+    approvalRequired: true
+    approvalRole: IR_TEAM
+  - actionCode: ACT-BLOCK-URL
+    name: Block URL
+    condition: The download / stager URL is confirmed malicious.
+    runbookRef: RB-BLOCK-URL
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-BLOCK-DOMAIN
+    name: Block Domain
+    condition: The stager domain is confirmed malicious.
+    runbookRef: RB-BLOCK-DOMAIN
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-BLOCK-SOURCE-IP
+    name: Block Source IP
+    condition: >-
+      An explicitly recorded inbound source IP is confirmed malicious and attacker-owned; never use a destination or
+      unknown-role IP.
+    runbookRef: RB-BLOCK-SOURCE-IP
+    impactLevel: MEDIUM
+    approvalRequired: false
+  - actionCode: ACT-DISABLE-ACCOUNT
+    name: Disable User Account
+    condition: The account that ran the payload is confirmed abused to run it on other hosts.
+    runbookRef: RB-DISABLE-ACCOUNT
+    impactLevel: HIGH
+    approvalRequired: true
+    approvalRole: IR_TEAM

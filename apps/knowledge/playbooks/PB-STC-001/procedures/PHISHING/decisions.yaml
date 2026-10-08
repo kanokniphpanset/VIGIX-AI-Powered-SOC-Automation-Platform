@@ -1,0 +1,39 @@
+# decisions.yaml — human decision points embedded in this procedure's steps.
+# A decision is ALWAYS made by a person (IR/SOC), never by AI; the answer is recorded on the Response Plan.
+
+procedureCode: PHISHING
+
+decisions:
+  - id: DEC-PH-001
+    stepRef: 3
+    question: "Did any recipient click the link, open the attachment or submit credentials?"
+    context: >
+      Shown after Step 1 (Confirm & Scope) once proxy / DNS / mail evidence is
+      reviewed.
+    options:
+      - value: "NONE"
+        label: "No interaction - message only"
+        leadsTo: CONTAIN_MESSAGE_ONLY
+      - value: "CLICKED"
+        label: "Clicked / opened, no credentials submitted"
+        leadsTo: CHECK_ENDPOINT
+      - value: "CREDENTIALS"
+        label: "Credentials submitted"
+        leadsTo: ACCOUNT_COMPROMISE_INVESTIGATION
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]
+
+  - id: DEC-PH-002
+    stepRef: 6
+    question: "Were more users or hosts affected than first identified?"
+    context: >
+      Shown after Step 4 (Threat Hunting).
+    options:
+      - value: "YES"
+        label: "Yes - campaign is wider"
+        leadsTo: EXPAND_SCOPE_NEW_RESPONSE_PLAN
+      - value: "NO"
+        label: "No - scope confirmed"
+        leadsTo: CONTINUE_ERADICATION
+    decidedBy: IR_TEAM
+    recordFields: [decision, decision_by, decision_at, decision_reason]

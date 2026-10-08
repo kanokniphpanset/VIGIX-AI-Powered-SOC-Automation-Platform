@@ -1,0 +1,107 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for ACCOUNT_COMPROMISE, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: ACCOUNT_COMPROMISE
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Confirm Compromise
+  objective: Confirm the suspicious login / session was not the legitimate user.
+  recommendedAction:
+  - Review the suspicious login (source IP, location, device, time) and its session / token
+  - Confirm with the user whether the activity was theirs
+  reason: Unusual logins can be legitimate travel or a new device; the user's confirmation decides containment.
+  evidenceRequired:
+  - Authentication logs
+  - Session / token list
+  - User confirmation
+  expectedResult: The activity is classified as legitimate or attacker-controlled.
+  decisionRef: DEC-AC-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Regain Account Control
+  objective: Invalidate every form of attacker access to the account.
+  recommendedAction:
+  - 'Temporarily disable the account according to policy (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+  - 'Revoke the account''s active sessions and tokens (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'Reset the account''s credential (see containment.yaml: ACT-RESET-CREDENTIAL)'
+  - 'Block the external source IP of the suspicious logon (see containment.yaml: ACT-BLOCK-SOURCE-IP)'
+  - Re-register the account's MFA factors and remove factors the attacker added (manual - outside the VIGIX Action Catalog;
+    requires IR_TEAM approval)
+  reason: A password reset alone leaves live sessions, tokens and attacker-registered MFA working.
+  evidenceRequired:
+  - Target account
+  - Session / token list
+  expectedResult: The attacker holds no session, token, password or MFA factor for the account.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 3
+  phase: ASSESS
+  title: Attacker Changes
+  objective: Find what the attacker changed with the account.
+  recommendedAction:
+  - Check privilege / group changes, mailbox rules, OAuth / app access and other persistence
+  - Review activity backwards to find when the attacker first gained access
+  reason: Persistence such as forwarding rules or OAuth grants survives a password reset.
+  evidenceRequired:
+  - Privilege change log
+  - Mailbox rules
+  - OAuth / app consent log
+  expectedResult: Persistence and the attacker's access window are identified.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain Attacker-Used Endpoint
+  objective: Contain an endpoint the attacker operated with the account.
+  recommendedAction:
+  - 'Isolate an endpoint the attacker used hands-on (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  reason: The attacker can return through a host they already control.
+  evidenceRequired:
+  - Affected endpoint
+  expectedResult: The attacker-used endpoint is contained.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Scope Check
+  objective: Find other hosts or accounts the attacker reached.
+  recommendedAction:
+  - Re-hunt the attacker's source and sessions across all hosts and check other accounts for logins from it
+  reason: A compromised account is often used to move to other systems.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: List of every host and account involved.
+  decisionRef: DEC-AC-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm attacker access is invalidated.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Confirm no new login from the attacker's source and no new session on the account
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

@@ -1,0 +1,105 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for DATA_EXFILTRATION, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: DATA_EXFILTRATION
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Identify the Transfer
+  objective: Identify the source, destination and data being sent.
+  recommendedAction:
+  - Identify the source host and user of the transfer and the destination IP / domain / URL
+  - Check whether the destination is a sanctioned service and estimate the volume
+  reason: A sanctioned backup or cloud sync looks like exfiltration.
+  evidenceRequired:
+  - Source host / user
+  - Destination
+  - Transfer volume
+  expectedResult: The transfer is classified as authorized or unauthorized.
+  decisionRef: DEC-EXF-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Block the Destination
+  objective: Stop the outbound channel to the unauthorized destination.
+  recommendedAction:
+  - 'Block the unauthorized destination IP (see containment.yaml: ACT-BLOCK-DESTINATION-IP)'
+  - 'Block the unauthorized destination domain (see containment.yaml: ACT-BLOCK-DOMAIN)'
+  - 'Block the upload URL (see containment.yaml: ACT-BLOCK-URL)'
+  reason: Every minute the channel stays open more data leaves the organisation.
+  evidenceRequired:
+  - Destination IP / domain / URL
+  expectedResult: No traffic reaches the destination.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: false
+- stepOrder: 3
+  phase: ASSESS
+  title: Transfer & Data Check
+  objective: Check whether the transfer continues and which data and account are involved.
+  recommendedAction:
+  - Check whether the transfer continues after the block (new destination or channel)
+  - Identify the account / session behind the transfer and the data that may have leaked
+  reason: Exfiltration tools switch channels; leaked personal data triggers legal obligations.
+  evidenceRequired:
+  - Network / proxy logs
+  - Account activity
+  - Data owner confirmation
+  expectedResult: Continued transfer, responsible account and leaked data identified.
+  decisionRef: DEC-EXF-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain the Source
+  objective: Contain the endpoint and the account responsible.
+  recommendedAction:
+  - 'Isolate the source endpoint (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  - 'Revoke the compromised account''s sessions / tokens (see containment.yaml: ACT-REVOKE-SESSION)'
+  - 'Disable the account responsible for the transfer (see containment.yaml: ACT-DISABLE-ACCOUNT)'
+  reason: Blocking one destination does not stop an attacker who controls the source.
+  evidenceRequired:
+  - Source endpoint
+  - Account
+  expectedResult: The source endpoint and account can no longer send data.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Scope Check
+  objective: Find related transfers on other hosts.
+  recommendedAction:
+  - Hunt transfers to the same destination from other hosts, and staging / archiving activity on the source
+  reason: Exfiltration is usually the last stage of a longer intrusion.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: List of every host and channel involved.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm the transfer stopped.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Monitor outbound traffic from the source host / user to confirm no continued transfer
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

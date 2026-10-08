@@ -1,0 +1,50 @@
+# retrieval-metadata.yaml — §9 RAG organisation. Executable parts: tools/build-chunks.mjs (chunks), tools/lib.mjs (policy/planner), tools/render.mjs (composer).
+
+version: "2.0.0"
+
+metadata_fields:        # on every chunk in rag/chunks.jsonl
+  knowledge_type: "evidence_catalog | target_type | playbook_scenario | action_policy | runbook | policy_rule"
+  knowledge_id: "stable id (EVC-/TGT-/PBK-/POL-/RB-)"
+  attack_family: "list or single (from reference-registry families)"
+  subtype_id: "list (BF-GUESS …) or '*'"
+  scenario_id: "SC-… (playbook_scenario chunks)"
+  action_id: "ACT-… (list for runbook chunks)"
+  runbook_id: "RB-…"
+  target_types: "target-types.yaml ids needed by the chunk"
+  tools: "capability ids (cap.*) — the organisation tool-mapping key; 'platform_neutral' until mapping exists"
+  version: "2.0.0"
+  status: "ACTIVE | DRAFT | DEPRECATED (retrieval filter: ACTIVE only)"
+  language: "th"
+  provenance: "reference ids (BF-P3 …) + registry_version + source file"
+  gates_present: "true on action_policy and runbook chunks — set only when the builder verified the gate sections below exist"
+
+chunking_rules:
+  - "one chunk per (action, ACTION_GATE policy): contains required_evidence, required_targets, authorization_gate, prohibitions, authority, capability, criticality, dependencies (from every playbook scenario that orders the action) and execution_constraints — an action text is NEVER stored without them"
+  - "one chunk per runbook (steps kept whole, with [precheck]/[MANUAL]/[variant] markers and per-step condition/expected/verify/on_failure/rollback)"
+  - "one chunk per playbook scenario: classification evidence, insufficient evidence, ordered actions + order reasons + depends_on, branches (+open_when), stop/escalation"
+  - "one chunk per target type and per family evidence catalog (so 'missing evidence/target' questions retrieve the confirm instructions)"
+  - "global rules (prohibitions, output constraints, classification rules, branch gates) are separate chunks, ALWAYS appended to retrieval results for any action"
+  - "invariant (checked by validate.mjs): action_policy chunks must contain required_evidence:, required_targets:, prohibitions:, authority:, dependencies:, capability:; runbook chunks must contain required_evidence:, required_targets:, authority:"
+
+retrieval_flow:
+  1: {step: "candidate subtype/scenario from incident evidence", impl: "evaluate every playbook.classification_evidence against structured incident facts; retrieval over playbook_scenario chunks only narrows the list and may NOT add a subtype whose classification predicate is not TRUE", where: RUNTIME}
+  2: {step: "load Playbook + policies referenced by those scenarios", impl: "filter chunks by subtype_id + action_id (metadata), not by similarity", where: RUNTIME}
+  3: {step: "evaluate policy from structured facts", impl: "lib.evaluateAction / evaluateBranchGate (3-valued predicates, 6 results, all reasons)", where: "RUNTIME (reference JS provided)"}
+  4: {step: "resolve and validate targets", impl: "target resolver builds target_record from evidence (contracts/target-types.yaml) and computes scope.* flags; output targets.<type>.validated", where: RUNTIME}
+  5: {step: "select runbook variant matching platform/capability", impl: "tool_variants + policy criticality variant; capability unknown => TOOL_MAPPING_REQUIRED", where: "RUNTIME (reference JS provided)"}
+  6: {step: "order and deduplicate", impl: "lib.planIncident (depends_on + containment_stage + action_id tie-break); render.mjs dedupes identical process termination; never widens scope", where: "RUNTIME (reference JS provided)"}
+  7: {step: "compose numbered recommendation", impl: "render.mjs per recommendation/output-contract.yaml (steps whose placeholders cannot be filled are dropped and listed as missing)", where: "RUNTIME (reference JS provided)"}
+  8: {step: "post-check output against policy + knowledge refs", impl: "enforce POL-GL-OUTPUT-001 checks (no executed-claim, no placeholder, no secret, no internal ids, no 'follow RB-', every target traceable); re-run policy on the final action list", where: "RUNTIME — NOT IMPLEMENTED"}
+
+hard_rule: "Semantic similarity / retrieval score / confidence are never inputs to policy evaluation and never authorise an action (GL-4). Retrieval selects text to show; the policy evaluator decides what may be proposed."
+
+knowledge_vs_runtime:
+  knowledge_update_done:      [families/*.yaml (evidence, actions, playbooks, policies, runbooks), contracts/*, recommendation/output-contract.yaml, migration-map.yaml, validation/cases.yaml, rag/chunks.jsonl]
+  runtime_required_not_done:
+    - {component: "Incident fact builder / evidence extractor", detail: "Wazuh alert + enrichment + analyst confirmation -> evidence_record (status, authorization_status, lineage); needs mail gateway / IdP / cloud audit / EDR telemetry that are not integrated"}
+    - {component: "Target resolver", detail: "builds target records, validates identity fields, binds to evidence, computes scope.* flags (42) incl. role detection (attacker vs destination vs agent.ip) — cf. existing TC-07/09 role-loss defect"}
+    - {component: "Policy evaluator service", detail: "port of tools/lib.mjs evaluateAction/evaluateBranchGate to the backend (TypeScript) behind the existing Policy module; persist decisions + reasons"}
+    - {component: "Dependency orderer + step selector", detail: "port of planIncident/selectSteps incl. variants, skip_if_eligible, include_runbook, placeholder gating"}
+    - {component: "Recommendation composer + output validator", detail: "port of render.mjs; enforce OUTPUT_CONSTRAINT checks; write internal audit record separately from user text"}
+    - {component: "Loader + DB mapping", detail: "load families/*.yaml (or seed into Postgres next to existing playbook/policy/runbook tables with revisioning)"}
+    - {component: "Vector index", detail: "index rag/chunks.jsonl (Qdrant collection used today by scripts/indexRunbooksToQdrant.ts) with the metadata filters above"}

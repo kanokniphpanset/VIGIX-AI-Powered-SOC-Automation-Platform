@@ -1,0 +1,66 @@
+# containment.yaml - CATALOG of candidate containment Actions for PHISHING, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-PHISHING. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: PHISHING
+candidateActions:
+- actionCode: ACT-QUARANTINE-EMAIL
+  name: Quarantine / Remove Email
+  condition: The message is confirmed malicious (phishing link or attachment).
+  runbookRef: RB-QUARANTINE-EMAIL
+  impactLevel: LOW
+  approvalRequired: false
+- actionCode: ACT-BLOCK-SENDER
+  name: Block Sender
+  condition: The sender is confirmed malicious (not a compromised partner mailbox that must stay reachable).
+  runbookRef: RB-BLOCK-SENDER
+  impactLevel: LOW
+  approvalRequired: false
+- actionCode: ACT-BLOCK-URL
+  name: Block URL
+  condition: The phishing URL is confirmed malicious.
+  runbookRef: RB-BLOCK-URL
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-DOMAIN
+  name: Block Domain
+  condition: The phishing domain is confirmed malicious and is not a shared legitimate service.
+  runbookRef: RB-BLOCK-DOMAIN
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-HASH
+  name: Block File Hash
+  condition: The attachment hash is confirmed malicious.
+  runbookRef: RB-BLOCK-HASH
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-RESET-CREDENTIAL
+  name: Reset User Credentials
+  condition: A recipient is confirmed to have submitted credentials (credential exposure).
+  runbookRef: RB-RESET-CREDENTIAL
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: Session compromise is confirmed (suspicious session after the click / credential submission).
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-DISABLE-ACCOUNT
+  name: Disable User Account
+  condition: The account shows attacker activity after the exposure.
+  runbookRef: RB-DISABLE-ACCOUNT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: An attachment was executed on a recipient's endpoint.
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

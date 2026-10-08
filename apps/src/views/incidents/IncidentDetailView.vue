@@ -19,6 +19,7 @@ import StatusPill from '@/components/common/StatusPill.vue'
 import WorkflowSummary from '@/components/incidents/WorkflowSummary.vue'
 import NextStepCard from '@/components/incidents/NextStepCard.vue'
 import RelatedAlertEvidence from '@/components/incidents/RelatedAlertEvidence.vue'
+import SimilarCases from '@/components/incidents/SimilarCases.vue'
 import IncidentAlertFactsTable from '@/components/incidents/IncidentAlertFactsTable.vue'
 import MarkdownText from '@/components/common/MarkdownText.vue'
 import { nextStep } from '@/utils/nextStep'
@@ -349,6 +350,7 @@ const assignment = computed(() => {
               </button>
             </li>
           </ul>
+          <SimilarCases :incident-id="incident.id" class="mt-4 border-t border-slate-100 pt-4" />
         </aside>
 
         <div class="min-w-0">
@@ -475,7 +477,11 @@ const assignment = computed(() => {
               </p>
               <p v-if="aiRun.status === 'running'" class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600" role="status">{{ t('inc.aiRunning') }}</p>
               <p v-else-if="aiRun.status === 'success'" class="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800" role="status">{{ aiRun.message }}</p>
-              <p v-else-if="aiRun.status === 'error'" class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">{{ aiRun.message }}</p>
+              <div v-else-if="aiRun.status === 'error'" class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700" role="alert">
+                <p>{{ aiRun.message }}</p>
+                <!-- The failed run produced nothing new: say so when an older analysis is still shown below. -->
+                <p v-if="hasAiAnalysis(ai)" class="mt-1 font-semibold">{{ t('inc.aiPreviousShown') }}</p>
+              </div>
               <p v-if="!hasAiAnalysis(ai) && aiRun.status !== 'running'" class="mb-3 text-xs text-slate-500">{{ t('inc.aiNoneYet') }}</p>
               <div v-if="ai?.grounding?.status === 'UNGROUNDED'" role="alert" class="mb-3 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"><strong>{{ t('inc.ungroundedTitle') }}</strong><p>{{ t('inc.ungroundedBody') }}</p><p v-for="issue in ai.grounding.ungrounded" :key="issue.kind + issue.value">{{ issue.kind }}: {{ issue.value }}</p></div>
               <template v-if="ai?.summary">
@@ -565,15 +571,30 @@ const assignment = computed(() => {
                     />
                   </div>
                 </div>
+                <details v-if="currentRecommendation.recommendationText" class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                  <summary class="cursor-pointer text-xs font-semibold text-slate-600">{{ t('inc.recText') }}</summary>
+                  <pre class="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-800">{{ currentRecommendation.recommendationText }}</pre>
+                </details>
                 <article v-for="s in currentRecommendation.steps" :key="s.id" class="mb-4 rounded-lg border border-slate-200 p-4">
-                  <h3 class="font-semibold text-slate-900">{{ s.stepOrder }}. {{ s.title }}</h3>
+                  <h3 class="font-semibold text-slate-900">
+                    {{ s.stepOrder }}. {{ s.title }}
+                    <span v-if="s.stepType" class="ml-1 rounded px-1.5 py-0.5 align-middle text-[10px] font-semibold" :class="s.stepType === 'ACTION' ? 'bg-accent-50 text-accent-700' : s.stepType === 'MANUAL' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-600'">{{ t(`inc.stepType.${s.stepType}`) }}</span>
+                  </h3>
                   <p v-if="s.objective" class="mt-1 text-slate-600">{{ s.objective }}</p>
+                  <p v-if="s.precondition" class="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">{{ t('inc.condition', { text: s.precondition }) }}</p>
                   <p class="mt-1 text-xs text-slate-500">{{ t('inc.reason', { text: s.reason }) }}</p>
                   <ResponseTicketAction :key="s.id" :step="s" :ticket="liveTicket(s.id)" />
                   <ol class="mt-3 space-y-1.5">
                     <li v-for="ins in s.instructions" :key="ins.order" class="flex gap-2">
                       <span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold">{{ ins.order }}</span>
-                      <span>{{ ins.instruction }} <span v-if="ins.expectedResult" class="text-xs text-slate-400">→ {{ ins.expectedResult }}</span></span>
+                      <span>{{ ins.instruction }} <span v-if="ins.expectedResult" class="text-xs text-slate-400">→ {{ ins.expectedResult }}</span>
+                        <span v-if="ins.method" class="block text-xs text-slate-600">{{ t(ins.methodKind === 'detail' ? 'inc.detail' : 'inc.method', { text: ins.method }) }}</span>
+                        <span v-if="ins.preconditions?.length" class="block text-xs text-slate-600">{{ t('inc.before', { text: ins.preconditions.join(' / ') }) }}</span>
+                        <span v-if="ins.impact" class="block text-xs italic text-amber-700">{{ t('inc.impact', { text: ins.impact }) }}</span>
+                        <span v-if="ins.verify" class="block text-xs italic text-emerald-700">{{ t('inc.verify', { text: ins.verify }) }}</span>
+                        <span v-if="ins.rollback" class="block text-xs text-slate-600">{{ t('inc.rollback', { text: ins.rollback }) }}</span>
+                        <span v-if="ins.note" class="block text-xs text-rose-700">{{ t('inc.note', { text: ins.note }) }}</span>
+                      </span>
                     </li>
                   </ol>
                   <p v-if="s.verificationCriteria" class="mt-3 rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-800">{{ t('inc.verify', { text: s.verificationCriteria }) }}</p>

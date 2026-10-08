@@ -1,4 +1,6 @@
 import { AnalysisSource } from "../../../domain/ai/analysisSource";
+import type { TicketRecord } from "../../../domain/subtype/actionState";
+import type { SubtypeEvidenceRow } from "../../subtype/factBuilder";
 export interface IncidentContextRow {
   incidentId: string;
   investigationNumber: number;
@@ -75,6 +77,7 @@ export interface AnalysisRunRow {
  * Context — it never mutates anything.
  */
 export interface IRecommendationContextRepository {
+  getRehuntContext?(incidentId: string, tenantId: string, investigationNumber: number): Promise<RehuntContextRow | null>;
   getIncidentContext(incidentId: string, tenantId: string): Promise<IncidentContextRow | null>;
   /** IOCs of the incident; with investigationNumber, only that investigation cycle's IOCs. */
   getIocs(incidentId: string, investigationNumber?: number): Promise<IocContextRow[]>;
@@ -87,6 +90,10 @@ export interface IRecommendationContextRepository {
   getLatestAnalysisRun?(incidentId: string): Promise<AnalysisRunRow | null>;
   /** Action + target of every step of the incident's earlier Recommendations (all rounds, any status). */
   getPreviousRecommendationSteps?(incidentId: string, tenantId: string): Promise<PreviousRecommendationStepRow[]>;
+  /** Subtype knowledge: this cycle's evidence WITH structuredData (Evidence Contract v2 / analyst assertions), citation ids E<n> as in getEvidence. */
+  getSubtypeEvidence?(incidentId: string, tenantId: string, investigationNumber: number): Promise<SubtypeEvidenceRow[]>;
+  /** Subtype knowledge: every Response Ticket of the incident with its action, target, status and IR result (action state across rounds). */
+  getTicketHistory?(incidentId: string, tenantId: string): Promise<TicketRecord[]>;
 }
 
 export interface PreviousRecommendationStepRow {
@@ -94,4 +101,23 @@ export interface PreviousRecommendationStepRow {
   investigationNumber: number;
   actionCode: string;
   target: string;
+}
+
+/** Re-hunt of the immediately preceding cycle; manual entries cannot activate spread response. */
+export interface RehuntContextRow {
+  verificationId: string;
+  verifiedInvestigationNumber: number;
+  source: "WAZUH_INDEXER" | "MOCK_REHUNT";
+  result: "RESOLVED" | "NOT_RESOLVED";
+  spreadDetected: boolean;
+  matchingEvents: number;
+  originalHosts: string[];
+  affectedHosts: string[];
+  newHosts: string[];
+  truncated: boolean;
+  /** Re-hunt classification (IN_SCOPE_ACTIVITY | NEW_SCOPE_ACTIVITY | NO_MATCH_COVERED ...) when the provider correlates. */
+  classification?: string | null;
+  /** true only when the search could see everything it needed (agents, archives, window); absence is claimable only then. */
+  coverageComplete?: boolean | null;
+  verifiedAt?: Date | null;
 }

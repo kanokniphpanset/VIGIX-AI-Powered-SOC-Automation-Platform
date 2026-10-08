@@ -17,6 +17,14 @@ import { z } from "zod";
  * ordered operational instructions for the Policy-assigned responsible role.
  * Required per step: action, objective, responsibleRole, target, reason,
  * instructions[], playbook, runbook, verificationCriteria. 1..N steps.
+ *
+ * Attack-specific containment procedures: a step has a `type` —
+ *   ACTION  a catalog Action (action, target, runbook required; Policy/approval/evidence enforced; `condition` carries
+ *           the procedure's precondition for the Action);
+ *   CHECK   an investigation / decision step of the procedure (no catalog action, `procedureStep` required);
+ *   MANUAL  a containment control VIGIX cannot execute (no catalog action, `procedureStep` required, never ticketed).
+ * `type` defaults to ACTION so a candidate written for the v2 action-only format still parses the same way.
+ * The per-type requirements are enforced (with specific violation codes) by RecommendationValidator.
  */
 const instructionSchema = z
   .object({
@@ -30,19 +38,37 @@ const instructionSchema = z
 const candidateStepSchema = z
   .object({
     stepOrder: z.number().int().positive(),
-    action: z.string().trim().min(1),
+    type: z.enum(["ACTION", "CHECK", "MANUAL"]).default("ACTION"),
+    action: z.string().trim().min(1).nullable().optional(),
+    /** The procedure precondition that must hold before this step is carried out (never dropped for a conditional Action). */
+    condition: z.string().trim().min(1).nullable().optional(),
+    /** stepOrder of the containment procedure step this step derives from. */
+    procedureStep: z.number().int().positive().nullable().optional(),
     objective: z.string().trim().min(1),
     responsibleRole: z.string().trim().min(1),
-    target: z.string().trim().min(1),
+    target: z.string().trim().min(1).nullable().optional(),
     reason: z.string().trim().min(1),
     evidenceRefs: z.array(z.string()).default([]),
     instructions: z.array(instructionSchema).min(1),
-    playbook: z.string().trim().min(1),
-    runbook: z.string().trim().min(1),
+    /** Required for ACTION steps (RecommendationValidator); a CHECK / MANUAL step belongs to the selected playbook anyway. */
+    playbook: z.string().trim().min(1).nullable().optional(),
+    runbook: z.string().trim().min(1).nullable().optional(),
     verificationCriteria: z.string().trim().min(1),
     expectedResult: z.string().nullable().optional(),
     missingEvidence: z.array(z.string()).default([]),
     confidence: z.number().min(0).max(1).default(0),
+    /**
+     * Quality contract (all optional, checked by RecommendationValidator — never trusted):
+     *  phase          the response phase of the step; must equal the phase of the knowledge step it derives from;
+     *  status         how firmly the evidence supports the step: CONFIRMED needs evidence and no open condition,
+     *                 CONDITIONAL needs `condition`, POSSIBLE/SUPPORTED are never a claim of fact;
+     *  knowledgeRefs  ids of retrieved knowledge the step relies on (UNKNOWN_INCIDENT dynamic steps must cite them);
+     *  priority       advisory ordering hint for the analyst.
+     */
+    phase: z.string().trim().min(1).nullable().optional(),
+    status: z.enum(["CONFIRMED", "SUPPORTED", "CONDITIONAL", "POSSIBLE"]).nullable().optional(),
+    knowledgeRefs: z.array(z.string()).default([]),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).nullable().optional(),
     /** Advisory only — omitted means "no opinion". Policy decides; a `false` where Policy requires approval is a bypass attempt. */
     requiresApprovalSuggested: z.boolean().optional(),
   })

@@ -1,3 +1,5 @@
+import { networkRoleFromPayload } from "../../../../application/recommendation/services/IocRole";
+import { iocKind } from "../../../../domain/knowledge/knowledgeTypes";
 import { Prisma, PrismaClient } from "@prisma/client";
 import {
   AiAnalysisContextRow,
@@ -8,12 +10,42 @@ import {
   AnalysisRunRow,
   MitreMappingContextRow,
   PreviousRecommendationStepRow,
+  RehuntContextRow,
 } from "../../../../application/recommendation/ports/IRecommendationContextRepository";
+import type { TicketRecord } from "../../../../domain/subtype/actionState";
+import type { SubtypeEvidenceRow } from "../../../../application/subtype/factBuilder";
 import { checkGrounding, stringLeaves, stripAiSeverity } from "../../../../domain/ai/aiGrounding";
 import { classifyAnalysisSource, isTrustedAnalysisSource } from "../../../../domain/ai/analysisSource";
 
 export class PrismaRecommendationContextRepository implements IRecommendationContextRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  async getRehuntContext(incidentId: string, tenantId: string, investigationNumber: number): Promise<RehuntContextRow | null> {
+    if (investigationNumber < 2) return null;
+    const row = await this.prisma.verification.findFirst({
+      where: { incidentId, tenantId, incident: { tenantId }, afterState: { path: ["verifiedInvestigationNumber"], equals: investigationNumber - 1 } },
+      orderBy: { verifiedAt: "desc" },
+    });
+    if (!row) return null;
+    const after = row.afterState as Record<string, unknown> | null;
+    const before = row.beforeState as { criteria?: { hosts?: unknown } } | null;
+    const source = after?.evidenceSource;
+    if (source !== "WAZUH_INDEXER" && source !== "MOCK_REHUNT") return null;
+    const strings = (value: unknown) => Array.isArray(value) ? [...new Set(value.filter((v): v is string => typeof v === "string" && !!v))] : [];
+    const originalHosts = strings(before?.criteria?.hosts);
+    const affectedHosts = strings(row.affectedHosts);
+    // Only names observed in this re-hunt and absent from the original host scope are newly affected.
+    const newHosts = originalHosts.length ? affectedHosts.filter(host => !originalHosts.includes(host)) : [];
+    return {
+      verificationId: row.id, verifiedInvestigationNumber: investigationNumber - 1, source,
+      result: row.result === "RESOLVED" ? "RESOLVED" : "NOT_RESOLVED",
+      spreadDetected: row.spreadDetected, matchingEvents: row.matchingEvents ?? 0,
+      originalHosts, affectedHosts, newHosts, truncated: after?.truncated === true,
+      classification: typeof after?.classification === "string" ? after.classification : null,
+      coverageComplete: typeof (after?.coverage as { complete?: unknown } | null | undefined)?.complete === "boolean" ? (after!.coverage as { complete: boolean }).complete : null,
+      verifiedAt: row.verifiedAt,
+    };
+  }
 
   async getIncidentContext(incidentId: string, tenantId: string): Promise<IncidentContextRow | null> {
     const incident = await this.prisma.incident.findFirst({
@@ -40,20 +72,17 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
               incidentId,
               OR: [{ investigation: { investigationNumber } }, ...(investigationNumber === 1 ? [{ investigationId: null }] : [])],
             },
-      include: { sourceAlert: { select: { externalAlertId: true } } },
+      include: { sourceAlert: { select: { externalAlertId: true, rawPayload: true } } },
     });
-    // IP role comes from the triggering alert's own fields; an IP that is both (or neither) gets no role.
+    // Prefer the IOC's attributed source alert; legacy IOCs fall back to the triggering alert's explicit fields.
+    // Neither AI prose nor an IP's presence establishes direction; both/neither source and destination stays unknown.
     const alert = (await this.prisma.incident.findUnique({ where: { id: incidentId }, select: { alert: { select: { rawPayload: true } } } }))?.alert;
-    const data = ((alert?.rawPayload as any)?.data ?? {}) as Record<string, unknown>;
-    const src = typeof data.srcip === "string" ? data.srcip : null;
-    const dst = typeof data.dstip === "string" ? data.dstip : null;
-    const roleOf = (v: string): "source" | "destination" | undefined => (src !== dst ? (v === src ? "source" : v === dst ? "destination" : undefined) : undefined);
     return rows.map((r) => ({
       iocType: r.iocType,
       iocValue: r.iocValue,
       source: r.source,
       reputationScore: r.reputationScore,
-      ...(r.iocType === "IPV4" || r.iocType === "IPV6" ? { networkRole: roleOf(r.iocValue) } : {}),
+      ...(iocKind(r.iocType) === "ip" ? { networkRole: networkRoleFromPayload(r.sourceAlert?.rawPayload ?? alert?.rawPayload, r.iocValue) } : {}),
       manual: !!r.createdBy && r.createdBy !== "system",
       id: r.id,
       createdBy: r.createdBy,
@@ -91,6 +120,35 @@ export class PrismaRecommendationContextRepository implements IRecommendationCon
         ruleId: s.ruleId !== undefined && s.ruleId !== null ? String(s.ruleId) : null,
         iocValues: r.iocLinks.map((l) => l.ioc.iocValue),
       };
+    });
+  }
+
+  async getSubtypeEvidence(incidentId: string, tenantId: string, investigationNumber: number): Promise<SubtypeEvidenceRow[]> {
+    // Same ordering as getEvidence, so the E<n> citation ids are identical across the context and the subtype facts.
+    const rows = await this.prisma.evidence.findMany({
+      where: { investigation: { incidentId, investigationNumber, incident: { tenantId } } },
+      orderBy: { timestamp: "asc" },
+    });
+    return rows.map((r, n) => {
+      const s = r.structuredData && typeof r.structuredData === "object" && !Array.isArray(r.structuredData) ? (r.structuredData as Record<string, unknown>) : null;
+      return {
+        id: r.id, ref: `E${n + 1}`, type: r.type, origin: r.origin === "SYSTEM" ? "SYSTEM" : "MANUAL", createdBy: r.createdBy, timestamp: r.timestamp, title: r.title,
+        host: s && typeof s.agent === "string" ? s.agent : null, structured: s,
+      };
+    });
+  }
+
+  async getTicketHistory(incidentId: string, tenantId: string): Promise<TicketRecord[]> {
+    const rows = await this.prisma.responsePlan.findMany({
+      where: { incidentId, tenantId, actionId: { not: null }, target: { not: null } },
+      select: { status: true, target: true, executionResult: true, completedAt: true, action: { select: { code: true } }, recommendation: { select: { investigationNumber: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return rows.filter((r) => r.action && r.target).map((r) => {
+      const res = r.executionResult && typeof r.executionResult === "object" && !Array.isArray(r.executionResult) ? (r.executionResult as Record<string, unknown>) : {};
+      const note = [res.note, res.actualResult, res.summary, res.message].find((x) => typeof x === "string") as string | undefined;
+      const cs = typeof res.controlState === "string" ? res.controlState : null;   // optional, IR-written; never inferred
+      return { actionCode: r.action!.code, target: r.target!, status: r.status, executionNote: note ?? null, controlState: cs, completedAt: r.completedAt, investigationNumber: r.recommendation.investigationNumber };
     });
   }
 

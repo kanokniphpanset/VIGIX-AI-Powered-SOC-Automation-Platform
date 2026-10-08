@@ -854,3 +854,73 @@ describe("Re-hunt IOC selection: the alert's own endpoint identity is never hunt
     expect((deps.rehunt.rehunt as jest.Mock).mock.calls[0][0].iocs).toHaveLength(3);
   });
 });
+
+describe("Phase 2D: classified re-hunt results", () => {
+  const alert = {
+    id: "alert-1",
+    rawPayload: {
+      agent: { name: "attack-endpoint", id: "009", ip: "172.19.0.8" },
+      rule: { id: "100301", description: "d", groups: ["syscheck", "malware", "vigix_eval"] },
+      syscheck: { path: "/root/Downloads/Invoice.exe", event: "added" },
+      data: { win: { eventdata: { processGuid: "{G-1}" } } },
+    },
+  };
+  const run = (deps: ReturnType<typeof createDependencies>) =>
+    deps.useCase.execute({ incidentId: "incident-1", responseId: "response-1", tenantId: "tenant-1", verifiedBy: "analyst-1" });
+  const classified = (over: Partial<RehuntResult>) => createEvidence({ coverage: { sources: { alerts: "AVAILABLE", archives: "NOT_AVAILABLE" }, indexRange: null, windowCoveredByIndex: true, agents: [], complete: true, gaps: [], limitations: [] }, totalMatched: 0, ignoredEvents: 0, ...over });
+
+  it("passes agent id, rule groups and the original process / file identifiers to the provider", async () => {
+    const deps = createDependencies({ alert, evidence: classified({ classification: "NO_MATCH_COVERED" }) });
+    await run(deps);
+    const q = (deps.rehunt.rehunt as jest.Mock).mock.calls[0][0];
+    expect(q.agentIds).toEqual(["009"]);
+    expect(q.rule).toMatchObject({ id: "100301", groups: ["syscheck", "malware", "vigix_eval"] });
+    expect(q.correlation).toEqual({ processGuids: ["{G-1}"], filePaths: ["/root/Downloads/Invoice.exe"] });
+  });
+
+  it.each([
+    ["INCOMPLETE", "REHUNT_INCOMPLETE"],
+    ["UNCORROBORATED_MATCH", "REHUNT_UNCONFIRMED"],
+  ] as const)("%s records NO verification (neither RESOLVED nor NOT_RESOLVED) and fails with %s", async (classification, code) => {
+    const deps = createDependencies({ alert, evidence: classified({ classification, matchingEvents: 3, totalMatched: 3, threatContained: false }) });
+    const result = await run(deps);
+    expect(result.isFailure).toBe(true);
+    expect(result.error).toBe(code);
+    expect(deps.createVerification.execute).not.toHaveBeenCalled();
+    expect(deps.investigations.createEvidence).not.toHaveBeenCalled();
+  });
+
+  it("an inconclusive result is audited with the gaps, so the analyst can see why", async () => {
+    const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const deps = createDependencies({ alert, evidence: classified({ classification: "INCOMPLETE", coverage: { sources: { alerts: "AVAILABLE", archives: "NOT_AVAILABLE" }, indexRange: null, windowCoveredByIndex: true, agents: [], complete: false, gaps: ["agent X was not active"], limitations: [] } }) });
+    const useCase = new RunRehuntVerificationUseCase(deps.rehunt, deps.createVerification as any, deps.incidentRepository as any, deps.alertRepository as any, deps.responsePlanRepository as any, deps.verificationRepository as any, deps.contextRepository as any, deps.investigations as any, audit as any);
+    await useCase.execute({ incidentId: "incident-1", responseId: "response-1", tenantId: "tenant-1", verifiedBy: "analyst-1" });
+    const failed = audit.record.mock.calls.map((c) => c[0]).find((a) => a.action === "REHUNT_FAILED");
+    expect(failed.metadata).toMatchObject({ code: "INCOMPLETE", classification: "INCOMPLETE", gaps: ["agent X was not active"] });
+  });
+
+  it("NO_MATCH_COVERED creates the verification with the coverage that justified it", async () => {
+    const deps = createDependencies({ alert, evidence: classified({ classification: "NO_MATCH_COVERED", ignoredEvents: 1, totalMatched: 1 }) });
+    const result = await run(deps);
+    expect(result.isSuccess).toBe(true);
+    const saved = deps.createVerification.execute.mock.calls[0][0];
+    expect(saved).toMatchObject({ matchingEvents: 0, threatContained: true, spreadDetected: false, iocRecurrence: false });
+    expect(saved.afterState).toMatchObject({ classification: "NO_MATCH_COVERED", totalMatched: 1, ignoredEvents: 1 });
+    expect(saved.afterState.coverage.complete).toBe(true);
+  });
+
+  it("NEW_SCOPE_ACTIVITY creates a NOT_RESOLVED-driving verification and stores the correlation reasons", async () => {
+    const deps = createDependencies({ alert, evidence: classified({ classification: "NEW_SCOPE_ACTIVITY", matchingEvents: 2, totalMatched: 2, threatContained: false, iocRecurrence: true, spreadDetected: true, affectedHosts: ["other"], correlationReasons: { SAME_RULE: 2 } }) });
+    await run(deps);
+    const saved = deps.createVerification.execute.mock.calls[0][0];
+    expect(saved).toMatchObject({ spreadDetected: true, iocRecurrence: true, threatContained: false, matchingEvents: 2, affectedHosts: ["other"] });
+    expect(saved.afterState.correlationReasons).toEqual({ SAME_RULE: 2 });
+  });
+
+  it("a provider that does not classify (mock, older providers) behaves exactly as before", async () => {
+    const deps = createDependencies({ alert, evidence: createEvidence({ matchingEvents: 1, iocRecurrence: true, threatContained: false }) });
+    const result = await run(deps);
+    expect(result.isSuccess).toBe(true);
+    expect(deps.createVerification.execute.mock.calls[0][0].afterState.classification).toBeUndefined();
+  });
+});

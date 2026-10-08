@@ -1,0 +1,160 @@
+# field-dictionary.yaml — the ONLY fields a predicate may reference (§5). tools/validate.mjs rejects any other field.
+# Namespaces are closed: confidence scores, retrieval scores and semantic similarity are deliberately NOT fields (GL-4).
+
+version: "2.0.0"
+
+# ---- Three-valued logic -----------------------------------------------------------------------------------------------
+# Every leaf evaluates to TRUE | FALSE | UNKNOWN.
+#   - A missing field, an UNKNOWN status, or an unresolved target evaluates UNKNOWN (never FALSE-as-pass, never TRUE).
+#   - all_of: FALSE if any FALSE; else UNKNOWN if any UNKNOWN; else TRUE.
+#   - any_of: TRUE if any TRUE; else UNKNOWN if any UNKNOWN; else FALSE.
+#   - none_of: negation of any_of (UNKNOWN stays UNKNOWN).
+#   - REQUIREMENTS (required_evidence / required_targets / authority / capability / step.condition) pass only on TRUE.
+#   - PROHIBITIONS fire only on TRUE (UNKNOWN does not fire; safety-critical unknowns are modelled as requirements instead).
+#   - Absence of evidence in the data we were given is UNKNOWN or ABSENT-by-source, never "the event did not occur".
+null_semantics:
+  requirement_pass_on: [TRUE]
+  prohibition_fires_on: [TRUE]
+  unknown_is_pass: false
+
+operators:
+  equals:     {args: scalar, note: "field == value"}
+  not_equals: {args: scalar, note: "field != value; UNKNOWN stays UNKNOWN"}
+  in:         {args: list,   note: "field in value"}
+  not_in:     {args: list,   note: "field not in value; UNKNOWN stays UNKNOWN"}
+  gte:        {args: number, note: "field >= value"}
+  lte:        {args: number, note: "field <= value"}
+combinators: [all_of, any_of, none_of]
+
+# ---- Decision results (policy evaluator output) --------------------------------------------------------------------
+decision:
+  values:
+    ELIGIBLE: "evidence, target, authority and capability all satisfied; no prohibition fires"
+    NEEDS_EVIDENCE: "required_evidence not TRUE (includes authorization_gate UNKNOWN)"
+    NEEDS_TARGET: "required_targets not TRUE"
+    NEEDS_AUTHORIZATION: "an authority_requirement or REQUIRE_AUTHORITY criticality constraint is not satisfied"
+    UNSUPPORTED: "a required capability is explicitly unsupported (strict mode: or unknown)"
+    PROHIBITED: "a prohibition fires, or an authorization_gate evidence is AUTHORIZED, or a global prohibition fires"
+  precedence_for_headline: [PROHIBITED, NEEDS_EVIDENCE, NEEDS_TARGET, NEEDS_AUTHORIZATION, UNSUPPORTED, ELIGIBLE]
+  rule: "ALL reasons are collected; headline = highest-precedence failing result. Only ELIGIBLE actions may be rendered as ready-to-execute steps."
+  capability_unknown_handling:
+    platform_neutral_mode: "capability UNKNOWN -> ELIGIBLE with flag TOOL_MAPPING_REQUIRED (steps remain role-level, no invented commands)"
+    strict_mode: "capability UNKNOWN -> UNSUPPORTED"
+    explicit_unsupported: "capability declared unsupported -> UNSUPPORTED in both modes"
+  flags: [TOOL_MAPPING_REQUIRED, VARIANT_SELECTED, MANUAL_OWNER]
+
+# ---- Field namespaces ----------------------------------------------------------------------------------------------------
+namespaces:
+  evidence:
+    pattern: "evidence.<evidence_id>.status | evidence.<evidence_id>.authorization_status"
+    status_values: [PRESENT, ABSENT, UNKNOWN]
+    authorization_status_values: [AUTHORIZED, UNAUTHORIZED, UNKNOWN]
+    source: "Incident fact builder (Wazuh alert + enrichments + analyst confirmation). <evidence_id> must be declared in some families/*.yaml `evidence:`."
+  targets:
+    pattern: "targets.<target_type>.validated"
+    values: [true, false]
+    source: "Target resolver: validated == all required_identity_fields present + validation_rules hold + no exclusion + bound to evidence (contracts/target-types.yaml)."
+  scope:
+    pattern: "scope.<flag>"
+    values: [true, false]
+    source: "Target resolver / action planner — computed from the *proposed* action scope vs. evidence. See scope_flags below."
+  authority:
+    pattern: "authority.<authority_id>.granted"
+    values: [true, false]
+    source: "ORGANIZATION_CONTEXT (roles / approval policy). ir_execute is implicit for every ACTION_GATE."
+  capability:
+    pattern: "capability.<capability_id>.supported"
+    values: [true, false]
+    source: "ORGANIZATION_CONTEXT tool inventory (organization-context.yaml). MISSING => UNKNOWN."
+  context:
+    fields:
+      context.asset_criticality: {values: [LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN], source: "resources/assets/asset-criticality-catalog.yaml (asset of the target host)"}
+      context.environment: {values: [PRODUCTION, STAGING, DEVELOPMENT, UNKNOWN], source: "asset inventory"}
+      context.alternative_containment_available: {values: [true, false], source: "ORGANIZATION_CONTEXT / asset record"}
+      context.active_damage_ongoing: {values: [true, false], source: "evidence (encryption/transfer still observed in the time window)"}
+
+# ---- IDs allowed in the namespaces above ---------------------------------------------------------------------------------
+authorities:
+  ir_execute: "IR_TEAM may execute containment (implicit gate on every ACTION_GATE; VIGIX: IR_TEAM decides and executes, SOC recommends)"
+  ir_emergency: "IR authority for urgent measures against active damage / ongoing transfer (MAL-P4)"
+  dba: "Database administrator (cancel identified query; config change on DB side)"
+  business_authority: "Owner of the business item (BEC hold / payment hold) — MANUAL, outside IR (PH-P4)"
+  asset_owner: "Owner/approver of a critical workload (alternative containment, restart impact)"
+  change_approval: "Approved change/control owner for configuration or WAF/virtual-patch/driver changes ('ตาม approved control')"
+
+capabilities:
+  cap.scoped_network_enforcement: "per-source/per-service deny or rate-limit at a control that sees the real client"
+  cap.connection_state_termination: "terminate existing connections/sessions at the network control"
+  cap.egress_control: "scoped outbound restriction (host/DB workload -> destination/protocol/port)"
+  cap.process_termination: "terminate a process by process identity (guid or pid+start_time)"
+  cap.workload_isolation: "isolate or restrict a host/workload from network"
+  cap.file_quarantine: "quarantine a file/object without deleting it"
+  cap.session_revocation: "revoke sessions/tokens at IdP or application"
+  cap.identity_restriction: "restrict/disable/reset an identity"
+  cap.mail_quarantine: "quarantine/purge messages by id or campaign"
+  cap.mail_web_link_control: "block/restrict URL/domain/path at mail or web control"
+  cap.waf_targeted_rule: "targeted WAF/virtual patch rule or scoped rate-limit for route/parameter"
+  cap.bot_risk_control: "throttling / risk challenge / bot control for an authentication scope"
+  cap.oauth_grant_revocation: "revoke OAuth grant/consent/token or restrict principal resource access"
+  cap.secret_rotation: "restrict/revoke a credential and deploy a replacement via secret management"
+  cap.mfa_factor_management: "remove an MFA factor / recovery entry"
+  cap.dns_control: "block specific domains / resolver path at DNS or egress"
+  cap.cloud_acl_management: "revoke share/link/ACL/grant and stop copy jobs"
+  cap.db_query_cancel: "cancel an identified query/session (DBA)"
+  cap.generic_error_response: "return a generic external error while keeping internal logging"
+  cap.persistence_trigger_disable: "disable a scheduled task/autorun/service trigger and stop its running instance"
+  cap.queue_consumer_control: "pause a consumer/job and hold/quarantine queued records without deleting them"
+  cap.mail_rule_management: "disable forwarding rules / delegates / hold mail queue"
+  cap.entitlement_management: "remove a specific group/role/sudo/permission entry"
+  cap.remote_session_termination: "terminate a remote management session"
+  cap.rmm_console_control: "terminate RMM sessions / revoke registration at the RMM console"
+  cap.transfer_job_control: "stop a transfer job/session and pause retries"
+  cap.driver_config_change: "change DB driver/application multi-statement setting"
+  cap.writable_path_acl: "restrict write permission on a path"
+  cap.share_session_termination: "terminate file-share sessions"
+  cap.behavior_control: "scoped behavior/application control (not deleting system binaries)"
+  cap.config_snapshot: "export/record the current configuration before change"
+
+scope_flags:
+  scope.uses_agent_ip_as_attacker: "proposed attacker IP is agent.ip / observer"
+  scope.uses_agent_ip_as_destination: "proposed destination is agent.ip / observer"
+  scope.source_role_ambiguous: "role of the source address is not explicit in evidence"
+  scope.cuts_approved_access: "action would cut approved management / recovery / trusted IR access"
+  scope.exceeds_evidence: "proposed scope is wider than the evidence supports"
+  scope.mass_lockout: "action would lock out/disable accounts beyond the evidenced set"
+  scope.single_source_only_for_campaign: "campaign across many sources is being handled by blocking one IP"
+  scope.basis_failed_login_only: "only failed logins support the identity action"
+  scope.basis_location_anomaly_only: "only an anomalous location supports the compromise"
+  scope.basis_single_indicator: "the action rests on one indicator (name, port, periodicity, keyword...)"
+  scope.touches_unrelated_artifacts: "action would remove/disable services, autoruns or tasks not tied to the incident"
+  scope.disables_org_wide_capability: "action would disable PowerShell/remote management/scheduler organisation-wide"
+  scope.removes_all_admins: "action would remove all administrators/elevation permissions"
+  scope.deletes_source_data: "action deletes source data"
+  scope.targets_all_recipients: "action isolates/penalises every recipient of a message"
+  scope.object_is_legitimate_os_binary: "file/hash is a legitimate OS binary"
+  scope.is_approved_automation: "target is an approved automation / security tool / change"
+  scope.requires_executing_suspect_script: "the check would require running the suspicious script/binary"
+  scope.shared_infra_coarse_block: "whole CDN/cloud provider is blocked although a granular rule is possible"
+  scope.password_reset_as_only_revocation: "password reset proposed in place of session/grant revocation"
+  scope.reuses_compromised_secret: "replacement secret derived from/equal to the compromised one"
+  scope.service_identity_without_dependency_plan: "service identity is restricted without dependency-aware plan"
+  scope.kills_all_slow_queries: "action cancels all slow queries"
+  scope.isolates_database_blanket: "action isolates the whole database server without scoped evidence"
+  scope.destroys_original_records: "action deletes the original stored records (not preserved)"
+  scope.rmm_judged_by_name_only: "RMM tool treated as malicious by name only"
+  scope.critical_process_termination_unsafe: "terminating the process impacts critical system/service"
+  scope.privileged_context_removed_by_reset_only: "password reset/patch proposed as the only way to end a privileged context"
+  scope.assumes_token_invalidated_by_entitlement_change: "plan assumes issued tokens end with an entitlement change"
+  scope.treats_attempt_as_success: "attempt/exposure/admin change treated as successful escalation"
+  scope.transfer_direction_unknown: "direction or authorization of the transfer is not established"
+  scope.volume_claim_exceeds_evidence: "loss/volume claim larger than observed"
+  scope.recovery_of_sent_data_promised: "plan promises recovery of data already sent"
+  scope.keyword_only_basis: "SQL keyword/semicolon/syntax is the only basis"
+  scope.slow_response_only_basis: "slow response alone is the basis for query termination"
+  scope.oob_syntax_only_basis: "payload syntax alone is the basis for outbound/egress action"
+  scope.second_order_without_lineage: "second-order claim lacks record->consumer/job->query lineage"
+  scope.code_fix_in_containment: "code fix / parameterized query listed as containment"
+  scope.os_binary_hash_block: "hash block for an OS binary"
+  scope.treats_delivery_as_execution: "message delivery treated as click/submission/execution"
+  scope.malware_file_presence_only: "file presence alone treated as execution/infection"
+  scope.business_action_not_by_authority: "business hold proposed for IR/user to execute"

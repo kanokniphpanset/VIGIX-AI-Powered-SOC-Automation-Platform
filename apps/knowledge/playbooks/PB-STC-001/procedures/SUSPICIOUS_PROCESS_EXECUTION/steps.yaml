@@ -1,0 +1,108 @@
+# steps.yaml - ORDERED CONTAINMENT PROCEDURE TEMPLATE for SUSPICIOUS_PROCESS_EXECUTION, not a runtime instance.
+# The backend (apps/backend/src/infrastructure/knowledge/ContainmentProcedureLoader.ts) loads it into the
+# RecommendationContext; ai-orchestrator runbook/procedure_loader.py reads the same file.
+# Each recommendedAction item is one of three kinds:
+#   ACTION  "... (see containment.yaml: <ACTION CODE>)"  - a catalog Action; its condition lives in containment.yaml
+#   MANUAL  "... (manual - outside the VIGIX Action Catalog[; requires <who> approval])" - a control VIGIX cannot execute
+#   CHECK   anything else - an investigation / decision step, never an executable Action
+# Per-step status lives on the Recommendation / Response Plan, never here.
+
+procedureCode: SUSPICIOUS_PROCESS_EXECUTION
+steps:
+- stepOrder: 1
+  phase: VALIDATE
+  title: Assess the Process
+  objective: Collect the process details and decide whether it is malicious.
+  recommendedAction:
+  - Collect the process name, PID, path, hash, user, parent / child processes and command line
+  - Check the hash reputation, signature and execution context
+  reason: Unusual software is often legitimate; reputation, signature and context decide.
+  evidenceRequired:
+  - Process details
+  - File hash
+  - Command line
+  expectedResult: The process is classified as legitimate or malicious.
+  decisionRef: DEC-SP-001
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 2
+  phase: SELECT_ACTION
+  title: Stop Execution
+  objective: Stop the malicious process and prevent it from running again.
+  # Evidence-gated: a process that is merely unrecognised is investigated first; it is stopped only when the
+  # evidence supports malicious execution.
+  appliesWhenSignals: [MALICIOUS_EXECUTION]
+  recommendedAction:
+  - 'Terminate the process (see containment.yaml: ACT-KILL-PROCESS)'
+  - 'Block the confirmed malicious hash fleet-wide (see containment.yaml: ACT-BLOCK-HASH)'
+  - 'Quarantine the binary / script (see containment.yaml: ACT-QUARANTINE-FILE)'
+  reason: A running malicious process can spread or reach out while the investigation continues.
+  evidenceRequired:
+  - Process
+  - File hash
+  - File path
+  expectedResult: The process is stopped and cannot run again.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: false
+- stepOrder: 3
+  phase: ASSESS
+  title: Child Processes & Persistence
+  objective: Find further compromise beyond this process.
+  recommendedAction:
+  - Check child processes, persistence and network connections of the process
+  - Identify how the process reached the endpoint
+  reason: Persistence or an open entry point means the process will return.
+  evidenceRequired:
+  - Process tree
+  - Persistence check results
+  - Network connections
+  expectedResult: Further compromise confirmed or ruled out.
+  decisionRef: DEC-SP-002
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 4
+  phase: SELECT_ACTION
+  title: Contain the Endpoint
+  objective: Isolate the endpoint when compromise risk is evidenced.
+  appliesWhenSignals: [MALICIOUS_EXECUTION]
+  recommendedAction:
+  - 'Isolate the endpoint (see containment.yaml: ACT-ISOLATE-ENDPOINT)'
+  reason: An endpoint with persistence or lateral activity stays a risk to the network.
+  evidenceRequired:
+  - Affected endpoint
+  expectedResult: The endpoint cannot reach other hosts.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Engineer
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- stepOrder: 5
+  phase: ASSESS
+  title: Spread Check
+  objective: Find the same hash or behaviour on other endpoints.
+  recommendedAction:
+  - Hunt the hash and process behaviour on other endpoints
+  reason: The same tool is often deployed on several hosts.
+  evidenceRequired:
+  - Wazuh cross-host search results
+  expectedResult: List of every endpoint running the same process.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false
+- stepOrder: 6
+  phase: VERIFY
+  title: Verify Containment
+  objective: Confirm the suspicious execution stopped.
+  recommendedAction:
+  - Run the re-hunt query defined in verification.yaml
+  - Confirm no process starts from the same path / hash and no malicious child process or persistence is detected
+  reason: Containment is complete only when the success criteria in verification.yaml hold; NOT_RESOLVED reopens the investigation
+    for a human decision.
+  evidenceRequired:
+  - Wazuh re-hunt results (before/after)
+  expectedResult: RESOLVED or NOT_RESOLVED, per verification.yaml.
+  responsibleRole: IR_TEAM
+  responsibleDuty: IR Analyst
+  approvalRequired: false

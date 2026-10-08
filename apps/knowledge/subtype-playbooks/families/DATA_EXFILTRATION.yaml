@@ -1,0 +1,619 @@
+# DATA_EXFILTRATION — family file. Reference: reference-registry.yaml#DATA_EXFILTRATION
+# Uses the SHARED action ACT-DNS-CHANNEL-CONTAIN (owned by COMMAND_AND_CONTROL.yaml) for EXF-DNS.
+# Principles: traffic volume / share creation / DNS lookup do not prove data loss (EXF-P1); transfer DIRECTION and AUTHORIZATION must be known (EXF-P2);
+# never delete source data to stop exfiltration (EXF-P3); never promise recovery of data already sent (EXF-P4); never report loss volume beyond evidence (EXF-P5).
+
+family: DATA_EXFILTRATION
+defaults:
+  neutral_tool_variants: &neutral
+    - {variant_id: platform_neutral, tool: TOOL_MAPPING_REQUIRED, note: "Organization tool mapping MISSING; steps are role-level."}
+  prov: &prov {reference: DATA_EXFILTRATION, registry_version: ref-2026-10-08, playbook_version: "2.0.0"}
+
+evidence:
+  - id: exf_indicator_only
+    description: "Traffic volume, share creation or DNS lookup ONLY (indicator; no direction/authorization/data correlation)."
+    confirm: "หา source/data, direction (outbound) และ authorization ของ transfer"
+    may_be_authorized: true
+  - id: exf_direction_outbound_confirmed
+    description: "Transfer DIRECTION established as outbound to a destination outside the authorized set."
+    confirm: "ยืนยัน direction จาก flow/log (ต้นทางภายในองค์กร → ปลายทางภายนอก) ไม่ใช่การดาวน์โหลดเข้า"
+    may_be_authorized: true
+  - id: exf_web_upload_correlated
+    description: "Unauthorized web upload with source/data/direction correlation (process/session -> upload destination)."
+    confirm: "ผูก process/session กับ upload ไปยัง destination และข้อมูลที่ส่ง (เท่าที่สังเกตได้)"
+    may_be_authorized: true
+  - id: exf_cloud_unauthorized_share
+    description: "Unauthorized object access / share / copy in cloud audit logs."
+    confirm: "ตรวจ audit log: object, share/link/ACL/grant, principal ภายนอก, copy job"
+    may_be_authorized: true
+  - id: exf_dns_tunnel_data
+    description: "Data-channel evidence over DNS (encoded payload in queries tied to process/host)."
+    confirm: "ผูก DNS queries ที่มีข้อมูลที่เข้ารหัสกับ process/host และ domain"
+    may_be_authorized: true
+  - id: exf_transfer_job_unauthorized
+    description: "Unauthorized transfer job/session (SFTP/rsync/cloud sync) with direction."
+    confirm: "ระบุ job/session id, account, destination, direction และเทียบกับ job ที่อนุมัติ"
+    may_be_authorized: true
+  - id: exf_mail_forwarding_unauthorized
+    description: "Unauthorized sending/forwarding of sensitive data by mail (rule/delegate/queue/identity)."
+    confirm: "ตรวจ rule/delegate/queue ที่ส่งต่อไปภายนอกและเนื้อหาที่เป็นข้อมูลอ่อนไหว"
+    may_be_authorized: true
+
+actions:
+  - action_id: ACT-WEB-TRANSFER-CONTAIN
+    action_name: Stop web upload exfiltration
+    label_th: "หยุดการอัปโหลดข้อมูลออกทางเว็บ"
+    objective: "หยุด upload ต่อ process/session/upload destination: จำกัด scoped destination/path ตัด transfer session/process และ contain source เมื่อจำเป็น"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [destination_endpoint, transfer_session, process, host_workload]
+    evidence_requirements: [exf_web_upload_correlated, exf_direction_outbound_confirmed]
+    target_requirements: [transfer_session]
+    runbook_refs: [RB-WEB-TRANSFER-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DOMAIN, ACT-BLOCK-URL, ACT-KILL-PROCESS, ACT-ISOLATE-ENDPOINT]
+    execution_constraints: ["ต้องรู้ direction และ authorization", "ไม่ลบ source data", "ไม่รายงานปริมาณเกิน evidence"]
+  - action_id: ACT-CLOUD-DATA-ACCESS-CONTAIN
+    action_name: Cut unauthorized cloud data access
+    label_th: "ตัดการเข้าถึงข้อมูลบน cloud ที่ไม่ได้รับอนุญาต"
+    objective: "ตัด access ต่อ object/link/ACL/grant/copy job ที่ระบุ และจำกัด principal"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [cloud_object_share]
+    evidence_requirements: [exf_cloud_unauthorized_share]
+    target_requirements: [cloud_object_share]
+    runbook_refs: [RB-CLOUD-DATA-ACCESS-CONTAIN]
+    legacy_action_refs: [ACT-REVOKE-SESSION, ACT-REMOVE-PRIVILEGE]
+    execution_constraints: ["ไม่ลบ source object", "share creation อย่างเดียวไม่พิสูจน์ data loss"]
+  - action_id: ACT-FILE-TRANSFER-CONTAIN
+    action_name: Stop unauthorized file-transfer job
+    label_th: "หยุดงานถ่ายโอนไฟล์ที่ไม่ได้รับอนุญาต"
+    objective: "หยุด transfer ต่อ job/session/account/destination, pause retries และจำกัด credential/path ที่เกี่ยวข้อง"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [transfer_session, account_identity]
+    evidence_requirements: [exf_transfer_job_unauthorized, exf_direction_outbound_confirmed]
+    target_requirements: [transfer_session]
+    runbook_refs: [RB-FILE-TRANSFER-CONTAIN]
+    legacy_action_refs: [ACT-BLOCK-DESTINATION-IP, ACT-DISABLE-ACCOUNT]
+    execution_constraints: ["ต้องรู้ direction และ authorization", "ไม่ลบ source data"]
+  - action_id: ACT-MAIL-EXFIL-CONTAIN
+    action_name: Cut unauthorized mail forwarding / sending path
+    label_th: "ตัดช่องทางส่งต่อ/ส่งอีเมลที่ไม่ได้รับอนุญาต"
+    objective: "Disable scoped forwarding/delegation, hold affected queue และ restrict compromised identity"
+    phase: CONTAINMENT
+    containment_stage: STOP_ACTIVE
+    impact_level: HIGH
+    review_status: IR_REVIEW_PENDING
+    supported_target_types: [mail_path, account_identity]
+    evidence_requirements: [exf_mail_forwarding_unauthorized, exf_direction_outbound_confirmed]
+    target_requirements: [mail_path]
+    runbook_refs: [RB-MAIL-EXFIL-CONTAIN]
+    legacy_action_refs: [ACT-DISABLE-ACCOUNT, ACT-QUARANTINE-EMAIL]
+    execution_constraints: ["ปิดเฉพาะ rule/delegate ที่ unauthorized", "ไม่ลบข้อมูลต้นทาง"]
+
+playbooks:
+  - playbook_id: PBK-EXF-WEB
+    attack_family: DATA_EXFILTRATION
+    subtype_id: EXF-WEB
+    subtype_name: Web Upload
+    classification_evidence:
+      all_of:
+        - {field: evidence.exf_web_upload_correlated.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    insufficient_evidence: ["traffic volume สูงอย่างเดียว (EXF-P1)", "ไม่ทราบ direction หรือ authorization (EXF-P2)", "upload ไป service ที่อนุมัติ"]
+    scenarios:
+      - scenario_id: SC-EXF-WEB-ACTIVE
+        description: "Upload ที่ไม่ได้รับอนุญาตยืนยันแล้วว่า outbound (ongoing หรือ completed)"
+        ordered_action_refs:
+          - {action_id: ACT-WEB-TRANSFER-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุดการส่งออกที่กำลังเกิดก่อน (destination → session/process → source) ตามอำนาจของ IR; ข้อมูลที่ส่งไปแล้วเรียกคืนไม่ได้", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-EXF-001, POL-EXF-006]
+    related_branches:
+      - {subtype_id: MAL-STEALER, open_when: {field: evidence.mal_collection_or_transfer.status, operator: equals, value: PRESENT}}
+      - {subtype_id: C2-WEB, open_when: {field: evidence.c2_web_channel_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: evidence.exf_web_upload_correlated.authorization_status, operator: equals, value: AUTHORIZED}, then: STOP, note: "upload ที่อนุมัติ — ไม่เปิดมาตรการ"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-EXF-CLOUD
+    attack_family: DATA_EXFILTRATION
+    subtype_id: EXF-CLOUD
+    subtype_name: Cloud Share/Copy
+    classification_evidence:
+      all_of:
+        - {field: evidence.exf_cloud_unauthorized_share.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_cloud_unauthorized_share.authorization_status, operator: equals, value: UNAUTHORIZED}
+    insufficient_evidence: ["สร้าง share/link อย่างเดียวโดยไม่พิสูจน์ว่า unauthorized (EXF-P1)", "การแชร์ที่ได้รับอนุมัติ"]
+    scenarios:
+      - scenario_id: SC-EXF-CLOUD-UNAUTHORIZED
+        description: "Audit ชี้ว่า object access/share/copy ไม่ได้รับอนุญาต"
+        ordered_action_refs:
+          - {action_id: ACT-CLOUD-DATA-ACCESS-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ถอน share/grant ที่ระบุและหยุด copy job ที่เกี่ยวข้องก่อน", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-EXF-002, POL-EXF-006]
+    related_branches:
+      - {subtype_id: AC-OAUTH, open_when: {all_of: [{field: evidence.ac_oauth_unauthorized_api_calls.status, operator: equals, value: PRESENT}, {field: evidence.ac_oauth_unauthorized_api_calls.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+      - {subtype_id: PE-CLOUD, open_when: {field: evidence.pe_cloud_iam_unauthorized_use.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.deletes_source_data, operator: equals, value: true}, then: STOP, note: "ห้ามลบ source object เพื่อหยุด exfiltration"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-EXF-DNS
+    attack_family: DATA_EXFILTRATION
+    subtype_id: EXF-DNS
+    subtype_name: DNS Tunnel
+    classification_evidence:
+      all_of:
+        - {field: evidence.exf_dns_tunnel_data.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    insufficient_evidence: ["DNS lookup/query ยาวอย่างเดียว (EXF-P1)", "ไม่ผูกกับ process/host และข้อมูล"]
+    scenarios:
+      - scenario_id: SC-EXF-DNS-TUNNEL
+        description: "Data-channel evidence ผ่าน DNS"
+        ordered_action_refs:
+          - {action_id: ACT-DNS-CHANNEL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ตัด channel ที่ domain/resolver/host/process ที่ระบุ โดยคง approved resolution", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-EXF-003, POL-EXF-006]
+    related_branches:
+      - {subtype_id: C2-DNS, open_when: {field: evidence.c2_dns_correlated.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.cuts_approved_access, operator: equals, value: true}, then: STOP, note: "ต้องรักษา approved DNS"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-EXF-TRANSFER
+    attack_family: DATA_EXFILTRATION
+    subtype_id: EXF-TRANSFER
+    subtype_name: File Transfer
+    classification_evidence:
+      all_of:
+        - {field: evidence.exf_transfer_job_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    insufficient_evidence: ["transfer job ที่ไม่ทราบ direction/authorization (EXF-P2)", "job ที่อยู่ในรายการอนุมัติ"]
+    scenarios:
+      - scenario_id: SC-EXF-TRANSFER-JOB
+        description: "Transfer job/session ที่ไม่ได้รับอนุญาตและ direction outbound"
+        ordered_action_refs:
+          - {action_id: ACT-FILE-TRANSFER-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "หยุด job และ retries ก่อน แล้วจำกัด credential/path ที่เกี่ยวข้อง", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-EXF-004, POL-EXF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+    stop_escalation:
+      - {when: {field: scope.transfer_direction_unknown, operator: equals, value: true}, then: STOP, note: "ต้องรู้ direction และ authorization ก่อน"}
+    version: "2.0.0"
+    provenance: *prov
+
+  - playbook_id: PBK-EXF-MAIL
+    attack_family: DATA_EXFILTRATION
+    subtype_id: EXF-MAIL
+    subtype_name: Email/Forwarding
+    classification_evidence:
+      all_of:
+        - {field: evidence.exf_mail_forwarding_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    insufficient_evidence: ["forwarding rule ที่พบโดยไม่ทราบว่าเป็นของเจ้าของ/อนุมัติ", "การส่งอีเมลปกติที่มีไฟล์แนบ"]
+    scenarios:
+      - scenario_id: SC-EXF-MAIL-FORWARD
+        description: "Unauthorized sensitive-data sending/forwarding ผ่าน rule/delegate/queue/identity"
+        ordered_action_refs:
+          - {action_id: ACT-MAIL-EXFIL-CONTAIN, condition: POLICY_ELIGIBLE, depends_on: [], order_reason: "ปิด forwarding/delegation และ hold queue เพื่อหยุดการส่งต่อ แล้ว restrict identity ที่ถูกใช้", parallel_allowed: false, fallback_action: ACT-INVESTIGATE-MISSING-EVIDENCE}
+    policy_refs: [POL-EXF-005, POL-EXF-006]
+    related_branches:
+      - {subtype_id: AC-PASSWORD, open_when: {all_of: [{field: evidence.ac_unauthorized_password_auth.status, operator: equals, value: PRESENT}, {field: evidence.ac_unauthorized_password_auth.authorization_status, operator: equals, value: UNAUTHORIZED}]}}
+      - {subtype_id: PH-BEC, open_when: {field: evidence.ph_bec_fraudulent_instruction.status, operator: equals, value: PRESENT}}
+    stop_escalation:
+      - {when: {field: scope.cuts_approved_access, operator: equals, value: true}, then: STOP, note: "ห้ามตัด approved forwarding/journaling"}
+    version: "2.0.0"
+    provenance: *prov
+
+policies:
+  - policy_id: POL-EXF-001
+    rule_type: ACTION_GATE
+    action_id: ACT-WEB-TRANSFER-CONTAIN
+    applicable_subtypes: [EXF-WEB]
+    covers: [EXF-P1, EXF-P2, EXF-P3, EXF-P5]
+    required_evidence:
+      all_of:
+        - {field: evidence.exf_web_upload_correlated.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    required_targets:
+      all_of: [{field: targets.transfer_session.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-EXF-1, reason: "ต้องรู้ direction และ authorization ของ transfer (EXF-P2)", when: {field: scope.transfer_direction_unknown, operator: equals, value: true}}
+      - {id: PRH-EXF-2, reason: "ห้ามลบ source data เพื่อหยุด exfiltration (EXF-P3)", when: {field: scope.deletes_source_data, operator: equals, value: true}}
+      - {id: PRH-EXF-3, reason: "ห้ามรายงานปริมาณสูญหายเกิน evidence (EXF-P5)", when: {field: scope.volume_claim_exceeds_evidence, operator: equals, value: true}}
+      - {id: PRH-EXF-4, reason: "ห้ามรับประกันเรียกคืนข้อมูลที่ส่งไปแล้ว (EXF-P4)", when: {field: scope.recovery_of_sent_data_promised, operator: equals, value: true}}
+    authorization_gate: [exf_web_upload_correlated, exf_direction_outbound_confirmed]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.mail_web_link_control, cap.egress_control, cap.process_termination, cap.transfer_job_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ direction/authorization หรือยังไม่ผูก process/session กับ destination"}
+    reason: "หยุด upload ที่ยืนยันแล้วว่า outbound และไม่ได้รับอนุญาต; ไม่ลบข้อมูลต้นทาง"
+    provenance: {reference: [EXF-WEB, EXF-P1, EXF-P2, EXF-P3, EXF-P5]}
+
+  - policy_id: POL-EXF-002
+    rule_type: ACTION_GATE
+    action_id: ACT-CLOUD-DATA-ACCESS-CONTAIN
+    applicable_subtypes: [EXF-CLOUD]
+    covers: [EXF-P1, EXF-P3, EXF-P4]
+    required_evidence:
+      all_of: [{field: evidence.exf_cloud_unauthorized_share.status, operator: equals, value: PRESENT}]
+    required_targets:
+      all_of: [{field: targets.cloud_object_share.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-EXF-5, reason: "ห้ามลบ source object เพื่อหยุด exfiltration (EXF-P3)", when: {field: scope.deletes_source_data, operator: equals, value: true}}
+      - {id: PRH-EXF-6, reason: "ห้ามรับประกันเรียกคืนข้อมูลที่ถูกเข้าถึง/คัดลอกแล้ว (EXF-P4)", when: {field: scope.recovery_of_sent_data_promised, operator: equals, value: true}}
+    authorization_gate: [exf_cloud_unauthorized_share]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.cloud_acl_management]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังพิสูจน์ไม่ได้ว่า share/access ไม่ได้รับอนุญาต"}
+    reason: "ถอน share/grant ที่ unauthorized และหยุด copy job; ไม่ลบ object ต้นทาง"
+    provenance: {reference: [EXF-CLOUD, EXF-P1, EXF-P3, EXF-P4]}
+
+  - policy_id: POL-EXF-003
+    rule_type: ACTION_GATE
+    action_id: ACT-DNS-CHANNEL-CONTAIN
+    applicable_subtypes: [EXF-DNS]
+    covers: [EXF-P1, EXF-P2]
+    required_evidence:
+      all_of:
+        - {field: evidence.exf_dns_tunnel_data.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    required_targets:
+      all_of: [{field: targets.dns_channel.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-EXF-7, reason: "DNS lookup/ปริมาณอย่างเดียวไม่พิสูจน์ data loss (EXF-P1)", when: {field: scope.basis_single_indicator, operator: equals, value: true}}
+      - {id: PRH-EXF-8, reason: "ต้องรู้ direction และ authorization (EXF-P2)", when: {field: scope.transfer_direction_unknown, operator: equals, value: true}}
+    authorization_gate: [exf_dns_tunnel_data]
+    authority_requirements: {all_of: []}
+    tool_capability_requirements: [cap.dns_control]
+    criticality_constraints:
+      - {when: {field: context.asset_criticality, operator: in, value: [HIGH, CRITICAL]}, effect: USE_VARIANT, variant: critical_workload}
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ผูก DNS data channel กับ process/host หรือยังไม่ทราบ direction"}
+    reason: "ตัด DNS data channel ตาม domain/resolver/host/process ที่ระบุโดยคง approved resolution"
+    provenance: {reference: [EXF-DNS, EXF-P1, EXF-P2]}
+
+  - policy_id: POL-EXF-004
+    rule_type: ACTION_GATE
+    action_id: ACT-FILE-TRANSFER-CONTAIN
+    applicable_subtypes: [EXF-TRANSFER]
+    covers: [EXF-P2, EXF-P3]
+    required_evidence:
+      all_of:
+        - {field: evidence.exf_transfer_job_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    required_targets:
+      all_of: [{field: targets.transfer_session.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-EXF-9, reason: "ต้องรู้ direction และ authorization (EXF-P2)", when: {field: scope.transfer_direction_unknown, operator: equals, value: true}}
+      - {id: PRH-EXF-10, reason: "ห้ามลบ source data (EXF-P3)", when: {field: scope.deletes_source_data, operator: equals, value: true}}
+    authorization_gate: [exf_transfer_job_unauthorized, exf_direction_outbound_confirmed]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.transfer_job_control, cap.scoped_network_enforcement, cap.identity_restriction]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ทราบ direction/authorization ของ job"}
+    reason: "หยุด job ที่ unauthorized และ pause retries; จำกัด credential/path ที่เกี่ยวข้อง"
+    provenance: {reference: [EXF-TRANSFER, EXF-P2, EXF-P3]}
+
+  - policy_id: POL-EXF-005
+    rule_type: ACTION_GATE
+    action_id: ACT-MAIL-EXFIL-CONTAIN
+    applicable_subtypes: [EXF-MAIL]
+    covers: [EXF-P2, EXF-P3]
+    required_evidence:
+      all_of:
+        - {field: evidence.exf_mail_forwarding_unauthorized.status, operator: equals, value: PRESENT}
+        - {field: evidence.exf_direction_outbound_confirmed.status, operator: equals, value: PRESENT}
+    required_targets:
+      all_of: [{field: targets.mail_path.validated, operator: equals, value: true}]
+    prohibitions:
+      - {id: PRH-EXF-11, reason: "ต้องรู้ direction และ authorization (EXF-P2)", when: {field: scope.transfer_direction_unknown, operator: equals, value: true}}
+      - {id: PRH-EXF-12, reason: "ห้ามลบข้อมูลต้นทาง (EXF-P3)", when: {field: scope.deletes_source_data, operator: equals, value: true}}
+    authorization_gate: [exf_mail_forwarding_unauthorized]
+    authority_requirements: {all_of: []}
+    tool_capability_any_of: [cap.mail_rule_management, cap.identity_restriction]
+    criticality_constraints: []
+    fallback: {action_id: ACT-INVESTIGATE-MISSING-EVIDENCE, when: "ยังไม่ยืนยันว่า rule/delegate ไม่ได้รับอนุญาต"}
+    reason: "ปิดเฉพาะ forwarding/delegation ที่ unauthorized และ hold queue ที่เกี่ยวข้อง"
+    provenance: {reference: [EXF-MAIL, EXF-P2, EXF-P3]}
+
+  - policy_id: POL-EXF-006
+    rule_type: CLASSIFICATION_RULE
+    covers: [EXF-P1, EXF-P2, EXF-P4, EXF-P5]
+    statements:
+      - "exf_indicator_only (volume / share creation / DNS lookup) ไม่ใช่ classification_evidence; ต้องมี direction (outbound) และ authorization ที่ยืนยัน"
+      - "รายงานเฉพาะปริมาณ/ข้อมูลที่สังเกตได้จาก evidence; ไม่ประมาณความสูญหายเกินหลักฐาน"
+      - "ข้อมูลที่ส่งออกไปแล้วไม่รับประกันว่าเรียกคืนได้; มาตรการเป็นการหยุดการส่งต่อเท่านั้น"
+      - "ไม่ลบ source data เพื่อหยุด exfiltration"
+    reason: "คุมการจัดกลุ่มและการรายงานของ Data Exfiltration"
+    provenance: {reference: [EXF-P1, EXF-P2, EXF-P4, EXF-P5]}
+
+runbooks:
+  - runbook_id: RB-WEB-TRANSFER-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-WEB-TRANSFER-CONTAIN]
+    supported_subtypes: [EXF-WEB]
+    objective: "หยุด upload ต่อ process/session/upload destination โดยจำกัด scoped destination/path ตัด session/process และ contain source เมื่อจำเป็น"
+    prerequisites: ["transfer session/process ที่ผูกกับ destination", "direction outbound และ authorization ที่ยืนยันแล้ว", "รายการ destination ที่อนุมัติ"]
+    required_evidence: [exf_web_upload_correlated, exf_direction_outbound_confirmed]
+    required_targets: [transfer_session]
+    required_capabilities: [cap.mail_web_link_control, cap.egress_control, cap.process_termination, cap.workload_isolation, cap.transfer_job_control, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "การจำกัด destination กระทบผู้ใช้อื่นที่ใช้ destination เดียวกันหาก block ระดับกว้าง"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า transfer {{transfer_session.job_or_session_id}} ของ {{transfer_session.account_id}} ไปยัง {{transfer_session.destination}} เป็นขาออกและไม่ได้รับอนุญาต (ตาม evidence) และไม่ใช่ destination ที่อนุมัติ"
+        expected_result: "ยืนยัน direction/authorization"
+        verify: "เทียบกับ flow log และรายการ approved destinations"
+        on_failure: "ไม่ดำเนินการ; ไป investigation"
+      - step_id: S2
+        title: "จำกัดการส่งข้อมูลไปยัง {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด destination/path {{destination_endpoint.destination}} ที่ระดับ {{destination_endpoint.granularity}} ด้วย web/egress control (scoped ไม่ block ทั้ง provider เมื่อทำเป็น path ได้)"
+        method: "ตั้งการจำกัดที่ web proxy หรือ egress control ที่ตัดได้ตรงระดับ {{destination_endpoint.granularity}} สำหรับ {{destination_endpoint.destination}} (ถ้าเป็น shared cloud/CDN ห้าม block ทั้ง provider; ระดับ URL path ต้องใช้เครื่องมือที่เห็น URL path และ DNS control ตัดได้เพียงระดับ domain) บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่า request ถูกปฏิเสธ ถ้าตัดได้เพียงระดับกว้างกว่าให้แจ้ง IR ก่อนลงมือ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.destination_endpoint.validated, operator: equals, value: true}]}
+        expected_result: "upload ไป destination นี้ไม่ได้"
+        verify: "request ไป destination ถูกปฏิเสธตาม log"
+        on_failure: "ใช้ระดับ domain/IP ที่ IR อนุมัติและ escalate"
+        rollback: "ถอน rule ตาม snapshot"
+        impact: "ผู้ใช้อื่นที่ใช้ destination เดียวกันอาจเข้าไม่ได้หาก block ระดับกว้าง"
+      - step_id: S3
+        title: "ยุติ transfer {{transfer_session.job_or_session_id}} และ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        operation: terminate_process
+        operates_on: process
+        instruction: "ยุติ transfer session {{transfer_session.job_or_session_id}} และ process (ตัวระบุ Process: {{process.process_identity}}) บน {{process.host_id}} ที่ทำ upload (ระบุด้วย process identity)"
+        method: "หยุด transfer session {{transfer_session.job_or_session_id}} ที่เครื่องมือหรือระบบที่รัน transfer นั้น แล้วยุติ process ที่ทำ upload โดยตรวจก่อนว่ายังรันอยู่บน {{process.host_id}} และยุติเฉพาะ process ตามตัวระบุ Process ข้างต้น (ไม่ใช้ PID อย่างเดียว) ตรวจว่าไม่มี outbound ต่อ ถ้าไม่พบแล้วให้บันทึกผลการตรวจและไม่ยุติซ้ำ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.process.validated, operator: equals, value: true}, {field: capability.cap.process_termination.supported, operator: equals, value: true}]}
+        expected_result: "upload หยุดทำงาน"
+        verify: "session/process identity ไม่อยู่ใน list และไม่มี outbound ต่อ"
+        on_failure: "restrict host ใน S4 และ escalate IR"
+      - step_id: S4
+        title: "จำกัด outbound ของ {{host_workload.host_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        variant: standard
+        instruction: "Contain source {{host_workload.host_id}} ด้วยการจำกัด outbound (คงช่องทาง IR) เมื่อการจำกัด destination และการยุติ session/process ข้างต้นไม่พอ"
+        method: "ใช้ egress control จำกัด outbound ของ {{host_workload.host_id}} ทั้งเครื่อง เว้นเฉพาะช่องทาง IR/management ที่ระบุไว้ใน approved access ขององค์กร (ตรวจรายการก่อนลงมือ) ทำต่อเมื่อการจำกัด destination และการยุติ session/process ไม่พอ ตรวจว่า outbound ถูกจำกัดและช่องทาง IR ยังใช้ได้"
+        method_basis: NEUTRAL_DERIVED
+        requires_org: [approved_access]
+        condition: {all_of: [{field: targets.host_workload.validated, operator: equals, value: true}, {field: capability.cap.workload_isolation.supported, operator: equals, value: true}]}
+        expected_result: "host ส่งข้อมูลออกไม่ได้"
+        verify: "outbound ถูกจำกัด"
+        on_failure: "จำกัดที่ segment และ escalate IR"
+        rollback: "ปลดหลัง IR ยืนยัน"
+        impact: "ผู้ใช้ของเครื่องนี้ใช้งาน network ไม่ได้ชั่วคราว"
+      - step_id: S4c
+        title: "จำกัดเฉพาะ outbound ไป destination ที่ระบุของ {{host_workload.host_id}} (workload สำคัญ)"
+        origin: DERIVED_ADDITION
+        variant: critical_workload
+        instruction: "เนื่องจาก {{host_workload.host_id}} เป็น workload สำคัญ: จำกัดเฉพาะ outbound ไปยัง destination ที่ระบุ แทนการจำกัด outbound ทั้งเครื่อง และแจ้ง asset owner"
+        method: "จำกัดเฉพาะ outbound ไปยัง destination ที่ระบุจากหลักฐาน ไม่จำกัด outbound ทั้งเครื่อง แล้วแจ้ง asset owner ของ {{host_workload.host_id}} พร้อมผลกระทบ ตรวจว่าไม่มี outbound ไป destination เดิมและ dependency ที่ asset owner ระบุยังใช้ได้"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: targets.host_workload.validated, operator: equals, value: true}]}
+        expected_result: "การส่งออกหยุดโดยบริการหลักยังทำงาน"
+        verify: "ไม่มี outbound ไป destination เดิม"
+        on_failure: "escalate IR/asset owner"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ flow log ว่าไม่มี outbound ใหม่ไป {{transfer_session.destination}} — รายงานปริมาณข้อมูลเท่าที่สังเกตได้เท่านั้น และไม่ลบ source data"
+        expected_result: "การส่งออกหยุด"
+        verify: "re-hunt destination/account ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ destination/account อื่นที่มี evidence"
+    verification: ["ไม่มี outbound ใหม่ไป destination", "ปริมาณที่รายงานตรงกับที่สังเกตได้"]
+    failure_handling: ["พบ destination ใหม่ → เพิ่มเฉพาะที่ผูกกับ session/process เดียวกัน"]
+    rollback: ["ถอน rule/ข้อจำกัดตาม snapshot"]
+    variants: [{variant_id: critical_workload, description: "จำกัดเฉพาะ outbound ไป destination ที่ระบุ แทนการจำกัดทั้งเครื่อง"}]
+
+  - runbook_id: RB-CLOUD-DATA-ACCESS-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-CLOUD-DATA-ACCESS-CONTAIN]
+    supported_subtypes: [EXF-CLOUD]
+    objective: "Revoke identified share/grant จำกัด principal และหยุด related copy job โดยไม่ลบ object ต้นทาง"
+    prerequisites: ["object id, share/link/ACL/grant และ principal จาก audit", "ช่องทางที่ revoke ที่ cloud platform"]
+    required_evidence: [exf_cloud_unauthorized_share]
+    required_targets: [cloud_object_share]
+    required_capabilities: [cap.cloud_acl_management, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "ผู้ที่ได้รับการแชร์ที่ถูกต้องผ่าน link/ACL เดียวกันอาจเข้าไม่ได้ — ตรวจรายการก่อน"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันจาก audit ว่า {{cloud_object_share.exposure_objects}} ของ object {{cloud_object_share.object_id}} ใน {{cloud_object_share.tenant_or_account}} ไม่ได้รับอนุญาต และไม่ใช่การแชร์ที่อนุมัติ"
+        expected_result: "รายการที่ต้อง revoke ถูกต้อง"
+        verify: "เทียบกับ audit log และนโยบายการแชร์"
+        on_failure: "ไม่ revoke; ไป investigation"
+      - step_id: S2
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "บันทึก ACL/sharing ปัจจุบันของ {{cloud_object_share.object_id}} ก่อนแก้"
+        condition: {all_of: [{field: capability.cap.config_snapshot.supported, operator: equals, value: true}]}
+        expected_result: "มี snapshot"
+        verify: "snapshot ใน incident record"
+        on_failure: "บันทึกด้วยมือ"
+      - step_id: S3
+        title: "Revoke {{cloud_object_share.exposure_objects}} ของ object {{cloud_object_share.object_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Revoke {{cloud_object_share.exposure_objects}} ของ {{cloud_object_share.object_id}} (เฉพาะรายการที่ระบุ ไม่ลบ object)"
+        method: "ใน console หรือเครื่องมือจัดการของ cloud account ที่เกี่ยวข้อง ยกเลิกเฉพาะ {{cloud_object_share.exposure_objects}} (link/ACL/grant) ของ {{cloud_object_share.object_id}} โดยไม่ลบ object บันทึก ACL เดิมก่อนแก้ แล้วตรวจจาก audit ว่าการเข้าถึงด้วย link/principal นั้นถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        expected_result: "ผู้ไม่ได้รับอนุญาตเข้าถึง object ไม่ได้"
+        verify: "การเข้าถึงด้วย link/principal นั้นถูกปฏิเสธตาม audit"
+        on_failure: "จำกัดระดับ object/bucket scope ที่รองรับ และ escalate IR"
+        rollback: "คืน ACL จาก snapshot"
+        impact: "ผู้ที่ใช้ link/ACL เดียวกันโดยชอบจะเข้าไม่ได้"
+      - step_id: S4
+        title: "จำกัดสิทธิ์ของ principal {{cloud_object_share.principal_id}} ต่อ object {{cloud_object_share.object_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดการเข้าถึงของ principal {{cloud_object_share.principal_id}} ต่อ {{cloud_object_share.object_id}}"
+        method: "จำกัดสิทธิ์ของ principal {{cloud_object_share.principal_id}} ต่อ {{cloud_object_share.object_id}} เฉพาะคู่นี้ ด้วย ACL/policy ระดับ object (ไม่แก้ policy ทั้ง account) บันทึกค่าเดิมก่อนแก้ แล้วตรวจจาก audit ว่าถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.cloud_acl_management.supported, operator: equals, value: true}]}
+        expected_result: "principal ไม่มีสิทธิ์ต่อ object"
+        verify: "audit แสดงการปฏิเสธ"
+        on_failure: "escalate IR"
+        rollback: "คืนสิทธิ์จาก snapshot"
+      - step_id: S5
+        title: "หยุด copy job {{cloud_object_share.copy_job_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "หยุด copy job {{cloud_object_share.copy_job_id}} ที่เกี่ยวข้อง"
+        method: "ตรวจสถานะ copy job {{cloud_object_share.copy_job_id}} ก่อน ถ้ายังทำงานจึงสั่งหยุด (cancel) เฉพาะ job นี้ แล้วตรวจว่าเป็น stopped/cancelled และไม่มีการคัดลอกต่อ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.cloud_acl_management.supported, operator: equals, value: true}]}
+        expected_result: "copy job หยุด"
+        verify: "job สถานะ stopped/cancelled"
+        on_failure: "escalate IR"
+      - step_id: S6
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ audit ว่าไม่มี access/share/copy ใหม่จากผู้ไม่ได้รับอนุญาต — รายงานเฉพาะ object/ปริมาณที่ audit ยืนยัน"
+        expected_result: "ไม่มี access ใหม่"
+        verify: "re-hunt object/principal ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ object อื่นที่มี evidence"
+    verification: ["ไม่มี access/share ใหม่ที่ไม่ได้รับอนุญาต", "object ต้นทางยังอยู่"]
+    failure_handling: ["พบ share อื่น → revoke เฉพาะรายการที่มี evidence"]
+    rollback: ["คืน ACL จาก snapshot ตาม IR approval"]
+
+  - runbook_id: RB-FILE-TRANSFER-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-FILE-TRANSFER-CONTAIN]
+    supported_subtypes: [EXF-TRANSFER]
+    objective: "Stop transfer, pause retries และจำกัด credential/path ที่เกี่ยวข้อง"
+    prerequisites: ["job/session id, account, destination, direction", "รายการ job ที่อนุมัติ"]
+    required_evidence: [exf_transfer_job_unauthorized, exf_direction_outbound_confirmed]
+    required_targets: [transfer_session]
+    required_capabilities: [cap.transfer_job_control, cap.scoped_network_enforcement, cap.identity_restriction]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "job และ credential/path ที่ระบุหยุด; งาน transfer อื่นไม่กระทบ"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า job/session {{transfer_session.job_or_session_id}} ของ {{transfer_session.account_id}} ไปยัง {{transfer_session.destination}} (direction: {{transfer_session.direction}}) ไม่อยู่ในรายการ job ที่อนุมัติ"
+        expected_result: "ยืนยัน unauthorized + direction"
+        verify: "เทียบ job registry"
+        on_failure: "ไม่ดำเนินการ; ไป investigation"
+      - step_id: S2
+        title: "หยุด transfer {{transfer_session.job_or_session_id}} และ pause retries"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "หยุด transfer {{transfer_session.job_or_session_id}} และ pause retries/ตารางรันของมัน"
+        method: "ใช้เครื่องมือจัดการ transfer หยุด job/session {{transfer_session.job_or_session_id}} และ pause ตารางรันกับการ retry ของ job นั้น (ไม่ลบ job) บันทึกการตั้งค่าก่อน แล้วตรวจว่าสถานะ stopped และไม่มี session ใหม่"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.transfer_job_control.supported, operator: equals, value: true}]}
+        expected_result: "transfer หยุดและไม่ retry"
+        verify: "สถานะ job เป็น stopped และไม่มี session ใหม่"
+        on_failure: "จำกัด destination ใน S4 และ escalate IR"
+        rollback: "resume job ตาม IR approval หากเป็น false positive"
+      - step_id: S3
+        title: "จำกัดสิทธิ์ transfer ของบัญชี {{transfer_session.account_id}} ต่อ path/destination ที่เกี่ยวข้อง"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัดสิทธิ์ transfer ของ {{transfer_session.account_id}} ต่อ path/destination ที่เกี่ยวข้อง (ไม่ disable บัญชีทั้งบัญชีโดยไม่มีหลักฐาน compromise)"
+        method: "จำกัดสิทธิ์ transfer ของ {{transfer_session.account_id}} เฉพาะ path/destination ที่เกี่ยวข้องตามหลักฐาน (ไม่ disable บัญชีทั้งบัญชีถ้ายังไม่มีหลักฐานว่าถูกยึด) บันทึกสิทธิ์เดิมก่อน แล้วทดสอบว่า transfer ไป destination นั้นถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.identity_restriction.supported, operator: equals, value: true}]}
+        expected_result: "account ใช้ credential นี้ transfer ไม่ได้"
+        verify: "ทดสอบการ transfer ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "คืนสิทธิ์ตาม IR approval"
+      - step_id: S4
+        title: "จำกัด network ไปยัง {{transfer_session.destination}} จากต้นทางของ job"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "จำกัด network ไป {{transfer_session.destination}} จากต้นทางของ job เฉพาะ destination นี้"
+        method: "ตั้ง deny จากต้นทางของ job ไปยัง {{transfer_session.destination}} เฉพาะ destination นี้ ที่จุดบังคับเครือข่ายซึ่งเห็นต้นทางจริง บันทึก rule เดิมก่อนแก้ แล้วตรวจจาก log ว่าถูกปฏิเสธ"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.scoped_network_enforcement.supported, operator: equals, value: true}]}
+        expected_result: "ต้นทางส่งข้อมูลไป destination นี้ไม่ได้"
+        verify: "connection ถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "ถอน rule ตาม snapshot"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจว่าไม่มี transfer ใหม่ไป {{transfer_session.destination}} — รายงานปริมาณเท่าที่สังเกตได้ และไม่ลบ source data"
+        expected_result: "การส่งออกหยุด"
+        verify: "re-hunt job/destination ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ job/destination อื่นที่มี evidence"
+    verification: ["job หยุดและไม่ retry", "ไม่มี outbound ใหม่ไป destination"]
+    failure_handling: ["พบ job อื่นในรูปแบบเดียวกัน → จัดการเฉพาะที่มี evidence"]
+    rollback: ["resume/คืนสิทธิ์ตาม IR approval"]
+
+  - runbook_id: RB-MAIL-EXFIL-CONTAIN
+    review_status: IR_REVIEW_PENDING
+    supported_action_ids: [ACT-MAIL-EXFIL-CONTAIN]
+    supported_subtypes: [EXF-MAIL]
+    objective: "Disable scoped forwarding/delegation, hold affected queue และ restrict compromised identity"
+    prerequisites: ["rule/delegate/queue/identity ที่ unauthorized", "รายการ forwarding/journaling ที่อนุมัติ"]
+    required_evidence: [exf_mail_forwarding_unauthorized, exf_direction_outbound_confirmed]
+    required_targets: [mail_path]
+    required_capabilities: [cap.mail_rule_management, cap.identity_restriction, cap.config_snapshot]
+    tool_variants: *neutral
+    required_authority: [ir_execute]
+    operational_impact: "mail ที่ถูก hold จะล่าช้า; การ restrict identity กระทบเจ้าของบัญชี"
+    ordered_steps:
+      - step_id: S1
+        origin: EXPANDED_FROM_REFERENCE
+        fold: true
+        instruction: "ยืนยันว่า {{mail_path.path_objects}} ของ tenant {{mail_path.tenant_id}} (identity {{mail_path.identity_account_id}}) ไม่ใช่ forwarding/journaling ที่อนุมัติ"
+        expected_result: "รายการที่ต้องปิดถูกต้อง"
+        verify: "เทียบกับรายการ approved forwarding"
+        on_failure: "ไม่ปิด; ไป investigation"
+      - step_id: S2
+        title: "Disable {{mail_path.path_objects}} ของ {{mail_path.identity_account_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Disable {{mail_path.path_objects}} (เฉพาะ forwarding rule/delegate ที่ unauthorized)"
+        method: "ใน mail system ของ identity {{mail_path.identity_account_id}} ปิด (disable) เฉพาะ {{mail_path.path_objects}} ที่ไม่ได้รับอนุญาต (forwarding rule/delegate) ไม่ลบข้อความ บันทึกรายการก่อนแก้ แล้วตรวจรายการอีกครั้งว่าไม่มีรายการดังกล่าว"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.mail_rule_management.supported, operator: equals, value: true}]}
+        expected_result: "ไม่มีการส่งต่อตาม rule/delegate ที่ปิด"
+        verify: "รายการ rule/delegate ของ identity ไม่มีรายการดังกล่าว"
+        on_failure: "ปิดการส่งต่อภายนอกระดับ mailbox ชั่วคราวและ escalate IR"
+        rollback: "คืน rule ที่ถูกต้องที่เจ้าของยืนยัน"
+      - step_id: S3
+        title: "พัก (hold) mail queue {{mail_path.queue_id}}"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Hold queue {{mail_path.queue_id}} ที่รอส่งต่อ (ไม่ลบข้อความ)"
+        method: "สั่ง hold queue {{mail_path.queue_id}} ที่รอส่งต่อ โดยไม่ลบข้อความ บันทึกจำนวนข้อความใน queue ก่อน แล้วตรวจว่าสถานะเป็น held และไม่มีข้อความออก"
+        method_basis: NEUTRAL_DERIVED
+        condition: {all_of: [{field: capability.cap.mail_rule_management.supported, operator: equals, value: true}]}
+        expected_result: "ข้อความใน queue ไม่ถูกส่งออก"
+        verify: "queue สถานะ held"
+        on_failure: "escalate IR"
+        rollback: "release ข้อความที่ IR ยืนยันว่าถูกต้อง"
+        impact: "ข้อความปกติใน queue เดียวกันล่าช้า"
+      - step_id: S4
+        title: "จำกัด identity {{account_identity.account_id}} ({{account_identity.provider}})"
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "Restrict identity {{account_identity.account_id}} ที่ถูกใช้ส่งต่อ ({{account_identity.provider}}) — หากมีหลักฐาน unauthorized authentication ให้ใช้ขั้นตอน Account Compromise ของบัญชีนี้"
+        method_basis: IR_REVIEW_REQUIRED
+        method_requires: "IR ต้องกำหนดระดับการจำกัด identity ที่ถูกใช้ส่งต่อตาม identity scope ที่องค์กรอนุมัติ (และใช้ขั้นตอน Account Compromise หากมีหลักฐาน unauthorized authentication)"
+        condition: {all_of: [{field: targets.account_identity.validated, operator: equals, value: true}, {field: capability.cap.identity_restriction.supported, operator: equals, value: true}]}
+        expected_result: "identity ส่งต่อข้อมูลไม่ได้"
+        verify: "ทดสอบการส่งต่อถูกปฏิเสธตาม log"
+        on_failure: "escalate IR"
+        rollback: "คืนสิทธิ์ตาม IR approval"
+        impact: "เจ้าของบัญชีใช้งานบางส่วนไม่ได้"
+      - step_id: S5
+        kind: verify
+        origin: EXPANDED_FROM_REFERENCE
+        instruction: "ตรวจ mail flow ว่าไม่มีการส่งต่อใหม่ไปปลายทางภายนอกที่ unauthorized — รายงานเฉพาะข้อความที่ยืนยัน"
+        expected_result: "ไม่มีการส่งต่อใหม่"
+        verify: "re-hunt rule/delegate/destination ในช่วงเฝ้าระวัง"
+        on_failure: "ตรวจ mailbox อื่นที่มี evidence"
+    verification: ["ไม่มี forwarding ที่ไม่ได้รับอนุญาต", "queue ที่ hold ยังอยู่"]
+    failure_handling: ["พบ mailbox อื่น → เปิดเฉพาะที่มี evidence"]
+    rollback: ["คืน rule/release queue ตาม IR approval"]

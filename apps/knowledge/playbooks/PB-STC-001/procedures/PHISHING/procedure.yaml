@@ -1,0 +1,44 @@
+id: PROC-PH-001
+code: PHISHING
+name: Phishing Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-PHISHING (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-PHISHING
+
+objective: >
+  Stop distribution of the phishing content and prevent credential or session compromise.
+
+strategy: >
+  Remove the message from every mailbox and block its sender and infrastructure, determine who interacted with
+  it, and contain exposed accounts and endpoints.
+
+
+appliesWhen:
+  incidentTypes: [PHISHING]
+  mitreTechniques: [T1566, T1566.001, T1566.002]
+  description: >
+    A user-facing email (or message) carries a malicious link or attachment
+    that imitates a trusted sender to steal credentials or deliver a
+    payload.
+
+primaryEvidence:
+  - "Sender address and display name"
+  - "Subject and recipient list"
+  - "Embedded URL / domain and its resolved IP"
+  - "Attachment name and hash (if any)"
+  - "Proxy / DNS records of clicks on the URL"
+  - "Mail gateway delivery log"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-03, resources/mock-attacks-tc/TC-03-phishing.json):
+#   TC-03: email from it-support@vigix-mock-phish.net to hr.clerk@corp.local
+#   with a fake O365 'verify mailbox' link
+#   (http://vigix-mock-phish.net/o365/verify), domain resolves to
+#   45.155.205.233; host WKS-HR-03; Wazuh rule 100310.

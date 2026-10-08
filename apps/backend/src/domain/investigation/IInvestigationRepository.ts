@@ -1,4 +1,4 @@
-import { CreateEvidenceData, CreateIocData, EvidenceDetail, EvidenceRecord, InvestigationRecord, IocRecord } from "./Investigation.types";
+import { CreateEvidenceData, CreateIocData, EvidenceDetail, EvidenceRecord, InvestigationRecord, IocObservationRecord, IocRecord } from "./Investigation.types";
 
 /**
  * IInvestigationRepository — Investigation cycles plus the Evidence and IOCs that belong to them.
@@ -23,4 +23,7 @@ export interface IInvestigationRepository {
   findIocsByIds(ids: string[], investigationId: string): Promise<IocRecord[]>;
   /** Throws DuplicateIocError when (investigation, type, value) already exists. */
   createIoc(data: CreateIocData): Promise<IocRecord>;
+
+  /** Where and in what role the cycle's IOCs were observed (Evidence Contract v2). Empty until EVIDENCE_CONTRACT_V2 is on. */
+  listIocObservations(investigationId: string): Promise<IocObservationRecord[]>;
 }

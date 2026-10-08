@@ -166,7 +166,7 @@ export const ACTIONS: SeedAction[] = [
     name: "Reset User Credentials",
     description:
       "Account Containment. Invalidate compromised credentials and require new credentials. Target: user account. " +
-      "Applicable: Account Compromise, Phishing. Required evidence: account identifier, suspicious authentication " +
+      "Applicable: Account Compromise, Phishing, Brute Force. Required evidence: account identifier, suspicious authentication " +
       "evidence, evidence of credential compromise. Expected effect: invalidate compromised credentials and require " +
       "new credentials. Verification: check authentication events, check old credential usage, check suspicious " +
       "account activity. Risk: interrupting the user and dependent services.",
@@ -179,7 +179,7 @@ export const ACTIONS: SeedAction[] = [
     name: "Revoke Active Sessions",
     description:
       "Account Containment. Terminate active sessions associated with the affected account. Target: user account. " +
-      "Applicable: Account Compromise, Phishing. Required evidence: account identifier, active/suspicious session " +
+      "Applicable: Account Compromise, Phishing, Brute Force, Data Exfiltration, Privilege Escalation. Required evidence: account identifier, active/suspicious session " +
       "evidence. Expected effect: terminate active sessions associated with the affected account. Verification: " +
       "check session activity, check authentication events, check recurrence. Risk: signing out the legitimate user.",
     category: "CONTAINMENT",
@@ -191,7 +191,7 @@ export const ACTIONS: SeedAction[] = [
     name: "Block File Hash",
     description:
       "Endpoint Containment. Block execution of an identified malicious file hash. Target: file hash. Applicable: " +
-      "Malware, PowerShell Attack, Suspicious Process Execution. Required evidence: file hash, related event, " +
+      "Malware, PowerShell Attack, Suspicious Process Execution, Phishing (attachment), Command & Control (implant). Required evidence: file hash, related event, " +
       "supporting malicious evidence. Expected effect: prevent execution or detection of the identified malicious " +
       "file hash. Verification: re-hunt hash, check recurrence. Risk: blocking a legitimate binary if misidentified.",
     category: "CONTAINMENT",
@@ -210,6 +210,46 @@ export const ACTIONS: SeedAction[] = [
     category: "CONTAINMENT",
     impactLevel: "MEDIUM",
     defaultApprovalRequired: false,
+  },
+  // Attack-specific containment procedures (knowledge/playbooks/PB-STC-001/procedures/*/containment.yaml): containment
+  // controls no existing Action provided. Structured knowledge lives in src/domain/knowledge/actionKnowledge.ts.
+  {
+    code: "ACT-RATE-LIMIT-SOURCE",
+    name: "Rate-Limit Source",
+    description:
+      "Network Containment. Throttle repeated authentication attempts or malicious requests from an identified source. " +
+      "Target: source IP, authentication service / WAF / reverse proxy. Applicable: Brute Force, SQL Injection. Required " +
+      "evidence: source IP, related event, supporting evidence of repeated abuse. Expected effect: repeated attempts from " +
+      "the source are throttled or rejected. Verification: re-hunt source IP, check whether related events continue. Risk: " +
+      "slowing legitimate users behind the same address (NAT / proxy).",
+    category: "CONTAINMENT",
+    impactLevel: "LOW",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-BLOCK-SENDER",
+    name: "Block Sender",
+    description:
+      "Email Containment. Block further delivery from an identified malicious sender at the mail gateway. Target: sender " +
+      "e-mail address. Applicable: Phishing. Required evidence: sender address, related message event. Expected effect: no " +
+      "new message from the sender is delivered. Verification: re-hunt the sender in mail gateway logs. Risk: blocking a " +
+      "legitimate (compromised) partner mailbox.",
+    category: "CONTAINMENT",
+    impactLevel: "LOW",
+    defaultApprovalRequired: false,
+  },
+  {
+    code: "ACT-REMOVE-PRIVILEGE",
+    name: "Remove Unauthorized Privilege",
+    description:
+      "Account Containment. Remove a privilege / group membership granted without authorization. Target: user account. " +
+      "Applicable: Privilege Escalation. Required evidence: account identifier, privilege change event, confirmation " +
+      "that the change was not authorized. Expected effect: the account's privileges return to the approved baseline. " +
+      "Verification: check group membership and privileged activity of the account. Risk: removing a legitimate " +
+      "administrative privilege if the change was authorized.",
+    category: "CONTAINMENT",
+    impactLevel: "HIGH",
+    defaultApprovalRequired: true,
   },
 ];
 

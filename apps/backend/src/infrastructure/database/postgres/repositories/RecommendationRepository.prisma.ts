@@ -130,7 +130,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
               precondition: s.precondition,
               expectedResult: s.expectedResult,
               requiresApproval: s.requiresApproval,
-              phase: "ACTION",
+              phase: s.stepType ?? "ACTION",
               instructions: s.instructions as unknown as Prisma.InputJsonValue,
               verificationCriteria: s.verificationCriteria,
             })),

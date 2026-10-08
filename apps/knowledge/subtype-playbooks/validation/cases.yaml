@@ -1,0 +1,450 @@
+# validation/cases.yaml — executable validation cases (run by tools/validate.mjs through lib.mjs planIncident).
+# facts shorthand: evidence {id: "STATUS[/AUTHORIZATION]"}, targets [validated target types], scope [true scope flags],
+#   authority [granted ids], capability {supported:[], unsupported:[]}, context {"context.asset_criticality": X}, fields_missing ["type.field"].
+# expect: subtypes (exact set), eligible_order (exact ordered list of ELIGIBLE actions), not_eligible {action: DECISION}, absent_actions (must NOT be eligible),
+#   missing_evidence / missing_targets (must be reported), variants, flags, steps_included / steps_omitted ("RB-ID:STEP").
+# mode: platform_neutral (default; unknown capability -> TOOL_MAPPING_REQUIRED) | strict (unknown capability -> UNSUPPORTED).
+# Evidence names an organisation would have to supply at runtime are given here as incident facts; nothing is looked up from a live system.
+
+cases:
+  # ================================================================== evidence complete
+  - case_id: VC-01
+    category: evidence_complete
+    title: "BF-GUESS — correlated attempts, attacker source + service validated"
+    facts: {evidence: {bf_attempts_correlated: PRESENT}, targets: [network_source, service_endpoint]}
+    expect:
+      subtypes: [BF-GUESS]
+      eligible_order: [ACT-AUTH-SOURCE-RESTRICT]
+      flags: {ACT-AUTH-SOURCE-RESTRICT: [TOOL_MAPPING_REQUIRED]}
+      absent_actions: [ACT-IDENTITY-CREDENTIAL-CONTAIN, ACT-SESSION-REVOKE]
+  - case_id: VC-02
+    category: evidence_complete
+    title: "SQ-UNION — evidence + route + change approval granted"
+    facts: {evidence: {sq_union_requests_correlated: PRESENT}, targets: [web_route], authority: [change_approval]}
+    expect:
+      subtypes: [SQ-UNION]
+      eligible_order: [ACT-WEB-REQUEST-RESTRICT]
+      steps_included: ["RB-WEB-REQUEST-RESTRICT:S3", "RB-WEB-REQUEST-RESTRICT:S5"]
+  - case_id: VC-03
+    category: evidence_complete
+    title: "PH-BEC — fraudulent instruction + business item: business hold is MANUAL; mailbox abuse unknown so IR mailbox steps are omitted"
+    facts: {evidence: {ph_bec_fraudulent_instruction: PRESENT}, targets: [business_item]}
+    expect:
+      subtypes: [PH-BEC]
+      eligible_order: [ACT-BEC-CONTAIN]
+      steps_included: ["RB-BEC-CONTAIN:S1"]
+      steps_omitted: ["RB-BEC-CONTAIN:S2", "RB-BEC-CONTAIN:S3", "RB-BEC-CONTAIN:S4"]
+  - case_id: VC-04
+    category: evidence_complete
+    title: "OS command injection — request->app->shell => PROC-CHAIN with web request-path restriction, NOT SQLi"
+    facts: {evidence: {proc_app_to_interpreter_chain: PRESENT/UNAUTHORIZED}, targets: [process, web_route]}
+    expect:
+      subtypes: [PROC-CHAIN]
+      eligible_order: [ACT-EXECUTION-CHAIN-CONTAIN]
+      absent_actions: [ACT-WEB-REQUEST-RESTRICT, ACT-SQLI-PROBING-RESTRICT]
+      steps_included: ["RB-EXECUTION-CHAIN-CONTAIN:S2", "RB-EXECUTION-CHAIN-CONTAIN:S4"]
+  - case_id: VC-05
+    category: evidence_complete
+    title: "Memory-resident malware without file/hash target (MAL-P5) — also PowerShell in-memory: shared action deduplicated"
+    facts:
+      evidence: {mal_memory_execution: PRESENT, ps_memory_script_execution: PRESENT/UNAUTHORIZED}
+      targets: [process, host_workload]
+    expect:
+      subtypes: [MAL-MEMORY, PS-MEMORY]
+      eligible_order: [ACT-MEMORY-EXECUTION-CONTAIN]
+      absent_actions: [ACT-QUARANTINE-FILE-OBJECT]
+      steps_included: ["RB-MEMORY-EXECUTION-CONTAIN:S3", "RB-MEMORY-EXECUTION-CONTAIN:S4"]
+  - case_id: VC-06
+    category: evidence_complete
+    title: "Scheduled-task hijack (acceptance §7.2) — all evidence, targets and file identity present: trigger -> instance/payload -> channel -> quarantine"
+    target_values:   # SYNTHETIC fixture values (RFC 5737 / .test names) — stand-ins for what the target resolver would bind from evidence
+      persistence_artifact: {host_id: WKS-FIN-07, artifact_type: scheduled_task, artifact_locator: '\Maintenance\SyncReport', configuration_snapshot_ref: SNAP-1}
+      process: {host_id: WKS-FIN-07, process_identity: 'process_guid=PG-7F3A21', image_path: 'C:\Users\Public\upd.exe'}
+      process_children: {host_id: WKS-FIN-07, parent_process_identity: 'process_guid=PG-7F3A21', child_process_identities: ['process_guid=PG-7F3A22']}
+      destination_endpoint: {destination: 'update-cdn.example-bad.test/api/v2/poll', granularity: 'URL path'}
+      network_flow: {source_host_id: WKS-FIN-07, destination: 203.0.113.45, protocol: TCP, port: 443}
+      file_object: {host_id: WKS-FIN-07, object_locator: 'C:\Users\Public\upd.exe'}
+    example: {file: scheduled-task-hijack-full, checks: "ลำดับ: หยุด Task → หยุด running instance → ยุติ payload+children ด้วย process identity → จำกัด outbound ที่ผูกกับ payload (granular) + ตัด connection ที่ค้าง → quarantine ไฟล์ที่มี identity; Disable Task ไม่ถือว่าหยุด instance; ไม่ลบ task ทั้งชุด"}
+    facts:
+      evidence:
+        ps_persistence_relaunch: PRESENT/UNAUTHORIZED
+        c2_web_channel_correlated: PRESENT/UNAUTHORIZED
+        payload_linked_malicious_execution: PRESENT
+      targets: [persistence_artifact, process, process_children, destination_endpoint, network_flow, file_object]
+    expect:
+      subtypes: [PS-PERSIST, C2-WEB]
+      eligible_order: [ACT-PERSISTENCE-TRIGGER-DISABLE, ACT-WEB-C2-CONTAIN, ACT-QUARANTINE-FILE-OBJECT]
+      steps_included:
+        - "RB-PERSISTENCE-TRIGGER-DISABLE:S3"
+        - "RB-PERSISTENCE-TRIGGER-DISABLE:S4"
+        - "RB-PERSISTENCE-TRIGGER-DISABLE:S5"
+        - "RB-PERSISTENCE-TRIGGER-DISABLE:S6"
+        - "RB-WEB-C2-CONTAIN:S3"
+        - "RB-WEB-C2-CONTAIN:S4"
+        - "RB-QUARANTINE-FILE-OBJECT:Q3"
+  - case_id: VC-07
+    category: evidence_complete
+    title: "DNS C2 + DNS exfiltration — same shared action once, with its own two policies"
+    facts:
+      evidence: {c2_dns_correlated: PRESENT/UNAUTHORIZED, exf_dns_tunnel_data: PRESENT/UNAUTHORIZED, exf_direction_outbound_confirmed: PRESENT/UNAUTHORIZED}
+      targets: [dns_channel]
+    expect:
+      subtypes: [C2-DNS, EXF-DNS]
+      eligible_order: [ACT-DNS-CHANNEL-CONTAIN]
+  - case_id: VC-08
+    category: evidence_complete
+    title: "OAuth: unauthorized consent AND unauthorized API calls — shared action once (password reset not a substitute)"
+    facts:
+      evidence: {ph_unauthorized_oauth_consent: PRESENT/UNAUTHORIZED, ac_oauth_unauthorized_api_calls: PRESENT/UNAUTHORIZED}
+      targets: [oauth_grant]
+    expect:
+      subtypes: [PH-CONSENT, AC-OAUTH]
+      eligible_order: [ACT-OAUTH-GRANT-CONTAIN]
+  - case_id: VC-09
+    category: evidence_complete
+    title: "PE-GRANT — unauthorized entitlement change, entry + session + actor validated (token not assumed invalidated)"
+    facts:
+      evidence: {pe_unauthorized_entitlement_change: PRESENT/UNAUTHORIZED}
+      targets: [entitlement_grant, session, account_identity]
+    expect:
+      subtypes: [PE-GRANT]
+      eligible_order: [ACT-PRIVILEGED-GRANT-CONTAIN]
+      steps_included: ["RB-PRIVILEGED-GRANT-CONTAIN:S3", "RB-SESSION-REVOKE:S2", "RB-PRIVILEGED-GRANT-CONTAIN:S5"]
+
+  # ================================================================== evidence insufficient
+  - case_id: VC-10
+    category: evidence_insufficient
+    title: "Failed login only (BF-P1): BF-GUESS contained at the source, but NO account disable/reset/session branch"
+    facts: {evidence: {bf_attempts_correlated: PRESENT}, targets: [network_source, service_endpoint, account_identity], scope: [basis_failed_login_only]}
+    expect:
+      subtypes: [BF-GUESS]
+      eligible_order: [ACT-AUTH-SOURCE-RESTRICT]
+      absent_actions: [ACT-IDENTITY-CREDENTIAL-CONTAIN, ACT-SESSION-REVOKE]
+  - case_id: VC-11
+    category: evidence_insufficient
+    title: "SQL keyword / semicolon / slow response only — no subtype, investigation steps only"
+    facts: {evidence: {sq_keyword_or_syntax_only: PRESENT}, scope: [keyword_only_basis, slow_response_only_basis]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-12
+    category: evidence_insufficient
+    title: "Malware file found but no execution/infection (MAL-P1) — no containment, no quarantine"
+    facts: {evidence: {mal_malicious_file_found: PRESENT}, targets: [file_object]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+      absent_actions: [ACT-QUARANTINE-FILE-OBJECT]
+  - case_id: VC-13
+    category: evidence_insufficient
+    title: "Periodic traffic / long DNS / uncommon port only (C2-P1) — no C2 branch"
+    facts: {evidence: {c2_indicator_only: PRESENT}, targets: [network_flow]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-14
+    category: evidence_insufficient
+    title: "Encoded PowerShell / powershell.exe only (PS-P1) — termination not opened"
+    facts: {evidence: {ps_encoded_or_binary_only: PRESENT}, targets: [process], scope: [basis_single_indicator]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-15
+    category: evidence_insufficient
+    title: "Exfiltration: volume + web upload correlated but DIRECTION unknown (EXF-P2) — EXF-WEB not classified"
+    facts: {evidence: {exf_indicator_only: PRESENT, exf_web_upload_correlated: PRESENT/UNAUTHORIZED}, targets: [transfer_session]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-16
+    category: evidence_insufficient
+    title: "Anomalous location only (AC-P1) — no compromise, no identity action"
+    facts: {targets: [account_identity, session], scope: [basis_location_anomaly_only]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+      absent_actions: [ACT-IDENTITY-CREDENTIAL-CONTAIN, ACT-SESSION-REVOKE]
+  - case_id: VC-17
+    category: evidence_insufficient
+    title: "Attachment delivered; a Malware branch is active ONLY because it has its own evidence (not inferred from delivery)"
+    facts: {evidence: {ph_malicious_attachment_delivered: PRESENT, mal_remote_access_or_persistence: PRESENT}, targets: [message_set, process]}
+    expect:
+      subtypes: [PH-ATTACH, MAL-BACKDOOR]
+      eligible_order: [ACT-BACKDOOR-CONTAIN, ACT-MAIL-CAMPAIGN-QUARANTINE]
+      notes: "MAL-BACKDOOR is active here ONLY because it has its own evidence (mal_remote_access_or_persistence). The attachment-execution gate (POL-PH-006) is not what opened it."
+  - case_id: VC-18
+    category: evidence_insufficient
+    title: "Pure phishing delivery with no execution evidence anywhere"
+    facts: {evidence: {ph_malicious_attachment_delivered: PRESENT}, targets: [message_set]}
+    expect:
+      subtypes: [PH-ATTACH]
+      eligible_order: [ACT-MAIL-CAMPAIGN-QUARANTINE]
+      absent_actions: [ACT-BACKDOOR-CONTAIN, ACT-ACTIVE-DAMAGE-CONTAIN, ACT-MEMORY-EXECUTION-CONTAIN, ACT-EXECUTION-CHAIN-CONTAIN]
+  - case_id: VC-19
+    category: evidence_insufficient
+    title: "Second-order SQLi: lineage present but proposed action ignores it (scope flag) — prohibited"
+    facts: {evidence: {sq_second_order_lineage: PRESENT}, targets: [stored_record_pipeline], scope: [second_order_without_lineage]}
+    expect:
+      subtypes: [SQ-SECOND]
+      not_eligible: {ACT-STORED-PAYLOAD-CONTAIN: PROHIBITED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+
+  # ================================================================== target incomplete
+  - case_id: VC-20
+    category: target_incomplete
+    title: "Scheduled task hijack — NO process identity: trigger disabled, but no terminate command is rendered (acceptance)"
+    target_values:
+      persistence_artifact: {host_id: WKS-FIN-07, artifact_type: scheduled_task, artifact_locator: '\Maintenance\SyncReport'}
+    example: {file: scheduled-task-hijack-no-process-identity, checks: "ไม่มี process identity → ไม่แสดงคำสั่งยุติ process; แสดง disable task + หยุด instance และระบุข้อมูลที่ต้องตรวจเพิ่ม (process identity, file identity)"}
+    facts:
+      evidence: {ps_persistence_relaunch: PRESENT/UNAUTHORIZED}
+      targets: [persistence_artifact]
+    expect:
+      subtypes: [PS-PERSIST]
+      eligible_order: [ACT-PERSISTENCE-TRIGGER-DISABLE]
+      steps_included: ["RB-PERSISTENCE-TRIGGER-DISABLE:S3", "RB-PERSISTENCE-TRIGGER-DISABLE:S4"]
+      steps_omitted: ["RB-PERSISTENCE-TRIGGER-DISABLE:S5", "RB-PERSISTENCE-TRIGGER-DISABLE:S6"]
+      not_eligible: {ACT-QUARANTINE-FILE-OBJECT: NEEDS_EVIDENCE}
+  - case_id: VC-21
+    category: target_incomplete
+    title: "Scheduled task hijack — payload linked but NO file identity: no quarantine (acceptance)"
+    target_values:
+      persistence_artifact: {host_id: WKS-FIN-07, artifact_type: scheduled_task, artifact_locator: '\Maintenance\SyncReport'}
+      process: {host_id: WKS-FIN-07, process_identity: 'process_guid=PG-7F3A21', image_path: 'C:\Users\Public\upd.exe'}
+    example: {file: scheduled-task-hijack-no-file-identity, checks: "ไม่มี file identity → ไม่มี quarantine; ไม่มีหลักฐาน outbound → ไม่มี network deny"}
+    facts:
+      evidence: {ps_persistence_relaunch: PRESENT/UNAUTHORIZED, payload_linked_malicious_execution: PRESENT}
+      targets: [persistence_artifact, process]
+    expect:
+      subtypes: [PS-PERSIST]
+      eligible_order: [ACT-PERSISTENCE-TRIGGER-DISABLE]
+      not_eligible: {ACT-QUARANTINE-FILE-OBJECT: NEEDS_TARGET}
+      missing_targets: [file_object]
+  - case_id: VC-22
+    category: target_incomplete
+    title: "Scheduled task hijack — outbound connection present but NOT linked to payload/C2: no network deny (acceptance)"
+    facts:
+      evidence: {ps_persistence_relaunch: PRESENT/UNAUTHORIZED}
+      targets: [persistence_artifact, process, network_flow]
+    expect:
+      subtypes: [PS-PERSIST]
+      eligible_order: [ACT-PERSISTENCE-TRIGGER-DISABLE]
+      absent_actions: [ACT-WEB-C2-CONTAIN, ACT-CUSTOM-CHANNEL-CONTAIN]
+  - case_id: VC-23
+    category: target_incomplete
+    title: "BF-GUESS evidence present but source role ambiguous (agent.ip only) and attacker source not validated"
+    facts: {evidence: {bf_attempts_correlated: PRESENT}, targets: [service_endpoint], scope: [source_role_ambiguous, uses_agent_ip_as_attacker]}
+    expect:
+      subtypes: [BF-GUESS]
+      not_eligible: {ACT-AUTH-SOURCE-RESTRICT: PROHIBITED}
+      missing_targets: [network_source]
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-24
+    category: target_incomplete
+    title: "Backdoor with only a connection validated — process/trigger steps omitted, channel step kept"
+    facts: {evidence: {mal_remote_access_or_persistence: PRESENT}, targets: [network_flow]}
+    expect:
+      subtypes: [MAL-BACKDOOR]
+      eligible_order: [ACT-BACKDOOR-CONTAIN]
+      steps_included: ["RB-BACKDOOR-CONTAIN:S4"]
+      steps_omitted: ["RB-BACKDOOR-CONTAIN:S2", "RB-BACKDOOR-CONTAIN:S3"]
+  - case_id: VC-25
+    category: target_incomplete
+    title: "Spraying detected but campaign scope not validated"
+    facts: {evidence: {bf_multi_account_campaign: PRESENT}}
+    expect:
+      subtypes: [BF-SPRAY]
+      not_eligible: {ACT-AUTH-CAMPAIGN-RESTRICT: NEEDS_TARGET}
+      missing_targets: [auth_campaign_scope]
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+
+  # ================================================================== authorized / benign
+  - case_id: VC-26
+    category: authorized_benign
+    title: "Approved scheduled-task change — evidence AUTHORIZED: no malicious containment (acceptance)"
+    example: {file: scheduled-task-approved-change, checks: "approved task change (AUTHORIZED) → ไม่เปิด malicious containment; แสดงเฉพาะขั้นตอนตรวจสอบ"}
+    facts:
+      evidence: {ps_persistence_relaunch: PRESENT/AUTHORIZED}
+      targets: [persistence_artifact, process]
+    expect:
+      subtypes: [PS-PERSIST]
+      not_eligible: {ACT-PERSISTENCE-TRIGGER-DISABLE: PROHIBITED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-27
+    category: authorized_benign
+    title: "Legitimate (approved) RMM — not malware by name (C2-P4)"
+    facts: {evidence: {c2_rmm_unauthorized: PRESENT/AUTHORIZED}, targets: [rmm_registration]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+      absent_actions: [ACT-RMM-ACCESS-CONTAIN]
+  - case_id: VC-28
+    category: authorized_benign
+    title: "Approved admin entitlement change (PE-P1) — not a malicious escalation"
+    facts: {evidence: {pe_unauthorized_entitlement_change: PRESENT/AUTHORIZED}, targets: [entitlement_grant]}
+    expect:
+      subtypes: []
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+      absent_actions: [ACT-PRIVILEGED-GRANT-CONTAIN]
+  - case_id: VC-29
+    category: authorized_benign
+    title: "Approved security testing performing offline cracking (BF-OFFLINE AUTHORIZED)"
+    facts: {evidence: {bf_hash_extraction_or_cracking: PRESENT/AUTHORIZED}, targets: [credential_material, process]}
+    expect:
+      subtypes: [BF-OFFLINE]
+      not_eligible: {ACT-CREDENTIAL-MATERIAL-CONTAIN: PROHIBITED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-30
+    category: authorized_benign
+    title: "Approved automation using an obfuscated PowerShell wrapper (PS-OBFUSCATED AUTHORIZED)"
+    facts: {evidence: {ps_obfuscated_with_effects: PRESENT/AUTHORIZED}, targets: [process]}
+    expect:
+      subtypes: [PS-OBFUSCATED]
+      not_eligible: {ACT-SCRIPT-EXECUTION-CONTAIN: PROHIBITED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+
+  # ================================================================== multiple branches
+  - case_id: VC-31
+    category: multiple_branches
+    title: "Brute force with CONFIRMED unauthorized success: source restrict, then session revoke, then credential containment"
+    target_values:
+      network_source: {address: 198.51.100.23, source_role: attacker_source}
+      service_endpoint: {host_id: SRV-VPN-01, service: 'SSH (22/TCP)', enforcement_point: 'perimeter firewall FW-EDGE-1'}
+      account_identity: {account_id: 'somchai.k', provider: 'corp-idp', tenant_or_scope: 'corp'}
+      session: {session_ids_or_family: 'session_family=SF-9921', account_id: 'somchai.k', provider: 'corp-idp', application_scope: 'VPN portal'}
+    example: {file: brute-force-confirmed-success, checks: "failed login ไม่เปิด reset แต่เมื่อมี unauthorized success จึงเพิ่ม revoke session ก่อน แล้วค่อยจัดการ credential; session อ้างด้วย ID ไม่แสดง token"}
+    facts:
+      evidence: {bf_attempts_correlated: PRESENT, ac_unauthorized_password_auth: PRESENT/UNAUTHORIZED}
+      targets: [network_source, service_endpoint, account_identity, session]
+    expect:
+      subtypes: [BF-GUESS, AC-PASSWORD, AC-SESSION]
+      eligible_order: [ACT-AUTH-SOURCE-RESTRICT, ACT-SESSION-REVOKE, ACT-IDENTITY-CREDENTIAL-CONTAIN]
+      steps_included: ["RB-SESSION-REVOKE:S2"]
+  - case_id: VC-32
+    category: multiple_branches
+    title: "Phishing attachment executed + endpoint damage: campaign quarantine and active-damage containment in parallel"
+    facts:
+      evidence: {ph_malicious_attachment_delivered: PRESENT, ph_attachment_executed: PRESENT, mal_active_damage: PRESENT}
+      targets: [message_set, process, host_workload]
+    expect:
+      subtypes: [PH-ATTACH, MAL-RANSOM]
+      eligible_order: [ACT-ACTIVE-DAMAGE-CONTAIN, ACT-MAIL-CAMPAIGN-QUARANTINE]
+  - case_id: VC-33
+    category: multiple_branches
+    title: "Download-and-execute chain with a persistence relaunch and a web C2 channel"
+    facts:
+      evidence:
+        ps_download_execute_chain: PRESENT/UNAUTHORIZED
+        ps_persistence_relaunch: PRESENT/UNAUTHORIZED
+        c2_web_channel_correlated: PRESENT/UNAUTHORIZED
+        payload_linked_malicious_execution: PRESENT
+      targets: [destination_endpoint, process, file_object, persistence_artifact]
+    expect:
+      subtypes: [PS-DOWNLOAD, PS-PERSIST, C2-WEB]
+      eligible_order: [ACT-PERSISTENCE-TRIGGER-DISABLE, ACT-DOWNLOAD-EXECUTION-CONTAIN, ACT-WEB-C2-CONTAIN, ACT-QUARANTINE-FILE-OBJECT]
+
+  # ================================================================== critical workload
+  - case_id: VC-34
+    category: critical_workload
+    title: "Ransomware on a CRITICAL file server: alternative (non-isolating) containment variant, damage not delayed"
+    target_values:
+      process: {host_id: FILESRV-02, process_identity: 'process_guid=PG-AA5510', image_path: 'D:\Temp\enc.exe'}
+      host_workload: {host_id: FILESRV-02}
+      share_session: {file_server_host_id: FILESRV-02, share_name: Finance, session_ids: ['SMB-3391', 'SMB-3392'], source_account_id: 'svc_backup2'}
+    example: {file: ransomware-critical-fileserver, checks: "Active damage ใช้ขั้นเร่งด่วน (ตัด write sessions → ยุติ process) ไม่ถูกถ่วงด้วยการเก็บหลักฐาน; critical workload ใช้ variant ไม่ isolate ทั้งเครื่อง"}
+    facts:
+      evidence: {mal_active_damage: PRESENT}
+      targets: [process, host_workload, share_session]
+      context: {"context.asset_criticality": CRITICAL}
+    expect:
+      subtypes: [MAL-RANSOM]
+      eligible_order: [ACT-ACTIVE-DAMAGE-CONTAIN]
+      variants: {ACT-ACTIVE-DAMAGE-CONTAIN: critical_workload}
+      steps_included: ["RB-ACTIVE-DAMAGE-CONTAIN:S2", "RB-ACTIVE-DAMAGE-CONTAIN:S3", "RB-ACTIVE-DAMAGE-CONTAIN:S4c"]
+  - case_id: VC-35
+    category: critical_workload
+    title: "Compromised account on a CRITICAL asset without asset-owner approval — NEEDS_AUTHORIZATION, not executed blindly"
+    facts:
+      evidence: {ac_unauthorized_password_auth: PRESENT/UNAUTHORIZED}
+      targets: [account_identity]
+      context: {"context.asset_criticality": CRITICAL}
+    expect:
+      subtypes: [AC-PASSWORD]
+      not_eligible: {ACT-IDENTITY-CREDENTIAL-CONTAIN: NEEDS_AUTHORIZATION}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-36
+    category: critical_workload
+    title: "Web C2 on a HIGH asset — channel cut first, process termination replaced by asset-owner-gated variant"
+    facts:
+      evidence: {c2_web_channel_correlated: PRESENT/UNAUTHORIZED}
+      targets: [destination_endpoint, network_flow, process]
+      context: {"context.asset_criticality": HIGH}
+    expect:
+      subtypes: [C2-WEB]
+      eligible_order: [ACT-WEB-C2-CONTAIN]
+      variants: {ACT-WEB-C2-CONTAIN: critical_workload}
+      steps_included: ["RB-WEB-C2-CONTAIN:S3", "RB-WEB-C2-CONTAIN:S5c"]
+
+  # ================================================================== unsupported capability
+  - case_id: VC-37
+    category: unsupported_capability
+    title: "Credential stuffing but the bot/risk control capability is explicitly unsupported"
+    facts:
+      evidence: {bf_automation_exposure_evidence: PRESENT}
+      targets: [login_endpoint]
+      capability: {unsupported: [cap.bot_risk_control]}
+    expect:
+      subtypes: [BF-STUFF]
+      not_eligible: {ACT-LOGIN-AUTOMATION-RESTRICT: UNSUPPORTED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-38
+    category: unsupported_capability
+    title: "STRICT mode: capability inventory unknown => UNSUPPORTED (platform-neutral mode would flag TOOL_MAPPING_REQUIRED)"
+    facts: {evidence: {bf_attempts_correlated: PRESENT}, targets: [network_source, service_endpoint], mode: strict}
+    mode: strict
+    expect:
+      subtypes: [BF-GUESS]
+      not_eligible: {ACT-AUTH-SOURCE-RESTRICT: UNSUPPORTED}
+  - case_id: VC-39
+    category: unsupported_capability
+    title: "Session revoke unsupported by the IdP: the runbook switches to the access-restriction fallback step"
+    facts:
+      evidence: {ac_session_replay_unauthorized: PRESENT/UNAUTHORIZED}
+      targets: [session]
+      capability: {unsupported: [cap.session_revocation]}
+    expect:
+      subtypes: [AC-SESSION]
+      not_eligible: {ACT-SESSION-REVOKE: UNSUPPORTED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+
+  # ================================================================== missing authority
+  - case_id: VC-40
+    category: missing_authority
+    title: "SQL UNION restriction needs an approved control (change_approval) — not granted"
+    facts: {evidence: {sq_union_requests_correlated: PRESENT}, targets: [web_route]}
+    expect:
+      subtypes: [SQ-UNION]
+      not_eligible: {ACT-WEB-REQUEST-RESTRICT: NEEDS_AUTHORIZATION}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]
+  - case_id: VC-41
+    category: missing_authority
+    title: "Critical-tier secret rotation requires asset-owner approval"
+    facts:
+      evidence: {ac_secret_exposed_or_misused: PRESENT/UNAUTHORIZED}
+      targets: [secret_credential]
+      context: {"context.asset_criticality": HIGH}
+    expect:
+      subtypes: [AC-SECRET]
+      not_eligible: {ACT-SERVICE-SECRET-CONTAIN: NEEDS_AUTHORIZATION}
+  - case_id: VC-42
+    category: missing_authority
+    title: "Hard prohibitions fire regardless of authority: mass lockout during spraying and removing all admins"
+    facts:
+      evidence: {bf_multi_account_campaign: PRESENT, pe_unauthorized_entitlement_change: PRESENT/UNAUTHORIZED}
+      targets: [auth_campaign_scope, entitlement_grant]
+      scope: [mass_lockout, removes_all_admins]
+      authority: [asset_owner, change_approval, ir_emergency]
+    expect:
+      subtypes: [BF-SPRAY, PE-GRANT]
+      not_eligible: {ACT-AUTH-CAMPAIGN-RESTRICT: PROHIBITED, ACT-PRIVILEGED-GRANT-CONTAIN: PROHIBITED}
+      eligible_order: [ACT-INVESTIGATE-MISSING-EVIDENCE]

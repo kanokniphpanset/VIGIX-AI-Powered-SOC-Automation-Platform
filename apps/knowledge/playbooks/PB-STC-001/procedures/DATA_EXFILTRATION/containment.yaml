@@ -1,0 +1,47 @@
+# containment.yaml - CATALOG of candidate containment Actions for DATA_EXFILTRATION, not a fixed sequence.
+# actionCode / runbookRef are the real Action Catalog codes (actions / runbooks tables) and equal the
+# allowedActions of the DB playbook PB-DATA-EXFIL. `condition` is the evidence-backed precondition IR must confirm before
+# the Action is executed; a Recommendation step for the Action must carry it. impactLevel / approvalRequired are
+# the catalog defaults - the Policy Engine decides the final requirement, and every Response Ticket still needs
+# the IR_TEAM decision.
+
+procedureCode: DATA_EXFILTRATION
+candidateActions:
+- actionCode: ACT-BLOCK-DESTINATION-IP
+  name: Block Destination IP
+  condition: The destination IP is confirmed unauthorized / malicious (not a sanctioned service).
+  runbookRef: RB-C2-CONTAINMENT
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-DOMAIN
+  name: Block Domain
+  condition: The destination domain is confirmed unauthorized / malicious.
+  runbookRef: RB-BLOCK-DOMAIN
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-BLOCK-URL
+  name: Block URL
+  condition: The upload URL is confirmed unauthorized / malicious.
+  runbookRef: RB-BLOCK-URL
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-ISOLATE-ENDPOINT
+  name: Isolate Endpoint
+  condition: Active exfiltration continues from the source endpoint or cannot otherwise be stopped.
+  runbookRef: RB-ISOLATE-ENDPOINT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM
+- actionCode: ACT-REVOKE-SESSION
+  name: Revoke Active Sessions / Tokens
+  condition: A compromised account / session is involved in the transfer.
+  runbookRef: RB-REVOKE-SESSION
+  impactLevel: MEDIUM
+  approvalRequired: false
+- actionCode: ACT-DISABLE-ACCOUNT
+  name: Disable User Account
+  condition: The account is confirmed responsible for the unauthorized transfer.
+  runbookRef: RB-DISABLE-ACCOUNT
+  impactLevel: HIGH
+  approvalRequired: true
+  approvalRole: IR_TEAM

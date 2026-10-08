@@ -13,6 +13,8 @@ export function buildRecommendationRoutes(controller: RecommendationController):
   const router = Router();
   router.post("/generate", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.generate));
   router.get("/:id", authenticate, controller.getById);
+  // Internal audit of the subtype-knowledge evaluation - never part of the user-facing recommendation.
+  router.get("/:id/audit", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.getAudit));
   router.post("/:id/validate", authenticate, requireRole("SOC", "IR_TEAM"), asyncHandler(controller.validate));
   // SOC reviewed the recommendation -> Send to IR (tickets first, then the notification with the ticket links).
   router.post("/:id/send-to-ir", authenticate, requireOperationalRole("SOC"), asyncHandler(controller.sendToIr));

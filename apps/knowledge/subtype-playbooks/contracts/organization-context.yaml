@@ -1,0 +1,34 @@
+# organization-context.yaml — INPUT C (ORGANIZATION_CONTEXT) status for VIGIX. Nothing here is assumed beyond what the repo shows.
+# Update this file (and only this file) when real tool mappings/approvals are known; capabilities flip from UNKNOWN to true/false
+# and the evaluator stops emitting TOOL_MAPPING_REQUIRED.
+
+version: "2.0.0"
+status: PARTIAL
+
+known_from_repository:
+  roles:
+    SOC: "investigates every incident and sends the recommendation to IR (apps/backend/prisma/seeds/policy.seed.ts header)"
+    IR_TEAM: "decides (APPROVE/REJECT) and executes every Response Ticket — containment is manual (no automated execution)"
+  response_execution: "manual by IR; n8n is notification-only (no containment automation)"
+  detection_source: "Wazuh agents/alerts (level>=7 opens incidents)"
+  asset_criticality: "resources/assets/asset-criticality-catalog.yaml (tiers + hostnames) -> context.asset_criticality"
+  knowledge_runtime: "apps/knowledge/playbooks/PB-STC-001 (YAML procedures), DB playbooks/policies/runbooks/actions (prisma seeds)"
+
+authority_defaults:
+  ir_execute: {granted: true, basis: "IR_TEAM executes all Response Tickets"}
+  ir_emergency: {granted: UNKNOWN, basis: "MISSING: no documented emergency authority for active damage; IR_TEAM decision is the only known gate"}
+  dba: {granted: UNKNOWN, basis: "MISSING: DBA owner / on-call not defined"}
+  business_authority: {granted: UNKNOWN, basis: "MISSING: no business owner for BEC holds"}
+  asset_owner: {granted: UNKNOWN, basis: "MISSING: asset owner approval path not defined (catalog has owner field for some assets only)"}
+  change_approval: {granted: UNKNOWN, basis: "MISSING: no change-approval process described"}
+
+capability_inventory:
+  default: UNKNOWN          # no firewall/WAF/EDR/IdP/mail-gateway/DNS/cloud-IAM integration is described in the repository
+  note: "All cap.* are UNKNOWN => platform_neutral mode: actions stay ELIGIBLE with flag TOOL_MAPPING_REQUIRED; steps are role-level only."
+
+missing_inputs:
+  - "Approved management access list (admin/jump hosts, break-glass, recovery, trusted IR access) -> needed to evaluate scope.cuts_approved_access"
+  - "Approved automation / security-tool / RMM inventory -> needed to evaluate scope.is_approved_automation, C2-RMM"
+  - "Tool mapping per capability (WAF, firewall, EDR, IdP, mail gateway, DNS, cloud IAM, secret manager, DB platform)"
+  - "Approval policy for HIGH/CRITICAL assets and emergency IR authority"
+  - "Tenant/environment identifiers ({{tenant_id}}, IdP/provider names)"

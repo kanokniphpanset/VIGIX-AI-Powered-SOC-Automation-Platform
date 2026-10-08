@@ -4,6 +4,7 @@ import BackendForm from '@/components/common/BackendForm.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
 import Modal from '@/components/common/Modal.vue'
 import KnowledgeValue from './KnowledgeValue.vue'
+import ActionForm from './ActionForm.vue'
 import { knowledgeApi } from '@/api/vigix'
 import { useSessionStore } from '@/stores/session'
 import { workflowError } from '@/utils/workflow'
@@ -16,7 +17,7 @@ const emit = defineEmits<{ closed: [] }>()
 const session = useSessionStore()
 const { t } = useI18n()
 // Catalog / Policy edits are configuration: the admin system role only (backend requireAdmin()).
-const canEdit = computed(() => session.role === 'admin')
+const canEdit = computed(() => session.role === 'admin' || (props.library === 'actions' && ['SOC', 'IR_TEAM'].includes(session.role ?? '')))
 const record = ref<Record<string, unknown> | null>(null)
 const open = ref(false)
 const busy = ref(false)
@@ -71,7 +72,8 @@ async function save(body: Record<string, unknown>) {
 </script>
 <template>
   <!-- Playbooks have their own create / edit form (PlaybookFormModal on the Knowledge page). -->
-  <BackendForm v-if="!id && canEdit && library !== 'playbooks'" :key="library" :label="t(`kbc.add.${library}`)" :title="t(`kbc.addTitle.${library}`)" button-class="btn-primary" size="lg" grid :fields="fields" :action="save" :reload="reload" />
+  <ActionForm v-if="!id && canEdit && library === 'actions'" :reload="reload" />
+  <BackendForm v-else-if="!id && canEdit && library !== 'playbooks'" :key="library" :label="t(`kbc.add.${library}`)" :title="t(`kbc.addTitle.${library}`)" button-class="btn-primary" size="lg" grid :fields="fields" :action="save" :reload="reload" />
   <button v-else-if="id && !autoOpen" class="btn-secondary" :disabled="busy" @click="detail">{{ busy ? t('c.loading') : t('kbc.viewDetails') }}</button>
   <Modal :open="open" :title="t('kbc.detailsTitle')" size="lg" @close="close">
     <p v-if="error" role="alert" class="text-rose-700">{{ error }} <button type="button" class="underline" @click="detail">{{ t('c.retry') }}</button></p>
@@ -79,8 +81,9 @@ async function save(body: Record<string, unknown>) {
       <h3 class="font-semibold">{{ record.name }}</h3>
       <div class="my-3 text-sm"><KnowledgeValue :value="Object.fromEntries(Object.entries(record).filter(([k]) => !['tenantId','id'].includes(k)))" /></div>
       <div v-if="canEdit && library !== 'playbooks'" class="flex flex-wrap gap-2">
-        <BackendForm :key="`${id}-${record.updatedAt}`" :label="t('kbc.edit')" :fields="fields" :initial="initial" :action="save" :reload="reload" :description="library === 'policies' ? t('kbc.policyEditHint') : undefined" />
-        <WorkflowAction v-if="library === 'policies' || library === 'actions'" :key="String(record.enabled)" :label="record.enabled ? t('kbc.disable') : t('kbc.enable')" :action="() => knowledgeApi.toggle(library as 'policies' | 'actions', id!, !record!.enabled)" :reload="reload" />
+        <ActionForm v-if="library === 'actions'" :id="id" :initial="record" :reload="reload" />
+        <BackendForm v-else :key="`${id}-${record.updatedAt}`" :label="t('kbc.edit')" :fields="fields" :initial="initial" :action="save" :reload="reload" :description="library === 'policies' ? t('kbc.policyEditHint') : undefined" />
+        <WorkflowAction v-if="session.role === 'admin' && (library === 'policies' || library === 'actions')" :key="String(record.enabled)" :label="record.enabled ? t('kbc.disable') : t('kbc.enable')" :action="() => knowledgeApi.toggle(library as 'policies' | 'actions', id!, !record!.enabled)" :reload="reload" />
       </div>
     </template>
   </Modal>

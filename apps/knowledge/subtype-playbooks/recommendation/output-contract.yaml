@@ -1,0 +1,66 @@
+# output-contract.yaml — Recommendation Output Contract (prompt §7, §7.1, §7.2). Executable reference: tools/render.mjs.
+# The user-facing text is composed ONLY from: Playbook order + Policy decision (ELIGIBLE) + bound targets + Runbook steps.
+
+version: "2.0.0"
+language: th
+
+user_text:
+  heading: "**คำแนะนำเพื่อยับยั้ง Incident**"
+  step_template: |
+    {{n}}. **{{title}}**                     # verb + validated target (first clause of the Runbook step instruction)
+       {{detail}}                            # scope / method detail + "ตรวจก่อนลงมือ: …" (folded pre-check steps)
+       *ผลกระทบ: {{impact}}*                 # ONLY when the step defines a decision-relevant impact
+       *ตรวจผล: {{verify}}*                  # short, only when the runbook supplies a supported check
+  manual_step_extra: "ผู้รับผิดชอบ: {{authority_label}} (ดำเนินการโดยผู้มีอำนาจ — IR ไม่ดำเนินการแทน)"   # step.manual_owner (e.g. BEC business hold, DBA cancel)
+  verification_block: "**ตรวจผลรวมหลังดำเนินการ**"   # runbook steps that only verify ("ตรวจ…") are NOT numbered containment steps
+  missing_info_line: "ข้อมูลที่ต้องตรวจเพิ่ม: {{items}}"   # only when something important is missing; lists specific evidence/target fields
+  no_containment_fallback: "ยังไม่มีมาตรการ containment ที่ผ่านเงื่อนไขหลักฐานและ target จึงให้ตรวจสอบสิ่งต่อไปนี้ก่อน:"   # numbered investigation items
+  forbidden_in_user_text:
+    - "attack family / subtype / branch names"
+    - "Playbook / Policy / Runbook / Action IDs (PBK-, POL-, RB-, ACT-)"
+    - "JSON / YAML / schema / predicates"
+    - "confidence score / retrieval details / explanation of how actions were selected"
+    - "unresolved placeholders ({{…}}), TBD, raw secrets/tokens/passwords"
+    - "claims of execution or success (ดำเนินการแล้ว / สำเร็จ / ปิด incident) without execution_result + verification_result"
+    - "'ดำเนินการตาม RB-…' as a step"
+
+step_admission:           # a Runbook step is rendered only if ALL hold (evaluated per step)
+  - "its action decision is ELIGIBLE (evidence, target, authority, capability; no prohibition; no AUTHORIZED gate)"
+  - "step.condition is TRUE (targets validated, capability supported or TOOL_MAPPING_REQUIRED in platform-neutral mode)"
+  - "every {{type.field}} placeholder resolves to a bound value traceable to evidence (else the step is omitted and the missing fields are listed)"
+  - "step.variant matches the policy-selected variant (critical_workload vs standard)"
+  - "step.skip_if_eligible is not satisfied by another eligible action (no duplicate revoke)"
+  - "not a duplicate: the same process identity is terminated once; dedupe never widens scope"
+
+ordering:                 # applied by the dependency orderer (lib.planIncident)
+  - "dependencies (depends_on) first; then containment_stage: STOP_ACTIVE < CLOSE_PATH < IDENTITY_EXPOSURE < CLEANUP_OBJECT"
+  - "ties broken by action_id (deterministic — never by file or retrieval order)"
+  - "active damage / ongoing transfer (STOP_ACTIVE) is never delayed by evidence collection; collection is an in-step 'ตรวจก่อนลงมือ' or a post-containment step"
+  - "no single order is forced: the order reason is stored per action in the playbook"
+
+not_shown_to_user_but_audited:   # §7.1 internal audit record — separate from the text; appended only if the user asks for audit details
+  - selected subtype / scenario and opened branches
+  - evidence refs
+  - policy decisions and reasons (all of them), flags (TOOL_MAPPING_REQUIRED / VARIANT_SELECTED)
+  - resolved targets (+ validation findings)
+  - action ids, runbook ids/versions
+  - dependency order and reasons
+  - missing evidence / missing targets
+  - tool capability and authority checks
+
+item_handling:
+  PROHIBITED:        "never rendered as a step. If caused by AUTHORIZED evidence: show only 'confirm approval with the change record / owner'."
+  NEEDS_EVIDENCE:    "not a step; appears under 'ข้อมูลที่ต้องตรวจเพิ่ม' with the evidence's confirm instructions"
+  NEEDS_TARGET:      "not a step; appears with the target's Thai label and the required identity fields"
+  NEEDS_AUTHORIZATION: "not a step; stated with the owner role; the organisation's approval procedure is MISSING and is not invented"
+  UNSUPPORTED:       "not a step; states that the capability is unknown/unsupported"
+  MANUAL_OWNER:      "rendered as a step with 'ผู้รับผิดชอบ:' (BEC business hold → business authority; query cancel → DBA)"
+
+acceptance_scheduled_task_hijack:      # §7.2 — verified by validation cases VC-06, VC-20, VC-21, VC-22, VC-26
+  full_evidence_order: [stop task trigger, stop running instance, terminate payload process (+ children with lineage), restrict outbound channel (granular) + cut established connections, quarantine payload file]
+  checks:
+    - {case: VC-06, assert: "order trigger -> instance -> payload+children -> channel -> quarantine; Disable Task never claims to stop a running instance"}
+    - {case: VC-20, assert: "no process identity -> no terminate step is rendered; reported as missing target"}
+    - {case: VC-21, assert: "no file identity -> no quarantine"}
+    - {case: VC-22, assert: "outbound connection not linked to C2 -> no network deny"}
+    - {case: VC-26, assert: "approved task change -> no malicious containment; only 'confirm approval'"}

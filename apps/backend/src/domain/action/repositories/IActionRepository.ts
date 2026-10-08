@@ -1,5 +1,15 @@
 import { Action, ActionCategory, ActionImpactLevel } from "../entities/Action.entity";
 
+export type ActionRunbookErrorCode = "RUNBOOK_NOT_FOUND" | "ACTION_RUNBOOK_TENANT_MISMATCH";
+
+/** Relationship validation failure, independent of the persistence provider. */
+export class ActionRunbookRelationshipError extends Error {
+  constructor(readonly code: ActionRunbookErrorCode) {
+    super(code);
+    this.name = "ActionRunbookRelationshipError";
+  }
+}
+
 export interface NewActionInput {
   tenantId: string;
   code: string;

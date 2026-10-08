@@ -9,10 +9,11 @@ import KnowledgeValue from '@/components/knowledge/KnowledgeValue.vue'
 import BackendForm from '@/components/common/BackendForm.vue'
 import type { FormField } from '@/utils/forms'
 import PlaybookFormModal from '@/components/knowledge/PlaybookFormModal.vue'
+import EnterpriseAttackMatrix from '@/components/knowledge/EnterpriseAttackMatrix.vue'
 import KnowledgeDeleteButton from '@/components/knowledge/KnowledgeDeleteButton.vue'
 import WorkflowAction from '@/components/common/WorkflowAction.vue'
 import { useUiStore } from '@/stores/ui'
-import { knowledgeApi, playbookVersionsApi, type MitreTechnique, type Playbook, type Policy, type Runbook } from '@/api/vigix'
+import { alertsApi, knowledgeApi, playbookVersionsApi, type MitreTechnique, type Playbook, type Policy, type Runbook } from '@/api/vigix'
 import { ApiError } from '@/api/http'
 import { workApi, type IocLibraryItem } from '@/api/work'
 import ThreatIntelLibrary from '@/components/knowledge/ThreatIntelLibrary.vue'
@@ -29,7 +30,7 @@ import { hasMsg } from '@/i18n/messages'
  * intelligence comes from the IOCs recorded on incidents).
  */
 type Key = 'playbooks' | 'policies' | 'runbooks' | 'actions' | 'threat-intel' | 'mitre' | 'history'
-interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string; version?: string }
+interface Row { id: string; code: string; name: string; meta: string; description: string | null; status?: string; version?: string; kind?: 'incident' | 'alert'; closedAt?: string }
 
 const { t } = useI18n()
 /** Library tabs; label and blurb are getters so they follow the UI language. */
@@ -86,18 +87,51 @@ async function load() {
       iocs.value = r.items
       return r.items.map((i) => ({ id: `${i.iocType}:${i.iocValue}`, code: i.iocType, name: i.iocValue, meta: i.sources.join(' '), description: null }))
     }),
-    // History cases: closed incidents (resolved / merged-dismissed), newest first; a row opens the incident itself.
-    take('history', workApi.incidents({ status: 'resolved,dismissed', limit: 200 }), (r) =>
-      r.items.map((i) => ({
-        id: i.id, code: incidentLabel(i.id), name: i.title, status: i.status, description: null,
-        get meta() { return [i.priority, i.responsibleRole, t('kb.historyClosed', { at: formatDateTime(i.closedAt ?? i.updatedAt) })].filter(Boolean).join(' · ') },
-      }))),
+    // History cases: EVERY closed case — closed incidents (resolved / merged-dismissed) and alerts the SOC closed
+    // without an incident (false positive / informational) — newest closed first; a row opens the incident / alert.
+    take('history', loadHistory(), (r) => r),
   ])
   failed.value = next
   await loadLifecycles()
   loading.value = false
 }
 onMounted(load)
+
+const HISTORY_PAGE = 200
+/** All pages of a paged list endpoint (the backend caps one page at 200), so no closed case is ever cut off. */
+async function allPages<T>(page: (offset: number) => Promise<{ total: number; items: T[] }>): Promise<T[]> {
+  const out: T[] = []
+  for (;;) {
+    const r = await page(out.length)
+    out.push(...r.items)
+    if (!r.items.length || out.length >= r.total) return out
+  }
+}
+async function loadHistory(): Promise<Row[]> {
+  const [incidents, alerts] = await Promise.all([
+    allPages((offset) => workApi.incidents({ status: 'resolved,dismissed', limit: HISTORY_PAGE, offset })),
+    allPages((offset) => alertsApi.inbox({ status: 'closed', sort: 'newest', limit: HISTORY_PAGE, offset })),
+  ])
+  const rows: Row[] = [
+    ...incidents.map((i): Row => {
+      const closedAt = i.closedAt ?? i.updatedAt
+      return {
+        id: i.id, kind: 'incident', closedAt, code: incidentLabel(i.id), name: i.title, status: i.status, description: null,
+        get meta() { return [i.priority, i.responsibleRole, t('kb.historyClosed', { at: formatDateTime(closedAt) })].filter(Boolean).join(' · ') },
+      }
+    }),
+    ...alerts.map((a): Row => {
+      const closedAt = a.closedAt ?? a.triage?.triagedAt ?? a.receivedAt
+      const disposition = a.triage?.disposition ?? a.disposition ?? 'closed'
+      return {
+        id: a.id, kind: 'alert', closedAt, code: `ALERT-${a.id.slice(0, 8).toUpperCase()}`,
+        name: a.summary.ruleDescription ?? a.externalAlertId, status: disposition, description: a.triage?.note ?? null,
+        get meta() { return [a.severity.toUpperCase(), a.summary.host, t('kb.historyClosed', { at: formatDateTime(closedAt) })].filter(Boolean).join(' · ') },
+      }
+    }),
+  ]
+  return rows.sort((x, y) => (y.closedAt ?? '').localeCompare(x.closedAt ?? ''))
+}
 
 // Playbook versions (Draft → Publish, no approval step): status and buttons per row from its version history.
 const lifecycles = ref<Record<string, PlaybookLifecycle>>({})
@@ -143,7 +177,7 @@ const DETAIL_LIBRARIES: Key[] = ['playbooks', 'runbooks', 'policies', 'actions',
 const hasDetail = computed(() => DETAIL_LIBRARIES.includes(active.value))
 const detailRow = ref<{ library: DetailLibrary; id: string } | null>(null)
 const openDetail = (r: Row) => {
-  if (active.value === 'history') void router.push({ name: 'incident-detail', params: { id: r.id } })
+  if (active.value === 'history') void router.push({ name: r.kind === 'alert' ? 'alert-detail' : 'incident-detail', params: { id: r.id } })
   else if (hasDetail.value) detailRow.value = { library: active.value as DetailLibrary, id: r.id }
 }
 // Delete (×) for policies and playbooks: SOC / IR_TEAM / admin (backend-enforced; reason required, audited).
@@ -155,11 +189,12 @@ async function knowledgeDeleted(message: 'pol.deleted' | 'pbd.deleted', code: st
 // Runbooks / Policies / Actions are configuration: the admin role creates them (backend requireAdmin()), via the same
 // "+ Add" button in the library header as Playbooks.
 const isAdminManaged = computed(() => (['runbooks', 'policies', 'actions'] as Key[]).includes(active.value))
-const canManageCatalog = computed(() => session.role === 'admin')
+const canManageCatalog = computed(() => session.role === 'admin' || (active.value === 'actions' && ['SOC', 'IR_TEAM'].includes(session.role ?? '')))
 const subtitle = computed(() => {
   if (active.value === 'history') return t('kb.historyHint')
   if (active.value === 'threat-intel') return t('ti.hint')
   if (active.value === 'playbooks') return t(canManagePlaybooks.value ? 'pbl.managed' : 'pb.readOnlyRole')
+  if (active.value === 'actions' && canManageCatalog.value) return t('af.managed')
   if (isAdminManaged.value) return canManageCatalog.value ? t('kbc.managed') : t('kbc.readOnlyRole', { lib: current.value.label })
   return t('kb.readOnly')
 })
@@ -206,6 +241,8 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
     </div>
 
     <section class="card mt-5 p-5" :aria-label="current.label">
+      <EnterpriseAttackMatrix v-if="active === 'mitre'" />
+      <template v-else>
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-semibold text-slate-900">{{ current.label }}</h2>
@@ -293,6 +330,7 @@ async function evaluate(body: Record<string,unknown>) { evaluation.value = await
           <KnowledgeDeleteButton v-if="active === 'playbooks' && can(r, 'delete')" library="playbooks" :id="r.id" :code="r.code" :name="r.name" :enabled="false" @deleted="(code) => knowledgeDeleted('pbd.deleted', code)" />
         </li>
       </ul>
+      </template>
     </section>
 
     <KnowledgeControls v-if="detailRow" :key="`${detailRow.library}-${detailRow.id}`" :library="detailRow.library" :id="detailRow.id" :reload="reloadLibrary" auto-open @closed="detailRow = null" />

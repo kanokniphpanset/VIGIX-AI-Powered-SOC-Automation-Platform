@@ -1,0 +1,215 @@
+{
+  "contractVersion": 2,
+  "provenance": {
+    "class": "REAL_TELEMETRY",
+    "classBasis": [
+      "native-format Wazuh alert id; no mock or harness marker present (a hand-written fixture that copies this id format is only caught via knownFixtureIds)"
+    ],
+    "source": {
+      "siem": "wazuh",
+      "alertId": "1791020432.1567631",
+      "alertRowId": null,
+      "indexerRef": {
+        "index": "wazuh-alerts-4.x-2026.10.03",
+        "docId": "scEjAaEBT0qgUD4hEk9q"
+      },
+      "eventKey": "win:010:Microsoft-Windows-PowerShell/Operational:316",
+      "manager": "wazuh.manager",
+      "decoder": {
+        "name": "windows_eventchannel",
+        "parent": null
+      },
+      "location": "EventChannel",
+      "inputType": "log"
+    },
+    "agent": {
+      "id": "010",
+      "name": "vigix-win10-ps",
+      "ip": "192.168.239.129"
+    },
+    "time": {
+      "detectedAt": "2026-10-03T09:40:32.452Z",
+      "reportedAt": null,
+      "reportedAtRaw": null,
+      "eventAt": "2026-10-03T09:40:31.901Z",
+      "receivedAt": "2026-10-08T00:00:00.000Z"
+    },
+    "completeness": {
+      "process": "OBSERVED",
+      "powershell": "OBSERVED"
+    },
+    "missing": []
+  },
+  "detection": {
+    "rule": {
+      "id": "91822",
+      "level": 12,
+      "description": "Powershell script used \"Invoke-command\" cmdlet to execute sub script",
+      "groups": [
+        "windows",
+        "powershell"
+      ],
+      "firedTimes": 3,
+      "frequency": null
+    },
+    "mitre": {
+      "techniques": [
+        {
+          "id": "T1059.001",
+          "name": "PowerShell"
+        }
+      ],
+      "tactics": [
+        "Execution"
+      ]
+    }
+  },
+  "evidence": {
+    "network": {
+      "src": {
+        "ip": null,
+        "port": null
+      },
+      "dst": {
+        "ip": null,
+        "port": null
+      },
+      "dnsQuery": null,
+      "dnsStatus": null,
+      "url": null,
+      "bytesOut": null,
+      "durationSeconds": null,
+      "direction": null
+    },
+    "process": {
+      "image": null,
+      "commandLine": null,
+      "pid": null,
+      "guid": null,
+      "user": null,
+      "startedAt": null,
+      "integrityLevel": null,
+      "hashes": [],
+      "parent": {
+        "image": null,
+        "commandLine": null,
+        "pid": null,
+        "guid": null,
+        "user": null,
+        "name": null
+      },
+      "windowsEvent": {
+        "id": "4104",
+        "channel": "Microsoft-Windows-PowerShell/Operational",
+        "provider": "Microsoft-Windows-PowerShell"
+      }
+    },
+    "file": {
+      "path": null,
+      "hashes": {
+        "md5": null,
+        "sha1": null,
+        "sha256": null
+      }
+    },
+    "syscheck": {
+      "path": null,
+      "operation": null,
+      "detectionMode": null,
+      "hashes": {
+        "after": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null,
+          "lastKnown": false
+        },
+        "before": {
+          "md5": null,
+          "sha1": null,
+          "sha256": null
+        }
+      },
+      "size": {
+        "after": null,
+        "before": null
+      },
+      "permissions": {
+        "after": null,
+        "before": null
+      },
+      "owner": {
+        "after": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        },
+        "before": {
+          "uid": null,
+          "gid": null,
+          "uname": null,
+          "gname": null
+        }
+      },
+      "modifiedAt": {
+        "after": null,
+        "before": null
+      },
+      "inode": {
+        "after": null,
+        "before": null
+      },
+      "changedAttributes": [],
+      "diffPresent": false
+    },
+    "authentication": {
+      "result": null,
+      "remote": {
+        "ip": null,
+        "port": null
+      },
+      "account": null,
+      "attemptedAccount": null,
+      "accountDomain": null,
+      "accountSid": null,
+      "actor": {
+        "name": null,
+        "domain": null,
+        "sid": null,
+        "isMachineAccount": null
+      },
+      "logon": {
+        "type": null,
+        "id": null,
+        "process": null,
+        "package": null
+      }
+    },
+    "email": {
+      "sender": null,
+      "recipients": [],
+      "subject": null
+    },
+    "powershell": {
+      "scriptBlockText": "Invoke-Command -ScriptBlock { Write-Output 'VIGIX-TC05-ingestion-probe-4' }",
+      "scriptBlockId": "d10f316f-e1b0-4ddc-8586-108c966903c5",
+      "part": 1,
+      "totalParts": 1
+    },
+    "http": {
+      "requestTarget": null,
+      "method": null,
+      "status": null
+    },
+    "account": {
+      "user": null,
+      "group": null,
+      "uid": null,
+      "gid": null,
+      "home": null,
+      "shell": null
+    }
+  },
+  "iocs": [],
+  "fullLog": null
+}

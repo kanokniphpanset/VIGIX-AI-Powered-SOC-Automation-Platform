@@ -1,0 +1,30 @@
+# verification.yaml — the re-hunt template used to close the loop after containment.
+# Field names are the Wazuh alert fields the re-hunt adapter searches (WazuhRehuntAdapter DEFAULT_IOC_FIELDS:
+# data.srcip / data.dstip / data.dns.question.name / data.url / data.sha256 ...). NOT_RESOLVED never starts a
+# response by itself — it reopens the investigation for a human decision (policy RULE-009/010/011).
+
+procedureCode: SUSPICIOUS_PROCESS_EXECUTION
+
+verification:
+  type: WAZUH_REHUNT
+  queryTemplate: "data.sha256:\"{{fileHash}}\" OR data.url:\"{{downloadUrl}}\" OR data.dns.question.name:\"{{downloadDomain}}\""
+  timeRange:
+    before: "containment_time - 1h .. containment_time"
+    after: "containment_time .. containment_time + 1h"
+  fieldsCompared:
+    - matchingEventsBefore
+    - matchingEventsAfter
+    - affectedHosts
+    - iocRecurrence
+    - spreadDetected
+  additionalChecks:
+    - "No process started from the same path / hash after containment"
+    - "Persistence locations are clean"
+  successCriteria:
+    - "Suspicious process stopped"
+    - "No malicious child process or persistence detected"
+  resultValues: [RESOLVED, NOT_RESOLVED]
+  onNotResolved:
+    surface: [newEvidence, spreadDetected]
+    nextAction: GENERATE_NEW_RESPONSE_PLAN
+    triggersPolicyRules: [RULE-009, RULE-010, RULE-011]

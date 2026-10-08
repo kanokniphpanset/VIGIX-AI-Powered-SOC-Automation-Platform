@@ -1,0 +1,56 @@
+{
+  "agent": {
+    "ip": "192.168.239.129",
+    "name": "vigix-win10-ps",
+    "id": "010"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "win": {
+      "eventdata": {
+        "data": "2026-11-02T07:38:02Z, RulesEngine"
+      },
+      "system": {
+        "eventID": "16384",
+        "eventSourceName": "Software Protection Platform Service",
+        "keywords": "0x80000000000000",
+        "providerGuid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+        "level": "4",
+        "channel": "Application",
+        "opcode": "0",
+        "message": "\"Successfully scheduled Software Protection service for re-start at 2026-11-02T07:38:02Z. Reason: RulesEngine.\"",
+        "version": "0",
+        "systemTime": "2026-10-03T12:30:02.1590024Z",
+        "eventRecordID": "294",
+        "threadID": "0",
+        "computer": "WIN-LAB01",
+        "task": "0",
+        "processID": "0",
+        "severityValue": "INFORMATION",
+        "providerName": "Microsoft-Windows-Security-SPP"
+      }
+    }
+  },
+  "rule": {
+    "firedtimes": 1,
+    "mail": false,
+    "level": 3,
+    "description": "Software protection service scheduled successfully.",
+    "groups": [
+      "windows",
+      "windows_application"
+    ],
+    "id": "60642"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "input": {
+    "type": "log"
+  },
+  "location": "EventChannel",
+  "id": "1791030602.2023036",
+  "timestamp": "2026-10-03T12:30:02.183+0000"
+}

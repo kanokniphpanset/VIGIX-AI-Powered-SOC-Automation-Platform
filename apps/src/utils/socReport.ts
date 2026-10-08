@@ -69,6 +69,8 @@ export interface SocReport {
   version: 3
   /** Report window (see REPORT_WINDOWS). */
   period: ReportWindow
+  /** When the window was filled (= the window END, ISO). A draft of an older window must be refetched, not reused. */
+  preparedAt?: string
   title: string
   subtitle: string
   /** Label/value pairs, laid out two per row like the template's cover table. */
@@ -150,7 +152,7 @@ function table(columns: string[], widths: number[], align: Align[], rows: string
 
 /**
  * Build the report from the live summary. `d` must be fetched for the same window (dashboardApi.summary with
- * `since = windowStart(period, preparedAt)`), so event counts cover the window and backlog items are "as of now".
+ * `period`), so every count — incl. SLA and awaiting re-hunt — covers only that window; nothing from other windows mixes in.
  */
 export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow; preparedAt: Date }): SocReport {
   const byStatus = d.incidents.byStatus
@@ -204,7 +206,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow
             `ในรอบรายงาน ${cycle} VIGIX รับ Alert จาก Wazuh ${d.alerts.total} รายการ และเปิด Incident ${totalIncidents} Case ` +
             `ปิดแล้ว ${resolved} Case (${pct(resolved, totalIncidents)}) อยู่ระหว่างดำเนินการ ${openInProgress} Case และ Escalate ${escalated} Case ` +
             `ผลการตรวจสอบหลังการรับมือ (Re-hunt) ยืนยันว่าควบคุมภัยคุกคามได้ ${verifResolved} จาก ${verifTotal} ครั้ง (${pct(verifResolved, verifTotal)}) ` +
-            `และ ณ วันที่ ${asOf} มี Incident ที่เกิน SLA ${d.sla.breached} Case`,
+            `และมี Incident ในรอบนี้ที่ยังไม่ปิดและเกิน SLA ${d.sla.breached} Case (ณ วันที่ ${asOf})`,
         },
       ],
     },
@@ -327,7 +329,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow
           kind: 'note',
           text:
             `หมายเหตุ: ตัวเลขในรายงานนี้ดึงจาก VIGIX ณ วันที่ ${asOf} นับเฉพาะเหตุการณ์ในรอบรายงาน ${cycle} ` +
-            'ส่วนรายการค้าง (รออนุมัติ, รอ Re-hunt, SLA) เป็นสถานะ ณ วันที่จัดทำรายงาน ' +
+            'รายการค้าง (รออนุมัติ, รอ Re-hunt, SLA) นับเฉพาะ Case ของรอบนี้ ตามสถานะ ณ วันที่จัดทำรายงาน ' +
             'โดยแยก Wazuh Rule Level ออกจาก VIGIX Severity และไม่ใช้ Risk Score เป็นเกณฑ์ตัดสินใจ กรุณาตรวจทานก่อนเผยแพร่',
         },
       ],
@@ -350,6 +352,7 @@ export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow
   return {
     version: 3,
     period: opts.period,
+    preparedAt: opts.preparedAt.toISOString(),
     title: 'รายงานสรุปการปฏิบัติงานด้านความมั่นคงปลอดภัย (SOC Operations Report)',
     subtitle: 'สำหรับทีม SOC และทีม Incident Response (IR)  |  VIGIX',
     meta: [
@@ -369,4 +372,16 @@ export function buildSocReport(d: DashboardSummary, opts: { period: ReportWindow
 export function isSocReport(x: unknown): x is SocReport {
   const r = x as SocReport
   return !!r && r.version === 3 && isReportWindow(r.period) && typeof r.title === 'string' && Array.isArray(r.meta) && Array.isArray(r.sections)
+}
+
+/**
+ * A saved draft may be reused only while it still describes the current window: same calendar day as `now` for the
+ * daily report (a new day = a new window), and for the others no older than a day. Drafts without a stamp are stale.
+ */
+export function isDraftCurrent(r: SocReport, now: Date): boolean {
+  if (!r.preparedAt) return false
+  const at = new Date(r.preparedAt)
+  if (Number.isNaN(at.getTime()) || at.getTime() > now.getTime()) return false
+  const sameDay = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate()
+  return r.period === 'daily' ? sameDay : now.getTime() - at.getTime() < 86_400_000
 }

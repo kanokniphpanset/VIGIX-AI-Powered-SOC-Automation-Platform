@@ -1,0 +1,62 @@
+{
+  "agent": {
+    "ip": "172.19.0.8",
+    "name": "attack-endpoint",
+    "id": "009"
+  },
+  "manager": {
+    "name": "wazuh.manager"
+  },
+  "data": {
+    "srcip": "172.19.0.8",
+    "vigix": {
+      "event_type": "c2_beacon"
+    },
+    "dstport": "8080",
+    "interval_seconds": "2",
+    "dns": {
+      "question": {
+        "name": "vigix-eval-c2.net"
+      }
+    },
+    "beacon_seq": "3",
+    "http_status": "200",
+    "dstip": "172.19.0.7",
+    "message": "Beacon 3/3 172.19.0.8 -> 172.19.0.7:8080 http://vigix-eval-c2.net:8080/gate.php (regular 2s interval)",
+    "url": "http://vigix-eval-c2.net:8080/gate.php"
+  },
+  "rule": {
+    "firedtimes": 12,
+    "mail": true,
+    "level": 13,
+    "description": "VIGIX-EVAL: outbound beaconing to a command-and-control server",
+    "groups": [
+      "vigix_eval",
+      "c2",
+      "threat_intel",
+      "vigix_eval"
+    ],
+    "mitre": {
+      "technique": [
+        "Web Protocols"
+      ],
+      "id": [
+        "T1071.001"
+      ],
+      "tactic": [
+        "Command and Control"
+      ]
+    },
+    "id": "100320"
+  },
+  "decoder": {
+    "name": "json"
+  },
+  "full_log": "{\"vigix\":{\"event_type\":\"c2_beacon\"},\"srcip\":\"172.19.0.8\",\"dstip\":\"172.19.0.7\",\"dstport\":8080,\"url\":\"http://vigix-eval-c2.net:8080/gate.php\",\"dns\":{\"question\":{\"name\":\"vigix-eval-c2.net\"}},\"http_status\":200,\"beacon_seq\":3,\"interval_seconds\":2,\"message\":\"Beacon 3/3 172.19.0.8 -> 172.19.0.7:8080 http://vigix-eval-c2.net:8080/gate.php (regular 2s interval)\"}",
+  "input": {
+    "type": "log"
+  },
+  "location": "/var/log/vigix-eval/events.json",
+  "id": "1791030836.2035635",
+  "timestamp": "2026-10-03T12:33:56.115+0000"
+}

@@ -1,4 +1,4 @@
-import { ISiemRehuntPort, RehuntError, RehuntQuery } from "../../../application/verification/ports/ISiemRehuntPort";
+import { ISiemRehuntPort, RehuntError, RehuntQuery, RehuntResult } from "../../../application/verification/ports/ISiemRehuntPort";
 import { IndexerTransport, WazuhIndexerAdapter, WazuhIndexerConfig } from "./WazuhIndexerAdapter";
 
 export type IocFieldMapping = Record<"ip" | "domain" | "url" | "hash", string[]>;
@@ -50,7 +50,7 @@ export function parseIocFields(json?: string): IocFieldMapping {
  * it never selects fixtures or changes the caller's time window. */
 export class WazuhRehuntAdapter extends WazuhIndexerAdapter implements ISiemRehuntPort {
   private readonly fields: IocFieldMapping;
-  private readonly timestampFields: string[];
+  protected readonly timestampFields: string[];
   /** Per re-hunt call: IOC categories prepareQuery skipped (no field present in the index), read back in rehunt(). */
   private readonly skippedByQuery = new WeakMap<RehuntQuery, (keyof IocFieldMapping)[]>();
   constructor(config: WazuhRehuntConfig, transport?: IndexerTransport) {
@@ -143,7 +143,7 @@ export class WazuhRehuntAdapter extends WazuhIndexerAdapter implements ISiemRehu
     return "";
   }
 
-  async rehunt(query: RehuntQuery) {
+  async rehunt(query: RehuntQuery): Promise<RehuntResult> {
     const result = await super.rehunt(query);
     if (result.events.some(e => !e.matchedIocValues?.length || !e.timestamp || !Number.isFinite(Date.parse(e.timestamp)))) {
       throw new RehuntError("QUERY_FAILED", "Wazuh event evidence is missing its timestamp or matching IOC identity.");

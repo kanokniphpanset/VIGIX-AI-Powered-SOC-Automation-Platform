@@ -1,0 +1,47 @@
+id: PROC-PE-001
+code: PRIVILEGE_ESCALATION
+name: Privilege Escalation Response Procedure
+version: "1.0"
+status: ACTIVE
+playbookId: PB-STC-001
+# Runtime counterpart in the database: playbooks.code = PB-PRIV-ESC (prisma/seeds/playbook.seed.ts).
+dbPlaybook: PB-PRIV-ESC
+
+objective: >
+  Remove unauthorized privilege and prevent further privileged abuse.
+
+strategy: >
+  Confirm the privilege change is unauthorized, remove the privilege and invalidate privileged sessions, contain
+  the abused account, process and endpoint, and check for persistence and lateral movement. Never remove a
+  legitimate administrative privilege solely from an alert.
+
+
+appliesWhen:
+  incidentTypes: [PRIVILEGE_ESCALATION]
+  mitreTechniques: [T1068, T1548, T1098]
+  description: >
+    An account gains higher privileges outside change management - added to
+    an admin group, sudo / UAC abuse, exploitation of a local vulnerability,
+    or token manipulation.
+
+primaryEvidence:
+  - "Privilege / group change event (who changed, who was added, which group)"
+  - "Source host of the change"
+  - "Change-management record"
+  - "Activity of the elevated account afterwards"
+
+references:
+  stepsFile: steps.yaml
+  decisionsFile: decisions.yaml
+  containmentFile: containment.yaml
+  verificationFile: verification.yaml
+
+# Worked example this procedure was written against (TC-10, resources/mock-attacks-tc/TC-10-privilege-escalation.json):
+#   TC-10: Windows 4728 on DC-01 - eviluser added to Domain Admins by
+#   svc_helpdesk; Wazuh rule 100350, severity CRITICAL.
+#
+# MITRE note:
+#   T1098 (Account Manipulation) is listed because TC-10 carries it, but the
+#   DB playbook PB-PRIV-ESC selects on T1068 / T1548 only; MITRE-based
+#   selection maps T1098 to PB-ACCOUNT-COMPROMISE. The SOC-confirmed
+#   incident type (PRIVILEGE_ESCALATION) is what picks this procedure.

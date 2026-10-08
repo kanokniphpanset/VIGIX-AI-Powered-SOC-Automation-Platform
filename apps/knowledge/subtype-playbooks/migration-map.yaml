@@ -1,0 +1,88 @@
+# migration-map.yaml — I. Old ID -> new/updated ID. Source of "old": apps/backend/prisma/seeds/{playbook,runbook,action,policy}.seed.ts,
+# apps/backend/src/domain/knowledge/actionKnowledge.ts, apps/knowledge/playbooks/PB-STC-001/procedures/*.
+# change: KEEP | UPDATE | ADD | DEPRECATE.  Nothing in the existing runtime is modified by this delivery; "DEPRECATE" means: do not select for new subtype flows.
+# Existing ids stay valid for backward compatibility (history, past recommendations are immutable snapshots).
+
+version: "2.0.0"
+
+db_playbooks:     # incident-level DB playbooks -> subtype playbooks (split by subtype)
+  - {old: PB-SSH-BRUTEFORCE,       change: UPDATE, new: [PBK-BF-GUESS, PBK-BF-SPRAY, PBK-BF-STUFF, PBK-BF-OFFLINE], note: "single SSH playbook (allowedActions incl. ACT-DISABLE-ACCOUNT/ACT-RESET-CREDENTIAL by incident type only) is split; identity actions move behind the unauthorized-success branch gate"}
+  - {old: PB-MALWARE,              change: UPDATE, new: [PBK-MAL-RANSOM, PBK-MAL-WORM, PBK-MAL-BACKDOOR, PBK-MAL-STEALER, PBK-MAL-MEMORY]}
+  - {old: PB-PHISHING,             change: UPDATE, new: [PBK-PH-ATTACH, PBK-PH-LINK, PBK-PH-CREDS, PBK-PH-CONSENT, PBK-PH-BEC]}
+  - {old: PB-ACCOUNT-COMPROMISE,   change: UPDATE, new: [PBK-AC-PASSWORD, PBK-AC-SESSION, PBK-AC-OAUTH, PBK-AC-SECRET, PBK-AC-MFA]}
+  - {old: PB-POWERSHELL,           change: UPDATE, new: [PBK-PS-OBFUSCATED, PBK-PS-DOWNLOAD, PBK-PS-MEMORY, PBK-PS-REMOTE, PBK-PS-PERSIST]}
+  - {old: PB-SQL-INJECTION,        change: UPDATE, new: [PBK-SQ-UNION, PBK-SQ-ERROR, PBK-SQ-BOOLEAN, PBK-SQ-TIME, PBK-SQ-OOB, PBK-SQ-SECOND, PBK-SQ-STACKED]}
+  - {old: PB-C2,                   change: UPDATE, new: [PBK-C2-WEB, PBK-C2-DNS, PBK-C2-CUSTOM, PBK-C2-RMM], note: "old allowedActions include ACT-BLOCK-HASH and block-IP without role gate"}
+  - {old: PB-SUSPICIOUS-PROCESS,   change: UPDATE, new: [PBK-PROC-LOLBIN, PBK-PROC-MASK, PBK-PROC-INJECT, PBK-PROC-CHAIN], note: "family key in reference = SUSPICIOUS_PROCESS; runtime incidentType = SUSPICIOUS_PROCESS_EXECUTION"}
+  - {old: PB-DATA-EXFIL,           change: UPDATE, new: [PBK-EXF-WEB, PBK-EXF-CLOUD, PBK-EXF-DNS, PBK-EXF-TRANSFER, PBK-EXF-MAIL]}
+  - {old: PB-PRIV-ESC,             change: UPDATE, new: [PBK-PE-EXPLOIT, PBK-PE-LOCAL, PBK-PE-SERVICE, PBK-PE-TOKEN, PBK-PE-GRANT, PBK-PE-CLOUD]}
+
+yaml_procedures:  # apps/knowledge/playbooks/PB-STC-001/procedures/*  (generic 7-phase process skeleton stays)
+  - {old: procedures/BRUTE_FORCE,                    change: KEEP,   new: "families/BRUTE_FORCE.yaml", note: "phase skeleton kept; subtype detail now in subtype-playbooks"}
+  - {old: procedures/MALWARE,                        change: KEEP,   new: "families/MALWARE.yaml"}
+  - {old: procedures/RANSOMWARE,                     change: UPDATE, new: "PBK-MAL-RANSOM", note: "ransomware stops being a separate procedure family; it is subtype MAL-RANSOM of Malware"}
+  - {old: procedures/PHISHING,                       change: KEEP,   new: "families/PHISHING.yaml"}
+  - {old: procedures/ACCOUNT_COMPROMISE,             change: KEEP,   new: "families/ACCOUNT_COMPROMISE.yaml"}
+  - {old: procedures/POWERSHELL,                     change: KEEP,   new: "families/POWERSHELL.yaml"}
+  - {old: procedures/SQL_INJECTION,                  change: KEEP,   new: "families/SQL_INJECTION.yaml"}
+  - {old: procedures/COMMAND_AND_CONTROL,            change: KEEP,   new: "families/COMMAND_AND_CONTROL.yaml"}
+  - {old: procedures/SUSPICIOUS_PROCESS_EXECUTION,   change: UPDATE, new: "families/SUSPICIOUS_PROCESS.yaml", note: "renamed family key"}
+  - {old: procedures/DATA_EXFILTRATION,              change: KEEP,   new: "families/DATA_EXFILTRATION.yaml"}
+  - {old: procedures/PRIVILEGE_ESCALATION,           change: KEEP,   new: "families/PRIVILEGE_ESCALATION.yaml"}
+  - {old: procedures/WEB_ATTACK (PLANNED),           change: DEPRECATE, note: "not in the reference; OS command injection is PROC-CHAIN (PROC-P5), web request-path restriction is inside RB-EXECUTION-CONTAIN / RB-WEB-REQUEST-RESTRICT"}
+  - {old: procedures/LATERAL_MOVEMENT (PLANNED),     change: KEEP,   note: "still not covered by the reference — see docs/J-validation-and-open-gaps.md (GAP-05)"}
+
+actions:          # legacy Action Catalog (17) -> new action ids (legacy codes stay as primitive operations referenced by legacy_action_refs)
+  - {old: ACT-BLOCK-SOURCE-IP,      change: DEPRECATE, new: [ACT-AUTH-SOURCE-RESTRICT, ACT-WEB-REQUEST-RESTRICT, ACT-SQLI-PROBING-RESTRICT], note: "standalone 'block IP' recommendation retired; source needs explicit role + scoped service"}
+  - {old: ACT-RATE-LIMIT-SOURCE,    change: UPDATE,    new: [ACT-AUTH-SOURCE-RESTRICT, ACT-AUTH-CAMPAIGN-RESTRICT, ACT-LOGIN-AUTOMATION-RESTRICT, ACT-WEB-REQUEST-RESTRICT, ACT-SQLI-PROBING-RESTRICT, ACT-SQLI-TIMING-CONTAIN]}
+  - {old: ACT-DISABLE-ACCOUNT,      change: UPDATE,    new: [ACT-IDENTITY-CREDENTIAL-CONTAIN, ACT-FILE-TRANSFER-CONTAIN, ACT-MAIL-EXFIL-CONTAIN, ACT-PRIVILEGED-GRANT-CONTAIN], note: "no longer reachable from failed login alone (BF-P1)"}
+  - {old: ACT-RESET-CREDENTIAL,     change: UPDATE,    new: [ACT-IDENTITY-CREDENTIAL-CONTAIN, ACT-SERVICE-SECRET-CONTAIN, ACT-HARVESTING-CONTAIN], note: "reset is a step after session revocation, never a substitute"}
+  - {old: ACT-REVOKE-SESSION,       change: UPDATE,    new: [ACT-SESSION-REVOKE, ACT-OAUTH-GRANT-CONTAIN, ACT-MFA-RECOVERY-CONTAIN]}
+  - {old: ACT-ISOLATE-ENDPOINT,     change: UPDATE,    new: [ACT-ACTIVE-DAMAGE-CONTAIN, ACT-PROPAGATION-PATH-RESTRICT, ACT-STEALER-CONTAIN, ACT-MEMORY-EXECUTION-CONTAIN, ACT-ELEVATED-EXECUTION-CONTAIN, ACT-INJECTED-PROCESS-CONTAIN], note: "applicable to 8 attack types in actionKnowledge; now only a scoped step with a critical-workload variant"}
+  - {old: ACT-KILL-PROCESS,         change: UPDATE,    new: [ACT-SCRIPT-EXECUTION-CONTAIN, ACT-PERSISTENCE-TRIGGER-DISABLE, ACT-PRIVILEGED-TRIGGER-CONTAIN, ACT-TRUSTED-BINARY-ABUSE-CONTAIN, ACT-IMPOSTOR-PROCESS-CONTAIN, ACT-EXECUTION-CHAIN-CONTAIN], note: "process target is identity (guid | pid+start_time+image), not name/PID + command line"}
+  - {old: ACT-QUARANTINE-FILE,      change: UPDATE,    new: [ACT-QUARANTINE-FILE-OBJECT]}
+  - {old: ACT-BLOCK-HASH,           change: DEPRECATE, new: [ACT-QUARANTINE-FILE-OBJECT], note: "no hash block for OS binaries (PROC-P2); hash is only a verification field of the file target"}
+  - {old: ACT-BLOCK-DOMAIN,         change: UPDATE,    new: [ACT-PHISHING-LINK-RESTRICT, ACT-WEB-C2-CONTAIN, ACT-DNS-CHANNEL-CONTAIN, ACT-DOWNLOAD-EXECUTION-CONTAIN]}
+  - {old: ACT-BLOCK-URL,            change: UPDATE,    new: [ACT-PHISHING-LINK-RESTRICT, ACT-WEB-C2-CONTAIN, ACT-DOWNLOAD-EXECUTION-CONTAIN, ACT-HARVESTING-CONTAIN]}
+  - {old: ACT-BLOCK-DESTINATION-IP, change: UPDATE,    new: [ACT-WEB-C2-CONTAIN, ACT-CUSTOM-CHANNEL-CONTAIN, ACT-DB-EGRESS-CONTAIN, ACT-WEB-TRANSFER-CONTAIN], note: "destination role must never be agent.ip (memory: TC-07/09 role-loss defect)"}
+  - {old: ACT-QUARANTINE-EMAIL,     change: UPDATE,    new: [ACT-MAIL-CAMPAIGN-QUARANTINE, ACT-PHISHING-LINK-RESTRICT]}
+  - {old: ACT-BLOCK-SENDER,         change: UPDATE,    new: [ACT-MAIL-CAMPAIGN-QUARANTINE]}
+  - {old: ACT-REMOVE-PRIVILEGE,     change: UPDATE,    new: [ACT-PRIVILEGED-GRANT-CONTAIN, ACT-LOCAL-ELEVATION-CONTAIN, ACT-CLOUD-PRIVILEGE-CONTAIN]}
+  - {old: ACT-007 (Collect Evidence),  change: KEEP, new: [ACT-INVESTIGATE-MISSING-EVIDENCE], note: "investigation category unchanged; the new action is evidence-driven"}
+  - {old: ACT-008 (Re-hunt IOC),       change: KEEP, note: "verification category unchanged; verification now also lives in each runbook step.verify and verification[]"}
+
+runbooks:         # legacy RB-* (action-level and incident-level) -> new runbooks
+  - {old: RB-BRUTEFORCE-001,        change: DEPRECATE, new: [RB-AUTH-SOURCE-RESTRICT, RB-AUTH-CAMPAIGN-RESTRICT, RB-LOGIN-AUTOMATION-RESTRICT, RB-CREDENTIAL-MATERIAL-CONTAIN], note: "'force a password reset … (manual)' removed; reset only after confirmed unauthorized success"}
+  - {old: RB-MALWARE-001,           change: DEPRECATE, new: [RB-BACKDOOR-CONTAIN, RB-STEALER-CONTAIN, RB-MEMORY-EXECUTION-CONTAIN, RB-PROPAGATION-PATH-RESTRICT]}
+  - {old: RB-RANSOMWARE-001,        change: UPDATE,    new: [RB-ACTIVE-DAMAGE-CONTAIN]}
+  - {old: RB-PHISHING-001,          change: DEPRECATE, new: [RB-MAIL-CAMPAIGN-QUARANTINE, RB-PHISHING-LINK-RESTRICT, RB-HARVESTING-CONTAIN, RB-OAUTH-GRANT-CONTAIN, RB-BEC-CONTAIN]}
+  - {old: RB-NETWORK-001,           change: DEPRECATE, new: [RB-WEB-C2-CONTAIN, RB-CUSTOM-CHANNEL-CONTAIN, RB-PROPAGATION-PATH-RESTRICT]}
+  - {old: RB-C2-CONTAINMENT,        change: UPDATE,    new: [RB-WEB-C2-CONTAIN, RB-DNS-CHANNEL-CONTAIN, RB-CUSTOM-CHANNEL-CONTAIN, RB-RMM-ACCESS-CONTAIN]}
+  - {old: RB-BLOCK-SOURCE-IP,       change: DEPRECATE, new: [RB-AUTH-SOURCE-RESTRICT]}
+  - {old: RB-RATE-LIMIT-SOURCE,     change: UPDATE,    new: [RB-AUTH-SOURCE-RESTRICT, RB-AUTH-CAMPAIGN-RESTRICT, RB-WEB-REQUEST-RESTRICT]}
+  - {old: RB-DISABLE-ACCOUNT,       change: UPDATE,    new: [RB-IDENTITY-CREDENTIAL-CONTAIN]}
+  - {old: RB-RESET-CREDENTIAL,      change: UPDATE,    new: [RB-IDENTITY-CREDENTIAL-CONTAIN, RB-SERVICE-SECRET-CONTAIN]}
+  - {old: RB-REVOKE-SESSION,        change: UPDATE,    new: [RB-SESSION-REVOKE]}
+  - {old: RB-ISOLATE-ENDPOINT,      change: UPDATE,    new: [RB-ACTIVE-DAMAGE-CONTAIN, RB-MEMORY-EXECUTION-CONTAIN, RB-INJECTED-PROCESS-CONTAIN, RB-ELEVATED-EXECUTION-CONTAIN]}
+  - {old: RB-KILL-MALICIOUS-PROCESS, change: UPDATE,   new: [RB-SCRIPT-EXECUTION-CONTAIN, RB-PERSISTENCE-TRIGGER-DISABLE, RB-TRUSTED-BINARY-ABUSE-CONTAIN, RB-IMPOSTOR-PROCESS-CONTAIN, RB-EXECUTION-CHAIN-CONTAIN]}
+  - {old: RB-QUARANTINE-FILE,       change: UPDATE,    new: [RB-QUARANTINE-FILE-OBJECT]}
+  - {old: RB-BLOCK-HASH,            change: DEPRECATE, new: [RB-QUARANTINE-FILE-OBJECT]}
+  - {old: RB-BLOCK-DOMAIN,          change: UPDATE,    new: [RB-PHISHING-LINK-RESTRICT, RB-WEB-C2-CONTAIN, RB-DNS-CHANNEL-CONTAIN]}
+  - {old: RB-BLOCK-URL,             change: UPDATE,    new: [RB-PHISHING-LINK-RESTRICT, RB-WEB-C2-CONTAIN, RB-DOWNLOAD-EXECUTION-CONTAIN]}
+  - {old: RB-QUARANTINE-EMAIL,      change: UPDATE,    new: [RB-MAIL-CAMPAIGN-QUARANTINE]}
+  - {old: RB-BLOCK-SENDER,          change: UPDATE,    new: [RB-MAIL-CAMPAIGN-QUARANTINE]}
+  - {old: RB-REMOVE-PRIVILEGE,      change: UPDATE,    new: [RB-PRIVILEGED-GRANT-CONTAIN, RB-LOCAL-ELEVATION-CONTAIN, RB-CLOUD-PRIVILEGE-CONTAIN]}
+  - {new: [RB-MFA-RECOVERY-CONTAIN, RB-WEB-TRANSFER-CONTAIN, RB-CLOUD-DATA-ACCESS-CONTAIN, RB-FILE-TRANSFER-CONTAIN, RB-MAIL-EXFIL-CONTAIN, RB-REMOTE-SESSION-CONTAIN, RB-PRIVILEGED-TRIGGER-CONTAIN, RB-PRIVILEGED-CONTEXT-CONTAIN, RB-DB-ERROR-EXPOSURE-CONTAIN, RB-SQLI-PROBING-RESTRICT, RB-SQLI-TIMING-CONTAIN, RB-DB-EGRESS-CONTAIN, RB-STORED-PAYLOAD-CONTAIN, RB-BATCH-QUERY-CONTAIN], change: ADD, note: "subtypes with no legacy equivalent (the legacy catalog had only generic block/disable/isolate runbooks for them)"}
+  - {new: RB-INVESTIGATE-MISSING-EVIDENCE, change: ADD, note: "evidence/target-driven investigation fallback (prompt §7)"}
+  - {new: RB-QUARANTINE-FILE-OBJECT,       change: ADD, note: "shared quarantine procedure with the MAL-P2 file-identity gate"}
+
+policies:         # legacy policy seeds -> structured rules (legacy rows stay in Postgres; this file adds a predicate layer)
+  - {old: "POL-A01 (ACTION_COMPLIANCE: high-impact needs IR approval)",   change: KEEP,   note: "approval/priority/assignment/SLA/intake/verification policies (RULE-P*, RULE-A*, RULE-I*, RULE-T*, RULE-V*) are workflow policy, orthogonal to evidence gates — unchanged"}
+  - {old: "POL-A02 (network blocking needs validated IOC)",               change: UPDATE, new: [POL-GL-PROHIBIT-001, POL-BF-001, POL-C2-001, POL-C2-003, POL-SQ-005], note: "'validated IOC' now also needs explicit role (attacker source vs destination) and scope; agent.ip prohibition"}
+  - {old: "POL-A03 (endpoint containment needs endpoint evidence)",       change: UPDATE, new: [POL-MAL-001..005, POL-PS-001..005, POL-PROC-001..004, POL-PE-001..004], note: "'AFFECTED_ENDPOINT + SUSPICIOUS_ACTIVITY_EVIDENCE' replaced by per-subtype evidence + identity-grade process/file targets"}
+  - {old: "ActionKnowledge.requiredEvidence / analystConfirmed (TS)",    change: UPDATE, note: "analyst-confirmed free text (e.g. 'Suspicious authentication or compromise evidence') becomes machine-checkable evidence ids with status/authorization"}
+  - {new: "POL-GL-*, POL-BF-*, POL-AC-*, POL-PH-*, POL-MAL-*, POL-PS-*, POL-SQ-*, POL-C2-*, POL-PROC-*, POL-EXF-*, POL-PE-*", change: ADD}
+
+evidence_requirements:   # TS EvidenceRequirementId -> new evidence model
+  - {old: "VALIDATED_IOC_TARGET / RELATED_EVENT / SUPPORTING_EVIDENCE", change: UPDATE, note: "kept as the record-level check in the runtime builder; the subtype evidence ids in families/*.yaml are the semantic gate"}
+  - {old: "PROCESS_IDENTIFIER ('a process IOC is recorded')", change: UPDATE, new: "targets.process.validated (guid | pid+start_time+image)"}
